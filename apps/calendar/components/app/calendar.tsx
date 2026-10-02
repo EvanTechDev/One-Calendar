@@ -46,7 +46,10 @@ import { useCalendar } from '@/components/providers/calendar-context'
 // Re-exported for the ~35 modules that already import it from here. The
 // declaration has one home now (lib/calendar-types.ts); this used to be a
 // second copy, kept in sync by hand, with a knip suppression hiding it.
-export type { CalendarEvent } from '@/lib/calendar-types'
+// Imported as well as re-exported: `export … from` does not bind the name
+// locally, and this file uses `CalendarEvent` in ~28 signatures.
+import type { CalendarEvent } from '@/lib/calendar-types'
+export type { CalendarEvent }
 import {
   useSettings,
   useEvents,
@@ -2053,6 +2056,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 config={viewConfig}
                 selection={createSelectionRange}
+                scrollContainerRef={calendarRef}
               />
             )}
             {view === 'year' && (
@@ -2063,6 +2067,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 onEventClick={handleEventClick}
                 config={viewConfig}
                 selection={createSelectionRange}
+                scrollContainerRef={calendarRef}
               />
             )}
             {view === 'analytics' && (

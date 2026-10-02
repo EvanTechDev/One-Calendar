@@ -30,7 +30,9 @@ import {
 } from '@/components/app/views/event-layout-engine'
 import { selectionCoversDay } from '@/components/app/views/selection-range'
 import { eventsOnDay, useEventsByDay } from '@/hooks/use-events-by-day'
+import { useScrollLock } from '@/hooks/use-scroll-lock'
 import { useCallback, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { RemoveScroll } from 'react-remove-scroll'
@@ -69,6 +71,12 @@ interface MonthViewProps {
    * sheet (ADR-0019), so the two cannot be told apart.
    */
   onCellClick: (day: Date) => void
+  /**
+   * The scrollable grid wrapper in `calendar.tsx`. Locked while the "more
+   * events" popover is open — `RemoveScroll` alone leaves it scrollable by
+   * keyboard, scrollbar drag and focus.
+   */
+  scrollContainerRef?: RefObject<HTMLElement | null>
   config: ViewConfig
 }
 
@@ -100,6 +108,7 @@ export default function MonthView({
   onEventClick,
   onDayNumberClick,
   onCellClick,
+  scrollContainerRef,
   config,
   selection = null,
 }: MonthViewProps) {
@@ -144,6 +153,8 @@ export default function MonthView({
 
   const [remainingPopover, setRemainingPopover] =
     useState<RemainingPopoverState | null>(null)
+
+  useScrollLock(scrollContainerRef, remainingPopover !== null)
 
   const handleRemainingClick = useCallback(
     (

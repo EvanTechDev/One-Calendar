@@ -11,6 +11,7 @@ import {
 import { translations } from '@zntr/i18n/calendar'
 import type { CalendarEvent } from '../calendar'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { selectionCoversDay } from '@/components/app/views/selection-range'
@@ -20,6 +21,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { RemoveScroll } from 'react-remove-scroll'
 import { isMobileViewport } from '@/lib/mobile-viewport'
 import { isChildOverlayInteraction } from '@/lib/popover-nesting'
+import { useScrollLock } from '@/hooks/use-scroll-lock'
 import {
   DEFAULT_ACCENT,
   EVENT_BG_TO_ACCENT,
@@ -42,6 +44,14 @@ interface YearViewProps {
     clientX?: number,
     clientY?: number,
   ) => void
+  /** Clicking the date in the popover header creates an event on that day. */
+  onDayHeaderClick: (day: Date) => void
+  /**
+   * The scrollable grid wrapper in `calendar.tsx`. Locked while the day popover
+   * is open — `RemoveScroll` alone leaves it scrollable by keyboard, scrollbar
+   * drag and focus.
+   */
+  scrollContainerRef?: RefObject<HTMLElement | null>
   config: ViewConfig
 }
 
@@ -65,6 +75,7 @@ export default function YearView({
   events,
   onEventClick,
   onDayHeaderClick,
+  scrollContainerRef,
   config,
   selection = null,
 }: YearViewProps) {
@@ -73,6 +84,8 @@ export default function YearView({
   const today = useMemo(() => new Date(), [])
   const containerRef = useRef<HTMLDivElement>(null)
   const [popover, setPopover] = useState<PopoverState | null>(null)
+
+  useScrollLock(scrollContainerRef, popover !== null)
 
   const isDark =
     typeof document !== 'undefined' &&
