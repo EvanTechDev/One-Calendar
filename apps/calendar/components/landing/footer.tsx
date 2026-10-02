@@ -76,27 +76,17 @@ export function Footer() {
       <div className="via-border h-px w-full bg-linear-to-r" />
       <div className="overflow-hidden pt-8">
         {/*
-         * Two wordmarks, toggled by the same `dark:` trick the brand mark
-         * uses, rather than one grey that is wrong everywhere.
+         * One wordmark, always white.
          *
-         * It was white, which vanishes against the light theme's background.
-         * Pinning it to the mark's grey fixed that but made a 3558px-wide
-         * slab of grey across the bottom of the page, which is worse than the
-         * bug. The wordmark is the one place the page is allowed to change
-         * colour with the theme: white on dark, ink on light.
+         * `.landing` pins its own dark tokens (`oklch(0.05 0 0)` background)
+         * and never flips with the theme, so the `dark:` pair here was reading
+         * the ink-on-light variant on a near-black page — a 3558px grey slab.
          */}
         <img
           alt="Zentra"
-          className="mx-auto hidden w-full dark:block"
+          className="mx-auto w-full"
           height={627}
           src="/zentra-wordmark.svg"
-          width={3558}
-        />
-        <img
-          alt="Zentra"
-          className="mx-auto w-full dark:hidden"
-          height={627}
-          src="/zentra-wordmark-light.svg"
           width={3558}
         />
       </div>
