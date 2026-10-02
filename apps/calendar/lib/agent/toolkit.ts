@@ -7,8 +7,10 @@
  *
  * Note that this is one path between those two, not one path overall — the
  * REST handler in app/api/events/route.ts implements the same writes
- * independently, and its copy of `encryptMergedFields` has drifted (it handles
- * `participants` and `emailReminder`; this one does not). See AGENTS.md.
+ * independently, because it also owns request validation, category ownership
+ * and invite merging. The parts the two must agree on (field encryption, the
+ * recurrence validators, the override re-stamp) are shared from
+ * lib/event-write.ts rather than copied; see AGENTS.md.
  *
  * A toolkit instance is created per authenticated request and closes over
  * the userId — the agent package never sees user identity.

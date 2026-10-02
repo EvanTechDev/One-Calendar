@@ -25,7 +25,6 @@ import {
   firstZodMessage,
   recurringFieldsSchema,
 } from '@/lib/validation'
-import { RRule } from 'rrule'
 import {
   mergeOverride,
   resolveMasterEditStamp,
@@ -68,6 +67,14 @@ import {
 } from '@/lib/invites/invite-service'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
+  encryptMergedFields,
+  isValidRrule,
+  isValidStamp,
+  remapSeriesOverrideStamps,
+  shiftOverrideStamps,
+  type EventWriteDb,
+} from '@/lib/event-write'
+import {
   commitMeetingForEvent,
   deleteMeetingsForEvents,
   getMeetingsForEvents,
@@ -98,24 +105,6 @@ type EnrichedInvite = {
   inviteExpired: boolean
 }
 
-function isValidRrule(rule: string | undefined): boolean {
-  if (rule === null || rule === undefined) return true
-  try {
-    return typeof RRule.fromString(rule).options.freq === 'number'
-  } catch {
-    return false
-  }
-}
-
-function isValidStamp(stamp: string): boolean {
-  try {
-    parseRfcStamp(stamp)
-    return true
-  } catch {
-    return false
-  }
-}
-
 /**
  * Reject a `categoryId` that does not belong to the caller.
  *
@@ -144,32 +133,6 @@ async function rejectForeignCategory(
       ),
     )
   return !cat
-}
-
-function encryptMergedFields(
-  rowId: string,
-  fields: Record<string, unknown>,
-): Record<string, unknown> {
-  const encrypted: Record<string, unknown> = {}
-  if (fields.title !== undefined)
-    encrypted.title = encryptField(rowId, fields.title as string) ?? ''
-  if (fields.description !== undefined)
-    encrypted.description = encryptField(rowId, fields.description as string)
-  if (fields.location !== undefined)
-    encrypted.location = encryptField(rowId, fields.location as string)
-  if (fields.participants !== undefined)
-    encrypted.participants = encryptJsonField(rowId, fields.participants)
-  if (fields.startDate !== undefined) encrypted.startDate = fields.startDate
-  if (fields.endDate !== undefined) encrypted.endDate = fields.endDate
-  if (fields.isAllDay !== undefined) encrypted.isAllDay = fields.isAllDay
-  if (fields.status !== undefined) encrypted.status = fields.status
-  if (fields.color !== undefined) encrypted.color = fields.color
-  if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
-  if (fields.notificationMinutes !== undefined)
-    encrypted.notificationMinutes = fields.notificationMinutes
-  if (fields.emailReminder !== undefined)
-    encrypted.emailReminder = fields.emailReminder
-  return encrypted
 }
 
 async function invalidateMasterCache(
@@ -207,94 +170,6 @@ async function fetchOverrides(
     .from(calendarEvents)
     .where(eq(calendarEvents.seriesId, seriesId))
   return rows as unknown as EventRow[]
-}
-
-/**
- * Re-stamps a series' single-instance overrides after an "all events" clock
- * shift, WITHOUT moving their stored times. Occurrences are identified by
- * their recurrence stamp, so the stamp must follow the series into the new
- * clock space for the override to keep matching — but a single-edited
- * instance (e.g. a Wednesday moved to 14:00 on its own) keeps its own time.
- * Without the remap the override would no longer match any occurrence and
- * would resurface as an orphan duplicate.
- */
-async function remapOverridesClock(
-  userId: string,
-  masterId: string,
-  clockSource: Date,
-  timeZone?: string,
-  dayDelta = 0,
-): Promise<void> {
-  const overrides = await fetchOverrides(masterId)
-  for (const o of overrides) {
-    if (!o.recurrenceId) continue
-    // A whole-pattern day translation ("all events" moved to another
-    // weekday) moves the override stamps by the same day distance; a pure
-    // clock change keeps their day.
-    const nextStamp =
-      dayDelta !== 0
-        ? translateStampsByDays(
-            [o.recurrenceId],
-            dayDelta,
-            clockSource,
-            timeZone,
-          )![0]
-        : shiftExdates([o.recurrenceId], clockSource, timeZone)![0]
-    await getDb()
-      .update(calendarEvents)
-      .set({
-        recurrenceId: nextStamp,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(calendarEvents.id, o.id), eq(calendarEvents.userId, userId)),
-      )
-  }
-}
-
-/**
- * Moves overrides along with their series by remapping each recurrence stamp
- * to match the new series' generated occurrence slots (clock-based, matching
- * remapOverridesClock). Only the stamp is updated; stored start/end times are
- * untouched so a single-edited instance keeps the time it was edited to.
- * Without the clock remap, overrides would land on slots the new series never
- * generates and resurface as orphan duplicates.
- */
-async function shiftOverridesByDelta(
-  userId: string,
-  ids: string[],
-  clockSource: Date,
-  timeZone?: string,
-  dayDelta = 0,
-): Promise<void> {
-  if (ids.length === 0) return
-  const rows = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, userId)),
-    )
-  for (const row of rows) {
-    if (!row.recurrenceId) continue
-    const newStamp =
-      dayDelta !== 0
-        ? translateStampsByDays(
-            [row.recurrenceId],
-            dayDelta,
-            clockSource,
-            timeZone,
-          )![0]
-        : shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
-    await getDb()
-      .update(calendarEvents)
-      .set({
-        recurrenceId: newStamp,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
-      )
-  }
 }
 
 async function deleteRow(
@@ -347,13 +222,22 @@ async function applySplitPlan(
   userId: string,
   plan: InstanceChangePlan,
   master: EventRow,
-  /**
-   * The organiser's timezone, already resolved by the handler via
-   * `resolveUserTz`. Carried grants are clock-remapped in it, exactly as the
-   * override path remaps override stamps.
-   */
-  timeZone?: string,
+  opts?: {
+    /**
+     * Join this caller's transaction instead of opening one. The call sites that
+     * also re-stamp the moved overrides need the split writes and the re-stamps
+     * to be one unit, and a nested `transaction()` would commit independently.
+     */
+    db?: EventWriteDb
+    /**
+     * The organiser's timezone, already resolved by the handler via
+     * `resolveUserTz`. Carried grants are clock-remapped in it, exactly as the
+     * override path remaps override stamps.
+     */
+    timeZone?: string
+  },
 ): Promise<ReturnType<typeof decryptEvent> | null> {
+  const timeZone = opts?.timeZone
   const split = plan.split!
   const newId = split.newSeries.id
   const fields = encryptMergedFields(newId, split.newSeries.fields)
@@ -361,7 +245,7 @@ async function applySplitPlan(
   // leave the old series untruncated next to the new one (duplicated
   // occurrences) or overrides reparented to a master that never truncated.
   // Cache invalidation stays OUTSIDE the transaction (after commit).
-  const newMaster = await getDb().transaction(async (tx) => {
+  const writeSplit = async (tx: EventWriteDb) => {
     const [inserted] = await tx
       .insert(calendarEvents)
       .values({
@@ -457,7 +341,10 @@ async function applySplitPlan(
     }
 
     return inserted
-  })
+  }
+  const newMaster = opts?.db
+    ? await writeSplit(opts.db)
+    : await getDb().transaction(writeSplit)
 
   await Promise.all([
     invalidateEventCache(
@@ -1312,27 +1199,34 @@ const postHandler = async function POST(request: NextRequest) {
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await getDb()
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, masterRow.id),
-            eq(calendarEvents.userId, user.id),
-          ),
+      // See the master-'all' branch: the master's move and the overrides' re-stamps
+      // commit or roll back together, so a failure can never leave the series
+      // and its overrides disagreeing about where the occurrences are.
+      const [updated] = await getDb().transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+          .returning()
+        await remapSeriesOverrideStamps(
+          tx,
+          user.id,
+          masterRow.id,
+          nextStartDate,
+          timeZone,
+          dayDelta,
         )
-        .returning()
+        return [row]
+      })
       await invalidateEventCache(
         user.id,
         masterRow.startDate.toISOString(),
         masterRow.endDate.toISOString(),
-      )
-      await remapOverridesClock(
-        user.id,
-        masterRow.id,
-        nextStartDate,
-        timeZone,
-        dayDelta,
       )
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
@@ -1364,18 +1258,29 @@ const postHandler = async function POST(request: NextRequest) {
       ) {
         newSeries.id = body.split_id
       }
-      const newMaster = await applySplitPlan(user.id, plan, masterRow, timeZone)
+      // The tail's new series and the moved overrides' re-stamps are one unit:
+      // an override stamped for the old series' clock matches no occurrence of
+      // the new one and resurfaces as an orphan duplicate.
+      const newMaster = await getDb().transaction(async (tx) => {
+        const created = await applySplitPlan(user.id, plan, masterRow, {
+          db: tx,
+          timeZone,
+        })
+        if (!created) return null
+        await shiftOverrideStamps(
+          tx,
+          user.id,
+          plan.split!.moveOverrideIds,
+          new Date(newSeries.startDate),
+          timeZone,
+        )
+        return created
+      })
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      await shiftOverridesByDelta(
-        user.id,
-        plan.split.moveOverrideIds,
-        new Date(newSeries.startDate),
-        timeZone,
-      )
       const seriesEvents = await loadSeriesView(
         user,
         [newMaster.id, masterRow.id],
@@ -1603,31 +1508,39 @@ const postHandler = async function POST(request: NextRequest) {
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await getDb()
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, seriesRow.id),
-            eq(calendarEvents.userId, user.id),
-          ),
-        )
-        .returning()
+      // The master's move and its overrides' re-stamps are one unit. Overrides
+      // are matched to occurrences by stamp, so a master that moved while some
+      // overrides kept the old stamps leaves those overrides pointing at slots
+      // the series no longer generates — orphan duplicates, exactly what the
+      // remap exists to prevent.
+      const [updated] = await getDb().transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, seriesRow.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+          .returning()
+        if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+          await remapSeriesOverrideStamps(
+            tx,
+            user.id,
+            seriesRow.id,
+            nextStartDate,
+            timeZone,
+            dayDelta,
+          )
+        }
+        return [row]
+      })
       await invalidateEventCache(
         user.id,
         seriesRow.startDate.toISOString(),
         seriesRow.endDate.toISOString(),
       )
-      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
-        const overrides = await fetchOverrides(seriesRow.id)
-        await shiftOverridesByDelta(
-          user.id,
-          overrides.map((o) => o.id),
-          nextStartDate,
-          timeZone,
-          dayDelta,
-        )
-      }
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -1663,18 +1576,26 @@ const postHandler = async function POST(request: NextRequest) {
       ) {
         newSeries.id = body.split_id
       }
-      const newMaster = await applySplitPlan(user.id, plan, seriesRow, timeZone)
+      const newMaster = await getDb().transaction(async (tx) => {
+        const created = await applySplitPlan(user.id, plan, seriesRow, {
+          db: tx,
+          timeZone,
+        })
+        if (!created) return null
+        await shiftOverrideStamps(
+          tx,
+          user.id,
+          plan.split!.moveOverrideIds,
+          new Date(newSeries.startDate),
+          timeZone,
+        )
+        return created
+      })
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      await shiftOverridesByDelta(
-        user.id,
-        plan.split.moveOverrideIds,
-        new Date(newSeries.startDate),
-        timeZone,
-      )
       const seriesEvents = await loadSeriesView(
         user,
         [newMaster.id, seriesRow.id],
@@ -1975,7 +1896,9 @@ const deleteHandler = async function DELETE(request: NextRequest) {
       now: new Date(),
       timeZone,
     })
-    const newMaster = await applySplitPlan(user.id, plan, masterRow, timeZone)
+    const newMaster = await applySplitPlan(user.id, plan, masterRow, {
+      timeZone,
+    })
     if (newMaster) {
       // Through deleteRow, never a bare delete: the split just re-pointed the
       // Series' Meeting at this new master (ADR-0019), and the meeting cascade
@@ -2027,7 +1950,9 @@ const deleteHandler = async function DELETE(request: NextRequest) {
     })
 
     if (plan.split) {
-      const newMaster = await applySplitPlan(user.id, plan, seriesRow, timeZone)
+      const newMaster = await applySplitPlan(user.id, plan, seriesRow, {
+        timeZone,
+      })
       if (newMaster) {
         // See above: deleteRow carries the meeting cascade.
         await deleteRow(user.id, newMaster as unknown as EventRow)

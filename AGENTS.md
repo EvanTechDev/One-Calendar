@@ -127,13 +127,22 @@ and `needsApproval: true` on the two destructive tools — against the
 toolkit (`apps/calendar/lib/agent/toolkit.ts`, built from the SAME
 `lib/mcp/*-tools.ts` functions the MCP server uses, so the palette and an
 external MCP client share cache invalidation and reminder reconciliation).
-It does **not** share a path with the REST handler in `app/api/events/route.ts`,
-which reimplements the same writes — including `encryptMergedFields`,
-`isValidRrule` and `isValidStamp`. Those copies have already drifted: the
-route's version handles `participants` and `emailReminder` and the MCP one does
-not, so `updateEvent` through the agent silently drops participant changes.
-Treat the two as a known split, not a shared abstraction. Tests: `tests/agent/`
-(node env).
+
+There are still two event write paths — this one and the REST handler in
+`app/api/events/route.ts` — and they stay separate: the REST path owns request
+validation, category ownership and invite merging, which the MCP path has no
+need for. What they must NOT do is each carry a private copy of the parts that
+have to agree. Those live in `apps/calendar/lib/event-write.ts`
+(`encryptMergedFields`, `isValidRrule`, `isValidStamp`, `shiftOverrideStamps`,
+`remapSeriesOverrideStamps`) and both sides import them.
+
+That module exists because the copies had already drifted: the route's
+`encryptMergedFields` handled `participants` and `emailReminder` and the MCP one
+did not, so `updateEvent` through the agent silently dropped participant
+changes while the web UI applied them. Nothing caught it — the merge is a plain
+`Record<string, unknown>` spread into a drizzle `.set()`, so a forgotten field
+is a silently dropped write, not a type error. Add a field there, never at a
+call site. Tests: `tests/agent/` (node env).
 
 `packages/agent/src/tools.ts` deliberately lowers through a type-erased
 shape: `tool()`'s overloads cannot be satisfied through a generic wrapper

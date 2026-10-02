@@ -40,7 +40,13 @@ import {
 } from '@/lib/recurrence/engine'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import { normalizeEmails as normalizeEmailsShared } from '@/lib/email'
-import { RRule } from 'rrule'
+import {
+  encryptMergedFields,
+  isValidRrule,
+  isValidStamp,
+  remapSeriesOverrideStamps,
+  shiftOverrideStamps,
+} from '@/lib/event-write'
 import crypto from 'crypto'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
@@ -474,24 +480,6 @@ export function matchesParticipantFilter(
 // Recurring events helpers
 // ---------------------------------------------------------------------------
 
-function isValidRrule(rule: string | null): boolean {
-  if (rule === null) return true
-  try {
-    return typeof RRule.fromString(rule).options.freq === 'number'
-  } catch {
-    return false
-  }
-}
-
-function isValidStamp(stamp: string): boolean {
-  try {
-    parseRfcStamp(stamp)
-    return true
-  } catch {
-    return false
-  }
-}
-
 function validateRecurringArguments(
   rrule: string | null,
   exdate: string[] | null | undefined,
@@ -541,28 +529,6 @@ function mcpFieldsToEventRow(data: {
   if (data.notification_minutes !== undefined)
     fields.notificationMinutes = data.notification_minutes
   return fields
-}
-
-function encryptMergedFields(
-  rowId: string,
-  fields: Record<string, unknown>,
-): Record<string, unknown> {
-  const encrypted: Record<string, unknown> = {}
-  if (fields.title !== undefined)
-    encrypted.title = encryptField(rowId, fields.title as string) ?? ''
-  if (fields.description !== undefined)
-    encrypted.description = encryptField(rowId, fields.description as string)
-  if (fields.location !== undefined)
-    encrypted.location = encryptField(rowId, fields.location as string)
-  if (fields.startDate !== undefined) encrypted.startDate = fields.startDate
-  if (fields.endDate !== undefined) encrypted.endDate = fields.endDate
-  if (fields.isAllDay !== undefined) encrypted.isAllDay = fields.isAllDay
-  if (fields.status !== undefined) encrypted.status = fields.status
-  if (fields.color !== undefined) encrypted.color = fields.color
-  if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
-  if (fields.notificationMinutes !== undefined)
-    encrypted.notificationMinutes = fields.notificationMinutes
-  return encrypted
 }
 
 /**
@@ -637,44 +603,6 @@ async function fetchSeriesOverrides(
     .from(calendarEvents)
     .where(eq(calendarEvents.seriesId, seriesId))
   return rows.map(decryptEvent)
-}
-
-async function shiftMovedOverrides(
-  db: Db,
-  userId: string,
-  ids: string[],
-  clockSource: Date,
-  timeZone?: string,
-  dayDelta = 0,
-): Promise<void> {
-  if (ids.length === 0) return
-  const rows = await db
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, userId)),
-    )
-  for (const row of rows) {
-    if (!row.recurrenceId) continue
-    const newStamp =
-      dayDelta !== 0
-        ? translateStampsByDays(
-            [row.recurrenceId],
-            dayDelta,
-            clockSource,
-            timeZone,
-          )![0]
-        : shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
-    await db
-      .update(calendarEvents)
-      .set({
-        recurrenceId: newStamp,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
-      )
-  }
 }
 
 async function applySplitPlan(
@@ -1325,27 +1253,33 @@ async function updateEventImpl(
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await db
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, masterRow.id),
-            eq(calendarEvents.userId, userId),
-          ),
-        )
-        .returning()
-      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
-        const seriesOverrides = await fetchSeriesOverrides(db, masterRow.id)
-        await shiftMovedOverrides(
-          db,
-          userId,
-          seriesOverrides.map((o) => o.id),
-          nextStartDate,
-          timeZone,
-          dayDelta,
-        )
-      }
+      // The master's move and its overrides' re-stamps are one unit, exactly as in
+      // the REST handler: overrides are matched to occurrences by stamp, so a
+      // master that moved while some overrides kept the old stamps leaves those
+      // overrides pointing at slots the series no longer generates.
+      const [updated] = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, userId),
+            ),
+          )
+          .returning()
+        if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+          await remapSeriesOverrideStamps(
+            tx,
+            userId,
+            masterRow.id,
+            nextStartDate,
+            timeZone,
+            dayDelta,
+          )
+        }
+        return [row]
+      })
       return decryptEvent(updated)
     }
 
@@ -1371,7 +1305,7 @@ async function updateEventImpl(
           timeZone,
         )
         if (!created) return null
-        await shiftMovedOverrides(
+        await shiftOverrideStamps(
           tx,
           userId,
           plan.split!.moveOverrideIds,
@@ -1486,27 +1420,29 @@ async function updateEventImpl(
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await db
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, seriesRow.id),
-            eq(calendarEvents.userId, userId),
-          ),
-        )
-        .returning()
-      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
-        const seriesOverrides = await fetchSeriesOverrides(db, seriesRow.id)
-        await shiftMovedOverrides(
-          db,
-          userId,
-          seriesOverrides.map((o) => o.id),
-          nextStartDate,
-          timeZone,
-          dayDelta,
-        )
-      }
+      const [updated] = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, seriesRow.id),
+              eq(calendarEvents.userId, userId),
+            ),
+          )
+          .returning()
+        if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+          await remapSeriesOverrideStamps(
+            tx,
+            userId,
+            seriesRow.id,
+            nextStartDate,
+            timeZone,
+            dayDelta,
+          )
+        }
+        return [row]
+      })
       return decryptEvent(updated)
     }
 
@@ -1539,7 +1475,7 @@ async function updateEventImpl(
           timeZone,
         )
         if (!created) return null
-        await shiftMovedOverrides(
+        await shiftOverrideStamps(
           tx,
           userId,
           plan.split!.moveOverrideIds,
