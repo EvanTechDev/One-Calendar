@@ -64,6 +64,7 @@ export default function YearView({
   date,
   events,
   onEventClick,
+  onDayHeaderClick,
   config,
   selection = null,
 }: YearViewProps) {
@@ -264,13 +265,29 @@ export default function YearView({
                   (el "Σεπτεμβρίου", lt "rugsėjo mėn.") and this popover is a
                   fixed `w-72`, so the close button was pushed off the edge.
                 */}
-                <div className="min-w-0 truncate text-sm font-medium">
+                <button
+                  type="button"
+                  tabIndex={0}
+                  aria-label={format(popover.day, 'PPPP')}
+                  className="min-w-0 cursor-pointer truncate rounded-sm text-left text-sm font-medium hover:underline focus-visible:ring-1 focus-visible:ring-current"
+                  onClick={() => {
+                    closePopover()
+                    onDayHeaderClick(popover.day)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      closePopover()
+                      onDayHeaderClick(popover.day)
+                    }
+                  }}
+                >
                   {popover.day.toLocaleDateString(config.language.code, {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                   })}
-                </div>
+                </button>
                 <button
                   type="button"
                   onClick={closePopover}
@@ -341,13 +358,26 @@ export default function YearView({
           <SheetContent side="bottom" className="max-h-[60dvh] gap-0 p-0">
             <SheetHeader className="border-b p-4">
               <SheetTitle>
-                {daySheet
-                  ? daySheet.day.toLocaleDateString(config.language.code, {
+                {daySheet ? (
+                  <button
+                    type="button"
+                    aria-label={format(daySheet.day, 'PPPP')}
+                    className="cursor-pointer text-left hover:underline"
+                    onClick={() => {
+                      const day = daySheet.day
+                      setDaySheet(null)
+                      onDayHeaderClick(day)
+                    }}
+                  >
+                    {daySheet.day.toLocaleDateString(config.language.code, {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
-                    })
-                  : ''}
+                    })}
+                  </button>
+                ) : (
+                  ''
+                )}
               </SheetTitle>
             </SheetHeader>
             <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-4">

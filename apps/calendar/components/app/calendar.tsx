@@ -2059,6 +2059,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               <YearView
                 date={date}
                 events={filteredEvents}
+                onDayHeaderClick={handleDayLabelClick}
                 onEventClick={handleEventClick}
                 config={viewConfig}
                 selection={createSelectionRange}
