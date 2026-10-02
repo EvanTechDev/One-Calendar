@@ -4,7 +4,6 @@ import TimeAnalyticsComponent from '@/components/app/analytics/time-analytics'
 import type { CalendarEvent } from '@/components/app/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
-import { useState, useEffect } from 'react'
 import { Button } from '@zntr/ui/button'
 import { ArrowLeft } from 'lucide-react'
 
@@ -21,27 +20,6 @@ export default function AnalyticsView({
   const { calendars } = useCalendar()
   const [language] = useLanguage()
   const t = translations[language]
-  const [_forceUpdate, _setForceUpdate] = useState(0)
-
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'preferred-language') {
-        _setForceUpdate((prev) => prev + 1)
-      }
-    }
-
-    const handleLanguageChange = () => {
-      _setForceUpdate((prev) => prev + 1)
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('languagechange', handleLanguageChange)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('languagechange', handleLanguageChange)
-    }
-  }, [])
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-4 md:p-8">
@@ -54,11 +32,13 @@ export default function AnalyticsView({
           {t.back}
         </Button>
       </div>
-      <TimeAnalyticsComponent
-        events={events}
-        calendars={calendars}
-        key={`time-analytics-${language}-${_forceUpdate}`}
-      />
+      {/* No language in the key: TimeAnalyticsComponent has its own
+          useLanguage() subscription, so a language change re-renders it. The
+          key used to carry a counter bumped by a hand-rolled pair of window
+          listeners here, which forced a full remount — discarding the
+          analysis the child had just computed — to achieve what a
+          subscription already did. */}
+      <TimeAnalyticsComponent events={events} calendars={calendars} />
     </div>
   )
 }

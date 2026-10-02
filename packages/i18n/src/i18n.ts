@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import {
   translations as localeTranslations,
   type Language,
 } from './calendar/locales'
 
-const LANGUAGE_STORAGE_KEY = 'preferred-language'
+export const LANGUAGE_STORAGE_KEY = 'preferred-language'
 
 export const supportedLanguages = Object.keys(localeTranslations) as Language[]
 
@@ -96,15 +96,25 @@ const zhLanguages: Language[] = ['zh-CN', 'zh-HK', 'zh-TW']
 export const isZhLanguage = (language: Language) =>
   zhLanguages.includes(language)
 
-export const getStoredLanguage = async (): Promise<Language> => {
-  let storedLanguage: string | null = null
+function readStoredLanguage(): string | null {
   try {
-    storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    return localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  } catch {
+    // localStorage not available
+    return null
+  }
+}
+
+function writeStoredLanguage(language: Language): void {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
   } catch {
     // localStorage not available
   }
-  return normalizeLanguage(storedLanguage) ?? detectSystemLanguage()
 }
+
+export const getStoredLanguage = async (): Promise<Language> =>
+  normalizeLanguage(readStoredLanguage()) ?? detectSystemLanguage()
 
 function detectSystemLanguage(): Language {
   if (typeof window === 'undefined') {
@@ -115,69 +125,100 @@ function detectSystemLanguage(): Language {
   return normalizeLanguage(browserLang) ?? 'en'
 }
 
+/**
+ * One module-level store behind every {@link useLanguage} call.
+ *
+ * This used to be 26 copies of the same value. Each call site owned a
+ * `useState`, an effect that read localStorage on mount, and two window
+ * listeners — so the app held 26 independent states that could disagree, 52
+ * live listeners, and one language change fanned out to 26 separate
+ * `setState` calls. A 27th copy was hand-rolled in analytics-view.tsx to
+ * listen for the same events.
+ *
+ * Now there is one value, and the two window listeners are attached only
+ * while something is actually subscribed. `useSyncExternalStore` reads it, so
+ * every call site is unchanged at the call and the change propagates in one
+ * pass rather than 26.
+ */
+let currentLanguage: Language | null = null
+const listeners = new Set<() => void>()
+
+function readLanguageSnapshot(): Language {
+  // Lazily resolved rather than at module scope: this module is imported by
+  // server components too, and localStorage does not exist there.
+  if (currentLanguage === null) {
+    currentLanguage =
+      normalizeLanguage(readStoredLanguage()) ?? detectSystemLanguage()
+  }
+  return currentLanguage
+}
+
+/**
+ * What the server rendered with. The stored language is only knowable in the
+ * browser, so a non-English session still paints English and settles on the
+ * stored language once React re-checks the snapshot after hydration. React
+ * drives that re-check itself and reports no mismatch, which is strictly
+ * better than the effect this replaced, where the same swap happened as an
+ * unannounced post-mount state update.
+ */
+const SERVER_LANGUAGE: Language = 'en'
+
+function publish(language: Language): void {
+  if (currentLanguage === language) return
+  currentLanguage = language
+  for (const listener of listeners) listener()
+}
+
+function attach(): void {
+  // Cross-tab: `storage` only fires in the OTHER tab, which is exactly why it
+  // is a separate signal rather than redundant with the store.
+  window.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key !== LANGUAGE_STORAGE_KEY) return
+    const normalized = normalizeLanguage(e.newValue)
+    if (normalized) publish(normalized)
+  })
+
+  // Inbound for callers that cannot reach the store — the onboarding flow
+  // dispatches this directly. Publishing here also keeps them from having to
+  // know that persistence lives in this module.
+  window.addEventListener('languagechange', (e: Event) => {
+    const normalized = normalizeLanguage(
+      (e as CustomEvent<{ language?: string }>).detail?.language,
+    )
+    if (!normalized) return
+    writeStoredLanguage(normalized)
+    publish(normalized)
+  })
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  // Attached once and left for the lifetime of the module. Tearing them down
+  // when the last subscriber leaves would silently drop a `languagechange`
+  // dispatched by a screen that renders no translated copy, and one pair of
+  // listeners is not worth losing a signal over.
+  if (listeners.size === 1) attach()
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
 export function useLanguage(): [Language, (lang: Language) => void] {
-  const [language, setLanguageState] = useState<Language>('en')
+  const language = useSyncExternalStore(
+    subscribe,
+    readLanguageSnapshot,
+    () => SERVER_LANGUAGE,
+  )
 
-  useEffect(() => {
-    let active = true
-    const loadLanguage = () => {
-      let storedLanguage: string | null = null
-      try {
-        storedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-      } catch {
-        // localStorage not available
-      }
-      if (!active) return
-      const normalized =
-        normalizeLanguage(storedLanguage) ?? detectSystemLanguage()
-      setLanguageState(normalized)
-    }
-
-    loadLanguage()
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === LANGUAGE_STORAGE_KEY) {
-        const normalized = normalizeLanguage(e.newValue)
-        if (normalized) {
-          setLanguageState(normalized)
-        }
-      }
-    }
-
-    const handleCustomLanguageChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ language?: string }>
-      const normalized = normalizeLanguage(customEvent.detail?.language)
-      if (normalized) {
-        setLanguageState(normalized)
-        try {
-          localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized)
-        } catch {
-          // localStorage not available
-        }
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('languagechange', handleCustomLanguageChange)
-    return () => {
-      active = false
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('languagechange', handleCustomLanguageChange)
-    }
-  }, [])
-
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang)
-    try {
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang)
-    } catch {
-      // localStorage not available
-    }
-
+  const setLanguage = useCallback((lang: Language) => {
+    writeStoredLanguage(lang)
+    publish(lang)
+    // Announced for the benefit of anything outside the store that is still
+    // listening. Our own handler ignores the language it just published.
     window.dispatchEvent(
       new CustomEvent('languagechange', { detail: { language: lang } }),
     )
-  }
+  }, [])
 
   return [language, setLanguage]
 }

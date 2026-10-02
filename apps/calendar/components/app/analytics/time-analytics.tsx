@@ -42,7 +42,6 @@ import { translations, useLanguage } from '@zntr/i18n/calendar'
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
   calendars?: CalendarCategory[]
-  key?: string
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

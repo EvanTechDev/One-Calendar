@@ -19,7 +19,11 @@ import {
   type SettingsData,
 } from '@/lib/api-client'
 import { toast } from 'sonner'
-import { translations, useLanguage } from '@zntr/i18n/calendar'
+import {
+  LANGUAGE_STORAGE_KEY,
+  translations,
+  useLanguage,
+} from '@zntr/i18n/calendar'
 import { removeById, upsertById, upsertBy } from '@/lib/array-mutations'
 import {
   adaptRuleToStart,
@@ -226,7 +230,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const migrated: string[] = []
 
       const settingKeyMap: Record<string, string> = {
-        'preferred-language': 'language',
+        [LANGUAGE_STORAGE_KEY]: 'language',
         'first-day-of-week': 'firstDayOfWeek',
         timezone: 'timezone',
         'default-view': 'defaultView',
@@ -238,8 +242,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         transform?: (v: string) => unknown
       }> = [
         {
-          key: 'preferred-language',
-          value: localStorage.getItem('preferred-language'),
+          key: LANGUAGE_STORAGE_KEY,
+          value: localStorage.getItem(LANGUAGE_STORAGE_KEY),
         },
         {
           key: 'first-day-of-week',
