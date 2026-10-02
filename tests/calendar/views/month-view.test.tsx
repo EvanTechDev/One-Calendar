@@ -51,6 +51,7 @@ function renderMonthView({
   onDayNumberClick = vi.fn(),
   onCellClick = vi.fn(),
   config,
+  selection = null,
 }: {
   date?: Date
   events?: CalendarEvent[]
@@ -58,6 +59,7 @@ function renderMonthView({
   onDayNumberClick?: (day: Date) => void
   onCellClick?: (day: Date) => void
   config?: ViewConfig
+  selection?: { start: Date; end: Date } | null
 } = {}) {
   return render(
     <MonthView
@@ -67,7 +69,30 @@ function renderMonthView({
       onDayNumberClick={onDayNumberClick}
       onCellClick={onCellClick}
       config={config ?? makeConfig()}
+      selection={selection}
     />,
+  )
+}
+
+/** Cells carrying the draft-selection outline, in DOM (grid) order. */
+function selectedCells(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>('[data-day-cell]'),
+  ).filter((cell) => cell.className.includes('border-cal-accent/40'))
+}
+
+/** Tailwind abbreviates the sides: `border-r-0`, not `border-right-0`. */
+const SIDECLASS = { top: 't', right: 'r', bottom: 'b', left: 'l' } as const
+
+/**
+ * Which of the four edges a cell's outline paints.
+ *
+ * The outline drops a side with `border-<side>-0`, so an edge is drawn exactly
+ * when that class is absent.
+ */
+function edges(cell: HTMLElement): string[] {
+  return (['top', 'right', 'bottom', 'left'] as const).filter(
+    (side) => !cell.className.includes(`border-${SIDECLASS[side]}-0`),
   )
 }
 
@@ -414,5 +439,115 @@ describe('MonthView cell geometry', () => {
       '7px',
       '7px',
     ])
+  })
+})
+
+describe('MonthView draft-selection outline', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark')
+    vi.clearAllMocks()
+  })
+
+  // Jan 2025 starts on a Wednesday and weeks start Sunday, so Jan 12..18 is
+  // the third row and Jan 15/16 are its 4th and 5th columns.
+  const thirdRow = 14
+
+  /** A range covering the given days of Jan 2025, whole-day. */
+  const range = (from: number, to: number) => ({
+    start: new Date(2025, 0, from, 0, 0),
+    end: new Date(2025, 0, to, 23, 59),
+  })
+
+  it('paints every side of a lone selected day', () => {
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: range(15, 15),
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(1)
+    expect(edges(cells[0])).toEqual(['top', 'right', 'bottom', 'left'])
+  })
+
+  it('paints the edge two adjacent selected days share only once', () => {
+    // A `ring` painted all four sides of BOTH cells, so the edge between them
+    // was drawn twice and read as a doubled border — the bug this replaced.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: range(15, 16),
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(2)
+    // Each drops only its interior side, so that edge exists once.
+    expect(edges(cells[0])).toEqual(['top', 'bottom', 'left'])
+    expect(edges(cells[1])).toEqual(['top', 'right', 'bottom'])
+    // And neither one declares the other's edge twice.
+    expect(cells[0].className).toContain('border-r-0')
+    expect(cells[1].className).toContain('border-l-0')
+    expect(cells[0].className).not.toContain('border-l-0')
+    expect(cells[1].className).not.toContain('border-r-0')
+  })
+
+  it('paints only the outer edges of a run spanning several days', () => {
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: range(15, 17),
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(3)
+    expect(edges(cells[0])).toEqual(['top', 'bottom', 'left'])
+    expect(edges(cells[1])).toEqual(['top', 'bottom'])
+    expect(edges(cells[2])).toEqual(['top', 'right', 'bottom'])
+  })
+
+  it('paints both row-end edges when the run crosses a week row', () => {
+    // Jan 18 is the last column of its row and Jan 19 the first of the next, so
+    // they share no edge — each keeps the edge at its end of the grid. Treating
+    // them as date-adjacent neighbours would drop both and open a gap.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: range(18, 19),
+    })
+    const cells = selectedCells(container)
+    const all = container.querySelectorAll('[data-day-cell]')
+    expect(cells).toHaveLength(2)
+    expect(cells[0]).toBe(all[thirdRow + 6])
+    expect(cells[1]).toBe(all[thirdRow + 7])
+    expect(edges(cells[0])).toContain('right')
+    expect(edges(cells[1])).toContain('left')
+  })
+
+  it('shares the horizontal edge between rows rather than doubling it', () => {
+    // The row above/below is ±7 days and the two cells are vertically
+    // adjacent, so the edge between them is one line, not two.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: range(15, 22),
+    })
+    const cells = selectedCells(container)
+    expect(cells).toHaveLength(8)
+    expect(edges(cells[0])).toContain('top')
+    expect(edges(cells[0])).not.toContain('bottom')
+    expect(edges(cells[7])).toContain('bottom')
+    expect(edges(cells[7])).not.toContain('top')
+  })
+
+  it('leaves every cell unoutlined when nothing is selected', () => {
+    const { container } = renderMonthView({ date: new Date(2025, 0, 15) })
+    expect(selectedCells(container)).toHaveLength(0)
+  })
+
+  it('authors no css for the outline, so there is no colour to get wrong', () => {
+    // The two previous attempts both wrote a `box-shadow` string by hand and
+    // both shipped a cell with NO visible outline: once by naming a token
+    // `@theme inline` never emits, once with a bare `color-mix()` that
+    // invalidates the declaration. Every property must come from a utility
+    // Tailwind compiles, which guards its `color-mix()` behind `@supports`.
+    const { container } = renderMonthView({
+      date: new Date(2025, 0, 15),
+      selection: range(15, 16),
+    })
+    for (const cell of selectedCells(container)) {
+      expect(cell.getAttribute('style')).toBeNull()
+    }
   })
 })

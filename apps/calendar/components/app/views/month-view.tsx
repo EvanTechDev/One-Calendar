@@ -116,6 +116,47 @@ const DAY_NUMBER_GAP = 7
  */
 const ALL_DAY_BAND_TRAILING_GAP = ALL_DAY_BAR_GAP
 
+/**
+ * Border utilities for the draft-selection outline of one cell.
+ *
+ * The outline is built from Tailwind's own `border` / `border-*-0` utilities so
+ * that NO css is authored here. That is the whole point: a hand-written
+ * `box-shadow` string in this file got the colour wrong twice — once naming a
+ * token `@theme inline` never emits, once with a bare `color-mix()` that
+ * invalidates the declaration on browsers which cannot parse it — and both
+ * failures were indistinguishable from each other, a cell with no outline at
+ * all. `border-cal-accent/40` is compiled by Tailwind, which guards its
+ * `color-mix()` behind `@supports` and falls back to the plain token.
+ *
+ * A `ring` cannot express the one thing this needs: a ring paints all four
+ * sides of every element it is on, so the edge two adjacent selected days share
+ * was painted by both of them and read as a doubled border. Borders are
+ * per-side, so each cell can drop the sides its neighbour already draws.
+ *
+ * Neighbours are GEOMETRIC, not merely chronological. Weeks are contiguous, so
+ * the day above/below is ±7 days; but the day to the left shares an edge only
+ * when it is in the same row, and the day to the right only when it is not the
+ * last column. A range crossing a row boundary keeps both row-end edges —
+ * treating those two days as date-adjacent would erase both and open a gap.
+ */
+function selectionBorderClasses(
+  day: Date,
+  dayIndex: number,
+  selection: { start: Date; end: Date },
+): string {
+  const adjacent = (offset: number) =>
+    selectionCoversDay(selection, addDays(day, offset))
+  return cn(
+    'border border-cal-accent/40',
+    // Drop a side exactly when the neighbour on it is selected, because that
+    // neighbour is the one drawing the edge they share.
+    dayIndex < 6 && adjacent(1) && 'border-r-0',
+    dayIndex > 0 && adjacent(-1) && 'border-l-0',
+    adjacent(-7) && 'border-t-0',
+    adjacent(7) && 'border-b-0',
+  )
+}
+
 export default function MonthView({
   date,
   events,
@@ -276,6 +317,12 @@ export default function MonthView({
                 )
                 const dotEvents = [...bannerEvents, ...timedEvents]
 
+                // The cell's own right border is the grid divider, which the
+                // outline replaces on a selected day.
+                const outline = isCreateTarget
+                  ? selectionBorderClasses(day, dayIndex, selection)
+                  : null
+
                 // All-day lanes over THIS day column. barLanesByColumn answers
                 // -1 for a column no bar reaches, which reads as a negative
                 // reserve — floored to 0 here so the band arithmetic below is
@@ -291,9 +338,9 @@ export default function MonthView({
                       : {})}
                     className={cn(
                       'min-h-[100px] p-2 max-md:min-h-[72px] max-md:p-1',
-                      dayIndex < 6 && 'border-r',
-                      isCreateTarget &&
-                        'bg-cal-accent/5 ring-1 ring-inset ring-cal-accent/40',
+                      !outline && dayIndex < 6 && 'border-r',
+                      outline,
+                      outline && 'bg-cal-accent/5',
                     )}
                     // Mobile Form: the whole cell is the tap target for the
                     // bottom sheet. Guarded by matchMedia so a desktop click
