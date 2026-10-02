@@ -4,6 +4,10 @@ import {
   DEFAULT_COUNTDOWN_ICON,
   isCountdownIconName,
 } from '@/lib/countdown-icons'
+import {
+  CALENDAR_COLOR_OPTIONS,
+  type CalendarColor,
+} from '@/lib/calendar-colors'
 
 // The calendar client stores colors as Tailwind classes, not raw hex:
 // events use arbitrary values ("bg-[#E6F6FD]"), categories/countdowns use the
@@ -126,6 +130,61 @@ export const importRecurringFieldsShape = {
   seriesId: z.string().min(1).max(100).nullish(),
   recurrenceId: stampString.nullish(),
 }
+
+/**
+ * The settings blob.
+ *
+ * This is the one place settings are described, and `SettingsData` is inferred
+ * from it rather than written beside it. Those two were separate before: the
+ * route merged whatever the request body contained into a JSON column, and the
+ * TypeScript interface only ever described what readers happened to assume.
+ * Any key could be stored — `app/api/account/onboarding-complete` stores one
+ * that is not on the interface at all — and a reader that trusted the type was
+ * trusting a claim nobody checked.
+ *
+ * Unknown keys are dropped rather than rejected. A newer client may know a
+ * setting this build does not, and answering 400 would make that a broken
+ * app; storing it is what the column was for.
+ */
+export const settingsSchema = z.object({
+  language: z.string().max(35).optional(),
+  // The onboarding dialog holds its answers in a `Record<string, string>`, so
+  // this arrives as '1' there and as 1 from the settings dialog. Both are
+  // accepted. The route used to call `Number()` on it unconditionally, which
+  // turned 'abc' into NaN and stored that as null.
+  firstDayOfWeek: z
+    .union([z.number(), z.string().regex(/^\d{1,2}$/)])
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(6))
+    .optional(),
+  timezone: z.string().max(100).optional(),
+  defaultView: z.enum(['day', 'week', 'month', 'year', 'four-day']).optional(),
+  timeFormat: z.enum(['24h', '12h']).optional(),
+  theme: z.enum(['light', 'dark', 'system']).optional(),
+  calendarColor: z
+    .enum(
+      CALENDAR_COLOR_OPTIONS.map((o) => o.value) as [
+        CalendarColor,
+        ...CalendarColor[],
+      ],
+    )
+    .optional(),
+  enableShortcuts: z.boolean().optional(),
+  skipLanding: z.boolean().optional(),
+  // Not user-settable; set by POST /api/account/onboarding-complete and read
+  // by app/page.tsx to decide whether to show onboarding.
+  onboardingCompleted: z.boolean().optional(),
+})
+
+/**
+ * Settings as they arrive from a client, where the whole body may be anything.
+ * Parsed before it is merged over the stored blob.
+ */
+export const settingsPatchSchema = z
+  .record(z.string(), z.unknown())
+  .pipe(settingsSchema)
+
+export type SettingsData = z.infer<typeof settingsSchema>
 
 export const categorySchema = z.object({
   id: z.string().min(1).max(100).optional(),

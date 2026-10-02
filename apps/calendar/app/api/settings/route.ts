@@ -3,21 +3,11 @@ import { getDb } from '@/lib/drizzle/client'
 import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { getAuthedUser } from '@/lib/api-helpers'
-import type { CalendarColor } from '@/lib/calendar-colors'
+import { settingsPatchSchema, type SettingsData } from '@/lib/validation'
 
 export const runtime = 'nodejs'
 
-export type SettingsData = {
-  language?: string
-  firstDayOfWeek?: number
-  timezone?: string
-  defaultView?: 'day' | 'week' | 'month' | 'year' | 'four-day'
-  timeFormat?: '24h' | '12h'
-  theme?: 'light' | 'dark' | 'system'
-  calendarColor?: CalendarColor
-  enableShortcuts?: boolean
-  skipLanding?: boolean
-}
+export type { SettingsData }
 
 export const GET = async function GET() {
   const user = await getAuthedUser()
@@ -39,34 +29,24 @@ export const PUT = async function PUT(request: NextRequest) {
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body: SettingsData = await request.json()
-
-  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
-    return NextResponse.json({ error: 'Invalid settings' }, { status: 400 })
-  }
-
-  const keys = Object.keys(body)
-  if (keys.length > 200) {
-    return NextResponse.json({ error: 'Too many settings' }, { status: 400 })
-  }
-  for (const key of keys) {
-    if (key.length > 100) {
-      return NextResponse.json(
-        { error: 'Invalid settings key' },
-        { status: 400 },
-      )
-    }
-  }
-
-  let serialized: string
+  let raw: unknown
   try {
-    serialized = JSON.stringify(body)
+    raw = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid settings' }, { status: 400 })
   }
-  if (serialized.length > 32_000) {
-    return NextResponse.json({ error: 'Settings too large' }, { status: 400 })
+
+  // Validated against the real shape rather than checked for size. The old
+  // guards bounded the request but never bounded its contents, so any key
+  // could be written into the JSON column and every reader had to assume the
+  // value was the one its TypeScript said it was. Unknown keys are dropped
+  // here rather than rejected: a newer client may know a setting this build
+  // does not.
+  const parsed = settingsPatchSchema.safeParse(raw)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid settings' }, { status: 400 })
   }
+  const body = parsed.data
 
   const existingSettings = await getDb()
     .select()
