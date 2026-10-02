@@ -660,11 +660,16 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     return () => globalThis.clearTimeout(timeoutId)
   }, [])
 
-  // Cmd/Ctrl+K opens the AI palette from anywhere, including inside inputs —
-  // that is the universal command-palette convention, so it lives outside
-  // the plain-key shortcut handler below (which correctly defers to inputs).
+  // Cmd/Ctrl+K opens the command palette from anywhere, including inside
+  // inputs — that is the universal command-palette convention, so it lives
+  // outside the plain-key shortcut handler below (which correctly defers to
+  // inputs).
+  //
+  // Not gated on AI_ENABLED: the palette is how this app is driven without a
+  // mouse (views, periods, go-to-date, create), and that has to work on a
+  // deployment with no model configured. The palette hides its own AI rows
+  // there; only the sparkle button in the header stays AI-only.
   useEffect(() => {
-    if (!AI_ENABLED) return
     const handlePaletteKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
@@ -2414,6 +2419,19 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               },
               openAnalytics: () => handleNavigateToView('analytics'),
               openSettings: () => handleNavigateToView('settings'),
+              previousPeriod: handlePrevious,
+              nextPeriod: handleNext,
+              goToDate: handleDateSelect,
+              // The '/' shortcut already focuses it by placeholder lookup;
+              // do the same here so the palette row works without a
+              // keyboard handler behind it.
+              focusSearch: () => {
+                const searchInput = document.querySelector(
+                  'input[placeholder="' + t.searchEvents + '"]',
+                ) as HTMLInputElement | null
+                searchInput?.focus()
+                searchInput?.select()
+              },
             }}
           />
         )}

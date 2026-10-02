@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildCalendarTools } from '@zntr/agent/tools'
+import { buildCalendarTools, READ_ONLY_TOOLS } from '@zntr/agent/tools'
 import type {
   AgentCreateEventInput,
+  AgentEventPage,
   AgentEventSummary,
   AgentListEventsInput,
   CalendarToolkit,
@@ -34,7 +35,13 @@ function makeFakeToolkit(overrides: Partial<CalendarToolkit> = {}): {
   const toolkit: CalendarToolkit = {
     async listEvents(input: AgentListEventsInput) {
       calls.push({ method: 'listEvents', input })
-      return events
+      return {
+        events,
+        page: input.page ?? 1,
+        limit: input.limit ?? 50,
+        total: events.length,
+        totalPages: 1,
+      }
     },
     async createEvent(input: AgentCreateEventInput) {
       calls.push({ method: 'createEvent', input })
@@ -157,6 +164,29 @@ describe('buildCalendarTools', () => {
     ])
   })
 
+  it('readOnly drops every write tool, by name, out of the same definitions', () => {
+    const { toolkit } = makeFakeToolkit()
+    const full = buildCalendarTools(toolkit)
+    const readOnly = buildCalendarTools(toolkit, { readOnly: true })
+    expect(Object.keys(readOnly).sort()).toEqual([
+      'find_free_time',
+      'get_schedule_summary',
+      'list_bookmarks',
+      'list_categories',
+      'list_countdowns',
+      'list_events',
+    ])
+    // Read-only is a SUBSET of the same build: every name it keeps is a name
+    // the full set has, so a rename cannot silently empty search mode.
+    expect(Object.keys(readOnly).sort()).toEqual(
+      Object.keys(full)
+        .filter((name) => READ_ONLY_TOOLS.includes(name as never))
+        .sort(),
+    )
+    expect(readOnly).not.toHaveProperty('create_event')
+    expect(readOnly).not.toHaveProperty('delete_event')
+  })
+
   it('every schema is gateway-safe: no required, no enum, no bounds, extra props allowed', () => {
     // Groq 400s the WHOLE stream on any schema violation, so the published
     // JSON schemas must be unable to fail: models forget required fields
@@ -190,6 +220,52 @@ describe('buildCalendarTools', () => {
         ).toBeUndefined()
       }
     }
+  })
+
+  it('every READ_ONLY_TOOLS name is a real tool, and none of them writes', () => {
+    const { toolkit } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit) as unknown as Record<
+      string,
+      { needsApproval?: boolean }
+    >
+    for (const name of READ_ONLY_TOOLS) {
+      expect(tools[name], `${name} must exist`).toBeDefined()
+      expect(
+        tools[name].needsApproval,
+        `${name} must not ask for approval to change anything`,
+      ).toBeUndefined()
+    }
+  })
+
+  it('list_events forwards page and participants, and clamps a nonsense page', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.list_events, {
+      preset: 'today',
+      page: 3,
+      participants: { emails: ['alex@example.com'], mode: 'all' },
+    })
+    const input = calls.find((c) => c.method === 'listEvents')!
+      .input as AgentListEventsInput
+    expect(input.page).toBe(3)
+    expect(input.participants).toEqual({
+      emails: ['alex@example.com'],
+      mode: 'all',
+    })
+
+    await exec(tools.list_events, { page: 0 })
+    const second = calls.filter((c) => c.method === 'listEvents')[1]
+      .input as AgentListEventsInput
+    expect(second.page).toBe(1)
+  })
+
+  it('list_events leaves participants out entirely when the model omits it', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.list_events, { preset: 'today' })
+    const input = calls.find((c) => c.method === 'listEvents')!
+      .input as AgentListEventsInput
+    expect('participants' in input).toBe(false)
   })
 
   it('create_event reports missing required fields as an error result (the "missing properties: end" bug)', async () => {
@@ -422,6 +498,57 @@ describe('buildCalendarTools', () => {
         start: '2026-09-07T09:30:00.000Z',
         end: '2026-09-07T14:00:00.000Z',
       }),
+    ])
+  })
+
+  it('find_free_time pages a long window instead of trusting the first 50 rows', async () => {
+    const page = (
+      events: AgentEventSummary[],
+      over: Partial<AgentEventPage> = {},
+    ): AgentEventPage => ({
+      events,
+      page: 1,
+      limit: 50,
+      total: events.length,
+      totalPages: 1,
+      ...over,
+    })
+    const standup = {
+      id: 'evt-1',
+      title: 'Standup',
+      startDate: '2026-09-07T09:00:00.000Z',
+      endDate: '2026-09-07T09:30:00.000Z',
+      isAllDay: false,
+      status: 'confirmed',
+    }
+    const hidden = {
+      id: 'evt-99',
+      title: 'Budget review',
+      startDate: '2026-09-07T10:00:00.000Z',
+      endDate: '2026-09-07T11:00:00.000Z',
+      isAllDay: false,
+      status: 'confirmed',
+    }
+    const { toolkit } = makeFakeToolkit({
+      listEvents: async (input) =>
+        input.page === 2
+          ? page([hidden], { page: 2, total: 2, totalPages: 2 })
+          : page([standup], { total: 2, totalPages: 2 }),
+    })
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.find_free_time, {
+      start: '2026-09-07T08:00:00.000Z',
+      end: '2026-09-07T14:00:00.000Z',
+      durationMinutes: 60,
+      workdayStartHour: 8,
+      workdayEndHour: 14,
+    })) as { slots: Array<{ start: string; end: string }> }
+
+    // The 10:00 meeting only exists on page 2. Without paging it is invisible
+    // and the tool would offer 09:30–10:30 as free.
+    expect(result.slots).toEqual([
+      expect.objectContaining({ start: '2026-09-07T08:00:00.000Z' }),
+      expect.objectContaining({ start: '2026-09-07T11:00:00.000Z' }),
     ])
   })
 

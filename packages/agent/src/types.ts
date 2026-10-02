@@ -37,7 +37,36 @@ export interface AgentListEventsInput {
   /** Free-text search over title/description/location. */
   query?: string
   categoryIds?: string[]
+  /**
+   * Participants filter. `emails` matches against the event's participant
+   * list and its invitations; `exists` matches events that have (or have no)
+   * participants at all. Named-only matching ("with Alex") belongs in the
+   * model layer — it does not know which address Alex uses.
+   */
+  participants?: AgentParticipantFilter
+  /** 1-based page number. The host caps a page at 50 rows. */
+  page?: number
   limit?: number
+}
+
+export interface AgentParticipantFilter {
+  emails?: string[]
+  /** `all` requires every listed address; `any` (default) requires one. */
+  mode?: 'any' | 'all'
+  exists?: boolean
+}
+
+/**
+ * One page of results plus the paging state. The totals are part of the
+ * contract: a model that cannot see them cannot tell "that was everything"
+ * from "there is more", so it either stops early or silently truncates.
+ */
+export interface AgentEventPage {
+  events: AgentEventSummary[]
+  page: number
+  limit: number
+  total: number
+  totalPages: number
 }
 
 export interface AgentCreateEventInput {
@@ -117,7 +146,7 @@ export interface AgentCountdown {
  * recover instead of the request failing.
  */
 export interface CalendarToolkit {
-  listEvents(input: AgentListEventsInput): Promise<AgentEventSummary[]>
+  listEvents(input: AgentListEventsInput): Promise<AgentEventPage>
   createEvent(input: AgentCreateEventInput): Promise<AgentEventSummary>
   updateEvent(input: AgentUpdateEventInput): Promise<AgentEventSummary | null>
   deleteEvent(input: {
