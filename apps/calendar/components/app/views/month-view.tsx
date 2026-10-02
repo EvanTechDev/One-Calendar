@@ -276,30 +276,19 @@ export default function MonthView({
                       onCellClick(day)
                     }}
                   >
+                    {/* The strip is a layout box, not a target. Making it the
+                        button meant the whole cell width above the events
+                        jumped to the day view, so aiming for empty space near
+                        the number took you somewhere else instead of opening
+                        the editor. Only the number itself navigates; the rest
+                        of the strip is cell space like anywhere else. */}
                     <div
                       className="flex items-center max-md:justify-center"
                       style={{ height: DAY_NUMBER_BLOCK_HEIGHT - 12 + 'px' }}
-                      role="button"
-                      tabIndex={0}
-                      // The cell's own text is just "15", so a screen reader
-                      // needs the full date to name the control.
-                      aria-label={format(day, 'PPPP')}
-                      onClick={(e) => {
-                        // Otherwise the click also reaches the cell and opens
-                        // the editor for the same day.
-                        e.stopPropagation()
-                        onDayNumberClick(day)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          onDayNumberClick(day)
-                        }
-                      }}
                     >
                       <span
                         className={cn(
+                          'cursor-pointer',
                           // leading-6 gives every day the same 24px line box the
                           // today chip occupies (h-6), so the number always
                           // ends at the block's bottom edge. Without it a bare
@@ -313,6 +302,24 @@ export default function MonthView({
                             isSameDay(day, today) &&
                             'inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-cal-today px-1 text-cal-today-foreground',
                         )}
+                        role="button"
+                        tabIndex={0}
+                        // The span's own text is just "15", so a screen reader
+                        // needs the full date to name the control.
+                        aria-label={format(day, 'PPPP')}
+                        onClick={(e) => {
+                          // Otherwise the click also reaches the cell and
+                          // opens the editor for the same day.
+                          e.stopPropagation()
+                          onDayNumberClick(day)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            onDayNumberClick(day)
+                          }
+                        }}
                       >
                         {format(day, 'd')}
                       </span>

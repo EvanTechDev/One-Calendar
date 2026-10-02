@@ -82,6 +82,19 @@ describe('month view gestures', () => {
     expect(onDayNumberClick).not.toHaveBeenCalled()
   })
 
+  it('only treats the number itself as the target, not the strip above it', () => {
+    const { onDayNumberClick, onCellClick, container } = renderMonth()
+
+    const cell = container.querySelector('[data-day-cell]') as HTMLElement
+    // The strip is a full-cell-width box above the events. Clicking to the
+    // LEFT of the number, inside that strip, is empty space — it has to create
+    // rather than navigate, or aiming for a gap takes you to the day view.
+    fireEvent.click(cell, { clientX: 4, clientY: 6 })
+
+    expect(onDayNumberClick).not.toHaveBeenCalled()
+    expect(onCellClick).toHaveBeenCalledTimes(1)
+  })
+
   it('reports the day the cell belongs to, not the month anchor', () => {
     const { onCellClick, container } = renderMonth()
 
