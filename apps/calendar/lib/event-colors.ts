@@ -41,6 +41,7 @@ export type ColorLabelKey =
   | 'colorBlue'
   | 'colorGreen'
   | 'colorAmber'
+  | 'colorYellow'
   | 'colorRed'
   | 'colorPurple'
   | 'colorPink'
