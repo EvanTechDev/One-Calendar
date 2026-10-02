@@ -16,7 +16,7 @@ import {
   COUNTDOWN_ICON_GROUPS,
   COUNTDOWN_ICON_NAMES,
 } from '@/lib/countdown-icons'
-import { InvalidEventQueryError, ParticipantError } from './errors'
+import { clientErrorMessage, isClientError } from './errors'
 import { withToolAudit } from './tool-audit'
 
 const SCOPE_EVENTS_READ = 'events:read'
@@ -142,16 +142,32 @@ function respondCliError(err: unknown): {
   content: { type: 'text'; text: string }[]
   isError: true
 } {
-  const message =
-    err instanceof InvalidEventQueryError || err instanceof ParticipantError
-      ? err.message
-      : 'Invalid request'
   return {
     content: [
-      { type: 'text' as const, text: JSON.stringify({ error: message }) },
+      {
+        type: 'text' as const,
+        text: JSON.stringify({ error: clientErrorMessage(err) }),
+      },
     ],
     isError: true as const,
   }
+}
+
+/**
+ * The one place a tool decides what to do about a failure.
+ *
+ * Both branches matter. A client error keeps its message, because "no events
+ * match that range" is the answer the caller asked for. Anything else goes to
+ * `respondError`, which logs it and says nothing — flattening a bug into a
+ * polite "Invalid request" would hide it, and handing a caller the text of an
+ * unexpected failure would leak internals.
+ *
+ * Every tool uses this, so whether an error is the caller's fault is decided
+ * once by {@link isClientError} rather than thirty times by a name each
+ * registration remembered to check.
+ */
+function respondToolError(err: unknown) {
+  return isClientError(err) ? respondCliError(err) : respondError(err)
 }
 
 function respondMessage(msg: string) {
@@ -281,8 +297,7 @@ time did I spend on X", or wants trends.`,
         const { getAnalyticsSummary } = await import('./analytics-tools')
         return respond(await getAnalyticsSummary(userId, params))
       } catch (err) {
-        if (err instanceof InvalidEventQueryError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -301,8 +316,7 @@ a 24-bucket start-hour histogram, a 7x24 punch-card matrix, and the densest
         const { getTimeDistribution } = await import('./analytics-tools')
         return respond(await getTimeDistribution(userId, params))
       } catch (err) {
-        if (err instanceof InvalidEventQueryError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -334,8 +348,7 @@ schedule looking" or generating a weekly review.`,
         const { getAnalyticsInsights } = await import('./analytics-tools')
         return respond(await getAnalyticsInsights(userId, params))
       } catch (err) {
-        if (err instanceof InvalidEventQueryError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -450,8 +463,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
           }),
         )
       } catch (err) {
-        if (err instanceof InvalidEventQueryError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -475,7 +487,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         if (!result) return respondMessage('Event not found')
         return respond(result)
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -523,8 +535,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         return respond(await createEvent(userId, params))
       } catch (err) {
         // A reminder-quota refusal is user-facing, not an internal error.
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -581,8 +592,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       } catch (err) {
         // A reminder-quota refusal is a user-facing 4xx, not an internal error;
         // respondError would flatten it to 'Internal server error'.
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -611,7 +621,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         await deleteEvent(userId, params.event_id, params.apply_to)
         return respondMessage('Event deleted')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -659,8 +669,7 @@ function registerEventParticipantTools(server: LegacyToolServer): void {
           ),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -681,8 +690,7 @@ function registerEventParticipantTools(server: LegacyToolServer): void {
           await resendEventInvite(userId, params.event_id, params.email),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -718,8 +726,7 @@ function registerEventParticipantTools(server: LegacyToolServer): void {
           ),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -737,8 +744,7 @@ function registerEventParticipantTools(server: LegacyToolServer): void {
         const { listEventParticipants } = await import('./participant-tools')
         return respond(await listEventParticipants(userId, params.event_id))
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -772,8 +778,7 @@ function registerEventParticipantTools(server: LegacyToolServer): void {
           ),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -794,8 +799,7 @@ function registerEventParticipantTools(server: LegacyToolServer): void {
           await removeEventFromMyCalendar(userEmail, params.invite_token),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -818,8 +822,7 @@ function registerEventParticipantTools(server: LegacyToolServer): void {
         const { listMyEventInvites } = await import('./participant-tools')
         return respond(await listMyEventInvites(userEmail, params.status))
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -837,7 +840,7 @@ function registerCategoryTools(server: LegacyToolServer): void {
         const { listCategories } = await import('./category-tools')
         return respond(await listCategories(userId))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -857,7 +860,7 @@ function registerCategoryTools(server: LegacyToolServer): void {
         const { createCategory } = await import('./category-tools')
         return respond(await createCategory(userId, params))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -881,7 +884,7 @@ function registerCategoryTools(server: LegacyToolServer): void {
         if (!result) return respondMessage('Category not found')
         return respond(result)
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -898,7 +901,7 @@ function registerCategoryTools(server: LegacyToolServer): void {
         await deleteCategory(userId, params.category_id)
         return respondMessage('Category deleted')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -946,7 +949,7 @@ grouped by occasion. Any other value is rejected.`,
           ),
         )
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -970,7 +973,7 @@ grouped by occasion. Any other value is rejected.`,
         const { createCountdown } = await import('./countdown-tools')
         return respond(await createCountdown(userId, params))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -998,7 +1001,7 @@ grouped by occasion. Any other value is rejected.`,
         if (!result) return respondMessage('Countdown not found')
         return respond(result)
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1015,7 +1018,7 @@ grouped by occasion. Any other value is rejected.`,
         await deleteCountdown(userId, params.countdown_id)
         return respondMessage('Countdown deleted')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1033,7 +1036,7 @@ function registerSettingsTools(server: LegacyToolServer): void {
         const { getSettings } = await import('./settings-tools')
         return respond(await getSettings(userId))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1060,7 +1063,7 @@ function registerSettingsTools(server: LegacyToolServer): void {
         await updateSettings(userId, params)
         return respondMessage('Settings updated')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1078,7 +1081,7 @@ function registerProfileTool(server: LegacyToolServer): void {
         const { getProfile } = await import('./profile-tools')
         return respond(await getProfile(userId))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1098,8 +1101,7 @@ function registerBookmarkTools(server: LegacyToolServer): void {
           await bookmarkEvent(userId, { eventId: params.event_id }),
         )
       } catch (err) {
-        if (err instanceof InvalidEventQueryError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1125,7 +1127,7 @@ function registerBookmarkTools(server: LegacyToolServer): void {
           }),
         )
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1143,7 +1145,7 @@ function registerBookmarkTools(server: LegacyToolServer): void {
           await removeBookmark(userId, { eventId: params.event_id }),
         )
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
