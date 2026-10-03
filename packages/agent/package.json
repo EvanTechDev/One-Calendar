@@ -7,6 +7,8 @@
     ".": "./src/index.ts",
     "./tools": "./src/tools.ts",
     "./parse": "./src/parse.ts",
+    "./search": "./src/search.ts",
+    "./search-ranking": "./src/search-ranking.ts",
     "./scheduling": "./src/scheduling.ts",
     "./instructions": "./src/instructions.ts",
     "./types": "./src/types.ts"

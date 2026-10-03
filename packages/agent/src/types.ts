@@ -36,6 +36,11 @@ export interface AgentListEventsInput {
   end?: string
   /** Free-text search over title/description/location. */
   query?: string
+  /** AND across concepts, OR among synonyms; applied before pagination. */
+  semanticSearch?: {
+    concepts: string[][]
+    order: 'relevance' | 'latest' | 'next'
+  }
   categoryIds?: string[]
   /**
    * Participants filter. `emails` matches against the event's participant

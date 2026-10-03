@@ -65,7 +65,7 @@ import {
 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 // Type-only, so the client bundle never pulls in the agent's tool schemas.
-import type { Relaxation, SearchQuery } from '@zntr/agent'
+import type { SearchQuery } from '@zntr/agent/search'
 import { parseDateQuery } from '@/lib/parse-date-query'
 
 /**
@@ -95,21 +95,6 @@ const WRITE_TOOLS = new Set([
   'tool-create_countdown',
   'tool-delete_countdown',
 ])
-
-/** Exactly the keys this file reads, so a rename cannot slip through. */
-type TranslationKey = keyof (typeof translations)['en']
-
-/**
- * Which filter the endpoint gave up to find rows, in the user's words rather
- * than the plan's. See buildSearchPlan for why this is ordered the way it is;
- * this is only the sentence that says so.
- */
-const RELAXED: Record<Relaxation, TranslationKey> = {
-  names: 'aiSearchDropNames',
-  categories: 'aiSearchDropCategories',
-  range: 'aiSearchDropRange',
-  keyword: 'aiSearchDropKeyword',
-}
 
 export interface PaletteActions {
   setView: (view: 'day' | 'week' | 'month' | 'year' | 'four-day') => void
@@ -158,10 +143,6 @@ type SearchState =
        * question, and every wrong answer reads as the AI making things up.
        */
       scope: SearchScope
-      /** The user's question named no date, so a window was assumed. */
-      defaultedRange: boolean
-      /** Filters dropped / phrases loosened to find these rows. */
-      relaxed: Relaxation[]
     }
   | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' }
 
@@ -173,8 +154,6 @@ interface SearchResponseBody {
   totalPages: number
   hasMore: boolean
   range?: SearchScope
-  defaultedRange?: boolean
-  relaxed?: Relaxation[]
 }
 
 interface AiCommandPaletteProps {
@@ -289,6 +268,7 @@ export function AiCommandPalette({
               : { text, previousQuery: ready?.query },
           ),
         })
+        if (controller.signal.aborted) return
         if (!response.ok) {
           setSearch({
             status: 'error',
@@ -302,6 +282,7 @@ export function AiCommandPalette({
           return
         }
         const body = (await response.json()) as SearchResponseBody
+        if (controller.signal.aborted) return
         setSearch((prev) =>
           page > 1 && prev.status === 'ready'
             ? {
@@ -315,8 +296,6 @@ export function AiCommandPalette({
                 // Paging replays the same query, so the scope cannot change;
                 // keeping the first page's values avoids a flash of blanks.
                 scope: body.range ?? prev.scope,
-                defaultedRange: body.defaultedRange ?? prev.defaultedRange,
-                relaxed: body.relaxed ?? prev.relaxed,
               }
             : {
                 status: 'ready',
@@ -327,8 +306,6 @@ export function AiCommandPalette({
                 hasMore: body.hasMore,
                 text,
                 scope: body.range ?? {},
-                defaultedRange: body.defaultedRange ?? false,
-                relaxed: body.relaxed ?? [],
               },
         )
       } catch {
@@ -336,7 +313,10 @@ export function AiCommandPalette({
         if (controller.signal.aborted) return
         setSearch({ status: 'error', kind: 'failed' })
       } finally {
-        if (inFlight.current === controller) inFlight.current = null
+        if (inFlight.current === controller) {
+          inFlight.current = null
+          setLoadingMore(false)
+        }
       }
     },
     [cancelSearch, input, search],
@@ -448,17 +428,13 @@ export function AiCommandPalette({
     if (start && end) chips.push(`${day(start)} – ${day(end)}`)
     else if (start) chips.push(`${t.aiSearchFrom} ${day(start)}`)
     else if (end) chips.push(`${t.aiSearchUntil} ${day(end)}`)
-    if (search.query.query) {
-      chips.push(`${t.aiSearchWords}: ${search.query.query}`)
+    if (search.query.concepts.length) {
+      chips.push(
+        `${t.aiSearchWords}: ${search.query.concepts.map((group) => `(${group.join(' / ')})`).join(' + ')}`,
+      )
     }
     if (search.query.names?.length) {
       chips.push(`${t.aiSearchWith} ${search.query.names.join(', ')}`)
-    }
-    if (search.defaultedRange) chips.push(t.aiSearchDefaultRange)
-    if (search.relaxed.length > 0) {
-      chips.push(
-        `${t.aiSearchRelaxed}: ${search.relaxed.map((r) => RELAXED[r]).join(' · ')}`,
-      )
     }
     return chips
   }, [search, language, t])

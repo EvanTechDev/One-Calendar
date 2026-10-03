@@ -53,6 +53,7 @@ import {
   shiftOverrideStamps,
 } from '@/lib/event-write'
 import crypto from 'crypto'
+import { rankSearchEvents } from '@zntr/agent/search-ranking'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
 const EVENT_STATUSES: EventStatus[] = ['confirmed', 'tentative', 'cancelled']
@@ -102,6 +103,10 @@ const EVENT_FIELD_ALIASES: Record<string, string> = {
 }
 
 export interface ListEventsParams {
+  semanticSearch?: {
+    concepts: string[][]
+    order: 'relevance' | 'latest' | 'next'
+  }
   // Compatible legacy parameters.
   start_date?: string
   end_date?: string
@@ -919,7 +924,24 @@ export async function listEvents(
         : (e as ReturnType<typeof decryptEvent>),
     )
   } else {
-    events = plainRows
+    // An unbounded semantic lookup searches stored series too. Expanding an
+    // infinite rule without a window would invent an arbitrary cutoff; its
+    // master remains a navigable result instead of disappearing entirely.
+    events = params.semanticSearch ? [...plainRows, ...recurring] : plainRows
+  }
+
+  // Recurrence expansion reads masters separately from the SQL-filtered rows.
+  // Reapply hard constraints to those results before semantic scoring.
+  if (params.semanticSearch) {
+    events = events.filter(
+      (event) =>
+        (!timeRange.start || new Date(event.endDate) > timeRange.start) &&
+        (!timeRange.end || new Date(event.startDate) < timeRange.end) &&
+        (!params.filter?.category_ids?.length ||
+          (event.categoryId !== null &&
+            event.categoryId !== undefined &&
+            params.filter.category_ids.includes(event.categoryId))),
+    )
   }
 
   // Merge invite emails into participants so returned events show the full
@@ -1014,6 +1036,14 @@ export async function listEvents(
     if (aTime !== bTime) return (aTime - bTime) * directionFactor
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   })
+
+  if (params.semanticSearch) {
+    events = rankSearchEvents(
+      events,
+      params.semanticSearch.concepts,
+      params.semanticSearch.order,
+    )
+  }
 
   const total = events.length
   const offset = (page - 1) * limit
