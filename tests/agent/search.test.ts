@@ -31,12 +31,8 @@ describe('search compilation never silently removes a constraint', () => {
     expect(schema.additionalProperties).toBe(false)
     expect(schema.required).toEqual(Object.keys(empty))
   })
-  it('allows no extracted keywords because AI still judges the original question', () => {
-    expect(compile({})).toEqual({
-      concepts: [],
-      order: 'relevance',
-      browse: false,
-    })
+  it('rejects an empty search unless an explicit browse or constraint exists', () => {
+    expect(() => compile({})).toThrow('No search constraints')
     expect(compile({ browse: true }).concepts).toEqual([])
   })
   it('has no implicit time window for a topical search', () => {

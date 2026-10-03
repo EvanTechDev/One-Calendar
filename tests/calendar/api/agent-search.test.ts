@@ -45,7 +45,7 @@ function seed(id: string, title = id, extra = {}) {
   })
 }
 const plan: RawSearchQuery = {
-  concepts: [['旅游']],
+  concepts: [['旅游', 'travel', 'trip', 'flight', 'airport transfer']],
   preset: null,
   start: null,
   end: null,
@@ -62,25 +62,9 @@ function post(body: object) {
     }),
   )
 }
-// This fake verifies transport/coverage, not whether a real model understands a query.
-function model(accepted: string[], query = plan) {
-  const seen: Record<string, unknown>[] = []
-  vi.mocked(generateObject).mockImplementation(async (options: any) => {
-    if (options.schema === searchQuerySchema) return { object: query } as never
-    const batch = JSON.parse(options.prompt)
-    seen.push(...batch)
-    return {
-      object: {
-        judgments: batch.map((e: { id: string }) => ({
-          id: e.id,
-          relevant: accepted.includes(e.id),
-          score: accepted.includes(e.id) ? 90 : 0,
-          evidence: accepted.includes(e.id) ? 'Fixture evidence' : 'Unrelated',
-        })),
-      },
-    } as never
-  })
-  return seen
+// Compiler fixture only: matching and pagination use the real application code.
+function model(query = plan) {
+  vi.mocked(generateObject).mockResolvedValue({ object: query } as never)
 }
 beforeEach(() => {
   fake.reset()
@@ -98,7 +82,19 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('search route: complete candidate scan and persisted AI decisions', () => {
+describe('search route: one compilation, complete local retrieval', () => {
+  it('returns provider 429 without scheduling retries or hiding it as 502', async () => {
+    vi.mocked(generateObject).mockRejectedValueOnce({
+      statusCode: 429,
+      responseHeaders: { 'retry-after': '42' },
+      message: 'Provider quota exceeded',
+    })
+    const response = await post({ text: '旅行' })
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe('42')
+    expect(generateObject).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(generateObject).mock.calls[0][0].maxRetries).toBe(0)
+  })
   it('logs arrival and early rejection without exposing the question', async () => {
     vi.stubEnv('GROQ_API_KEY', '')
     const response = await post({ text: 'private question' })
@@ -119,7 +115,7 @@ describe('search route: complete candidate scan and persisted AI decisions', () 
     )
     expect(generateObject).not.toHaveBeenCalled()
   })
-  it('sends zero-overlap candidates and every field to AI, including after 200 rows', async () => {
+  it('finds matches after 200 rows with exactly one AI call and no event payloads', async () => {
     for (let i = 0; i < 205; i++) seed(`a-${i}`, 'Unrelated')
     seed('flight', 'Flight to Tokyo', { categoryId: 'travel' })
     seed('transfer', 'Go to Airport in Shanghai', {
@@ -128,18 +124,19 @@ describe('search route: complete candidate scan and persisted AI decisions', () 
       participants: [{ name: 'Alex' }],
     })
     seed('private', 'Flight to Tokyo', { userId: 'other' })
-    const seen = model(['flight', 'transfer'])
+    model()
     const response = await post({ text: '查找上次去日本东京旅游' })
     expect(response.status).toBe(200)
     const body = await response.json()
-    expect(seen).toHaveLength(207)
-    expect(seen.find((e) => e.id === 'flight')?.category).toBe('Travel')
-    expect(seen.find((e) => e.id === 'transfer')).toMatchObject({
-      location: 'PVG',
-      description: 'Transfer before flight to Tokyo',
-      participants: [{ name: 'Alex' }],
-    })
     expect(body.results.map((e: any) => e.id)).toEqual(['flight', 'transfer'])
+    expect(generateObject).toHaveBeenCalledTimes(1)
+    const options = vi.mocked(generateObject).mock.calls[0][0]
+    expect(options.schema).toBe(searchQuerySchema)
+    expect(options.maxRetries).toBe(0)
+    expect(options.prompt).toBe('查找上次去日本东京旅游')
+    expect(JSON.stringify(options)).not.toContain(
+      'Transfer before flight to Tokyo',
+    )
     expect(console.info).toHaveBeenCalledWith(
       '[agent-search]',
       expect.objectContaining({
@@ -147,41 +144,35 @@ describe('search route: complete candidate scan and persisted AI decisions', () 
         candidates: 207,
       }),
     )
-    const completed = vi
-      .mocked(console.info)
-      .mock.calls.map(([, data]) => data)
-      .filter((data) => data.stage === 'judge-batch-completed')
-    expect(completed).toHaveLength(11)
-    expect(new Set(completed.map((data) => data.batch)).size).toBe(11)
-    expect(completed.every((data) => data.durationMs >= 0)).toBe(true)
     expect(console.info).toHaveBeenLastCalledWith(
       '[agent-search]',
       expect.objectContaining({ stage: 'finished', status: 200 }),
     )
   })
-  it('keeps user/time/category boundaries before AI and includes unbounded series', async () => {
+  it('keeps time boundaries and includes unbounded series', async () => {
     seed('series', 'Flight to Tokyo', { rrule: 'FREQ=MONTHLY;COUNT=4' })
     seed('outside', 'Trip', {
       startDate: new Date('2027-01-01'),
       endDate: new Date('2027-01-02'),
     })
-    const seen = model(['series'], {
+    model({
       ...plan,
       end: '2026-12-31T00:00:00Z',
     } as typeof plan)
-    expect((await post({ text: '过去的旅行' })).status).toBe(200)
-    expect(seen.some((e) => e.id === 'outside')).toBe(false)
-    const unbounded = model(['series'])
-    await post({ text: '所有旅行' })
-    expect(unbounded.some((e) => e.id === 'series')).toBe(true)
+    const bounded = await (await post({ text: '过去的旅行' })).json()
+    expect(bounded.results.some((e: any) => e.id === 'outside')).toBe(false)
+    model()
+    const unbounded = await (await post({ text: '所有旅行' })).json()
+    expect(unbounded.results.some((e: any) => e.id === 'series')).toBe(true)
   })
   it('freezes ranked decisions across pages without another AI call', async () => {
     const ids = Array.from({ length: 56 }, (_, i) => `event-${i}`)
-    ids.forEach((id) => seed(id))
-    model(ids)
+    ids.forEach((id) => seed(id, 'Travel'))
+    model()
     const first = await (await post({ text: '旅行' })).json()
     expect(first.results).toHaveLength(50)
     const calls = vi.mocked(generateObject).mock.calls.length
+    expect(calls).toBe(1)
     vi.stubEnv('GROQ_API_KEY', '')
     const response = await post({ page: 2, searchToken: first.searchToken })
     expect(response.status).toBe(200)
@@ -204,54 +195,111 @@ describe('search route: complete candidate scan and persisted AI decisions', () 
       (await post({ page: 2, searchToken: first.searchToken })).status,
     ).toBe(400)
   })
-  it('keeps the original question in follow-up adjudication', async () => {
+  it('keeps the complete previous query when compiling a follow-up', async () => {
     seed('coffee', 'Cafe')
-    model(['coffee'])
+    model({ ...plan, concepts: [['咖啡', 'coffee', 'cafe']] })
     const first = await (await post({ text: '找喝咖啡的日程' })).json()
     await post({ text: '只要上个月', previousToken: first.searchToken })
     const systems = vi
       .mocked(generateObject)
       .mock.calls.map(([o]: any) => o.system)
-    expect(systems.at(-1)).toContain('找喝咖啡的日程')
-    expect(systems.at(-1)).toContain('只要上个月')
+    expect(systems.at(-1)).toContain(JSON.stringify(first.query))
+    expect(vi.mocked(generateObject).mock.calls.at(-1)?.[0].prompt).toBe(
+      '只要上个月',
+    )
+    expect(generateObject).toHaveBeenCalledTimes(2)
   })
-  it('rejects a missing batch instead of reporting an incomplete search as success', async () => {
-    for (let i = 0; i < 60; i++) seed(`flight-${i}`, 'Flight to Tokyo')
-    let siblingSignal: AbortSignal | undefined
-    vi.mocked(generateObject)
-      .mockResolvedValueOnce({ object: plan } as never)
-      .mockResolvedValueOnce({ object: { judgments: [] } } as never)
-      .mockImplementationOnce(async ({ abortSignal }) => {
-        siblingSignal = abortSignal
-        return new Promise((_, reject) => {
-          abortSignal!.addEventListener(
-            'abort',
-            () => reject(abortSignal!.reason),
-            {
-              once: true,
-            },
-          )
-        })
-      })
-    expect((await post({ text: '旅行' })).status).toBe(502)
-    expect(siblingSignal?.aborted).toBe(true)
-    // Compiler + two in-flight batches; the queued third batch is never sent.
+  it('returns empty without asking AI again or dropping constraints', async () => {
+    seed('noise', 'Unrelated')
+    model()
+    expect((await (await post({ text: '旅行' })).json()).results).toEqual([])
+    expect(generateObject).toHaveBeenCalledTimes(1)
+  })
+  it('requires Tokyo and travel across fields, including category and description', async () => {
+    seed('flight', 'Flight to Tokyo')
+    seed('transfer', 'Go to Airport in Shanghai', {
+      description: 'Transfer to PVG for the Tokyo holiday flight',
+    })
+    seed('category', 'Check in', { categoryId: 'travel', location: 'Tokyo' })
+    seed('unknown', 'Go to Airport in Shanghai')
+    seed('osaka', 'Flight to Osaka')
+    seed('hike', 'Weekend hiking trip')
+    model({
+      ...plan,
+      concepts: [
+        ['东京', 'Tokyo'],
+        ['旅游', 'travel', 'trip', 'flight', 'airport transfer'],
+      ],
+    })
+    const body = await (await post({ text: '找东京旅游的日程' })).json()
+    expect(body.results.map((event: any) => event.id).sort()).toEqual([
+      'category',
+      'flight',
+      'transfer',
+    ])
+    expect(generateObject).toHaveBeenCalledTimes(1)
+  })
+  it('finds English dog walking and distinguishes drinking from coffee topics', async () => {
+    seed('dog', 'Walk the dog')
+    seed('cat', 'Feed the cat')
+    seed('drink', 'Catch up with Sam', {
+      description: 'Drink espresso together',
+      location: 'Blue Bottle',
+    })
+    seed('repair', 'Coffee machine repair')
+    model({ ...plan, concepts: [['遛狗', 'walk the dog', 'dog walking']] })
+    expect(
+      (await (await post({ text: '找所有遛狗的日程' })).json()).results.map(
+        (e: any) => e.id,
+      ),
+    ).toEqual(['dog'])
+    model({
+      ...plan,
+      concepts: [['喝咖啡', 'drink coffee', 'drink espresso', 'coffee with']],
+    })
+    expect(
+      (await (await post({ text: '找喝咖啡的日程' })).json()).results.map(
+        (e: any) => e.id,
+      ),
+    ).toEqual(['drink'])
+    model({ ...plan, concepts: [['咖啡', 'coffee', 'espresso']] })
+    expect(
+      (await (await post({ text: '找咖啡相关日程' })).json()).results
+        .map((e: any) => e.id)
+        .sort(),
+    ).toEqual(['drink', 'repair'])
     expect(generateObject).toHaveBeenCalledTimes(3)
   })
-  it('returns empty when AI judges every event irrelevant', async () => {
-    seed('noise', 'Unrelated')
-    model([])
-    expect((await (await post({ text: '旅行' })).json()).results).toEqual([])
+  it('keeps report AND company AND the explicit quarter', async () => {
+    seed('report', 'Company report')
+    seed('meeting', 'Company meeting')
+    seed('outside', 'Company report', {
+      startDate: new Date('2026-08-01'),
+      endDate: new Date('2026-08-02'),
+    })
+    model({
+      ...plan,
+      concepts: [
+        ['公司', 'company'],
+        ['报告', 'report'],
+      ],
+      start: '2026-04-01T00:00:00+08:00',
+      end: '2026-07-01T00:00:00+08:00',
+    })
+    expect(
+      (await (await post({ text: '公司今年第二季度报告' })).json()).results.map(
+        (e: any) => e.id,
+      ),
+    ).toEqual(['report'])
+    expect(generateObject).toHaveBeenCalledTimes(1)
   })
-  it('still judges the original question when the compiler extracts no concepts', async () => {
+  it('rejects an empty compiler output instead of listing the whole calendar', async () => {
     seed('dog', 'Walk the dog')
     seed('other', 'Feed the cat')
-    model(['dog'], { ...plan, concepts: null })
+    model({ ...plan, concepts: null })
     const response = await post({ text: '找出所有遛狗的日程' })
-    expect(response.status).toBe(200)
-    const body = await response.json()
-    expect(body.query.concepts).toEqual([])
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dog'])
+    expect(response.status).toBe(502)
+    expect(generateObject).toHaveBeenCalledTimes(1)
   })
   it('rejects an unsealed legacy paging plan', async () => {
     expect((await post({ page: 2, resolved: { query: 'trip' } })).status).toBe(

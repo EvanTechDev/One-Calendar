@@ -119,6 +119,16 @@ shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
 with `GROQ_MODEL`), multi-step tool loop capped
 at 8 steps, per-user rate limit 20/5min. Requires `GROQ_API_KEY` (503 without).
 
+Semantic search is separate: `POST /api/agent/search` makes ONE `generateObject`
+call to compile conditions (`packages/agent/src/search.ts`, `maxRetries: 0`).
+`search-match.ts` scans all candidate pages locally across title, description,
+location, category and participants. Concept groups are ANDed, alternatives are
+ORed; scores order matches, never truncate them. No per-event/batch AI calls.
+An encrypted search token freezes ordering for pagination (zero model calls).
+Provider 429 remains 429. Tests in `tests/calendar/api/agent-search.test.ts` mock
+only compilation; `tests/agent/search.live.test.ts` is an opt-in real compiler
+evaluation. Mock passes do not establish real-model search quality.
+
 Tools are authored ONCE in `packages/agent/src/tools.ts` — plain AI SDK
 `tool()`, with a local `defineTool` helper that adds the error boundary
 (a thrown tool error is returned as `{ error }` so the model can recover)

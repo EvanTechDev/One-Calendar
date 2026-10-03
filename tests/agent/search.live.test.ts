@@ -1,11 +1,7 @@
 import { expect, it } from 'vitest'
 import { generateObject } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
-import {
-  buildRerankInstructions,
-  rerankCandidates,
-  searchJudgmentsSchema,
-} from '@zntr/agent/search-rerank'
+import { matchSearchEvents } from '@zntr/agent/search-match'
 import type { AgentEventSummary } from '@zntr/agent/types'
 import {
   buildSearchInstructions,
@@ -58,6 +54,7 @@ it.skipIf(!live)(
       const { object: compiled } = await generateObject({
         model,
         schema: searchQuerySchema,
+        maxRetries: 0,
         system: buildSearchInstructions({
           timezone: 'Asia/Shanghai',
           nowIso: now.toISOString(),
@@ -76,20 +73,7 @@ it.skipIf(!live)(
       expect(query.end, intent).toBeUndefined()
       expect(query.names, intent).toBeUndefined()
       expect(query.categoryIds, intent).toBeUndefined()
-      const result = await rerankCandidates(
-        records,
-        'relevance',
-        async (batch, signal) => {
-          const { object } = await generateObject({
-            model,
-            abortSignal: signal,
-            schema: searchJudgmentsSchema,
-            system: buildRerankInstructions(intent, query),
-            prompt: JSON.stringify(batch),
-          })
-          return object.judgments
-        },
-      )
+      const result = matchSearchEvents(records, query, new Map())
       expect(result.map((e) => e.id).sort(), intent).toEqual(
         [...expected].sort(),
       )

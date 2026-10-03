@@ -2,11 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { generateObject } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
-import {
-  buildRerankInstructions,
-  rerankCandidates,
-  searchJudgmentsSchema,
-} from '@zntr/agent/search-rerank'
+import { matchSearchEvents } from '@zntr/agent/search-match'
 import {
   collectSearchCandidates,
   eventStamp,
@@ -30,7 +26,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 300
 const PAGE_SIZE = 50
 
-/** All candidates are judged before paging; subsequent pages reuse sealed decisions. */
+/** One model call compiles intent; local matching precedes stable pagination. */
 export async function POST(request: NextRequest) {
   const requestId = randomUUID()
   const started = performance.now()
@@ -157,6 +153,8 @@ async function search(
       trace('compile-query')
       const { object } = await generateObject({
         model,
+        // A search must not multiply provider quota failures into more requests.
+        maxRetries: 0,
         abortSignal: signal,
         schema: searchQuerySchema,
         system: buildSearchInstructions({
@@ -174,40 +172,8 @@ async function search(
       const candidates = await collectSearchCandidates(toolkit, query, signal)
       trace('candidates-collected', { candidates: candidates.length })
       const categoryNames = new Map(categories.map((c) => [c.id, c.name]))
-      let batchNumber = 0
-      events = await rerankCandidates(
-        candidates,
-        query.order,
-        async (batch, batchSignal) => {
-          const batchId = ++batchNumber
-          const started = performance.now()
-          trace('judge-batch', {
-            batch: batchId,
-            candidates: batch.length,
-          })
-          const { object: judgments } = await generateObject({
-            model,
-            abortSignal: batchSignal,
-            schema: searchJudgmentsSchema,
-            system: buildRerankInstructions(intent, query),
-            prompt: JSON.stringify(
-              batch.map((event) => ({
-                ...event,
-                category: event.categoryId
-                  ? (categoryNames.get(event.categoryId) ?? null)
-                  : null,
-              })),
-            ),
-          })
-          trace('judge-batch-completed', {
-            batch: batchId,
-            durationMs: Math.round(performance.now() - started),
-            candidates: batch.length,
-          })
-          return judgments.judgments
-        },
-        signal,
-      )
+      trace('match-candidates')
+      events = matchSearchEvents(candidates, query, categoryNames)
       trace('seal-results', { matches: events.length })
       searchToken = await sealSearch(user.id, {
         query,
@@ -245,6 +211,23 @@ async function search(
     console.error(
       `[agent-search] ${failure.status ?? 'no-status'} ${failure.kind}: ${failure.detail}`,
     )
+    if (failure.status === 429) {
+      const headers = (error as { responseHeaders?: Record<string, string> })
+        .responseHeaders
+      const retry = headers?.['retry-after']
+      // Preserve a valid provider delay, rather than inventing a cooldown.
+      return NextResponse.json(
+        { error: 'Search provider rate limit reached' },
+        {
+          status: 429,
+          headers:
+            retry &&
+            (/^\d+(\.\d+)?$/.test(retry) || Number.isFinite(Date.parse(retry)))
+              ? { 'Retry-After': retry }
+              : undefined,
+        },
+      )
+    }
     return NextResponse.json(
       { error: 'Could not search your calendar' },
       { status: signal.aborted && !request.signal.aborted ? 504 : 502 },
