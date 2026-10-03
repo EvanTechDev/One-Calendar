@@ -85,6 +85,7 @@ function model(accepted: string[], query = plan) {
 beforeEach(() => {
   fake.reset()
   vi.resetAllMocks()
+  vi.spyOn(console, 'info').mockImplementation(() => {})
   auth.id = 'owner'
   vi.stubEnv('GROQ_API_KEY', 'test-key')
   vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret')
@@ -94,9 +95,30 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllEnvs()
+  vi.restoreAllMocks()
 })
 
 describe('search route: complete candidate scan and persisted AI decisions', () => {
+  it('logs arrival and early rejection without exposing the question', async () => {
+    vi.stubEnv('GROQ_API_KEY', '')
+    const response = await post({ text: 'private question' })
+    expect(response.status).toBe(503)
+    const requestId = response.headers.get('X-Search-Request-Id')
+    expect(requestId).toBeTruthy()
+    expect(console.info).toHaveBeenNthCalledWith(
+      1,
+      '[agent-search]',
+      expect.objectContaining({ requestId, stage: 'received' }),
+    )
+    expect(console.info).toHaveBeenLastCalledWith(
+      '[agent-search]',
+      expect.objectContaining({ requestId, stage: 'finished', status: 503 }),
+    )
+    expect(JSON.stringify(vi.mocked(console.info).mock.calls)).not.toContain(
+      'private question',
+    )
+    expect(generateObject).not.toHaveBeenCalled()
+  })
   it('sends zero-overlap candidates and every field to AI, including after 200 rows', async () => {
     for (let i = 0; i < 205; i++) seed(`a-${i}`, 'Unrelated')
     seed('flight', 'Flight to Tokyo', { categoryId: 'travel' })
@@ -118,6 +140,17 @@ describe('search route: complete candidate scan and persisted AI decisions', () 
       participants: [{ name: 'Alex' }],
     })
     expect(body.results.map((e: any) => e.id)).toEqual(['flight', 'transfer'])
+    expect(console.info).toHaveBeenCalledWith(
+      '[agent-search]',
+      expect.objectContaining({
+        stage: 'candidates-collected',
+        candidates: 207,
+      }),
+    )
+    expect(console.info).toHaveBeenLastCalledWith(
+      '[agent-search]',
+      expect.objectContaining({ stage: 'finished', status: 200 }),
+    )
   })
   it('keeps user/time/category boundaries before AI and includes unbounded series', async () => {
     seed('series', 'Flight to Tokyo', { rrule: 'FREQ=MONTHLY;COUNT=4' })

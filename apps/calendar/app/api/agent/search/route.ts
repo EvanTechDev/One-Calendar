@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { generateObject } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import {
@@ -31,6 +32,41 @@ const PAGE_SIZE = 50
 
 /** All candidates are judged before paging; subsequent pages reuse sealed decisions. */
 export async function POST(request: NextRequest) {
+  const requestId = randomUUID()
+  const started = performance.now()
+  let stage = 'received'
+  // Stage/count metadata only: neither questions nor calendar content belong in
+  // logs. Even early 401/400/503 responses must leave an observable request.
+  const trace = (next: string, counts?: Record<string, number>) => {
+    stage = next
+    console.info('[agent-search]', {
+      requestId,
+      stage,
+      elapsedMs: Math.round(performance.now() - started),
+      ...counts,
+    })
+  }
+  trace('received')
+  let response: Response | undefined
+  try {
+    response = await search(request, trace)
+    response.headers.set('X-Search-Request-Id', requestId)
+    return response
+  } finally {
+    console.info('[agent-search]', {
+      requestId,
+      stage: 'finished',
+      lastStage: stage,
+      status: response?.status ?? 500,
+      elapsedMs: Math.round(performance.now() - started),
+    })
+  }
+}
+
+async function search(
+  request: NextRequest,
+  trace: (stage: string, counts?: Record<string, number>) => void,
+) {
   const user = await getAuthedUser()
   if (!user)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -76,6 +112,7 @@ export async function POST(request: NextRequest) {
     let searchToken: string
     let events: AgentEventSummary[]
     if (paging) {
+      trace('restore-page', { page })
       const snapshot = await openSearch(user.id, body.searchToken).catch(
         () => null,
       )
@@ -104,6 +141,7 @@ export async function POST(request: NextRequest) {
       }
       searchToken = body.searchToken
     } else {
+      trace('load-context')
       const [categories, timezone] = await Promise.all([
         toolkit.listCategories(),
         toolkit.getTimezone(),
@@ -116,6 +154,7 @@ export async function POST(request: NextRequest) {
         : null
       // Keep original phrasing across refinement, not just the compiler's keywords.
       const intent = prior ? `${prior.intent}\nFollow-up: ${text}` : text
+      trace('compile-query')
       const { object } = await generateObject({
         model,
         abortSignal: signal,
@@ -131,12 +170,19 @@ export async function POST(request: NextRequest) {
         prompt: text,
       })
       query = sanitizeSearchQuery(object, { categories, timezone, now })
+      trace('collect-candidates')
       const candidates = await collectSearchCandidates(toolkit, query, signal)
+      trace('candidates-collected', { candidates: candidates.length })
       const categoryNames = new Map(categories.map((c) => [c.id, c.name]))
+      let batchNumber = 0
       events = await rerankCandidates(
         candidates,
         query.order,
         async (batch) => {
+          trace('judge-batch', {
+            batch: ++batchNumber,
+            candidates: batch.length,
+          })
           const { object: judgments } = await generateObject({
             model,
             abortSignal: signal,
@@ -155,6 +201,7 @@ export async function POST(request: NextRequest) {
         },
         signal,
       )
+      trace('seal-results', { matches: events.length })
       searchToken = await sealSearch(user.id, {
         query,
         intent,
@@ -193,7 +240,7 @@ export async function POST(request: NextRequest) {
     )
     return NextResponse.json(
       { error: 'Could not search your calendar' },
-      { status: 502 },
+      { status: signal.aborted && !request.signal.aborted ? 504 : 502 },
     )
   }
 }

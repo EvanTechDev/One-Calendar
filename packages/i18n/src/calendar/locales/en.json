@@ -228,6 +228,7 @@
   "aiSearchBack": "Back to commands",
   "aiSearchRetry": "Try again",
   "aiSearchFailed": "Search failed",
+  "aiSearchTimedOut": "Search timed out. Please try again.",
   "aiSearchRateLimited": "Too many searches — wait a moment",
   "aiSearchUnavailable": "Search is not configured on this deployment",
   "aiGoToDate": "Go to date",

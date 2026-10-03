@@ -228,6 +228,7 @@
   "aiSearchBack": "返回命令",
   "aiSearchRetry": "重试",
   "aiSearchFailed": "搜索失败",
+  "aiSearchTimedOut": "搜索超时，请重试。",
   "aiSearchRateLimited": "搜索太频繁，请稍等",
   "aiSearchUnavailable": "此部署未配置搜索功能",
   "aiGoToDate": "跳转到日期",

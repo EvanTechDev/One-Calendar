@@ -31,6 +31,7 @@ import {
 } from 'ai'
 import { ChatTranscript } from './chat-transcript'
 import {
+  commandFilter,
   Command,
   CommandDialog,
   CommandEmpty,
@@ -74,6 +75,21 @@ import { parseDateQuery } from '@/lib/parse-date-query'
  * calendar and must work on a deployment with no model configured.
  */
 export const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === '1'
+
+// These are actions, not text matches. Stable identities keep cmdk's selection
+// attached while typing; its normal item trimming otherwise hides a search
+// action as soon as the question ends with whitespace.
+const SEARCH_ACTION = 'action:semantic-search'
+const DATE_ACTION = 'action:go-to-date'
+const CHAT_ACTION = 'action:ask-ai'
+// Allow the server's 270s deadline to report first, but do not leave a stalled
+// network request spinning forever if that response never reaches the browser.
+const SEARCH_TIMEOUT_MS = 285_000
+function filterCommand(value: string, search: string, keywords?: string[]) {
+  if (value === SEARCH_ACTION || value === DATE_ACTION) return 1
+  if (value === CHAT_ACTION) return 0.5
+  return commandFilter(value, search.trim(), keywords)
+}
 
 /** One row of a search result, as the endpoint returns it. */
 export interface PaletteSearchHit {
@@ -145,7 +161,7 @@ type SearchState =
        */
       scope: SearchScope
     }
-  | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' }
+  | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' | 'timeout' }
 
 interface SearchResponseBody {
   searchToken: string
@@ -232,6 +248,7 @@ export function AiCommandPalette({
     inFlight.current?.abort()
     inFlight.current = null
   }, [])
+  React.useEffect(() => cancelSearch, [cancelSearch])
 
   const resetSearch = React.useCallback(() => {
     cancelSearch()
@@ -259,6 +276,17 @@ export function AiCommandPalette({
       if (page > 1) setLoadingMore(true)
       else setSearch({ status: 'loading' })
 
+      const timeout = setTimeout(() => {
+        if (inFlight.current !== controller) return
+        controller.abort()
+        inFlight.current = null
+        setLoadingMore(false)
+        setSearch({ status: 'error', kind: 'timeout' })
+      }, SEARCH_TIMEOUT_MS)
+      controller.signal.addEventListener('abort', () => clearTimeout(timeout), {
+        once: true,
+      })
+
       try {
         const response = await fetch('/api/agent/search', {
           method: 'POST',
@@ -279,11 +307,13 @@ export function AiCommandPalette({
           setSearch({
             status: 'error',
             kind:
-              response.status === 429
-                ? 'rate'
-                : response.status === 503
-                  ? 'unavailable'
-                  : 'failed',
+              response.status === 504
+                ? 'timeout'
+                : response.status === 429
+                  ? 'rate'
+                  : response.status === 503
+                    ? 'unavailable'
+                    : 'failed',
           })
           return
         }
@@ -321,6 +351,7 @@ export function AiCommandPalette({
         if (controller.signal.aborted) return
         setSearch({ status: 'error', kind: 'failed' })
       } finally {
+        clearTimeout(timeout)
         if (inFlight.current === controller) {
           inFlight.current = null
           setLoadingMore(false)
@@ -465,7 +496,11 @@ export function AiCommandPalette({
           `shouldFilter` is off in the result view: the input holds the question
           and the follow-up, not a filter, and cmdk's own matching would hide
           every row the moment the question text stopped matching a title. */}
-      <Command className="rounded-xl!" shouldFilter={mode !== 'results'}>
+      <Command
+        className="rounded-xl!"
+        shouldFilter={mode !== 'results'}
+        filter={filterCommand}
+      >
         <div className="relative">
           <CommandInput
             placeholder={placeholder}
@@ -529,7 +564,9 @@ export function AiCommandPalette({
               </CommandItem>
               {search.status === 'loading' && (
                 <div className="space-y-2 px-2 py-1" aria-live="polite">
-                  <span className="sr-only">{t.aiSearchLoading}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t.aiSearchLoading}
+                  </span>
                   {[0, 1, 2].map((row) => (
                     <div key={row} className="flex items-center gap-3">
                       <Skeleton className="size-2.5 rounded-full" />
@@ -601,9 +638,11 @@ export function AiCommandPalette({
                   >
                     {search.kind === 'rate'
                       ? t.aiSearchRateLimited
-                      : search.kind === 'unavailable'
-                        ? t.aiSearchUnavailable
-                        : t.aiSearchFailed}
+                      : search.kind === 'timeout'
+                        ? t.aiSearchTimedOut
+                        : search.kind === 'unavailable'
+                          ? t.aiSearchUnavailable
+                          : t.aiSearchFailed}
                   </CommandItem>
                   {/* A missing key is not something a retry can fix, so that
                       one state gets no retry row. */}
@@ -641,7 +680,7 @@ export function AiCommandPalette({
               {typedDate && (
                 <CommandGroup heading={t.aiGoToDate}>
                   <CommandItem
-                    value={`go-to:${input}`}
+                    value={DATE_ACTION}
                     onSelect={() => goToDate(typedDate)}
                   >
                     <LocateFixed />
@@ -656,10 +695,10 @@ export function AiCommandPalette({
                 <CommandGroup heading={t.aiSearch}>
                   {/* Free-text row: Enter on anything that is not a command
                       and not a date runs a semantic search over the user's
-                      history. Its value tracks the raw input so it matches
-                      whatever was typed. */}
+                       history. The filter keeps this action visible for any
+                       question, including pasted text ending in whitespace. */}
                   <CommandItem
-                    value={input.length > 0 ? input : t.aiSemanticSearch}
+                    value={SEARCH_ACTION}
                     onSelect={() => void runSearch(1)}
                     disabled={searching || input.trim().length === 0}
                   >
@@ -681,6 +720,7 @@ export function AiCommandPalette({
                         explicitly — Enter on free text searches instead, so
                         "delete that" can never be a stray keystroke here. */}
                     <CommandItem
+                      value={CHAT_ACTION}
                       onSelect={sendToChat}
                       disabled={chatBusy || input.trim().length === 0}
                     >

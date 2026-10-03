@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { Command as CommandPrimitive } from 'cmdk'
+export { defaultFilter as commandFilter } from 'cmdk'
 import { CheckIcon, SearchIcon } from 'lucide-react'
 
 import { cn } from '@zntr/utils'
