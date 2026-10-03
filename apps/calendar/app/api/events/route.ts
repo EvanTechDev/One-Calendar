@@ -1294,7 +1294,7 @@ const postHandler = async function POST(request: NextRequest) {
       overrides,
       recurrenceId: parsedId.recurrenceId,
       applyTo,
-      fields: submittedFields,
+      fields: { ...submittedFields, rrule: rawRrule },
       now,
       timeZone,
     })
@@ -1612,7 +1612,7 @@ const postHandler = async function POST(request: NextRequest) {
       overrides,
       recurrenceId,
       applyTo,
-      fields: submittedFields,
+      fields: { ...submittedFields, rrule: rawRrule },
       now: new Date(),
       timeZone,
     })

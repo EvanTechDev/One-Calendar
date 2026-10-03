@@ -97,7 +97,6 @@ interface DataContextValue {
     id: string,
     applyTo?: 'single' | 'following' | 'all',
     timezone?: string,
-    opts?: { deferNetwork?: boolean },
   ) => Promise<void>
 
   createCategory: (
@@ -429,7 +428,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: string,
       applyTo?: 'single' | 'following' | 'all',
       timezone?: string,
-      opts?: { deferNetwork?: boolean },
     ) => {
       const prev = eventsRef.current
       const target = prev.find((e) => e.id === id)
@@ -446,26 +444,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
           )
         }
       }
-      await mutate(
-        DATA_KEYS.events,
-        { events: optimistic },
-        { revalidate: false },
-      )
-      if (opts?.deferNetwork) return
       try {
-        const res = await api.events.delete(id, applyTo, timezone)
-        const seriesEvents = res.seriesEvents
-        if (seriesEvents && seriesEvents.length > 0) {
-          await mutate(
-            DATA_KEYS.events,
-            (cur?: { events: EventData[] }) => ({
-              events: replaceSeriesInstances(cur?.events ?? [], seriesEvents),
-            }),
-            { revalidate: false },
-          )
-        }
+        // Keep SWR's mutation open until the write is durable. Revalidations
+        // started before/during the DELETE must not resurrect removed rows.
+        await mutate(
+          DATA_KEYS.events,
+          async () => {
+            const res = await api.events.delete(id, applyTo, timezone)
+            return {
+              events: replaceSeriesInstances(
+                optimistic,
+                res.seriesEvents ?? [],
+              ),
+            }
+          },
+          {
+            optimisticData: { events: optimistic },
+            rollbackOnError: true,
+            revalidate: false,
+          },
+        )
       } catch (e) {
-        await mutate(DATA_KEYS.events, { events: prev }, { revalidate: false })
         toast.error(tRef.current.deleteEventFailed, {
           description:
             e instanceof Error ? e.message : tRef.current.unknownError,

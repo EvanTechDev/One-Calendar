@@ -9,6 +9,8 @@ import {
   partsInTz,
   reanchor,
   remainingSeriesCount,
+  rruleFromParts,
+  rruleToParts,
   shiftExdates,
   snapToPatternDay,
   toRfcStamp,
@@ -193,12 +195,26 @@ export function resolveInstance(
   if (!isSeriesEvent(master)) return null
   const override = overrides.find((o) => o.recurrenceId === recurrenceId)
   if (!override && (master.exdate ?? []).includes(recurrenceId)) return null
-  let date: Date
+  let base: EventRow
   try {
-    date = parseRfcStamp(recurrenceId).date
+    base = occurrenceBase(master, recurrenceId, timeZone)
   } catch {
     return null
   }
+  return override ? mergeOverride(base, override) : base
+}
+
+/**
+ * The occurrence of `master` at `recurrenceId` as it would appear with no
+ * override applied: the master's fields with start/end moved to the slot.
+ * Throws when the stamp is unparseable.
+ */
+function occurrenceBase(
+  master: EventRow,
+  recurrenceId: string,
+  timeZone?: string,
+): EventRow {
+  let date = parseRfcStamp(recurrenceId).date
   if (master.isAllDay && timeZone) {
     const match = recurrenceId.match(/^(\d{4})(\d{2})(\d{2})$/)
     if (match) {
@@ -217,14 +233,13 @@ export function resolveInstance(
     }
   }
   const duration = master.endDate.getTime() - master.startDate.getTime()
-  const base = {
+  return {
     ...master,
     startDate: date,
     endDate: new Date(date.getTime() + duration),
     seriesId: master.id,
     recurrenceId,
   }
-  return override ? mergeOverride(base, override) : base
 }
 
 interface OverrideUpsert {
@@ -314,6 +329,10 @@ export function planInstanceChange(
       }
     }
     const exdate = master.exdate ?? []
+    // A new override is a full row (title/start/end are NOT NULL), so a
+    // partial change — e.g. colour only through the MCP — must be laid over
+    // the occurrence it detaches from, never written as submitted.
+    const occurrence = occurrenceBase(master, recurrenceId, target.timeZone)
     return {
       applyTo,
       exdateToAdd: exdate.includes(recurrenceId) ? null : recurrenceId,
@@ -323,6 +342,7 @@ export function planInstanceChange(
         recurrenceId,
         isNew: true,
         fields: {
+          ...pickMutable(occurrence),
           ...pickMutable(target.fields ?? {}),
           createdAt: now,
           updatedAt: now,
@@ -363,6 +383,11 @@ export function planInstanceChange(
       ((requestedEnd as Date).getTime() - (requestedStart as Date).getTime()),
   )
   const rule = master.rrule ?? ''
+  const requestedRule = target.fields?.rrule
+  const ruleChanged =
+    !!requestedRule &&
+    rruleFromParts(rruleToParts(requestedRule)) !==
+      rruleFromParts(rruleToParts(rule))
   const existingExdate = master.exdate ?? []
   const splitExdate = existingExdate.filter((stamp) => stamp > recurrenceId)
   const masterExdate = existingExdate.filter((stamp) => stamp <= recurrenceId)
@@ -407,19 +432,20 @@ export function planInstanceChange(
       masterBecomesEmpty,
       newSeries: {
         id: crypto.randomUUID(),
-        // Preserve the original series' bounds: UNTIL carries over inside
-        // reanchor, and a COUNT-bound rule is re-based to its remaining
-        // length so a split never turns a finite series into an infinite one.
+        // An explicit new rule supplies its own bounds. Otherwise UNTIL
+        // carries over and COUNT is re-based to the remaining length.
         rrule: reanchor(
-          rule,
+          ruleChanged ? requestedRule : rule,
           startDate as Date,
           isAllDay,
-          remainingSeriesCount(
-            rule,
-            master.startDate,
-            patternStart,
-            target.timeZone,
-          ),
+          ruleChanged
+            ? rruleToParts(requestedRule).count
+            : remainingSeriesCount(
+                rule,
+                master.startDate,
+                patternStart,
+                target.timeZone,
+              ),
         ),
         startDate: startDate as Date,
         endDate: endDate as Date,

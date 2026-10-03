@@ -532,6 +532,7 @@ function validateRecurringArguments(
 }
 
 function mcpFieldsToEventRow(data: {
+  rrule?: string | null
   title?: string
   description?: string | null
   location?: string | null
@@ -544,6 +545,7 @@ function mcpFieldsToEventRow(data: {
   notification_minutes?: number | null
 }): Partial<EventRow> {
   const fields: Partial<EventRow> = {}
+  if (data.rrule !== undefined) fields.rrule = data.rrule
   if (data.title !== undefined) fields.title = data.title
   if (data.description !== undefined) fields.description = data.description
   if (data.location !== undefined) fields.location = data.location
@@ -586,16 +588,14 @@ async function invalidateSeriesCache(
   }
 }
 
-async function resolveUserTimeZone(
-  userId: string,
-): Promise<string | undefined> {
+async function resolveUserTimeZone(userId: string): Promise<string> {
   try {
     const settings = (await getSettings(userId)) as Record<string, unknown>
     const tz = settings.timezone
-    if (typeof tz !== 'string' || !isValidTimezone(tz)) return undefined
+    if (typeof tz !== 'string' || !isValidTimezone(tz)) return 'UTC'
     return tz
   } catch {
-    return undefined
+    return 'UTC'
   }
 }
 
@@ -808,10 +808,7 @@ export async function listEvents(
     : legacyQuery || undefined
   const searchFields = hasStructuredSearch ? params.search!.fields : undefined
 
-  const settings = await getSettings(userId)
-  const defaultTimezone = (settings as Record<string, unknown>).timezone as
-    | string
-    | undefined
+  const defaultTimezone = await resolveUserTimeZone(userId)
 
   const { page, limit } = validatePagination(
     params.pagination?.page ?? params.page,
@@ -915,6 +912,7 @@ export async function listEvents(
     events = expandRows([...plainRows, ...recurring], {
       windowStart: timeRange.start,
       windowEnd: timeRange.end,
+      timezone: defaultTimezone,
     }).map((e) =>
       e.recurrenceId !== null
         ? ({ ...e, id: e.instanceId } as ReturnType<typeof decryptEvent>)
@@ -1101,6 +1099,7 @@ export async function getEvent(userId: string, eventId: string) {
       decryptEvent(master) as unknown as EventRow,
       parsedId.recurrenceId,
       overrides,
+      await resolveUserTimeZone(userId),
     )
     if (!resolved) return null
     return { ...resolved, id: eventId, instanceId: eventId }
@@ -1242,8 +1241,7 @@ async function updateEventImpl(
       // pattern by the move's day distance, adapt the rule, remap stored
       // exdates, then re-stamp overrides — otherwise an MCP "all events"
       // change orphans every single-instance override and resurrects exdated
-      // occurrences. No timeZone is threaded through MCP (deferred finding);
-      // helpers fall back to server-local day parts.
+      // occurrences. Query and mutation use the same organiser timezone.
       const prevStartDate = masterRow.startDate
       const nextStartDate =
         (fields.startDate as Date | undefined) ?? prevStartDate
@@ -1386,10 +1384,12 @@ async function updateEventImpl(
       applySinglePlan(tx, userId, masterRow, plan),
     )
     if (!stored) return null
-    const resolved = resolveInstance(masterRow, parsedId.recurrenceId, [
-      stored,
-      ...overrides,
-    ] as unknown as EventRow[])
+    const resolved = resolveInstance(
+      masterRow,
+      parsedId.recurrenceId,
+      [stored, ...overrides] as unknown as EventRow[],
+      timeZone,
+    )
     if (!resolved) return null
     return { ...resolved, id: eventId, instanceId: eventId }
   }
@@ -1556,10 +1556,12 @@ async function updateEventImpl(
       applySinglePlan(tx, userId, seriesRow, plan),
     )
     if (!stored) return null
-    const resolved = resolveInstance(seriesRow, recurrenceId, [
-      stored,
-      ...overrides,
-    ] as unknown as EventRow[])
+    const resolved = resolveInstance(
+      seriesRow,
+      recurrenceId,
+      [stored, ...overrides] as unknown as EventRow[],
+      timeZone,
+    )
     if (!resolved) return null
     return { ...resolved, id: eventId, instanceId: eventId }
   }

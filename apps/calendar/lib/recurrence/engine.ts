@@ -1780,7 +1780,11 @@ export function describeRecurrence(
     }
   }
   if (until !== null) {
-    label += ` · ${t.recurrenceUntilSuffix.replace('{until}', until)}`
+    const date = new Intl.DateTimeFormat(
+      typeof locale === 'string' ? locale : isZh ? 'zh-CN' : 'en',
+      { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' },
+    ).format(parseRfcStamp(until).date)
+    label += ` · ${t.recurrenceUntilSuffix.replace('{until}', date)}`
   } else if (count !== null) {
     label += ` · ${t.recurrenceCountSuffix.replace('{n}', String(count))}`
   }

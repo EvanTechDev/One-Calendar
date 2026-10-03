@@ -333,7 +333,7 @@ describe('planInstanceChange', () => {
     expect(upsert.seriesId).toBe(master.id)
     expect(upsert.recurrenceId).toBe('20240105T100000Z')
     expect(upsert.fields.title).toBe('Edited sync')
-    expect(upsert.fields.startDate).toBeUndefined()
+    expect(upsert.fields.startDate).toEqual(new Date('2024-01-05T10:00:00Z'))
   })
 
   it('does not re-add the exdate when it is already present', () => {

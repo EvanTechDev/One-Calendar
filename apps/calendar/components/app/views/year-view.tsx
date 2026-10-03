@@ -206,6 +206,9 @@ export default function YearView({
                     <button
                       key={`${month.label}-${dayKey}`}
                       type="button"
+                      data-event-reveal-date={
+                        isCurrentMonth ? dayKey : undefined
+                      }
                       {...(isCreateAnchor
                         ? { 'data-create-selection': true }
                         : {})}
@@ -319,6 +322,7 @@ export default function YearView({
                   {popover.dayEvents.map((event) => (
                     <button
                       key={event.id}
+                      data-event-id={event.id}
                       type="button"
                       className={cn(
                         'relative w-full cursor-pointer truncate rounded-sm p-1.5 pl-3 text-left text-xs',

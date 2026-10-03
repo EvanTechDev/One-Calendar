@@ -1124,7 +1124,7 @@ export default function EventEditor({
   }
 
   const rulePreview = (() => {
-    if (!recurrenceEnabled || (isRecurringEvent && applyTo !== 'all'))
+    if (!recurrenceEnabled || (isRecurringEvent && applyTo === 'single'))
       return null
     const parts = buildRruleParts()
     if (!parts) return null
@@ -1181,7 +1181,7 @@ export default function EventEditor({
 
     const recurring = isRecurringEvent
     let rule: string | null = null
-    if (recurrenceEnabled && (recurring ? applyTo === 'all' : true)) {
+    if (recurrenceEnabled && (!recurring || applyTo !== 'single')) {
       const parts = buildRruleParts()
       if (parts) {
         try {
@@ -1202,7 +1202,7 @@ export default function EventEditor({
       startDate: normalizedStartDate,
       endDate: normalizedEndDate,
       rrule: recurring
-        ? applyTo === 'all'
+        ? applyTo !== 'single'
           ? (rule ?? event.rrule ?? null)
           : (event.rrule ?? null)
         : rule,
@@ -1224,7 +1224,7 @@ export default function EventEditor({
 
     if (event && recurring) {
       const alreadyInvited = invitedEmailsOf(event)
-      setSaveScope(applyTo === 'all' && canAllScope ? 'all' : 'single')
+      setSaveScope(applyTo)
       setParticipantScope(canAllScope ? 'all' : 'single')
       setPendingScopeSubmit({
         eventData,
@@ -1813,8 +1813,41 @@ export default function EventEditor({
                       </div>
                     )}
 
+                    {event && isRecurringEvent && (
+                      <div className="space-y-2">
+                        <Label>{t.repeatScope}</Label>
+                        <RadioGroup
+                          value={applyTo}
+                          onValueChange={(value) =>
+                            setApplyTo(value as 'single' | 'following' | 'all')
+                          }
+                        >
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem
+                              value="single"
+                              id="edit-scope-single"
+                            />
+                            <Label htmlFor="edit-scope-single">
+                              {t.repeatScopeSingle}
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem
+                              value={canAllScope ? 'all' : 'following'}
+                              id="edit-scope-series"
+                            />
+                            <Label htmlFor="edit-scope-series">
+                              {canAllScope
+                                ? t.repeatScopeAll
+                                : t.repeatScopeFollowing}
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    )}
+
                     {recurrenceEnabled &&
-                      (event === null || applyTo === 'all') &&
+                      (event === null || applyTo !== 'single') &&
                       (isAiParsing ? (
                         <Skeleton className="h-40 w-full" />
                       ) : (
@@ -2128,7 +2161,7 @@ export default function EventEditor({
                     {seriesRule &&
                       isRecurringEvent &&
                       event &&
-                      applyTo !== 'all' && (
+                      applyTo === 'single' && (
                         <div className="space-y-2 rounded-md border p-3">
                           <Label>{t.repeatRule}</Label>
                           <p className="text-sm text-muted-foreground">
@@ -2274,10 +2307,12 @@ export default function EventEditor({
               setSaveScope(value as 'single' | 'following' | 'all')
             }
           >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="single" id="save-scope-single" />
-              <Label htmlFor="save-scope-single">{t.repeatScopeSingle}</Label>
-            </div>
+            {applyTo === 'single' && (
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="single" id="save-scope-single" />
+                <Label htmlFor="save-scope-single">{t.repeatScopeSingle}</Label>
+              </div>
+            )}
             {!canAllScope && (
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="following" id="save-scope-following" />

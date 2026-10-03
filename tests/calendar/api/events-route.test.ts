@@ -136,6 +136,29 @@ beforeEach(() => {
 })
 
 describe('events route series mutations (characterization)', () => {
+  it.each(['m1', 'm1_20260810T090000Z'])(
+    'saves an edited recurrence rule on the following series via %s',
+    async (id) => {
+      seedMaster({ rrule: 'FREQ=WEEKLY;BYDAY=MO;COUNT=8' })
+      const res = await POST(
+        putRequest({
+          ...baseUpdateFields,
+          id,
+          apply_to: 'following',
+          rrule: 'FREQ=DAILY;INTERVAL=2;COUNT=3',
+        }),
+      )
+      expect(res.status).toBe(200)
+      const tail = fake
+        .rows()
+        .find((row) => row.id !== 'm1' && !row.seriesId && row.rrule)
+      expect(tail?.rrule).toContain('FREQ=DAILY')
+      expect(tail?.rrule).toContain('INTERVAL=2')
+      expect(tail?.rrule).toContain('COUNT=3')
+      if (id !== 'm1') expect(fake.row('m1')?.rrule).toContain('FREQ=WEEKLY')
+    },
+  )
+
   it('characterizes DELETE single (instance id) with override: deletes override AND adds exdate', async () => {
     seedMaster()
     seedOverride('o1', '20260810T090000Z')

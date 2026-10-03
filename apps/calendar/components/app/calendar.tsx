@@ -4,6 +4,7 @@ import { getEventAccentColor } from '@/lib/event-colors'
 import { useNotifications } from '@/hooks/use-notifications'
 import { anchorRectForClick } from '@/hooks/use-anchored-popover'
 import { defaultCreateRange } from '@/components/app/views/selection-range'
+import { useEventPreviewNavigation } from '@/hooks/use-event-preview-navigation'
 import {
   Select,
   SelectContent,
@@ -883,36 +884,30 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setPreviewOpen(true)
   }
 
+  const [navigationPreview, setNavigationPreview] =
+    useState<CalendarEvent | null>(null)
+  const openNavigationPreview = useCallback((anchor: HTMLElement | null) => {
+    setPreviewAnchorEl(anchor)
+    setPreviewAnchorRect(anchor?.getBoundingClientRect() ?? null)
+    setPreviewOpen(true)
+    setNavigationPreview(null)
+  }, [])
+  useEventPreviewNavigation(
+    navigationPreview,
+    calendarRef,
+    openNavigationPreview,
+  )
+
   const handleNavigateAndPreview = (event: CalendarEvent) => {
     const eventId = (event as any).eventId ?? event.id
     const realEvent = events.find((e) => e.id === eventId) ?? event
     setDate(new Date(realEvent.startDate))
     setView(defaultView as ViewType)
+    setPreviewOpen(false)
+    setPreviewAnchorEl(null)
+    setPreviewAnchorRect(null)
     setPreviewEvent(realEvent)
-    requestAnimationFrame(() => {
-      const el = document.querySelector(`[data-event-id="${eventId}"]`)
-      if (el) {
-        el.scrollIntoView({ block: 'center', behavior: 'instant' })
-        requestAnimationFrame(() => {
-          setPreviewAnchorRect(el.getBoundingClientRect())
-          setPreviewAnchorEl(el as HTMLElement)
-          setPreviewOpen(true)
-        })
-      } else if (calendarRef.current) {
-        setPreviewAnchorRect(
-          DOMRect.fromRect({
-            x: calendarRef.current.getBoundingClientRect().left + 16,
-            y: calendarRef.current.getBoundingClientRect().top + 16,
-            width: 0,
-            height: 0,
-          }),
-        )
-        setPreviewOpen(true)
-      } else {
-        setPreviewAnchorRect(null)
-        setPreviewOpen(true)
-      }
-    })
+    setNavigationPreview({ ...realEvent, id: eventId })
   }
 
   const handleEventAdd = (event: CalendarEvent) => {
@@ -1056,7 +1051,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
     const deletedEvent = pendingDeleteEvent
     const applyTo = applyToOverride ?? pendingDeleteApplyTo
-    let cancelled = false
 
     setEvents((prevEvents) => {
       if (applyTo === 'all' && deletedEvent.seriesId) {
@@ -1078,78 +1072,18 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       return prevEvents.filter((event) => event.id !== deletedEvent.id)
     })
 
-    void deleteEvent(deletedEvent.id, applyTo, timezone, {
-      deferNetwork: true,
-    }).catch(() => {})
-
-    const deleteTimer = window.setTimeout(() => {
-      if (cancelled) return
-      void (async () => {
-        try {
-          await deleteBookmarkByEvent(deletedEvent.id)
-        } catch {}
-        try {
-          await deleteEvent(deletedEvent.id, applyTo, timezone)
-        } catch {}
-      })()
-    }, 6000)
-
-    toast.success(t.eventDeleted, {
-      description: deletedEvent.title,
-      duration: 6000,
-      action: {
-        label: t.undo,
-        onClick: () => {
-          cancelled = true
-          window.clearTimeout(deleteTimer)
-          if (
-            deletedEvent.rrule ||
-            deletedEvent.seriesId ||
-            deletedEvent.recurrenceId
-          ) {
-            void refreshEvents()
-            toast(t.deletionUndone)
-            return
-          }
-          setEvents((prevEvents) => {
-            if (prevEvents.some((event) => event.id === deletedEvent.id))
-              return prevEvents
-            return [...prevEvents, deletedEvent].sort(
-              (a, b) =>
-                new Date(a.startDate).getTime() -
-                new Date(b.startDate).getTime(),
-            )
-          })
-          upsertEvent({
-            id: deletedEvent.id,
-            title: deletedEvent.title,
-            startDate: deletedEvent.startDate.toISOString(),
-            endDate: deletedEvent.endDate.toISOString(),
-            isAllDay: deletedEvent.isAllDay,
-            location: deletedEvent.location || null,
-            participants: deletedEvent.participants?.length
-              ? deletedEvent.participants.map((p: any) =>
-                  typeof p === 'string' ? { name: p } : p,
-                )
-              : null,
-            // `?? null`, not `|| null`: 0 is a real reminder and must survive
-            // an undo-restore.
-            notificationMinutes: deletedEvent.notification ?? null,
-            emailReminder: deletedEvent.emailReminder === true,
-            color: deletedEvent.color || null,
-            categoryId: deletedEvent.calendarId || null,
-            timezone,
-          }).catch(() => {})
-          toast(t.deletionUndone)
-        },
-      },
-    })
-
     setEventEditorOpen(false)
     setSelectedEvent(null)
     setPreviewOpen(false)
     setDeleteConfirmOpen(false)
     setPendingDeleteEvent(null)
+    try {
+      await deleteEvent(deletedEvent.id, applyTo, timezone)
+      toast.success(t.eventDeleted, { description: deletedEvent.title })
+      await deleteBookmarkByEvent(deletedEvent.id).catch(() => {})
+    } catch {
+      // The data provider rolls back and reports failed writes.
+    }
   }
 
   const reAddInviteToCalendar = async (

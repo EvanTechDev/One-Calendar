@@ -497,6 +497,7 @@ export default function MonthView({
                       {remainingCount > 0 && (
                         <button
                           type="button"
+                          data-event-reveal-date={format(day, 'yyyy-MM-dd')}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                           onClick={(e) =>
                             handleRemainingClick(e, day, timedEvents.slice(3))
@@ -635,6 +636,7 @@ export default function MonthView({
                 {remainingPopover.remainingEvents.map((event) => (
                   <button
                     key={event.id}
+                    data-event-id={event.id}
                     type="button"
                     // `event.color` supplies the light-mode pastel background
                     // (the same way the year view's popover rows do); the

@@ -31,7 +31,18 @@ vi.mock('@/lib/field-crypto', () => ({
   looksLikeEnvelope: () => true,
 }))
 
-import { updateEvent, deleteEvent } from '@/lib/mcp/event-tools'
+import {
+  updateEvent,
+  deleteEvent,
+  listEvents,
+  getEvent,
+} from '@/lib/mcp/event-tools'
+import { expandRows, type EventRow } from '@/lib/event-service'
+
+vi.mock('@/lib/mcp/settings-tools', () => ({
+  getSettings: vi.fn(async () => ({ timezone: 'UTC' })),
+}))
+import { getSettings } from '@/lib/mcp/settings-tools'
 
 const fake = getFakeDb()
 
@@ -96,6 +107,7 @@ function seedOverride(
 
 beforeEach(() => {
   fake.reset()
+  vi.mocked(getSettings).mockResolvedValue({ timezone: 'UTC' })
 })
 
 describe('MCP event tool mutations (characterization)', () => {
@@ -129,11 +141,120 @@ describe('MCP event tool mutations (characterization)', () => {
     // the master keeps its anchor day and adopts the new clock, stored
     // exdates follow the clock, and override stamps are re-mapped so the
     // edited instance keeps matching its occurrence.
-    // NOTE: MCP passes no timeZone, so the clamp/remaps use server-local day
-    // parts — tests run with UTC-equivalent expectations because the stamps
-    // and dates here are all UTC-midnight-aligned days at fixed clocks.
+    // The user's timezone is UTC in this fixture.
     expect(fake.row('m1')!.startDate).toEqual(day(2026, 8, 3, 11))
     expect(fake.row('m1')!.exdate).toEqual(['20260817T110000Z'])
     expect(fake.row('o1')!.recurrenceId).toBe('20260810T110000Z')
+  })
+
+  it('updateEvent single colour-only change creates a complete override row', async () => {
+    seedMaster()
+
+    const result = await updateEvent('u1', 'm1_20260810T090000Z', {
+      apply_to: 'single',
+      color: 'blue',
+    })
+
+    expect(result).not.toBeNull()
+    const override = fake.rows().find((r) => r.seriesId === 'm1')
+    expect(override).toBeDefined()
+    expect(override!.recurrenceId).toBe('20260810T090000Z')
+    // A fresh override must be a complete row — NOT NULL columns inherited
+    // from the occurrence it edits — otherwise the insert fails and the agent
+    // sees 'Internal server error' (CORE-219).
+    expect(override!.title).toBe('Team sync')
+    expect(override!.startDate).toEqual(day(2026, 8, 10, 9))
+    expect(override!.endDate).toEqual(day(2026, 8, 10, 9, 30))
+    expect(override!.isAllDay).toBe(false)
+    expect(override!.status).toBe('confirmed')
+    expect(override!.color).toBe('bg-[#E6F6FD]')
+    expect(fake.row('m1')!.exdate).toEqual(['20260810T090000Z'])
+  })
+
+  it('updateEvent following colour-only change keeps the pattern day', async () => {
+    // Mon/Thu/Sat series anchored Monday 2026-10-05 09:00Z.
+    seedMaster({
+      startDate: day(2026, 10, 5, 9),
+      endDate: day(2026, 10, 5, 9, 30),
+      rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TH,SA;UNTIL=20261031T000000Z',
+    })
+
+    const result = await updateEvent('u1', 'm1_20261015T090000Z', {
+      apply_to: 'following',
+      color: 'blue',
+    })
+
+    expect(result).not.toBeNull()
+    const tail = fake
+      .rows()
+      .find((r) => r.id !== 'm1' && !r.seriesId && r.rrule)
+    expect(tail).toBeDefined()
+    expect(tail!.startDate).toEqual(day(2026, 10, 15, 9))
+    expect(tail!.endDate).toEqual(day(2026, 10, 15, 9, 30))
+    expect(tail!.title).toBe('Team sync')
+    expect(tail!.color).toBe('bg-[#E6F6FD]')
+    expect(tail!.rrule).toContain('BYDAY=MO,TH,SA')
+  })
+
+  it('an all-day colour-only override retains the organiser midnight', async () => {
+    vi.mocked(getSettings).mockResolvedValue({ timezone: 'Asia/Shanghai' })
+    seedMaster({
+      startDate: new Date('2026-10-04T16:00:00Z'),
+      endDate: new Date('2026-10-05T16:00:00Z'),
+      isAllDay: true,
+    })
+    const id = 'm1_20261012'
+    const before = await getEvent('u1', id)
+    const after = await updateEvent('u1', id, {
+      apply_to: 'single',
+      color: 'blue',
+    })
+    expect(before!.startDate).toEqual(new Date('2026-10-11T16:00:00Z'))
+    expect(after).toMatchObject({
+      title: 'Team sync',
+      startDate: before!.startDate,
+      endDate: before!.endDate,
+      isAllDay: true,
+      color: 'bg-[#E6F6FD]',
+    })
+  })
+
+  it('MCP query then following colour edit preserves the dates shown in the user timezone', async () => {
+    vi.mocked(getSettings).mockResolvedValue({ timezone: 'Asia/Shanghai' })
+    seedMaster({
+      startDate: new Date('2026-10-04T23:00:00Z'),
+      endDate: new Date('2026-10-04T23:30:00Z'),
+      rrule: 'FREQ=WEEKLY;BYDAY=MO,TH,SA;UNTIL=20261031T000000Z',
+    })
+    const window = {
+      windowStart: day(2026, 10, 1),
+      windowEnd: day(2026, 11, 1),
+      timezone: 'Asia/Shanghai',
+    }
+    const before = expandRows(fake.rows() as unknown as EventRow[], window)
+    const queried = await listEvents('u1', {
+      start_date: window.windowStart.toISOString(),
+      end_date: window.windowEnd.toISOString(),
+    })
+    expect(queried.events.map((e) => e.id)).toEqual(
+      before.map((e) => e.instanceId),
+    )
+    const selected = queried.events[4]
+    await updateEvent('u1', selected.id as string, {
+      apply_to: 'following',
+      color: 'blue',
+    })
+    const rows = fake
+      .rows()
+      .map((r) => ({ ...r, seriesId: r.seriesId ?? null }))
+    const after = expandRows(rows as unknown as EventRow[], window)
+    expect(after.map((e) => e.startDate.toISOString()).sort()).toEqual(
+      before.map((e) => e.startDate.toISOString()).sort(),
+    )
+    expect(
+      after
+        .filter((e) => e.startDate >= before[4].startDate)
+        .every((e) => e.color === 'bg-[#E6F6FD]'),
+    ).toBe(true)
   })
 })

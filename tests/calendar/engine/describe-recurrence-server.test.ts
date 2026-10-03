@@ -49,6 +49,13 @@ describe('describeRecurrence in a server environment', () => {
     )
   })
 
+  it('formats UNTIL as a readable localized calendar date', () => {
+    const rule = 'FREQ=DAILY;UNTIL=20261031T000000Z'
+    expect(describeRecurrence(rule, 'en')).toContain('Oct 31, 2026')
+    expect(describeRecurrence(rule, 'zh-CN')).toContain('2026年10月31日')
+    expect(describeRecurrence(rule, 'en')).not.toMatch(/T\d{6}Z/)
+  })
+
   it('handles BYSETPOS and BYMONTHDAY', () => {
     expect(
       describeRecurrence('FREQ=MONTHLY;BYDAY=MO;BYSETPOS=-1', false),

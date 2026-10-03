@@ -17,9 +17,11 @@
  *    narrow, not a blanket "the list can no longer be dismissed".
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import { useState } from 'react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { useState, useRef } from 'react'
 import MonthView from '@/components/app/views/month-view'
+import YearView from '@/components/app/views/year-view'
+import { useEventPreviewNavigation } from '@/hooks/use-event-preview-navigation'
 import EventPreview from '@/components/app/event/event-preview'
 import type { CalendarEvent } from '@/components/app/calendar'
 import {
@@ -80,6 +82,65 @@ function timedEvent(n: number): CalendarEvent {
 
 /** Five events on one day: three render in the cell, two go to the list. */
 const EVENTS = [1, 2, 3, 4, 5].map(timedEvent)
+
+function NavigationHarness({
+  view,
+  onReady,
+}: {
+  view: 'month' | 'year'
+  onReady: (anchor: HTMLElement | null) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [target, setTarget] = useState<CalendarEvent | null>(null)
+  useEventPreviewNavigation(target, ref, onReady)
+  return (
+    <>
+      <button onClick={() => setTarget(EVENTS[3])}>Open search result</button>
+      <div ref={ref}>
+        {view === 'month' ? (
+          <MonthView
+            date={config.date}
+            events={EVENTS}
+            config={config}
+            onEventClick={vi.fn()}
+            onDayNumberClick={vi.fn()}
+            onCellClick={vi.fn()}
+          />
+        ) : (
+          <YearView
+            date={config.date}
+            events={EVENTS}
+            config={config}
+            onEventClick={vi.fn()}
+            onDayHeaderClick={vi.fn()}
+          />
+        )}
+      </div>
+    </>
+  )
+}
+
+describe('search/bookmark preview navigation', () => {
+  it.each(['month', 'year'] as const)(
+    '%s reveals the list before anchoring to its event row',
+    async (view) => {
+      const onReady = vi.fn()
+      const scroll = vi.fn()
+      Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+        configurable: true,
+        value: scroll,
+      })
+      render(<NavigationHarness view={view} onReady={onReady} />)
+      expect(document.querySelector('[data-event-id="e4"]')).toBeNull()
+      fireEvent.click(screen.getByText('Open search result'))
+      const row = await screen.findByRole('button', { name: 'Event 4' })
+      await waitFor(() => expect(onReady).toHaveBeenCalledWith(row))
+      expect(row.closest('[data-slot="popover-content"]')).not.toBeNull()
+      expect(scroll).toHaveBeenCalled()
+      delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView
+    },
+  )
+})
 
 /** MonthView wired to a real EventPreview, the way calendar.tsx wires them. */
 function Harness() {

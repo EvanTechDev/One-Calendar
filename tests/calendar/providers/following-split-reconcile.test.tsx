@@ -117,6 +117,8 @@ let upsertFn:
     ) => Promise<EventData>)
   | null = null
 let swrCache: { clear?: () => void } | null = null
+let deleteFn: ReturnType<typeof useData>['deleteEvent']
+let refreshFn: ReturnType<typeof useData>['refreshEvents']
 
 function Probe() {
   const { events } = useCalendar()
@@ -125,6 +127,8 @@ function Probe() {
   swrCache = cache as unknown as { clear?: () => void }
   storeEvents = events
   upsertFn = data.upsertEvent
+  deleteFn = data.deleteEvent
+  refreshFn = data.refreshEvents
   return null
 }
 
@@ -174,7 +178,10 @@ const runUpsert = async (
 }
 
 describe('following-split reconciliation (ghost regression)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // SWR clears its deduplication entries on a timer, separately from the
+    // cache. Let the previous test's final revalidation finish that cleanup.
+    await new Promise((resolve) => setTimeout(resolve, 0))
     pending = []
     storeEvents = []
     upsertFn = null
@@ -199,6 +206,75 @@ describe('following-split reconciliation (ghost regression)', () => {
     }
     pending = []
     vi.unstubAllGlobals()
+  })
+
+  it.each(['before', 'during'] as const)(
+    'keeps a deletion hidden when a revalidation started %s DELETE returns stale rows',
+    async (timing) => {
+      const seed = [evt()]
+      await seedApp(seed)
+      let refreshing: ReturnType<typeof refreshFn>
+      if (timing === 'before')
+        act(() => {
+          refreshing = refreshFn()
+        })
+      let deleting: Promise<void>
+      act(() => {
+        deleting = deleteFn(seed[0].id, undefined, 'UTC')
+      })
+      await waitFor(() => expect(storeEvents).toHaveLength(0))
+      expect(fetch).toHaveBeenCalledWith(
+        '/api/events',
+        expect.objectContaining({ method: 'DELETE' }),
+      )
+      if (timing === 'during') {
+        act(() => {
+          refreshing = refreshFn()
+        })
+        // Resolve the later GET first, leaving the earlier DELETE pending.
+        pending.push(pending.shift()!)
+      }
+      resolveJson('/api/events', { events: seed })
+      await act(async () => {
+        await refreshing
+      })
+      expect(storeEvents).toHaveLength(0)
+      resolveJson('/api/events', { success: true })
+      await act(async () => {
+        await deleting
+      })
+      expect(storeEvents).toHaveLength(0)
+      act(() => {
+        refreshing = refreshFn()
+      })
+      resolveJson('/api/events', { events: [] })
+      await act(async () => {
+        await refreshing
+      })
+      expect(storeEvents).toHaveLength(0)
+    },
+  )
+
+  it('rolls back a failed durable deletion', async () => {
+    const seed = [evt()]
+    await seedApp(seed)
+    let deleting: Promise<unknown>
+    act(() => {
+      deleting = deleteFn(seed[0].id).catch((error) => error)
+    })
+    await waitFor(() => expect(storeEvents).toHaveLength(0))
+    const entry = pending.splice(0, 1)[0]
+    entry.resolve({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'write failed' }),
+    })
+    await act(async () => {
+      await deleting
+    })
+    await waitFor(() =>
+      expect(storeEvents.map((e) => e.id)).toEqual([seed[0].id]),
+    )
   })
 
   it('purges the old series via removedSeriesIds even when the caller passes no oldSeriesIds', async () => {
