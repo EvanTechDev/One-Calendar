@@ -178,14 +178,16 @@ async function search(
       events = await rerankCandidates(
         candidates,
         query.order,
-        async (batch) => {
+        async (batch, batchSignal) => {
+          const batchId = ++batchNumber
+          const started = performance.now()
           trace('judge-batch', {
-            batch: ++batchNumber,
+            batch: batchId,
             candidates: batch.length,
           })
           const { object: judgments } = await generateObject({
             model,
-            abortSignal: signal,
+            abortSignal: batchSignal,
             schema: searchJudgmentsSchema,
             system: buildRerankInstructions(intent, query),
             prompt: JSON.stringify(
@@ -196,6 +198,11 @@ async function search(
                   : null,
               })),
             ),
+          })
+          trace('judge-batch-completed', {
+            batch: batchId,
+            durationMs: Math.round(performance.now() - started),
+            candidates: batch.length,
           })
           return judgments.judgments
         },

@@ -147,6 +147,13 @@ describe('search route: complete candidate scan and persisted AI decisions', () 
         candidates: 207,
       }),
     )
+    const completed = vi
+      .mocked(console.info)
+      .mock.calls.map(([, data]) => data)
+      .filter((data) => data.stage === 'judge-batch-completed')
+    expect(completed).toHaveLength(11)
+    expect(new Set(completed.map((data) => data.batch)).size).toBe(11)
+    expect(completed.every((data) => data.durationMs >= 0)).toBe(true)
     expect(console.info).toHaveBeenLastCalledWith(
       '[agent-search]',
       expect.objectContaining({ stage: 'finished', status: 200 }),
@@ -209,11 +216,27 @@ describe('search route: complete candidate scan and persisted AI decisions', () 
     expect(systems.at(-1)).toContain('只要上个月')
   })
   it('rejects a missing batch instead of reporting an incomplete search as success', async () => {
-    seed('flight', 'Flight to Tokyo')
+    for (let i = 0; i < 60; i++) seed(`flight-${i}`, 'Flight to Tokyo')
+    let siblingSignal: AbortSignal | undefined
     vi.mocked(generateObject)
       .mockResolvedValueOnce({ object: plan } as never)
       .mockResolvedValueOnce({ object: { judgments: [] } } as never)
+      .mockImplementationOnce(async ({ abortSignal }) => {
+        siblingSignal = abortSignal
+        return new Promise((_, reject) => {
+          abortSignal!.addEventListener(
+            'abort',
+            () => reject(abortSignal!.reason),
+            {
+              once: true,
+            },
+          )
+        })
+      })
     expect((await post({ text: '旅行' })).status).toBe(502)
+    expect(siblingSignal?.aborted).toBe(true)
+    // Compiler + two in-flight batches; the queued third batch is never sent.
+    expect(generateObject).toHaveBeenCalledTimes(3)
   })
   it('returns empty when AI judges every event irrelevant', async () => {
     seed('noise', 'Unrelated')

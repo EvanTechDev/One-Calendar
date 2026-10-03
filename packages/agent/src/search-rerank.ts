@@ -43,42 +43,64 @@ Do not require every concept/synonym to appear. Evaluate the original intent as 
 export async function rerankCandidates(
   events: readonly AgentEventSummary[],
   order: SearchQuery['order'],
-  judge: (batch: AgentEventSummary[]) => Promise<SearchJudgment[]>,
+  judge: (
+    batch: AgentEventSummary[],
+    signal: AbortSignal,
+  ) => Promise<SearchJudgment[]>,
   signal?: AbortSignal,
 ): Promise<AgentEventSummary[]> {
   const scored: { event: AgentEventSummary; score: number }[] = []
+  const controller = new AbortController()
+  const batchSignal = signal
+    ? AbortSignal.any([signal, controller.signal])
+    : controller.signal
   let offset = 0
-  while (offset < events.length) {
-    signal?.throwIfAborted()
-    const batch: AgentEventSummary[] = []
-    let size = 0
-    // Bound each request, not the search. Never slice off a long description.
-    while (offset < events.length && batch.length < 20) {
-      const event = events[offset]
-      const length = JSON.stringify(event).length
-      if (batch.length && size + length > 24000) break
-      batch.push(event)
-      size += length
-      offset++
-    }
-    const decisions = await judge(batch)
-    const remaining = new Map(batch.map((e) => [e.id, e]))
-    for (const decision of decisions) {
-      const event = remaining.get(decision.id)
-      if (
-        !event ||
-        !Number.isFinite(decision.score) ||
-        decision.score < 0 ||
-        decision.score > 100
-      ) {
-        throw new Error('Invalid search judgment')
+  async function worker() {
+    try {
+      while (offset < events.length) {
+        batchSignal.throwIfAborted()
+        const batch: AgentEventSummary[] = []
+        let size = 0
+        // Claim a batch before awaiting, so workers never judge the same row.
+        // Bound each request, not the search. Never slice off a long description.
+        while (offset < events.length && batch.length < 20) {
+          const event = events[offset]
+          const length = JSON.stringify(event).length
+          if (batch.length && size + length > 24000) break
+          batch.push(event)
+          size += length
+          offset++
+        }
+        const decisions = await judge(batch, batchSignal)
+        batchSignal.throwIfAborted()
+        const remaining = new Map(batch.map((e) => [e.id, e]))
+        for (const decision of decisions) {
+          const event = remaining.get(decision.id)
+          if (
+            !event ||
+            !Number.isFinite(decision.score) ||
+            decision.score < 0 ||
+            decision.score > 100
+          ) {
+            throw new Error('Invalid search judgment')
+          }
+          remaining.delete(decision.id)
+          if (decision.relevant && decision.score > 0)
+            scored.push({ event, score: decision.score })
+        }
+        if (remaining.size) throw new Error('Incomplete search judgments')
       }
-      remaining.delete(decision.id)
-      if (decision.relevant && decision.score > 0)
-        scored.push({ event, score: decision.score })
+    } catch (error) {
+      // Cancel the sibling request and stop the queue, including validation
+      // failures. A partly judged calendar must never look like a complete search.
+      controller.abort(error)
+      throw error
     }
-    if (remaining.size) throw new Error('Incomplete search judgments')
   }
+  // Two in flight overlaps network/model latency without a burst of requests
+  // for the entire calendar. Batch contents and final ranking stay identical.
+  await Promise.all([worker(), worker()])
+  batchSignal.throwIfAborted()
   const top = scored.reduce((max, entry) => Math.max(max, entry.score), 0)
   return scored
     .filter((entry) => entry.score >= top * 0.3)

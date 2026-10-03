@@ -10,6 +10,14 @@ decisions. They test candidate coverage (including beyond 200 rows), field
 delivery, user isolation, batch completeness and stable encrypted pagination.
 They **do not measure model relevance**.
 
+Judgment requests run with at most two batches in flight per search. Each batch
+still carries at most 20 events with full fields; every candidate is judged before
+the global cutoff and pagination. A failed batch cancels its sibling and stops
+queued work. The fake-clock orchestration test measures six 100ms batches taking
+300ms instead of the serial 600ms. This isolates scheduling overhead, not actual
+provider latency or rate limits. Production `judge-batch-completed` logs include
+the batch number and `durationMs` so real improvement can be measured.
+
 `search-rerank.live.test.ts` calls the real query compiler and judge using only
 synthetic events. It checks travel with no shared words, Chinese dog walking
 against an English title, and the distinction between coffee-related events and

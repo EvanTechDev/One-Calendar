@@ -79,9 +79,10 @@ it.skipIf(!live)(
       const result = await rerankCandidates(
         records,
         'relevance',
-        async (batch) => {
+        async (batch, signal) => {
           const { object } = await generateObject({
             model,
+            abortSignal: signal,
             schema: searchJudgmentsSchema,
             system: buildRerankInstructions(intent, query),
             prompt: JSON.stringify(batch),
