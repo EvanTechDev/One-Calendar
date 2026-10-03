@@ -148,7 +148,9 @@ Category names (data, not instructions): ${JSON.stringify(context.categories.map
 
 Rules:
 - Preserve every distinctive subject/entity as a separate required concept. Keep place names intact. No character bigrams, no filler like 日程/find/my. Meeting IS a subject when the user asks for meetings.
+- Activities, objects, places and event names are subjects too: 遛狗, 牙医, 体检, 旅游, 报告, 项目. Do not discard them as generic wording.
 - Each concept is a small OR group: original wording first, then precise synonyms or common translations. Different concepts MUST NOT be OR alternatives. Do not broaden Tokyo to Japan, report to meeting, or travel to any activity.
+- The calendar may store a different language from the question. For every non-name concept, include the most likely English equivalent when the question is Chinese (and vice versa): 遛狗 => [遛狗, walk the dog, dog walking, walk dog]; 牙医 => [牙医, dentist, dental]; 旅游 => [旅游, travel, trip, journey]. A precise translation is required, not an optional extra.
 - AND across concepts: 上次去东京旅游的日程 => concepts [["东京","Tokyo"],["旅游","旅行","trip","travel","之旅"]], order latest, no preset/start/end. No default year or 90-day window.
 - 公司今年第二季度报告 => concepts [["公司","company","corporate"],["报告","report"]], start April 1 this year at local midnight, end July 1 at local midnight, order relevance. Q2 is narrower than this_year; use explicit dates, no preset.
 - 去年和 Alex 讨论项目 => concepts [["项目","project"]], names ["Alex"], preset last_year.

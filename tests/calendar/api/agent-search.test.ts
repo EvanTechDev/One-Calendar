@@ -92,6 +92,14 @@ describe('semantic search quality through route, toolkit and real retrieval', ()
     })
     expect(body.results.map((e: { id: string }) => e.id)).toEqual(['trip'])
   })
+  it('中文遛狗 finds English Walk the dog', async () => {
+    seed('dog', 'Walk the dog', '2026-04-11')
+    seed('cat', 'Feed the cat', '2026-04-11')
+    const body = await search('找出所有遛狗的日程', {
+      concepts: [['遛狗', 'walk the dog', 'dog walking', 'walk dog']],
+    })
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dog'])
+  })
   it('公司今年第二季度报告: keeps report AND company AND the quarter', async () => {
     seed('report', '公司季度报告')
     seed('meeting', '公司例会')
