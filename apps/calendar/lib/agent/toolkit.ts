@@ -57,6 +57,7 @@ interface ToolEventRow {
   categoryId?: string | null
   recurrenceSummary?: string | null
   instanceId?: string
+  participants?: unknown
 }
 
 function toIso(value: Date | string): string {
@@ -78,6 +79,7 @@ function toSummary(row: ToolEventRow): AgentEventSummary {
     color: row.color ?? null,
     categoryId: row.categoryId ?? null,
     recurrenceSummary: row.recurrenceSummary ?? null,
+    participants: row.participants,
   }
 }
 
@@ -92,7 +94,7 @@ export function createAppToolkit(userId: string): CalendarToolkit {
           ...(input.participants ? { participants: input.participants } : {}),
         },
         ...(input.query ? { search: { text: input.query } } : {}),
-        semanticSearch: input.semanticSearch,
+        searchCandidates: input.searchCandidates,
         // page 1 is the default in the MCP tool too; passing it through keeps
         // the two paths reading the same way.
         pagination: { page: input.page ?? 1, limit: input.limit ?? 20 },

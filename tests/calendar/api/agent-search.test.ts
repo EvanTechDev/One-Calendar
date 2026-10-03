@@ -2,21 +2,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
+import { searchQuerySchema, type RawSearchQuery } from '@zntr/agent/search'
 
-vi.mock('drizzle-orm', async (original) => {
-  const actual = await original<typeof import('drizzle-orm')>()
-  const { drizzleOperatorsMock } = await import('./route-test-db')
-  return { ...actual, ...drizzleOperatorsMock }
-})
+const auth = vi.hoisted(() => ({ id: 'owner' }))
+vi.mock('drizzle-orm', async (original) => ({
+  ...(await original<typeof import('drizzle-orm')>()),
+  ...(await import('./route-test-db')).drizzleOperatorsMock,
+}))
 vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
 vi.mock('@/lib/api-helpers', () => ({
-  getAuthedUser: async () => ({ id: 'owner' }),
-  decryptEvent: (event: unknown) => event,
+  getAuthedUser: async () => auth,
+  decryptEvent: (e: unknown) => e,
 }))
 vi.mock('@/lib/mcp/settings-tools', () => ({
   getSettings: async () => ({ timezone: 'Asia/Shanghai' }),
 }))
-vi.mock('@/lib/mcp/category-tools', () => ({ listCategories: async () => [] }))
+vi.mock('@/lib/mcp/category-tools', () => ({
+  listCategories: async () => [{ id: 'travel', name: 'Travel' }],
+}))
 vi.mock('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true }),
 }))
@@ -25,15 +28,15 @@ import { generateObject } from 'ai'
 import { POST } from '@/app/api/agent/search/route'
 
 const fake = getFakeDb()
-function seed(id: string, title: string, date = '2026-05-02', extra = {}) {
+function seed(id: string, title = id, extra = {}) {
   fake.seed({
     id,
     title,
     userId: 'owner',
     description: null,
     location: null,
-    startDate: new Date(`${date}T08:00:00Z`),
-    endDate: new Date(`${date}T09:00:00Z`),
+    startDate: new Date('2026-04-12T08:00:00Z'),
+    endDate: new Date('2026-04-12T09:00:00Z'),
     isAllDay: false,
     rrule: null,
     seriesId: null,
@@ -41,33 +44,50 @@ function seed(id: string, title: string, date = '2026-05-02', extra = {}) {
     ...extra,
   })
 }
-const empty = {
+const plan: RawSearchQuery = {
+  concepts: [['旅游']],
   preset: null,
   start: null,
   end: null,
-  browse: null,
   names: null,
   categories: null,
-  concepts: null,
   order: null,
+  browse: null,
 }
-async function search(text: string, plan: object) {
-  vi.mocked(generateObject).mockResolvedValueOnce({
-    object: { ...empty, ...plan },
-  } as never)
-  const response = await POST(
+function post(body: object) {
+  return POST(
     new NextRequest('http://localhost/api/agent/search', {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify(body),
     }),
   )
-  expect(response.status).toBe(200)
-  return response.json()
+}
+// This fake verifies transport/coverage, not whether a real model understands a query.
+function model(accepted: string[], query = plan) {
+  const seen: Record<string, unknown>[] = []
+  vi.mocked(generateObject).mockImplementation(async (options: any) => {
+    if (options.schema === searchQuerySchema) return { object: query } as never
+    const batch = JSON.parse(options.prompt)
+    seen.push(...batch)
+    return {
+      object: {
+        judgments: batch.map((e: { id: string }) => ({
+          id: e.id,
+          relevant: accepted.includes(e.id),
+          score: accepted.includes(e.id) ? 90 : 0,
+          evidence: accepted.includes(e.id) ? 'Fixture evidence' : 'Unrelated',
+        })),
+      },
+    } as never
+  })
+  return seen
 }
 beforeEach(() => {
   fake.reset()
-  vi.clearAllMocks()
+  vi.resetAllMocks()
+  auth.id = 'owner'
   vi.stubEnv('GROQ_API_KEY', 'test-key')
+  vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret')
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-10-03T00:00:00Z'))
 })
@@ -76,184 +96,111 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('semantic search quality through route, toolkit and real retrieval', () => {
-  it('上次去东京旅游: keeps both destination and activity, including English titles', async () => {
-    seed('trip', 'Trip to Tokyo', '2026-03-01')
-    seed('hike', 'Weekend hiking trip')
-    seed('office', '东京办公室会议')
-    seed('private', 'Trip to Tokyo', '2026-04-01', { userId: 'someone-else' })
-    const body = await search('上次去东京旅游的日程', {
-      preset: 'past',
-      order: 'latest',
-      concepts: [
-        ['东京', 'Tokyo'],
-        ['旅游', '旅行', 'trip', 'travel', '之旅'],
-      ],
-    })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['trip'])
-  })
-  it('中文遛狗 finds English Walk the dog', async () => {
-    seed('dog', 'Walk the dog', '2026-04-11')
-    seed('cat', 'Feed the cat', '2026-04-11')
-    const body = await search('找出所有遛狗的日程', {
-      concepts: [['遛狗', 'walk the dog', 'dog walking', 'walk dog']],
-    })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dog'])
-  })
-  it('咖啡 and 喝咖啡 return the same events, however the user phrases it', async () => {
-    seed('coffee', 'Coffee with Sam', '2026-04-12')
-    seed('lunch', 'Lunch with Sam', '2026-04-12')
-    const direct = await search('帮我找所有咖啡日程', {
-      concepts: [['咖啡', 'coffee', 'cafe', '喝咖啡']],
-    })
-    const phrased = await search('帮我找所有我去喝咖啡的日程', {
-      concepts: [['咖啡', 'coffee', 'cafe', '喝咖啡']],
-    })
-    expect(direct.results.map((e: { id: string }) => e.id)).toEqual(['coffee'])
-    expect(phrased.results.map((e: { id: string }) => e.id)).toEqual(['coffee'])
-  })
-  it('a partly-matching description still ranks: no concept vetoes a result', async () => {
-    seed('coffee', 'Morning standup', '2026-04-12', {
-      description: 'grab coffee with the team',
-    })
-    seed('other', 'Quarterly review', '2026-04-12')
-    const body = await search('咖啡日程', {
-      concepts: [['咖啡', 'coffee']],
-    })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['coffee'])
-  })
-  it('scores location, not only the title', async () => {
-    seed('byLocation', 'Meetup', '2026-04-12', {
-      location: 'Blue Bottle Coffee',
-    })
-    seed('unrelated', 'Dentist', '2026-04-12')
-    const body = await search('咖啡', {
-      concepts: [['咖啡', 'coffee']],
-    })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual([
-      'byLocation',
-    ])
-  })
-  it('the relative cutoff drops the long-shot tail', async () => {
-    seed('exact', 'Coffee', '2026-04-12')
-    for (let i = 0; i < 5; i++)
-      seed(`weak-${i}`, 'Daily standup', '2026-04-12', {
-        description: 'coffee',
-      })
-    const body = await search('咖啡', {
-      concepts: [['咖啡', 'coffee']],
-    })
-    // The title match scores far above the description mentions, so the
-    // half-of-best floor keeps only the strong hit.
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['exact'])
-  })
-  it('中文牙医 finds English Dentist appointment', async () => {
-    seed('dentist', 'Dentist appointment', '2026-11-11')
-    seed('lunch', 'Lunch with Sam', '2026-11-11')
-    const body = await search('下次牙医', {
-      concepts: [['牙医', 'dentist', 'dental appointment']],
-      order: 'next',
-    })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dentist'])
-  })
-  it('公司今年第二季度报告: keeps report AND company AND the quarter', async () => {
-    seed('report', '公司季度报告')
-    seed('meeting', '公司例会')
-    seed('outside', '公司季度报告', '2026-08-01')
-    const body = await search('公司今年第二季度报告', {
-      start: '2026-04-01T00:00:00+08:00',
-      end: '2026-07-01T00:00:00+08:00',
-      order: 'relevance',
-      concepts: [
-        ['公司', 'company'],
-        ['报告', 'report'],
-      ],
-    })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['report'])
-  })
-  it('an empty exact search never relaxes its words, people or dates', async () => {
-    seed('wrong-date', '东京旅行', '2026-08-01', {
+describe('search route: complete candidate scan and persisted AI decisions', () => {
+  it('sends zero-overlap candidates and every field to AI, including after 200 rows', async () => {
+    for (let i = 0; i < 205; i++) seed(`a-${i}`, 'Unrelated')
+    seed('flight', 'Flight to Tokyo', { categoryId: 'travel' })
+    seed('transfer', 'Go to Airport in Shanghai', {
+      description: 'Transfer before flight to Tokyo',
+      location: 'PVG',
       participants: [{ name: 'Alex' }],
     })
-    seed('wrong-person', '东京旅行', '2026-05-01', {
-      participants: [{ name: 'Bob' }],
-    })
-    seed('wrong-city', '大阪旅行', '2026-05-01', {
+    seed('private', 'Flight to Tokyo', { userId: 'other' })
+    const seen = model(['flight', 'transfer'])
+    const response = await post({ text: '查找上次去日本东京旅游' })
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(seen).toHaveLength(207)
+    expect(seen.find((e) => e.id === 'flight')?.category).toBe('Travel')
+    expect(seen.find((e) => e.id === 'transfer')).toMatchObject({
+      location: 'PVG',
+      description: 'Transfer before flight to Tokyo',
       participants: [{ name: 'Alex' }],
     })
-    const body = await search('五月和Alex去东京旅行', {
-      concepts: [['东京'], ['旅行']],
-      names: ['Alex'],
-      start: '2026-05-01T00:00:00+08:00',
-      end: '2026-06-01T00:00:00+08:00',
-    })
-    expect(body.results).toEqual([])
-    expect(body.query.names).toEqual(['Alex'])
+    expect(body.results.map((e: any) => e.id)).toEqual(['flight', 'transfer'])
   })
-  it('scores all candidates before pagination and reuses the exact plan without AI', async () => {
-    for (let i = 0; i < 55; i++)
-      seed(`low-${String(i).padStart(2, '0')}`, 'Team sync', '2026-05-01', {
-        description: 'company report',
-      })
-    seed('best', 'Company report', '2025-01-01')
-    const first = await search('company report', {
-      concepts: [['company'], ['report']],
+  it('keeps user/time/category boundaries before AI and includes unbounded series', async () => {
+    seed('series', 'Flight to Tokyo', { rrule: 'FREQ=MONTHLY;COUNT=4' })
+    seed('outside', 'Trip', {
+      startDate: new Date('2027-01-01'),
+      endDate: new Date('2027-01-02'),
     })
-    expect(first.total).toBe(56)
-    expect(first.results[0].id).toBe('best')
+    const seen = model(['series'], {
+      ...plan,
+      end: '2026-12-31T00:00:00Z',
+    } as typeof plan)
+    expect((await post({ text: '过去的旅行' })).status).toBe(200)
+    expect(seen.some((e) => e.id === 'outside')).toBe(false)
+    const unbounded = model(['series'])
+    await post({ text: '所有旅行' })
+    expect(unbounded.some((e) => e.id === 'series')).toBe(true)
+  })
+  it('freezes ranked decisions across pages without another AI call', async () => {
+    const ids = Array.from({ length: 56 }, (_, i) => `event-${i}`)
+    ids.forEach((id) => seed(id))
+    model(ids)
+    const first = await (await post({ text: '旅行' })).json()
     expect(first.results).toHaveLength(50)
-    // Even without a model key, paging is a database-only operation.
+    const calls = vi.mocked(generateObject).mock.calls.length
     vi.stubEnv('GROQ_API_KEY', '')
-    const response = await POST(
-      new NextRequest('http://localhost/api/agent/search', {
-        method: 'POST',
-        body: JSON.stringify({ page: 2, resolved: first.query }),
-      }),
-    )
+    const response = await post({ page: 2, searchToken: first.searchToken })
     expect(response.status).toBe(200)
     const second = await response.json()
     expect(second.results).toHaveLength(6)
     expect(
       new Set([...first.results, ...second.results].map((e) => e.id)).size,
     ).toBe(56)
-    expect(second.query).toEqual(first.query)
-    expect(generateObject).toHaveBeenCalledTimes(1)
+    expect(generateObject).toHaveBeenCalledTimes(calls)
+    const altered =
+      (first.searchToken[0] === 'A' ? 'B' : 'A') + first.searchToken.slice(1)
+    expect((await post({ page: 2, searchToken: altered })).status).toBe(400)
+    auth.id = 'other'
+    expect(
+      (await post({ page: 2, searchToken: first.searchToken })).status,
+    ).toBe(400)
+    auth.id = 'owner'
+    vi.setSystemTime(new Date('2026-10-03T00:16:00Z'))
+    expect(
+      (await post({ page: 2, searchToken: first.searchToken })).status,
+    ).toBe(400)
   })
-  it('next chooses the nearest future result and latest chooses the nearest past', async () => {
-    seed('old', 'Tokyo trip', '2025-01-01')
-    seed('last', 'Tokyo trip', '2026-08-01')
-    seed('next', 'Tokyo trip', '2026-10-04')
-    seed('distant', 'Tokyo trip', '2027-01-01')
-    const concepts = [['Tokyo'], ['trip']]
-    const latest = await search('last Tokyo trip', {
-      concepts,
-      order: 'latest',
-    })
-    expect(latest.results.map((e: { id: string }) => e.id)).toEqual([
-      'last',
-      'old',
-    ])
-    const next = await search('next Tokyo trip', { concepts, order: 'next' })
-    expect(next.results.map((e: { id: string }) => e.id)).toEqual([
-      'next',
-      'distant',
-    ])
+  it('keeps the original question in follow-up adjudication', async () => {
+    seed('coffee', 'Cafe')
+    model(['coffee'])
+    const first = await (await post({ text: '找喝咖啡的日程' })).json()
+    await post({ text: '只要上个月', previousToken: first.searchToken })
+    const systems = vi
+      .mocked(generateObject)
+      .mock.calls.map(([o]: any) => o.system)
+    expect(systems.at(-1)).toContain('找喝咖啡的日程')
+    expect(systems.at(-1)).toContain('只要上个月')
   })
-  it('rejects an old or malformed paging plan without executing a new model search', async () => {
-    const response = await POST(
-      new NextRequest('http://localhost/api/agent/search', {
-        method: 'POST',
-        body: JSON.stringify({ page: 2, resolved: { query: 'trip' } }),
-      }),
+  it('rejects a missing batch instead of reporting an incomplete search as success', async () => {
+    seed('flight', 'Flight to Tokyo')
+    vi.mocked(generateObject)
+      .mockResolvedValueOnce({ object: plan } as never)
+      .mockResolvedValueOnce({ object: { judgments: [] } } as never)
+    expect((await post({ text: '旅行' })).status).toBe(502)
+  })
+  it('returns empty when AI judges every event irrelevant', async () => {
+    seed('noise', 'Unrelated')
+    model([])
+    expect((await (await post({ text: '旅行' })).json()).results).toEqual([])
+  })
+  it('still judges the original question when the compiler extracts no concepts', async () => {
+    seed('dog', 'Walk the dog')
+    seed('other', 'Feed the cat')
+    model(['dog'], { ...plan, concepts: null })
+    const response = await post({ text: '找出所有遛狗的日程' })
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.query.concepts).toEqual([])
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dog'])
+  })
+  it('rejects an unsealed legacy paging plan', async () => {
+    expect((await post({ page: 2, resolved: { query: 'trip' } })).status).toBe(
+      400,
     )
-    expect(response.status).toBe(400)
     expect(generateObject).not.toHaveBeenCalled()
-  })
-  it('keeps recurring series discoverable without inventing a date window', async () => {
-    seed('series', 'Tokyo trip', '2025-01-01', {
-      rrule: 'FREQ=MONTHLY;COUNT=4',
-    })
-    const body = await search('Tokyo trip', { concepts: [['Tokyo'], ['trip']] })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['series'])
   })
 })

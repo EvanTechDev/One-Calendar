@@ -131,6 +131,7 @@ type SearchState =
   | {
       status: 'ready'
       query: SearchQuery
+      searchToken: string
       results: PaletteSearchHit[]
       page: number
       total: number
@@ -147,6 +148,7 @@ type SearchState =
   | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' }
 
 interface SearchResponseBody {
+  searchToken: string
   query: SearchQuery
   results: PaletteSearchHit[]
   page: number
@@ -238,8 +240,8 @@ export function AiCommandPalette({
   }, [cancelSearch])
 
   /**
-   * Page 1 asks the model for a query; later pages replay the query the client
-   * already has, so paging costs nothing and cannot drift. A follow-up (page 1
+   * Page 1 asks the model to judge candidates; later pages replay sealed
+   * decisions, so paging uses no model and cannot drift. A follow-up (page 1
    * with results on screen) sends the previous query too, and the model
    * returns a complete new one rather than a patch.
    */
@@ -264,8 +266,12 @@ export function AiCommandPalette({
           signal: controller.signal,
           body: JSON.stringify(
             page > 1
-              ? { page, resolved: ready?.query }
-              : { text, previousQuery: ready?.query },
+              ? { page, searchToken: ready?.searchToken }
+              : {
+                  text,
+                  previousQuery: ready?.query,
+                  previousToken: ready?.searchToken,
+                },
           ),
         })
         if (controller.signal.aborted) return
@@ -288,6 +294,7 @@ export function AiCommandPalette({
             ? {
                 status: 'ready',
                 query: prev.query,
+                searchToken: body.searchToken,
                 results: [...prev.results, ...body.results],
                 page: body.page,
                 total: body.total,
@@ -300,6 +307,7 @@ export function AiCommandPalette({
             : {
                 status: 'ready',
                 query: body.query,
+                searchToken: body.searchToken,
                 results: body.results,
                 page: body.page,
                 total: body.total,

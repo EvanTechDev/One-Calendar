@@ -53,7 +53,6 @@ import {
   shiftOverrideStamps,
 } from '@/lib/event-write'
 import crypto from 'crypto'
-import { rankAndTrim } from '@zntr/agent/search-ranking'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
 const EVENT_STATUSES: EventStatus[] = ['confirmed', 'tentative', 'cancelled']
@@ -103,10 +102,8 @@ const EVENT_FIELD_ALIASES: Record<string, string> = {
 }
 
 export interface ListEventsParams {
-  semanticSearch?: {
-    concepts: string[][]
-    order: 'relevance' | 'latest' | 'next'
-  }
+  /** Internal AI scan; do not discard candidates by lexical relevance. */
+  searchCandidates?: boolean
   // Compatible legacy parameters.
   start_date?: string
   end_date?: string
@@ -927,12 +924,12 @@ export async function listEvents(
     // An unbounded semantic lookup searches stored series too. Expanding an
     // infinite rule without a window would invent an arbitrary cutoff; its
     // master remains a navigable result instead of disappearing entirely.
-    events = params.semanticSearch ? [...plainRows, ...recurring] : plainRows
+    events = params.searchCandidates ? [...plainRows, ...recurring] : plainRows
   }
 
   // Recurrence expansion reads masters separately from the SQL-filtered rows.
   // Reapply hard constraints to those results before semantic scoring.
-  if (params.semanticSearch) {
+  if (params.searchCandidates) {
     events = events.filter(
       (event) =>
         (!timeRange.start || new Date(event.endDate) > timeRange.start) &&
@@ -1036,22 +1033,6 @@ export async function listEvents(
     if (aTime !== bTime) return (aTime - bTime) * directionFactor
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   })
-
-  if (params.semanticSearch) {
-    // Scoring can weigh the category name, but the row only stores its id, so
-    // resolve the names the user's categories carry.
-    const categoryRows = await db
-      .select({ id: calendarCategories.id, name: calendarCategories.name })
-      .from(calendarCategories)
-      .where(eq(calendarCategories.userId, userId))
-    const categoryNames = new Map(categoryRows.map((c) => [c.id, c.name]))
-    events = rankAndTrim(
-      events,
-      params.semanticSearch.concepts,
-      params.semanticSearch.order,
-      categoryNames,
-    )
-  }
 
   const total = events.length
   const offset = (page - 1) * limit

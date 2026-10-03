@@ -22,6 +22,7 @@ export interface AgentEventSummary {
   color?: string | null
   categoryId?: string | null
   recurrenceSummary?: string | null
+  participants?: unknown
 }
 
 /**
@@ -36,11 +37,8 @@ export interface AgentListEventsInput {
   end?: string
   /** Free-text search over title/description/location. */
   query?: string
-  /** AND across concepts, OR among synonyms; applied before pagination. */
-  semanticSearch?: {
-    concepts: string[][]
-    order: 'relevance' | 'latest' | 'next'
-  }
+  /** Full AI candidate scan: hard constraints only, including series masters. */
+  searchCandidates?: boolean
   categoryIds?: string[]
   /**
    * Participants filter. `emails` matches against the event's participant
