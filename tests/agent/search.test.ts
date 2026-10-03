@@ -6,7 +6,10 @@ import {
   resolvedSearchQuerySchema,
   type RawSearchQuery,
 } from '@zntr/agent/search'
-import { rankSearchEvents } from '../../packages/agent/src/search-ranking'
+import {
+  rankAndTrim,
+  rankSearchEvents,
+} from '../../packages/agent/src/search-ranking'
 
 const empty: RawSearchQuery = {
   concepts: null,
@@ -84,12 +87,14 @@ describe('concept matching and ranking', () => {
     startDate: '2026-01-01',
     ...extra,
   })
-  it('requires concepts across fields and ORs only true alternatives', () => {
+  it('ranks a full-concept match above one that only shares a concept', () => {
     const events = [
       row('trip', 'Trip', { location: 'ＴＯＫＹＯ' }),
       row('other', 'Trip to Paris'),
       row('office', 'Tokyo office'),
     ]
+    // Scoring replaced vetoing: the row matching BOTH concepts leads, and a
+    // row sharing only one is kept but ranked lower, never deleted.
     expect(
       rankSearchEvents(
         events,
@@ -99,7 +104,7 @@ describe('concept matching and ranking', () => {
         ],
         'relevance',
       ).map((e) => e.id),
-    ).toEqual(['trip'])
+    ).toEqual(['trip', 'office', 'other'])
   })
   it('does not match Latin substrings inside unrelated words', () => {
     expect(
@@ -124,5 +129,48 @@ describe('concept matching and ranking', () => {
     expect(
       rankSearchEvents(events, [['report']], 'latest').map((e) => e.id),
     ).toEqual(['description', 'title'])
+  })
+  it('keeps a description that shares every concept, drops a lone mention', () => {
+    const shared = row('shared', 'Team sync', { description: 'company report' })
+    const lone = row('lone', 'Team sync', { description: 'report' })
+    const title = row('title', 'Company report')
+    // "company report" states both concepts (kept); "report" alone does not.
+    expect(
+      rankAndTrim([shared, lone, title], [['company'], ['report']], 'relevance')
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(['shared', 'title'])
+  })
+  it('a single-concept search never demands a title hit', () => {
+    // "咖啡" as a description is a real result; only the relative floor trims
+    // the tail, and with nothing stronger to compare against it survives.
+    expect(
+      rankAndTrim(
+        [row('desc', 'Team sync', { description: 'coffee' })],
+        [['咖啡', 'coffee']],
+        'relevance',
+      ).map((e) => e.id),
+    ).toEqual(['desc'])
+  })
+  it('weights the category name and location, not only the title', () => {
+    const cats = new Map([['cat-work', 'Work']])
+    const events = [
+      row('byCategory', 'Standup', { categoryId: 'cat-work' }),
+      row('unrelated', 'Lunch'),
+    ]
+    expect(
+      rankAndTrim(events, [['Work']], 'relevance', cats).map((e) => e.id),
+    ).toEqual(['byCategory'])
+  })
+  it('a bidirectional substring still finds the event when the model missed a variant', () => {
+    // The model emitted "coffee", the event says "coffee break": termHits
+    // matches the stored text as an extension of the term.
+    expect(
+      rankAndTrim(
+        [row('break', 'Coffee break'), row('other', 'Lunch')],
+        [['coffee']],
+        'relevance',
+      ).map((e) => e.id),
+    ).toEqual(['break'])
   })
 })

@@ -210,7 +210,6 @@
   "aiSearchFrom": "od",
   "aiSearchUntil": "do",
   "aiSearchWords": "słowa",
-  "aiSearchRelaxedConcept": "Wyszukiwanie poszerzone: usunięto ostatnie słowo kluczowe",
   "aiSearchWith": "z",
   "aiSearchDefaultRange": "brak daty w pytaniu — ostatnie 90 dni",
   "aiSearchRelaxed": "rozszerzono",

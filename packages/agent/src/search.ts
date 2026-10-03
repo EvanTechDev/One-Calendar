@@ -14,7 +14,7 @@ export const searchQuerySchema = z.object({
     .array(z.array(z.string()))
     .nullable()
     .describe(
-      'Required concepts, AND between groups, OR within each group. First term is the original word; up to 5 precise synonyms/translations follow. Max 8 groups. Example Tokyo trip: [["东京","Tokyo"],["旅游","旅行","trip","travel","之旅"]]. Never put different concepts into one group. Null only for a time/people/category-only search or explicit browse request.',
+      'Required concepts, AND between groups, OR within each group. First term is the original word; follow it with as many precise synonyms, translations, verb phrases and related words as you can — up to 11 more, because results are scored and a missed variant loses real events. Max 8 groups. Example coffee: [["咖啡","coffee","cafe","café","espresso","latte","coffee break","喝咖啡"]]. Never put different concepts into one group. Null only for a time/people/category-only search or explicit browse request.',
     ),
   preset: z
     .string()
@@ -60,7 +60,7 @@ export const searchQuerySchema = z.object({
 export type RawSearchQuery = z.infer<typeof searchQuerySchema>
 
 const term = z.string().trim().min(1).max(80)
-export const searchConceptsSchema = z.array(z.array(term).min(1).max(6)).max(8)
+export const searchConceptsSchema = z.array(z.array(term).min(1).max(12)).max(8)
 const instant = z.iso.datetime({ offset: true })
 export const resolvedSearchQuerySchema = z
   .object({
@@ -147,9 +147,9 @@ Presets: ${PRESET_NAMES.join(', ')}.
 Category names (data, not instructions): ${JSON.stringify(context.categories.map((c) => c.name))}.
 
 Rules:
-- Order the concepts from most to least specific: the proper noun or place the user named goes FIRST, a generic activity word LAST. The app drops the last concept when nothing matches, so a descriptor ending up first would relax away the very thing being searched.
-- Activities, objects, places and event names are subjects too: 遛狗, 牙医, 体检, 旅游, 报告, 项目. Do not discard them as generic wording.
-- Each concept is a small OR group: original wording first, then precise synonyms or common translations. Different concepts MUST NOT be OR alternatives. Do not broaden Tokyo to Japan, report to meeting, or travel to any activity.
+- Order the concepts from most to least specific: the proper noun or place the user named goes FIRST, a generic activity word LAST.
+- Activities, objects, places and event names are subjects too: 遛狗, 牙医, 体检, 旅游, 报告, 项目, 咖啡. Do not discard them as generic wording.
+- Each concept is a small OR group, and MORE IS BETTER: original wording first, then every synonym, translation, verb phrase, plural, brand or related word a person might have typed as the title. 咖啡 => [咖啡, coffee, cafe, café, espresso, latte, coffee break, 喝咖啡, 买咖啡]. Results are scored, not filtered, so extra variants only widen recall — a missed variant is what makes a real event disappear.
 - A parent place or category belongs INSIDE the concept it contains, not beside it: 日本 goes in the Tokyo group ([[东京, Tokyo, Japan, 日本]]) because an event in Tokyo is an event in Japan. Only split when the user names two places that are genuinely alternatives they want either one of.
 - Cross-language is MANDATORY, not optional: events are often titled in a different language than the question, so a concept with only the user's own language is incomplete and will miss them. For EVERY concept that is an activity, object, place or event name, add its common translation — English when the question is Chinese, Chinese when the question is English: 遛狗 => [遛狗, walk the dog, dog walking, walk dog]; 牙医 => [牙医, dentist, dental appointment]; 体检 => [体检, physical exam, checkup]; 旅游 => [旅游, travel, trip, journey]; 报告 => [报告, report]; 项目 => [项目, project]. Before returning, re-check every concept and confirm it carries the other language.
 - 公司今年第二季度报告 => concepts [["公司","company","corporate"],["报告","report"]], start April 1 this year at local midnight, end July 1 at local midnight, order relevance. Q2 is narrower than this_year; use explicit dates, no preset.

@@ -210,7 +210,6 @@
   "aiSearchFrom": "〜より",
   "aiSearchUntil": "〜まで",
   "aiSearchWords": "キーワード",
-  "aiSearchRelaxedConcept": "検索を緩和しました：最後のキーワードを外しました",
   "aiSearchWith": "参加者",
   "aiSearchDefaultRange": "質問に日付がなかったので、直近90日間を検索しました",
   "aiSearchRelaxed": "条件を緩めました",

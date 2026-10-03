@@ -53,7 +53,7 @@ import {
   shiftOverrideStamps,
 } from '@/lib/event-write'
 import crypto from 'crypto'
-import { rankSearchEvents } from '@zntr/agent/search-ranking'
+import { rankAndTrim } from '@zntr/agent/search-ranking'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
 const EVENT_STATUSES: EventStatus[] = ['confirmed', 'tentative', 'cancelled']
@@ -1038,10 +1038,18 @@ export async function listEvents(
   })
 
   if (params.semanticSearch) {
-    events = rankSearchEvents(
+    // Scoring can weigh the category name, but the row only stores its id, so
+    // resolve the names the user's categories carry.
+    const categoryRows = await db
+      .select({ id: calendarCategories.id, name: calendarCategories.name })
+      .from(calendarCategories)
+      .where(eq(calendarCategories.userId, userId))
+    const categoryNames = new Map(categoryRows.map((c) => [c.id, c.name]))
+    events = rankAndTrim(
       events,
       params.semanticSearch.concepts,
       params.semanticSearch.order,
+      categoryNames,
     )
   }
 

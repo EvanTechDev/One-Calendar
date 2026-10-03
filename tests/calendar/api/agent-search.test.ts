@@ -100,45 +100,52 @@ describe('semantic search quality through route, toolkit and real retrieval', ()
     })
     expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dog'])
   })
-  it('日本东京旅游 finds Flight to Tokyo by dropping the activity word', async () => {
-    seed('flight', 'Flight to Tokyo', '2026-04-12')
-    seed('osaka', 'Osaka trip', '2026-04-12')
-    const body = await search('查找上次去日本东京旅游', {
-      concepts: [
-        ['东京', 'Tokyo', 'Japan', '日本'],
-        ['旅游', '旅行', 'trip', 'travel', '之旅'],
-      ],
-      order: 'latest',
+  it('咖啡 and 喝咖啡 return the same events, however the user phrases it', async () => {
+    seed('coffee', 'Coffee with Sam', '2026-04-12')
+    seed('lunch', 'Lunch with Sam', '2026-04-12')
+    const direct = await search('帮我找所有咖啡日程', {
+      concepts: [['咖啡', 'coffee', 'cafe', '喝咖啡']],
     })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['flight'])
-    expect(body.relaxed).toBe(true)
+    const phrased = await search('帮我找所有我去喝咖啡的日程', {
+      concepts: [['咖啡', 'coffee', 'cafe', '喝咖啡']],
+    })
+    expect(direct.results.map((e: { id: string }) => e.id)).toEqual(['coffee'])
+    expect(phrased.results.map((e: { id: string }) => e.id)).toEqual(['coffee'])
   })
-  it('a strict match is never reported as relaxed', async () => {
-    seed('flight', 'Tokyo trip', '2026-04-12')
-    const body = await search('东京旅游', {
-      concepts: [
-        ['东京', 'Tokyo'],
-        ['旅游', 'trip'],
-      ],
-      order: 'latest',
+  it('a partly-matching description still ranks: no concept vetoes a result', async () => {
+    seed('coffee', 'Morning standup', '2026-04-12', {
+      description: 'grab coffee with the team',
     })
-    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['flight'])
-    expect(body.relaxed).toBe(false)
+    seed('other', 'Quarterly review', '2026-04-12')
+    const body = await search('咖啡日程', {
+      concepts: [['咖啡', 'coffee']],
+    })
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['coffee'])
   })
-  it('relaxing the last concept never lets a different city through', async () => {
-    // 大阪旅行 matches the activity word but not 东京. The strict pass finds
-    // nothing, the last concept (the activity) is dropped, and the remaining
-    // 东京 concept still excludes it.
-    seed('osaka', '大阪旅行', '2026-05-01')
-    const body = await search('查找上次去东京旅游', {
-      concepts: [
-        ['东京', 'Tokyo'],
-        ['旅游', '旅行'],
-      ],
-      order: 'latest',
+  it('scores location, not only the title', async () => {
+    seed('byLocation', 'Meetup', '2026-04-12', {
+      location: 'Blue Bottle Coffee',
     })
-    expect(body.results).toEqual([])
-    expect(body.relaxed).toBe(false)
+    seed('unrelated', 'Dentist', '2026-04-12')
+    const body = await search('咖啡', {
+      concepts: [['咖啡', 'coffee']],
+    })
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual([
+      'byLocation',
+    ])
+  })
+  it('the relative cutoff drops the long-shot tail', async () => {
+    seed('exact', 'Coffee', '2026-04-12')
+    for (let i = 0; i < 5; i++)
+      seed(`weak-${i}`, 'Daily standup', '2026-04-12', {
+        description: 'coffee',
+      })
+    const body = await search('咖啡', {
+      concepts: [['咖啡', 'coffee']],
+    })
+    // The title match scores far above the description mentions, so the
+    // half-of-best floor keeps only the strong hit.
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['exact'])
   })
   it('中文牙医 finds English Dentist appointment', async () => {
     seed('dentist', 'Dentist appointment', '2026-11-11')

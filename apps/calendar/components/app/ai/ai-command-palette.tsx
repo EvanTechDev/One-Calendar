@@ -143,8 +143,6 @@ type SearchState =
        * question, and every wrong answer reads as the AI making things up.
        */
       scope: SearchScope
-      /** The strict pass found nothing and the last concept was dropped. */
-      relaxed: boolean
     }
   | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' }
 
@@ -156,7 +154,6 @@ interface SearchResponseBody {
   totalPages: number
   hasMore: boolean
   range?: SearchScope
-  relaxed?: boolean
 }
 
 interface AiCommandPaletteProps {
@@ -299,7 +296,6 @@ export function AiCommandPalette({
                 // Paging replays the same query, so the scope cannot change;
                 // keeping the first page's values avoids a flash of blanks.
                 scope: body.range ?? prev.scope,
-                relaxed: body.relaxed ?? prev.relaxed,
               }
             : {
                 status: 'ready',
@@ -310,7 +306,6 @@ export function AiCommandPalette({
                 hasMore: body.hasMore,
                 text,
                 scope: body.range ?? {},
-                relaxed: body.relaxed === true,
               },
         )
       } catch {
@@ -441,9 +436,6 @@ export function AiCommandPalette({
     if (search.query.names?.length) {
       chips.push(`${t.aiSearchWith} ${search.query.names.join(', ')}`)
     }
-    // A widened result set must never look like a clean match, or the user
-    // cannot tell a near miss from the AI ignoring half the question.
-    if (search.relaxed) chips.push(t.aiSearchRelaxedConcept)
     return chips
   }, [search, language, t])
 

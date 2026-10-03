@@ -210,7 +210,6 @@
   "aiSearchFrom": "부터",
   "aiSearchUntil": "까지",
   "aiSearchWords": "키워드",
-  "aiSearchRelaxedConcept": "검색을 완화했습니다: 마지막 키워드를 제외했습니다",
   "aiSearchWith": "참석자",
   "aiSearchDefaultRange": "질문에 날짜가 없어 최근 90일을 검색했습니다",
   "aiSearchRelaxed": "조건 완화",
