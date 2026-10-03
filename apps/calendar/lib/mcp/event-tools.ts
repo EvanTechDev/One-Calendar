@@ -122,6 +122,14 @@ export interface ListEventsParams {
     is_all_day?: boolean
     participants?: {
       emails?: string[]
+      /**
+       * Display names to match, case-insensitively, against the stored
+       * participant names and the local part of their addresses. This exists
+       * because "the meeting with Alex" is how people speak and an address is
+       * not: the semantic-search model is given the user's own words and must
+       * never invent an address to search with.
+       */
+      names?: string[]
       mode?: ParticipantMode
       exists?: boolean
     }
@@ -440,6 +448,60 @@ export function matchesParticipantFilter(
     return target.every((email) => emails.has(email))
   }
   return target.some((email) => emails.has(email))
+}
+
+/**
+ * Every string a participant can be called: the stored display name, and the
+ * local part of the address for entries that carry only one.
+ *
+ * The name is stored separately from the address on purpose. Matching on
+ * addresses alone means "the meeting with Alex" can only be answered by
+ * whoever already knows Alex's address, which is precisely what a half-remembered
+ * search does not.
+ */
+export function extractParticipantNames(participants: unknown): string[] {
+  if (!Array.isArray(participants)) return []
+  const names: string[] = []
+  for (const entry of participants) {
+    if (typeof entry === 'string') {
+      names.push(localPart(entry))
+      continue
+    }
+    if (entry && typeof entry === 'object') {
+      const { name, email } = entry as { name?: unknown; email?: unknown }
+      if (typeof name === 'string' && name.trim()) {
+        names.push(name.trim().toLowerCase())
+      } else if (typeof email === 'string' && email.trim()) {
+        names.push(localPart(email))
+      }
+    }
+  }
+  return names
+}
+
+function localPart(address: string): string {
+  return address.trim().toLowerCase().split('@')[0]
+}
+
+/**
+ * Name matching, deliberately looser than the email match: a substring hit.
+ * Users type "Alex" for "Alex Chen" and "wang" for "Wang Fang" without
+ * knowing which is which, and a search that answers "nothing found" for a
+ * person it clearly could have found is worse than a slightly wide one.
+ */
+export function matchesParticipantNames(
+  names: Set<string>,
+  target: string[],
+  mode: ParticipantMode | undefined,
+): boolean {
+  if (target.length === 0) return true
+  const needles = target.map((n) => n.trim().toLowerCase()).filter(Boolean)
+  if (needles.length === 0) return true
+  const hit = (needle: string) =>
+    names.size > 0 &&
+    [...names].some((name) => name.includes(needle) || needle.includes(name))
+  if (mode === 'all') return needles.every(hit)
+  return needles.some(hit)
 }
 
 // ---------------------------------------------------------------------------
@@ -821,6 +883,11 @@ export async function listEvents(
   if (participantFilter?.emails && participantFilter.emails.length > 0) {
     participantEmails = normalizeEmails(participantFilter.emails)
   }
+  // Names are matched in memory like the addresses, not in SQL: they live in
+  // the encrypted participants jsonb, so SQL cannot see them.
+  const participantNames = (participantFilter?.names ?? [])
+    .map((name) => name.trim())
+    .filter(Boolean)
 
   const rows = await db
     .select()
@@ -886,10 +953,14 @@ export async function listEvents(
     )
   }
 
-  if (participantFilter || participantEmails) {
+  if (participantFilter || participantEmails || participantNames.length > 0) {
     const normalizedTarget = participantEmails
     events = events.filter((event) => {
       const emails = new Set(extractParticipantEmails(event.participants))
+      // Names are matched off the same decrypted jsonb the emails come from,
+      // and invite addresses are already merged in above, so both see the full
+      // participant set.
+      const names = new Set(extractParticipantNames(event.participants))
       if (normalizedTarget && normalizedTarget.length > 0) {
         const mode = participantFilter?.mode ?? 'any'
         const matches = matchesParticipantFilter(emails, {
@@ -897,6 +968,16 @@ export async function listEvents(
           mode,
         })
         if (!matches) return false
+      }
+      if (
+        participantNames.length > 0 &&
+        !matchesParticipantNames(
+          names,
+          participantNames,
+          participantFilter?.mode ?? 'any',
+        )
+      ) {
+        return false
       }
       if (typeof participantFilter?.exists === 'boolean') {
         return matchesParticipantFilter(emails, {

@@ -27,6 +27,17 @@ describe('normalizePreset', () => {
     expect(normalizePreset('previous_week')).toBe('last_week')
   })
 
+  it('maps the search vocabulary the model is likely to invent', () => {
+    // The model writes the preset name from the user's own words, so the
+    // aliases it reaches for first have to land on a real range.
+    expect(normalizePreset('recent')).toBe('last_30_days')
+    expect(normalizePreset('recently')).toBe('last_30_days')
+    expect(normalizePreset('ytd')).toBe('this_year')
+    expect(normalizePreset('past_30_days')).toBe('last_30_days')
+    expect(normalizePreset('previous_year')).toBe('last_year')
+    expect(normalizePreset('year')).toBe('this_year')
+  })
+
   it('returns null for junk', () => {
     expect(normalizePreset('sometime_soon')).toBeNull()
     expect(normalizePreset('')).toBeNull()
@@ -88,6 +99,36 @@ describe('resolvePreset (UTC)', () => {
       start: now.toISOString(),
     })
     expect(resolvePreset('past', now, 'UTC')).toEqual({
+      end: now.toISOString(),
+    })
+  })
+
+  it('years use calendar boundaries, so "last year" is a year not 365 days', () => {
+    // The semantic-search model's instructions say "last year" means the last
+    // calendar year; this is where that promise is kept.
+    expect(resolvePreset('this_year', now, 'UTC')).toEqual({
+      start: '2026-01-01T00:00:00.000Z',
+      end: '2027-01-01T00:00:00.000Z',
+    })
+    expect(resolvePreset('last_year', now, 'UTC')).toEqual({
+      start: '2025-01-01T00:00:00.000Z',
+      end: '2026-01-01T00:00:00.000Z',
+    })
+  })
+
+  it('the rolling windows end AT now, not at the end of today', () => {
+    // "the last 7 days" is the previous 168 hours. Ending at end-of-today would
+    // quietly add up to 24 hours the user never asked for.
+    expect(resolvePreset('last_7_days', now, 'UTC')).toEqual({
+      start: '2026-08-28T15:30:00.000Z',
+      end: now.toISOString(),
+    })
+    expect(resolvePreset('last_30_days', now, 'UTC')).toEqual({
+      start: '2026-08-05T15:30:00.000Z',
+      end: now.toISOString(),
+    })
+    expect(resolvePreset('last_90_days', now, 'UTC')).toEqual({
+      start: '2026-06-06T15:30:00.000Z',
       end: now.toISOString(),
     })
   })

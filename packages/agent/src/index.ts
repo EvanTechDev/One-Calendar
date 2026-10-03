@@ -1,6 +1,7 @@
 export * from './types'
 export * from './tools'
 export * from './parse'
+export * from './search'
 export * from './scheduling'
 export * from './instructions'
 export * from './presets'

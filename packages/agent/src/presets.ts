@@ -26,21 +26,47 @@ export const PRESET_NAMES = [
   'this_month',
   'next_month',
   'last_month',
+  'this_year',
+  'last_year',
+  'last_7_days',
+  'last_30_days',
+  'last_90_days',
   'upcoming',
   'past',
 ] as const
 
 export type CalendarPreset = (typeof PRESET_NAMES)[number]
 
-/** Synonyms models actually produce, mapped onto the canonical names. */
+/**
+ * Synonyms models actually produce, mapped onto the canonical names.
+ *
+ * The rolling-window and calendar-year presets are here for the palette's
+ * semantic search, which asks "去年和 Alex 讨论项目的会议" and "我最近一次去医院
+ * 是什么时候" — but they live in this module, not in the search prompt, so the
+ * chat tool and the search resolve the same word to the same range.
+ */
 const ALIASES: Record<string, CalendarPreset> = {
   week: 'this_week',
   month: 'this_month',
+  year: 'this_year',
   current_week: 'this_week',
   current_month: 'this_month',
+  current_year: 'this_year',
   future: 'upcoming',
   previous_week: 'last_week',
   previous_month: 'last_month',
+  previous_year: 'last_year',
+  recent: 'last_30_days',
+  recently: 'last_30_days',
+  lately: 'last_30_days',
+  last_week_7_days: 'last_7_days',
+  past_7_days: 'last_7_days',
+  past_30_days: 'last_30_days',
+  past_90_days: 'last_90_days',
+  past_3_months: 'last_90_days',
+  past_year: 'last_year',
+  ytd: 'this_year',
+  year_to_date: 'this_year',
 }
 
 export function normalizePreset(value: string): CalendarPreset | null {
@@ -113,6 +139,26 @@ export function resolvePreset(
         start: toIso(Date.UTC(y, m - 1, 1)),
         end: toIso(Date.UTC(y, m, 1)),
       }
+    case 'this_year':
+      return {
+        start: toIso(Date.UTC(y, 0, 1)),
+        end: toIso(Date.UTC(y + 1, 0, 1)),
+      }
+    case 'last_year':
+      return {
+        start: toIso(Date.UTC(y - 1, 0, 1)),
+        end: toIso(Date.UTC(y, 0, 1)),
+      }
+    // Rolling windows, not calendar windows: "recently" means the last N days,
+    // counted back from now, and the end is now rather than the end of today —
+    // a search for "the last time I was at the clinic" does not care what
+    // happens later today.
+    case 'last_7_days':
+      return { start: toIso(localNow - 7 * DAY), end: now.toISOString() }
+    case 'last_30_days':
+      return { start: toIso(localNow - 30 * DAY), end: now.toISOString() }
+    case 'last_90_days':
+      return { start: toIso(localNow - 90 * DAY), end: now.toISOString() }
     case 'upcoming':
       return { start: now.toISOString() }
     case 'past':

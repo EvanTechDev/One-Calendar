@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildCalendarTools } from '@zntr/agent/tools'
 import type {
   AgentCreateEventInput,
+  AgentEventPage,
   AgentEventSummary,
   AgentListEventsInput,
   CalendarToolkit,
@@ -34,7 +35,13 @@ function makeFakeToolkit(overrides: Partial<CalendarToolkit> = {}): {
   const toolkit: CalendarToolkit = {
     async listEvents(input: AgentListEventsInput) {
       calls.push({ method: 'listEvents', input })
-      return events
+      return {
+        events,
+        page: input.page ?? 1,
+        limit: input.limit ?? 50,
+        total: events.length,
+        totalPages: 1,
+      }
     },
     async createEvent(input: AgentCreateEventInput) {
       calls.push({ method: 'createEvent', input })
@@ -190,6 +197,37 @@ describe('buildCalendarTools', () => {
         ).toBeUndefined()
       }
     }
+  })
+
+  it('list_events forwards page and participants, and clamps a nonsense page', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.list_events, {
+      preset: 'today',
+      page: 3,
+      participants: { emails: ['alex@example.com'], mode: 'all' },
+    })
+    const input = calls.find((c) => c.method === 'listEvents')!
+      .input as AgentListEventsInput
+    expect(input.page).toBe(3)
+    expect(input.participants).toEqual({
+      emails: ['alex@example.com'],
+      mode: 'all',
+    })
+
+    await exec(tools.list_events, { page: 0 })
+    const second = calls.filter((c) => c.method === 'listEvents')[1]
+      .input as AgentListEventsInput
+    expect(second.page).toBe(1)
+  })
+
+  it('list_events leaves participants out entirely when the model omits it', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tools = buildCalendarTools(toolkit)
+    await exec(tools.list_events, { preset: 'today' })
+    const input = calls.find((c) => c.method === 'listEvents')!
+      .input as AgentListEventsInput
+    expect('participants' in input).toBe(false)
   })
 
   it('create_event reports missing required fields as an error result (the "missing properties: end" bug)', async () => {
@@ -422,6 +460,57 @@ describe('buildCalendarTools', () => {
         start: '2026-09-07T09:30:00.000Z',
         end: '2026-09-07T14:00:00.000Z',
       }),
+    ])
+  })
+
+  it('find_free_time pages a long window instead of trusting the first 50 rows', async () => {
+    const page = (
+      events: AgentEventSummary[],
+      over: Partial<AgentEventPage> = {},
+    ): AgentEventPage => ({
+      events,
+      page: 1,
+      limit: 50,
+      total: events.length,
+      totalPages: 1,
+      ...over,
+    })
+    const standup = {
+      id: 'evt-1',
+      title: 'Standup',
+      startDate: '2026-09-07T09:00:00.000Z',
+      endDate: '2026-09-07T09:30:00.000Z',
+      isAllDay: false,
+      status: 'confirmed',
+    }
+    const hidden = {
+      id: 'evt-99',
+      title: 'Budget review',
+      startDate: '2026-09-07T10:00:00.000Z',
+      endDate: '2026-09-07T11:00:00.000Z',
+      isAllDay: false,
+      status: 'confirmed',
+    }
+    const { toolkit } = makeFakeToolkit({
+      listEvents: async (input) =>
+        input.page === 2
+          ? page([hidden], { page: 2, total: 2, totalPages: 2 })
+          : page([standup], { total: 2, totalPages: 2 }),
+    })
+    const tools = buildCalendarTools(toolkit)
+    const result = (await exec(tools.find_free_time, {
+      start: '2026-09-07T08:00:00.000Z',
+      end: '2026-09-07T14:00:00.000Z',
+      durationMinutes: 60,
+      workdayStartHour: 8,
+      workdayEndHour: 14,
+    })) as { slots: Array<{ start: string; end: string }> }
+
+    // The 10:00 meeting only exists on page 2. Without paging it is invisible
+    // and the tool would offer 09:30–10:30 as free.
+    expect(result.slots).toEqual([
+      expect.objectContaining({ start: '2026-09-07T08:00:00.000Z' }),
+      expect.objectContaining({ start: '2026-09-07T11:00:00.000Z' }),
     ])
   })
 

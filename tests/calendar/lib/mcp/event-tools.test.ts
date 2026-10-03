@@ -8,8 +8,10 @@ import {
   validateEventFields,
   projectEventFields,
   extractParticipantEmails,
+  extractParticipantNames,
   mergeParticipantEmails,
   matchesParticipantFilter,
+  matchesParticipantNames,
   InvalidEventQueryError,
 } from '@/lib/mcp/event-tools'
 
@@ -265,5 +267,61 @@ describe('participant matching', () => {
 
   it('returns true when no filter is given', () => {
     expect(matchesParticipantFilter(new Set(), undefined)).toBe(true)
+  })
+
+  // "the meeting with Alex" is how people speak; an address is not. These names
+  // come straight from the search model's echo of the user's own words, which
+  // is why matching has to be loose enough for a partial surname.
+  it('extracts the stored name, falling back to the address local part', () => {
+    expect(
+      extractParticipantNames([
+        { name: 'Alex Chen', email: 'achen@example.com' },
+        'wang.fang@example.com',
+        { email: 'no-name@example.com' },
+      ]),
+    ).toEqual(['alex chen', 'wang.fang', 'no-name'])
+  })
+
+  it('lower-cases and trims names', () => {
+    expect(
+      extractParticipantNames([{ name: '  Bob  ' }, 'CAROL@X.com']),
+    ).toEqual(['bob', 'carol'])
+  })
+
+  it('matches a name the user shortened, in both directions', () => {
+    const names = new Set(['alex chen', 'wang fang'])
+    // "Alex" for "Alex Chen": the stored name contains what was typed.
+    expect(matchesParticipantNames(names, ['Alex'], 'any')).toBe(true)
+    // "wang" for "Wang Fang": same direction, surname only.
+    expect(matchesParticipantNames(names, ['wang'], 'any')).toBe(true)
+    // And the other way: the event only stored "Alex", the user typed the
+    // full name they remember.
+    expect(
+      matchesParticipantNames(new Set(['alex']), ['Alex Chen'], 'any'),
+    ).toBe(true)
+    // Two names that merely share a first token is NOT a match: substring
+    // matching is for a fragment of one name, not for reordering a full one.
+    expect(matchesParticipantNames(names, ['Alex Wang'], 'any')).toBe(false)
+    expect(matchesParticipantNames(names, ['Bob'], 'any')).toBe(false)
+  })
+
+  it('matches case-insensitively', () => {
+    expect(
+      matchesParticipantNames(new Set(['alex chen']), ['ALEX'], 'any'),
+    ).toBe(true)
+  })
+
+  it('all mode requires every name', () => {
+    const names = new Set(['alex chen', 'bo li'])
+    expect(matchesParticipantNames(names, ['Alex', 'Bo'], 'all')).toBe(true)
+    expect(matchesParticipantNames(names, ['Alex', 'Carol'], 'all')).toBe(false)
+  })
+
+  it('an empty target matches everything', () => {
+    expect(matchesParticipantNames(new Set(), [], 'any')).toBe(true)
+  })
+
+  it('matches nothing when the event has no participants but a name was asked for', () => {
+    expect(matchesParticipantNames(new Set(), ['Alex'], 'any')).toBe(false)
   })
 })

@@ -49,6 +49,9 @@ const presetHint = `One of: ${PRESET_NAMES.join(', ')}. Mutually exclusive with 
 
 const applyToHint = `For recurring events: one of ${APPLY_TO_VALUES.join(', ')}. Omit for non-recurring events.`
 
+/** find_free_time drains a window 50 rows at a time; stop after ten pages. */
+const MAX_WINDOW_EVENT_PAGES = 10
+
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
   return String(error)
@@ -132,7 +135,7 @@ async function checkCategoryId(
 export function buildCalendarTools(toolkit: CalendarToolkit) {
   const list_events = defineTool({
     description:
-      "List the user's calendar events. Filter by a time preset OR an explicit start/end range, and optionally by free-text query. Returns id, title, times, location and category of each event.",
+      "List the user's calendar events. Filter by a time preset OR an explicit start/end range, and optionally by free-text query, participants and category. Returns one page of events (id, title, times, location, category) plus page/limit/total/totalPages — check totalPages and fetch page+1 when the user asked for more than one page.",
     inputSchema: z.looseObject({
       preset: z.string().optional().describe(presetHint),
       start: z.string().optional().describe(`Range start. ${isoHint}`),
@@ -143,6 +146,40 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
         .describe(
           'Free-text search over title, description and location. Max 200 chars.',
         ),
+      participants: z
+        .looseObject({
+          emails: z
+            .array(z.string())
+            .optional()
+            .describe(
+              'Participant addresses to match, e.g. alex@example.com. Only pass addresses you actually know.',
+            ),
+          names: z
+            .array(z.string())
+            .optional()
+            .describe(
+              'Participant names as the user says them, e.g. "Alex". Matched loosely against the stored name and the address local part. Prefer this over guessing an address you do not have.',
+            ),
+          mode: z
+            .string()
+            .optional()
+            .describe(
+              'With several emails: "any" (default, at least one) or "all" (every one).',
+            ),
+          exists: z
+            .boolean()
+            .optional()
+            .describe(
+              'true = only events that have participants, false = only events with none. Do not combine with emails.',
+            ),
+        })
+        .optional()
+        .describe('Match events by participant.'),
+      categoryIds: z
+        .array(z.string())
+        .optional()
+        .describe('Category ids from list_categories.'),
+      page: z.number().optional().describe('1-based page number (default 1).'),
       limit: z.number().optional().describe('Max results, 1-50 (default 20)'),
     }),
     async execute(input) {
@@ -165,9 +202,30 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
           range.end = parsed.iso
         }
       }
+      const participants = input.participants
       return toolkit.listEvents({
         ...range,
         query: input.query,
+        categoryIds: input.categoryIds,
+        ...(participants
+          ? {
+              participants: {
+                ...(participants.emails?.length
+                  ? { emails: participants.emails }
+                  : {}),
+                ...(participants.names?.length
+                  ? { names: participants.names }
+                  : {}),
+                ...(participants.mode === 'all'
+                  ? { mode: 'all' as const }
+                  : {}),
+                ...(typeof participants.exists === 'boolean'
+                  ? { exists: participants.exists }
+                  : {}),
+              },
+            }
+          : {}),
+        page: clampInt(input.page, 1, 1000),
         limit: clampInt(input.limit, 1, 50),
       })
     },
@@ -411,7 +469,7 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
       if ('error' in range) return range
       const windowStart = range.start.date
       const windowEnd = range.end.date
-      const [events, timezone] = await Promise.all([
+      const [page1, timezone] = await Promise.all([
         toolkit.listEvents({
           start: windowStart.toISOString(),
           end: windowEnd.toISOString(),
@@ -419,7 +477,22 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
         }),
         toolkit.getTimezone(),
       ])
-      const busy: BusyInterval[] = events
+      // Page the rest of the window: a busy list cut short invents free slots
+      // inside meetings this tool never saw. Capped so a pathological range
+      // cannot spin here.
+      const windowEvents = [...page1.events]
+      for (let page = 2; page <= MAX_WINDOW_EVENT_PAGES; page++) {
+        if (page > page1.totalPages) break
+        const next = await toolkit.listEvents({
+          start: windowStart.toISOString(),
+          end: windowEnd.toISOString(),
+          page,
+          limit: 50,
+        })
+        if (next.events.length === 0) break
+        windowEvents.push(...next.events)
+      }
+      const busy: BusyInterval[] = windowEvents
         .filter((e) => e.status !== 'cancelled')
         .map((e) => ({
           startMs: new Date(e.startDate).getTime(),
