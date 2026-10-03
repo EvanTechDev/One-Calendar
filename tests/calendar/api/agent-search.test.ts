@@ -64,7 +64,9 @@ function post(body: object) {
 }
 // Compiler fixture only: matching and pagination use the real application code.
 function model(query = plan) {
-  vi.mocked(generateObject).mockResolvedValue({ object: query } as never)
+  vi.mocked(generateObject)
+    .mockResolvedValueOnce({ object: query } as never)
+    .mockResolvedValue({ object: { concepts: query.concepts } } as never)
 }
 beforeEach(() => {
   fake.reset()
@@ -209,11 +211,112 @@ describe('search route: one compilation, complete local retrieval', () => {
     )
     expect(generateObject).toHaveBeenCalledTimes(2)
   })
-  it('returns empty without asking AI again or dropping constraints', async () => {
+  it('checks revised expressions before returning empty, with a bounded AI budget', async () => {
     seed('noise', 'Unrelated')
     model()
     expect((await (await post({ text: '旅行' })).json()).results).toEqual([])
+    expect(generateObject).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(generateObject).mock.calls[1][0].system).toContain(
+      'No events matched',
+    )
+  })
+  it('recovers old description/location matches beyond page one, then pages without AI', async () => {
+    for (let i = 0; i < 205; i++) seed(`noise-${i}`, 'Unrelated')
+    for (let i = 0; i < 56; i++)
+      seed(`dog-${i}`, 'Morning routine', {
+        startDate: new Date('2020-04-12T08:00:00Z'),
+        endDate: new Date('2020-04-12T09:00:00Z'),
+        ...(i % 2
+          ? { description: 'Walk the dog' }
+          : { location: 'Dog walking park' }),
+      })
+    seed('private-dog', 'Walk the dog', { userId: 'other' })
+    model({ ...plan, concepts: [['遛狗']] })
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { concepts: [['walk the dog', 'dog walking']] },
+    } as never)
+    const response = await post({ text: '找所有遛狗的日程' })
+    expect(response.status).toBe(200)
+    const first = await response.json()
+    expect(first.total).toBe(56)
+    expect(first.query.concepts).toEqual([
+      ['遛狗', 'walk the dog', 'dog walking'],
+    ])
+    expect(first.query.start).toBeUndefined()
+    expect(first.query.end).toBeUndefined()
+    const repair = vi.mocked(generateObject).mock.calls[1][0]
+    expect(repair.maxRetries).toBe(0)
+    expect(repair.system).toContain('261')
+    expect(JSON.stringify(repair)).not.toContain('Morning routine')
+    const second = await (
+      await post({ page: 2, searchToken: first.searchToken })
+    ).json()
+    expect(
+      new Set([...first.results, ...second.results].map((e: any) => e.id)).size,
+    ).toBe(56)
+    expect(generateObject).toHaveBeenCalledTimes(2)
+  })
+  it('repairs words without escaping the original time, person or category constraints', async () => {
+    fake.seed(
+      { id: 'travel', userId: 'owner', name: 'Travel' },
+      'calendar_categories',
+    )
+    const detail = {
+      description: 'Airport transfer to Tokyo',
+      categoryId: 'travel',
+      participants: [{ name: 'Alex' }],
+    }
+    seed('wanted', 'Transfer', detail)
+    seed('wrong-person', 'Transfer', {
+      ...detail,
+      participants: [{ name: 'Bob' }],
+    })
+    seed('wrong-category', 'Transfer', { ...detail, categoryId: 'work' })
+    seed('outside', 'Transfer', {
+      ...detail,
+      startDate: new Date('2020-04-12'),
+      endDate: new Date('2020-04-13'),
+    })
+    model({
+      ...plan,
+      concepts: [['东京'], ['旅游']],
+      names: ['Alex'],
+      categories: ['Travel'],
+      preset: 'this_year',
+    })
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { concepts: [['Tokyo'], ['airport transfer']] },
+    } as never)
+    const result = await (
+      await post({ text: '今年 Travel 分类里和 Alex 去东京旅游' })
+    ).json()
+    expect(result.results.map((e: any) => e.id)).toEqual(['wanted'])
+    expect(result.query).toMatchObject({
+      start: '2025-12-31T16:00:00.000Z',
+      end: '2026-12-31T16:00:00.000Z',
+      names: ['Alex'],
+      categoryIds: ['travel'],
+    })
+  })
+  it('does not repair words when no records exist within the hard constraints', async () => {
+    model()
+    expect((await (await post({ text: '旅行' })).json()).results).toEqual([])
     expect(generateObject).toHaveBeenCalledTimes(1)
+  })
+  it('propagates repair quota failures rather than declaring no matches', async () => {
+    seed('dog', 'Walk the dog')
+    vi.mocked(generateObject)
+      .mockResolvedValueOnce({
+        object: { ...plan, concepts: [['遛狗']] },
+      } as never)
+      .mockRejectedValueOnce({
+        statusCode: 429,
+        responseHeaders: { 'retry-after': '42' },
+      })
+    const response = await post({ text: '遛狗' })
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe('42')
+    expect(generateObject).toHaveBeenCalledTimes(2)
   })
   it('requires Tokyo and travel across fields, including category and description', async () => {
     seed('flight', 'Flight to Tokyo')

@@ -12,6 +12,9 @@ import {
 import type { AgentEventSummary } from '@zntr/agent/types'
 import {
   buildSearchInstructions,
+  buildSearchRecoveryInstructions,
+  extendSearchQuery,
+  searchRecoverySchema,
   searchQuerySchema,
   sanitizeSearchQuery,
   resolvedSearchQuerySchema,
@@ -26,7 +29,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 300
 const PAGE_SIZE = 50
 
-/** One model call compiles intent; local matching precedes stable pagination. */
+/** Compile once; only a complete zero-match scan needs a wording recovery. */
 export async function POST(request: NextRequest) {
   const requestId = randomUUID()
   const started = performance.now()
@@ -174,6 +177,23 @@ async function search(
       const categoryNames = new Map(categories.map((c) => [c.id, c.name]))
       trace('match-candidates')
       events = matchSearchEvents(candidates, query, categoryNames)
+      if (!events.length && candidates.length && query.concepts.length) {
+        // One bounded recovery avoids the old per-batch quota storm. Reuse the
+        // complete candidate set: the recovery schema cannot change its scope.
+        trace('repair-query', { candidates: candidates.length })
+        const recovery = await generateObject({
+          model,
+          maxRetries: 0,
+          abortSignal: signal,
+          schema: searchRecoverySchema,
+          system: buildSearchRecoveryInstructions(query, candidates.length),
+          prompt: intent,
+        })
+        query = extendSearchQuery(query, recovery.object)
+        signal.throwIfAborted()
+        trace('match-recovery')
+        events = matchSearchEvents(candidates, query, categoryNames)
+      }
       trace('seal-results', { matches: events.length })
       searchToken = await sealSearch(user.id, {
         query,

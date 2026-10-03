@@ -4,6 +4,8 @@ import {
   sanitizeSearchQuery,
   searchQuerySchema,
   resolvedSearchQuerySchema,
+  extendSearchQuery,
+  searchRecoverySchema,
   type RawSearchQuery,
 } from '@zntr/agent/search'
 
@@ -73,5 +75,50 @@ describe('search compilation never silently removes a constraint', () => {
     expect(
       compile({ concepts: [['旅行']], order: 'latest' }).start,
     ).toBeUndefined()
+  })
+})
+
+describe('zero-result recovery stays inside the original search', () => {
+  const query = compile({
+    concepts: [['东京', 'Tokyo'], ['旅游']],
+    preset: 'this_year',
+    names: ['Alex'],
+  })
+  it('adds expressions without losing the original terms or hard constraints', () => {
+    const recovered = extendSearchQuery(query, {
+      concepts: [['TOKYO'], ['flight', 'airport transfer']],
+    })
+    expect(recovered).toEqual({
+      ...query,
+      concepts: [
+        ['东京', 'Tokyo'],
+        ['旅游', 'flight', 'airport transfer'],
+      ],
+    })
+    expect(query.concepts).toEqual([['东京', 'Tokyo'], ['旅游']])
+    expect(resolvedSearchQuerySchema.parse(recovered)).toEqual(recovered)
+  })
+  it('cannot drop a subject, switch to browse or alter the time range', () => {
+    for (const recovery of [
+      { concepts: [] },
+      { concepts: [['旅行']] },
+      { concepts: [[], ['旅行']] },
+      { concepts: [['东京'], ['旅行']], browse: true },
+      { concepts: [['东京'], ['旅行']], start: '2020-01-01T00:00:00Z' },
+    ])
+      expect(() => extendSearchQuery(query, recovery)).toThrow()
+    const schema = toJSONSchema(searchRecoverySchema)
+    expect(schema.required).toEqual(['concepts'])
+    expect(schema.additionalProperties).toBe(false)
+  })
+  it('fits both sets of expressions in the sealed paging plan', () => {
+    const original = compile({
+      concepts: [Array.from({ length: 12 }, (_, i) => `term${i}`)],
+    })
+    const recovered = extendSearchQuery(original, {
+      concepts: [Array.from({ length: 12 }, (_, i) => `translation${i}`)],
+    })
+    expect(recovered.concepts[0]).toHaveLength(24)
+    expect(resolvedSearchQuerySchema.parse(recovered)).toEqual(recovered)
   })
 })
