@@ -210,6 +210,7 @@
   "aiSearchFrom": "с",
   "aiSearchUntil": "по",
   "aiSearchWords": "слова",
+  "aiSearchRelaxedConcept": "Поиск расширен: последнее ключевое слово снято",
   "aiSearchWith": "с",
   "aiSearchDefaultRange": "даты в вопросе нет — последние 90 дней",
   "aiSearchRelaxed": "расширено",

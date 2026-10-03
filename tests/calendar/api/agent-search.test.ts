@@ -100,6 +100,46 @@ describe('semantic search quality through route, toolkit and real retrieval', ()
     })
     expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dog'])
   })
+  it('日本东京旅游 finds Flight to Tokyo by dropping the activity word', async () => {
+    seed('flight', 'Flight to Tokyo', '2026-04-12')
+    seed('osaka', 'Osaka trip', '2026-04-12')
+    const body = await search('查找上次去日本东京旅游', {
+      concepts: [
+        ['东京', 'Tokyo', 'Japan', '日本'],
+        ['旅游', '旅行', 'trip', 'travel', '之旅'],
+      ],
+      order: 'latest',
+    })
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['flight'])
+    expect(body.relaxed).toBe(true)
+  })
+  it('a strict match is never reported as relaxed', async () => {
+    seed('flight', 'Tokyo trip', '2026-04-12')
+    const body = await search('东京旅游', {
+      concepts: [
+        ['东京', 'Tokyo'],
+        ['旅游', 'trip'],
+      ],
+      order: 'latest',
+    })
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['flight'])
+    expect(body.relaxed).toBe(false)
+  })
+  it('relaxing the last concept never lets a different city through', async () => {
+    // 大阪旅行 matches the activity word but not 东京. The strict pass finds
+    // nothing, the last concept (the activity) is dropped, and the remaining
+    // 东京 concept still excludes it.
+    seed('osaka', '大阪旅行', '2026-05-01')
+    const body = await search('查找上次去东京旅游', {
+      concepts: [
+        ['东京', 'Tokyo'],
+        ['旅游', '旅行'],
+      ],
+      order: 'latest',
+    })
+    expect(body.results).toEqual([])
+    expect(body.relaxed).toBe(false)
+  })
   it('中文牙医 finds English Dentist appointment', async () => {
     seed('dentist', 'Dentist appointment', '2026-11-11')
     seed('lunch', 'Lunch with Sam', '2026-11-11')

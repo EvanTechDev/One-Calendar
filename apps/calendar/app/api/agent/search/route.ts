@@ -86,20 +86,39 @@ export async function POST(request: NextRequest) {
       })
       query = sanitizeSearchQuery(object, { categories, timezone, now })
     }
-    const result = await toolkit.listEvents({
-      start: query.start,
-      end: query.end,
-      semanticSearch: { concepts: query.concepts, order: query.order },
-      participants: query.names?.length
-        ? { names: query.names, mode: 'all' }
-        : undefined,
-      categoryIds: query.categoryIds,
-      page,
-      limit: PAGE_SIZE,
-    })
+    const retrieve = (concepts: string[][]) =>
+      toolkit.listEvents({
+        start: query.start,
+        end: query.end,
+        semanticSearch: { concepts, order: query.order },
+        participants: query.names?.length
+          ? { names: query.names, mode: 'all' }
+          : undefined,
+        categoryIds: query.categoryIds,
+        page,
+        limit: PAGE_SIZE,
+      })
+    let result = await retrieve(query.concepts)
+    // A question like "日本东京旅游" names a place, a parent region and an
+    // activity, but the event is just "Flight to Tokyo". Requiring every
+    // concept hides it. Only when the strict pass finds nothing do we drop
+    // the LAST concept — the query compiler puts the specific subject first
+    // and the generic descriptor last — and the response says so, because a
+    // silent widening is indistinguishable from the AI making things up.
+    // Widening with OR instead is wrong: it would let 大阪旅行 through a
+    // 东京 search, and "not Tokyo" is not a near miss.
+    let relaxed = false
+    if (page === 1 && result.total === 0 && query.concepts.length > 1) {
+      const widened = await retrieve(query.concepts.slice(0, -1))
+      if (widened.total > 0) {
+        result = widened
+        relaxed = true
+      }
+    }
     return NextResponse.json({
       query,
       range: { start: query.start, end: query.end },
+      relaxed,
       results: result.events.map((event) => ({
         id: event.id,
         title: event.title,

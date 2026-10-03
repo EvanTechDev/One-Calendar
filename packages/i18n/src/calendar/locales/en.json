@@ -210,6 +210,7 @@
   "aiSearchFrom": "from",
   "aiSearchUntil": "until",
   "aiSearchWords": "words",
+  "aiSearchRelaxedConcept": "Search widened: the last keyword was dropped",
   "aiSearchWith": "with",
   "aiSearchDefaultRange": "no date in the question — searched the last 90 days",
   "aiSearchRelaxed": "widened",

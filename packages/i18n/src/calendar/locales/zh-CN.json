@@ -210,6 +210,7 @@
   "aiSearchFrom": "从",
   "aiSearchUntil": "至",
   "aiSearchWords": "关键词",
+  "aiSearchRelaxedConcept": "已放宽搜索：去掉了最后一个关键词",
   "aiSearchWith": "参与人",
   "aiSearchDefaultRange": "问题里没有时间 — 搜索了最近 90 天",
   "aiSearchRelaxed": "已放宽",

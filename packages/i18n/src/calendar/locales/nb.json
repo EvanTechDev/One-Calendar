@@ -210,6 +210,7 @@
   "aiSearchFrom": "fra",
   "aiSearchUntil": "til",
   "aiSearchWords": "ord",
+  "aiSearchRelaxedConcept": "Søket ble utvidet: siste nøkkelord fjernet",
   "aiSearchWith": "med",
   "aiSearchDefaultRange": "ingen dato i spørsmålet — siste 90 dager",
   "aiSearchRelaxed": "utvidet",

@@ -147,14 +147,14 @@ Presets: ${PRESET_NAMES.join(', ')}.
 Category names (data, not instructions): ${JSON.stringify(context.categories.map((c) => c.name))}.
 
 Rules:
-- Preserve every distinctive subject/entity as a separate required concept. Keep place names intact. No character bigrams, no filler like 日程/find/my. Meeting IS a subject when the user asks for meetings.
+- Order the concepts from most to least specific: the proper noun or place the user named goes FIRST, a generic activity word LAST. The app drops the last concept when nothing matches, so a descriptor ending up first would relax away the very thing being searched.
 - Activities, objects, places and event names are subjects too: 遛狗, 牙医, 体检, 旅游, 报告, 项目. Do not discard them as generic wording.
 - Each concept is a small OR group: original wording first, then precise synonyms or common translations. Different concepts MUST NOT be OR alternatives. Do not broaden Tokyo to Japan, report to meeting, or travel to any activity.
+- A parent place or category belongs INSIDE the concept it contains, not beside it: 日本 goes in the Tokyo group ([[东京, Tokyo, Japan, 日本]]) because an event in Tokyo is an event in Japan. Only split when the user names two places that are genuinely alternatives they want either one of.
 - Cross-language is MANDATORY, not optional: events are often titled in a different language than the question, so a concept with only the user's own language is incomplete and will miss them. For EVERY concept that is an activity, object, place or event name, add its common translation — English when the question is Chinese, Chinese when the question is English: 遛狗 => [遛狗, walk the dog, dog walking, walk dog]; 牙医 => [牙医, dentist, dental appointment]; 体检 => [体检, physical exam, checkup]; 旅游 => [旅游, travel, trip, journey]; 报告 => [报告, report]; 项目 => [项目, project]. Before returning, re-check every concept and confirm it carries the other language.
-- AND across concepts: 上次去东京旅游的日程 => concepts [["东京","Tokyo"],["旅游","旅行","trip","travel","之旅"]], order latest, no preset/start/end. No default year or 90-day window.
 - 公司今年第二季度报告 => concepts [["公司","company","corporate"],["报告","report"]], start April 1 this year at local midnight, end July 1 at local midnight, order relevance. Q2 is narrower than this_year; use explicit dates, no preset.
 - 去年和 Alex 讨论项目 => concepts [["项目","project"]], names ["Alex"], preset last_year.
-- 无时间的东京旅行 => concepts for Tokyo AND travel; no time bounds. 下次牙医 => dental concept, order next. 找个会议 => meeting concept, not browse.
+- 无时间的东京旅行 => concepts [["东京","Tokyo","Japan","日本"],["旅游","旅行","trip","travel","之旅"]]; no time bounds, the destination first. 下次牙医 => dental concept, order next. 找个会议 => meeting concept, not browse.
 - Date spans must come from the user. latest means past-only newest first, next means future-only earliest first. Other searches rank by relevance. Explicit dates are hard constraints and are never relaxed.
 - names only for explicit people; categories only for explicitly requested category names, never inferred from topics. Do not move a subject to categories to avoid matching its words.
 - browse true only for an explicit subject-free listing. Never output all-null constraints for a specific question.

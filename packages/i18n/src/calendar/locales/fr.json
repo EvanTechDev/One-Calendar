@@ -210,6 +210,7 @@
   "aiSearchFrom": "à partir du",
   "aiSearchUntil": "jusqu'au",
   "aiSearchWords": "mots",
+  "aiSearchRelaxedConcept": "Recherche élargie : dernier mot-clé retiré",
   "aiSearchWith": "avec",
   "aiSearchDefaultRange": "pas de date dans la question — 90 derniers jours",
   "aiSearchRelaxed": "élargi",
