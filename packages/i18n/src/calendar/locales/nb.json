@@ -216,7 +216,7 @@
   "aiSearchDropNames": "navnefilteret ble ignorert",
   "aiSearchDropCategories": "kategorifilteret ble ignorert",
   "aiSearchDropRange": "datofilteret ble ignorert",
-  "aiSearchDropKeyword": "ordene ble ignorert",
+  "aiSearchDropKeyword": "ordene mykket",
   "aiSearch": "Søk",
   "aiSemanticSearch": "Semantisk søk",
   "aiSemanticSearchHint": "Skriv et spørsmål og trykk Enter for å søke i kalenderen",

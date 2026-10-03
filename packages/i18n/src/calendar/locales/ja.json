@@ -216,7 +216,7 @@
   "aiSearchDropNames": "参加者の条件を無視しました",
   "aiSearchDropCategories": "カテゴリの条件を無視しました",
   "aiSearchDropRange": "日付の条件を無視しました",
-  "aiSearchDropKeyword": "キーワードを無視しました",
+  "aiSearchDropKeyword": "語句を緩めました",
   "aiSearch": "検索",
   "aiSemanticSearch": "セマンティック検索",
   "aiSemanticSearchHint": "質問を入力して Enter でカレンダーを検索",

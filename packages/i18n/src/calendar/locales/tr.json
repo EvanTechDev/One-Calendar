@@ -216,7 +216,7 @@
   "aiSearchDropNames": "ad filtresi yok sayıldı",
   "aiSearchDropCategories": "kategori filtresi yok sayıldı",
   "aiSearchDropRange": "tarih filtresi yok sayıldı",
-  "aiSearchDropKeyword": "kelimeler yok sayıldı",
+  "aiSearchDropKeyword": "kelimeler gevşetildi",
   "aiSearch": "Arama",
   "aiSemanticSearch": "Anlamsal arama",
   "aiSemanticSearchHint": "Takvimde aramak için bir soru yazıp Enter’a basın",

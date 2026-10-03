@@ -235,21 +235,14 @@ export function hasAnyFilter(query: SearchQuery): boolean {
   )
 }
 
-/** A filter the widening plan can drop, in the order it gives them up. */
+/** One thing the search gave up, in the order the plan gives them up. */
 export type Relaxation = 'names' | 'categories' | 'range' | 'keyword'
 
 export interface SearchAttempt {
   query: SearchQuery
-  /** What this attempt gives up relative to the resolved query; null for the first. */
-  relaxed: Relaxation | null
+  /** What this attempt gave up relative to the resolved query; empty for the first. */
+  relaxed: Relaxation[]
 }
-
-/**
- * How wide the keyword-less attempt is allowed to be. Past a season, "show me
- * everything in this range" is the noise the search exists to avoid, so past
- * this width the plan stops instead of dropping the keyword.
- */
-const MAX_KEYWORD_DROPPED_RANGE_MS = 93 * 86_400_000
 
 /**
  * The search, then the same search with one filter given up at a time.
@@ -266,10 +259,14 @@ const MAX_KEYWORD_DROPPED_RANGE_MS = 93 * 86_400_000
  *    while a stored participant for that meeting may simply not exist.
  *  - categories next: resolvable from the user's own list, but the user may name
  *    a topic ("财务") that maps to a real category the events do not use.
- *  - the range before the keyword: dropping the range is SAFE while a keyword
- *    still has to match ("旅游" anywhere in history is a search), whereas
- *    dropping the keyword is only safe inside a narrow window.
- *  - the keyword last, and only inside a window of at most 93 days.
+ *  - the range last: dropping it is SAFE while words still have to match ("旅游"
+ *    anywhere in history is a search), and it is the filter whose loss hurts
+ *    most — the user named those dates.
+ *  - and NEVER the words. An attempt with no words returns every event in the
+ *    window, which is the noise this search exists to avoid: a plan that can
+ *    delete the keyword will eventually answer "上次去东京旅游" with a hiking
+ *    trip somewhere else. When the words miss, they are LOOSENED instead — see
+ *    {@link needleCandidates} and {@link buildSearchAttempts}.
  *
  * A query with nothing to drop yields a single attempt, so this can never
  * widen into an unbounded listing.
@@ -278,7 +275,7 @@ export function buildSearchPlan(
   query: SearchQuery,
   range: { start?: string; end?: string } = {},
 ): SearchAttempt[] {
-  const attempts: SearchAttempt[] = [{ query, relaxed: null }]
+  const attempts: SearchAttempt[] = [{ query, relaxed: [] }]
   const hasRange = Boolean(
     query.preset || query.start || query.end || range.start || range.end,
   )
@@ -287,43 +284,381 @@ export function buildSearchPlan(
   if (query.names?.length) {
     const { names, ...rest } = query
     void names
-    attempts.push({ query: rest, relaxed: 'names' })
+    attempts.push({ query: rest, relaxed: ['names'] })
   }
   if (query.categoryIds?.length) {
     const { categoryIds, ...rest } = query
     void categoryIds
-    attempts.push({ query: rest, relaxed: 'categories' })
+    attempts.push({ query: rest, relaxed: ['categories'] })
   }
   if (hasRange && hasScope) {
     const { preset, start, end, ...rest } = query
     void preset
     void start
     void end
-    attempts.push({ query: rest, relaxed: 'range' })
-  }
-  if (query.query && rangeIsNarrow(range)) {
-    const { query: needle, ...rest } = query
-    void needle
-    attempts.push({ query: rest, relaxed: 'keyword' })
+    attempts.push({ query: rest, relaxed: ['range'] })
   }
   return attempts
 }
 
-/** Both ends inside one bounded window, or one end inside it. */
-function rangeIsNarrow(range: { start?: string; end?: string }): boolean {
-  const start = range.start ? Date.parse(range.start) : Number.NaN
-  const end = range.end ? Date.parse(range.end) : Number.NaN
-  if (Number.isNaN(start) && Number.isNaN(end)) return false
-  if (!Number.isNaN(start) && !Number.isNaN(end)) {
-    return end - start <= MAX_KEYWORD_DROPPED_RANGE_MS
+/**
+ * How many words to try, how many of them a widened step may re-try, and how
+ * many database reads the whole search may cost.
+ *
+ * The counts are ceilings, not targets: the search stops at the first attempt
+ * that finds anything, so a question whose best word works costs exactly one
+ * read. They exist because the ceiling that matters is the user's patience.
+ */
+const MAX_NEEDLES = 6
+const NEEDLES_PER_WIDENED_STEP = 2
+const MAX_ATTEMPTS = 16
+const MAX_WHOLE_RUN = 8
+
+/**
+ * The words to try, most likely to match an event first.
+ *
+ * Two things are wrong with trusting the model's `query` alone, and one sentence
+ * shows both: "上次去东京旅游的日程".
+ *
+ *  - The model writes the subject as it read it — "东京旅游" — and the stored
+ *    event may say "东京之旅", "旅游行程" or "Trip to Tokyo". A longer needle
+ *    matches fewer rows, so shorter ones have to be tried too.
+ *  - The model sometimes writes a word that is not in the event at all ("trip",
+ *    from the shape of the sentence rather than from the calendar) and leaves
+ *    out the one that is. The user's own text is still here, and "东京" is in
+ *    it.
+ *
+ * So the words are derived from the RAW text, deterministically, and the model's
+ * read joins them as the LAST resort rather than the first: the user's own
+ * words are evidence, the model's paraphrase is a guess. Within the derived
+ * ones the order is discovery order — word-like pieces first, the whole run
+ * last, because a five-character run is the least likely substring of any one
+ * event title. The first candidate that matches wins, so the search never
+ * answers from a word the user did not type.
+ */
+export function needleCandidates(text: string, modelNeedle?: string): string[] {
+  const words: string[] = []
+  const runs: string[] = []
+  const seen = new Set<string>()
+  const add = (bucket: string[], value: string | undefined) => {
+    if (!value) return
+    const trimmed = value.trim()
+    if (!trimmed || trimmed.length > MAX_QUERY_LENGTH) return
+    const key = trimmed.toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    bucket.push(trimmed)
   }
-  // One open end: bounded only if the other end is close enough to "now" that
-  // the window cannot be a decade of history.
-  const openStart = Number.isNaN(start)
-  const known = openStart ? end : start
-  const now = Date.now()
-  return (openStart ? now - known : known - now) <= MAX_KEYWORD_DROPPED_RANGE_MS
+
+  // The text, minus everything that is about WHEN (already a preset) or about
+  // WHAT KIND OF THING (a container word, not a subject). Longest first, so a
+  // compound word goes before its own parts and never leaves one behind.
+  let rest = (text ?? '').toLowerCase()
+  for (const word of [...TIME_WORDS, ...CONTAINER_WORDS].sort(
+    (a, b) => b.length - a.length,
+  )) {
+    // Latin words are removed at word boundaries only. A naive split turns
+    // "finance" into "f" + "ance" the moment the list holds "an", and the
+    // halves are then offered as subjects of their own. Chinese has no
+    // boundaries to respect, so there the split is the whole match.
+    rest = /^[a-z0-9 ]+$/.test(word)
+      ? rest.replace(new RegExp(`\\b${word}\\b`, 'g'), ' ')
+      : rest.split(word).join(' ')
+  }
+
+  // Chinese has no spaces, so a run is offered as overlapping bigrams — "东京旅游"
+  // offers 东京 and 旅游, which is what finds "东京之旅" and "旅游行程" — and then
+  // whole, as the long shot. Latin is tokenised word by word, because
+  // "trip to Tokyo" is two independent words and either may be the subject.
+  for (const token of rest.split(/[^\p{L}\p{N}]+/u)) {
+    if (!token) continue
+    if (CJK.test(token)) {
+      for (let i = 0; i + 2 <= token.length; i += 1) {
+        const gram = token.slice(i, i + 2)
+        if ([...gram].some((ch) => FUNCTION_CHARS.has(ch))) continue
+        add(words, gram)
+      }
+      if (token.length >= 2 && token.length <= MAX_WHOLE_RUN) add(runs, token)
+      continue
+    }
+    // One character and bare digits are not subjects: a digit in a question is
+    // a date or a count, and both are resolved elsewhere.
+    if (token.length < 2 || /^\d+$/.test(token)) continue
+    add(words, token)
+  }
+
+  // The model's read is a paraphrase of what the user typed, so it goes last:
+  // it is the fallback for when the user's own words all miss.
+  add(words, modelNeedle)
+  return [...words, ...runs].slice(0, MAX_NEEDLES)
 }
+
+/**
+ * Every attempt the search may run: each step of the plan, once per candidate
+ * word, strictest first.
+ *
+ * Filters on the OUTSIDE, words on the INSIDE, and that is the argument for
+ * both: the dates and the people are what the user TOLD us, so a row that
+ * ignores them is a worse lie than one that matched a looser word; the words are
+ * what the search is FOR, so within a step they only get shorter.
+ *
+ * A widened step re-tries only the first couple of words. Widening is already a
+ * concession, and re-reading the database once per leftover word on top of it
+ * buys rows that are less likely, not more.
+ *
+ * `strict` runs the first combination alone, which is what paging needs: page 2
+ * has to continue through the search page 1 found, not through a wider one.
+ */
+export function buildSearchAttempts(
+  plan: SearchAttempt[],
+  needles: string[],
+  options: { strict?: boolean } = {},
+): SearchAttempt[] {
+  const steps = options.strict ? plan.slice(0, 1) : plan
+  const attempts: SearchAttempt[] = []
+  for (const [stepIndex, step] of steps.entries()) {
+    if (needles.length === 0) {
+      attempts.push(step)
+      continue
+    }
+    const words = options.strict
+      ? needles.slice(0, 1)
+      : stepIndex === 0
+        ? needles
+        : needles.slice(0, NEEDLES_PER_WIDENED_STEP)
+    words.forEach((needle, index) => {
+      attempts.push({
+        query: { ...step.query, query: needle },
+        // Only a word the search had to fall back on counts as a relaxation:
+        // the first candidate is the best one the text could give on its own.
+        relaxed: index === 0 ? step.relaxed : [...step.relaxed, 'keyword'],
+      })
+    })
+  }
+  return attempts.slice(0, MAX_ATTEMPTS)
+}
+
+const CJK = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/
+
+/**
+ * Words that say WHEN. The model has already turned these into a preset or a
+ * range, and no event is titled "去年" or "last week" — leaving one in the
+ * words is how "去年去东京旅游" becomes a substring nothing holds.
+ */
+const TIME_WORDS = [
+  '前天',
+  '后天',
+  '今天',
+  '明天',
+  '昨天',
+  '今日',
+  '明日',
+  '昨日',
+  '今晚',
+  '昨晚',
+  '今早',
+  '早上',
+  '中午',
+  '下午',
+  '晚上',
+  '半夜',
+  '凌晨',
+  '本周',
+  '这周',
+  '下周',
+  '上周',
+  '上上周',
+  '周末',
+  '本周末',
+  '上周末',
+  '下周末',
+  '本月',
+  '这个月',
+  '下月',
+  '上月',
+  '上个月',
+  '上上个月',
+  '月初',
+  '月中',
+  '月底',
+  '今年',
+  '明年',
+  '去年',
+  '前年',
+  '年初',
+  '年底',
+  '今年年底',
+  '去年年底',
+  '第一季度',
+  '第二季度',
+  '第三季度',
+  '第四季度',
+  '一季度',
+  '二季度',
+  '三季度',
+  '四季度',
+  '最近',
+  '刚才',
+  '刚刚',
+  '马上',
+  '立刻',
+  '现在',
+  '目前',
+  '当前',
+  '这几天',
+  '近期',
+  '上次',
+  '上回',
+  '那一次',
+  '那回',
+  '以前',
+  '之前',
+  '曾经',
+  '过去',
+  '从前',
+  '下次',
+  '接下来',
+  '以后',
+  '待会',
+  '回头',
+  'today',
+  'tomorrow',
+  'yesterday',
+  'tonight',
+  'last night',
+  'this morning',
+  'this week',
+  'next week',
+  'last week',
+  'weekend',
+  'this month',
+  'next month',
+  'last month',
+  'this year',
+  'next year',
+  'last year',
+  'year to date',
+  'ytd',
+  'recently',
+  'recent',
+  'lately',
+  'earlier',
+  'previously',
+  'before',
+  'after',
+  'since',
+  'until',
+  'upcoming',
+  'coming up',
+  'past few',
+  'few days',
+  'couple of',
+  'days ago',
+  'weeks ago',
+  'months ago',
+  'years ago',
+  'ago',
+  'last',
+  'next',
+  'previous',
+  'current',
+]
+
+/**
+ * Words that say WHAT KIND OF THING. Nearly every question is about a "meeting"
+ * or a "schedule", so these turn up in almost every question and in almost no
+ * event title — keeping one guarantees a miss.
+ */
+const CONTAINER_WORDS = [
+  '会议记录',
+  '的会议',
+  '的日程',
+  '的安排',
+  '行程表',
+  '安排表',
+  '日程表',
+  '会议',
+  '日程',
+  '安排',
+  '活动',
+  '事件',
+  '计划',
+  '记录',
+  '预约',
+  '清单',
+  '找一下',
+  '找找',
+  '查找',
+  '搜索',
+  '搜一下',
+  '搜搜',
+  '查询',
+  '查看',
+  '看一下',
+  '看看',
+  '帮我',
+  '我想知道',
+  '我想',
+  '我要',
+  '告诉我',
+  '有没有',
+  '有没',
+  '是不是',
+  '什么',
+  '哪个',
+  '哪些',
+  '一次',
+  '一下',
+  '所有的',
+  '全部',
+  '所有',
+  'meeting',
+  'meetings',
+  'schedule',
+  'schedules',
+  'event',
+  'events',
+  'appointment',
+  'appointments',
+  'plan',
+  'plans',
+  'record',
+  'records',
+  'entry',
+  'entries',
+  'my',
+  'our',
+  'the',
+  'a',
+  'an',
+  'of',
+  'for',
+  'to',
+  'about',
+  'with',
+  'and',
+  'find',
+  'search',
+  'show',
+  'list',
+  'all',
+  'any',
+  'some',
+  'please',
+  'me',
+]
+
+/**
+ * Single characters that carry no subject, so a bigram across one is noise: 去东
+ * is not a word, 东京 is. Kept short on purpose — a character that can be part
+ * of a place or a topic (上, 下, 大, 小, 多, 少, 中) has to stay usable.
+ */
+const FUNCTION_CHARS = new Set(
+  [
+    ...'的了着过在和与跟给为就都也很更再又只把被从向往并且以及这那些吗呢吧啊呀哦',
+    ...'我你他她它们咱您',
+  ].filter((ch) => ch.length === 1),
+)
 
 export function buildSearchInstructions(context: {
   timezone: string
@@ -362,5 +697,6 @@ Rules:
 - names for people, exactly as the user said them. Never invent an email address, and never put an address in names.
 - categories only from this list of the user's category NAMES: ${categoryList}. Null if none fits; an invented name is dropped by the app.
 - If the user named a time span, ALWAYS put it in preset or start/end. "找个会议" is not an invitation to list the whole calendar: an all-null query is the one thing you must never return, because it comes back as every event the user has ever had. If they truly said nothing searchable, return a sensible recent window (last_30_days or last_90_days) rather than nulls everywhere.
-- Omit a filter the user did not state rather than guessing one. A too-narrow query returns nothing, and nothing looks like "you never had that meeting".${previous}`
+- Omit a filter the user did not state rather than guessing one. A too-narrow query returns nothing, and nothing looks like "you never had that meeting".
+- If your words return nothing, the app retries with a LOOSER span and tells the user it did. So put your single best span in query — the most distinctive words the user used — rather than a broad phrase that matches half the calendar.${previous}`
 }

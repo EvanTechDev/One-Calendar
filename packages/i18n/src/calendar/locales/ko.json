@@ -216,7 +216,7 @@
   "aiSearchDropNames": "참석자 조건을 무시했습니다",
   "aiSearchDropCategories": "카테고리 조건을 무시했습니다",
   "aiSearchDropRange": "날짜 조건을 무시했습니다",
-  "aiSearchDropKeyword": "키워드를 무시했습니다",
+  "aiSearchDropKeyword": "키워드를 완화했습니다",
   "aiSearch": "검색",
   "aiSemanticSearch": "의미 기반 검색",
   "aiSemanticSearchHint": "질문을 입력하고 Enter로 달력을 검색하세요",

@@ -216,7 +216,7 @@
   "aiSearchDropNames": "ignored the name filter",
   "aiSearchDropCategories": "ignored the category filter",
   "aiSearchDropRange": "ignored the date filter",
-  "aiSearchDropKeyword": "ignored the words",
+  "aiSearchDropKeyword": "loosened the words",
   "aiSearch": "Search",
   "aiSemanticSearch": "Semantic search",
   "aiSemanticSearchHint": "Type a question and press Enter to search your calendar",

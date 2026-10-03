@@ -216,7 +216,7 @@
   "aiSearchDropNames": "忽略咗參與人條件",
   "aiSearchDropCategories": "忽略咗分類條件",
   "aiSearchDropRange": "忽略咗時間條件",
-  "aiSearchDropKeyword": "忽略咗關鍵字",
+  "aiSearchDropKeyword": "放寬咗用詞",
   "aiSearch": "搜索",
   "aiSemanticSearch": "語意搜尋",
   "aiSemanticSearchHint": "輸入問題，按 Enter 搜尋你嘅日曆",

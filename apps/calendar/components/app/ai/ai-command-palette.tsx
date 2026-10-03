@@ -160,8 +160,8 @@ type SearchState =
       scope: SearchScope
       /** The user's question named no date, so a window was assumed. */
       defaultedRange: boolean
-      /** A filter was dropped to find these rows — see buildSearchPlan. */
-      relaxed: Relaxation | null
+      /** Filters dropped / phrases loosened to find these rows. */
+      relaxed: Relaxation[]
     }
   | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' }
 
@@ -174,7 +174,7 @@ interface SearchResponseBody {
   hasMore: boolean
   range?: SearchScope
   defaultedRange?: boolean
-  relaxed?: Relaxation | null
+  relaxed?: Relaxation[]
 }
 
 interface AiCommandPaletteProps {
@@ -328,7 +328,7 @@ export function AiCommandPalette({
                 text,
                 scope: body.range ?? {},
                 defaultedRange: body.defaultedRange ?? false,
-                relaxed: body.relaxed ?? null,
+                relaxed: body.relaxed ?? [],
               },
         )
       } catch {
@@ -455,8 +455,11 @@ export function AiCommandPalette({
       chips.push(`${t.aiSearchWith} ${search.query.names.join(', ')}`)
     }
     if (search.defaultedRange) chips.push(t.aiSearchDefaultRange)
-    if (search.relaxed)
-      chips.push(`${t.aiSearchRelaxed}: ${RELAXED[search.relaxed]}`)
+    if (search.relaxed.length > 0) {
+      chips.push(
+        `${t.aiSearchRelaxed}: ${search.relaxed.map((r) => RELAXED[r]).join(' · ')}`,
+      )
+    }
     return chips
   }, [search, language, t])
 

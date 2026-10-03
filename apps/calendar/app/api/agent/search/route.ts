@@ -2,9 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { generateObject } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import {
+  buildSearchAttempts,
   buildSearchInstructions,
   buildSearchPlan,
   hasAnyFilter,
+  needleCandidates,
   resolvePreset,
   searchQuerySchema,
   sanitizeSearchQuery,
@@ -131,24 +133,47 @@ export async function POST(request: NextRequest) {
 
   const now = new Date()
 
+  // The words to search for, derived from what the user actually TYPED as well
+  // as from what the model extracted. The model picks one span and gets it
+  // wrong often enough to matter ("trip" for 上次去东京旅游), and the English
+  // part of a Chinese question is a translation, not a substring of anything
+  // the user wrote — so the typed text gets its own candidates and the search
+  // loosens the words rather than dropping them.
+  const needles = paging
+    ? query.query
+      ? [query.query]
+      : []
+    : needleCandidates(text, query.query)
+
   // An all-null query is the one thing the model must never return, and if it
   // does the range it would otherwise leave open makes `listEvents` return the
-  // user's ENTIRE history, first page, oldest first. Bounding it to a season is
-  // the difference between "here is what you might have meant" and "here is
-  // your life", and the client says which window it used.
+  // user's ENTIRE history, first page, oldest first. Same for a question with
+  // no dates and no searchable words in it ("公司今年第二季度报告" reduces to
+  // nothing after the time words are stripped). Bounding it to a season is the
+  // difference between "here is what you might have meant" and "here is your
+  // life", and the client says which window it used.
   let defaultedRange = false
-  if (!hasAnyFilter(query)) {
-    query = { preset: 'last_90_days' }
+  const ranged = resolveQueryRange(query, timezone, now)
+  if (
+    !hasAnyFilter(query) ||
+    (needles.length === 0 && !ranged.start && !ranged.end)
+  ) {
+    query = { ...query, preset: 'last_90_days' }
     defaultedRange = true
   }
 
-  // Widen rather than report nothing: a mistranslated filter and a genuinely
-  // absent event are indistinguishable from the outside, and the first is far
-  // more likely. See buildSearchPlan for the order and why it is safe.
-  const plan = buildSearchPlan(query, resolveQueryRange(query, timezone, now))
-  let attempt = plan[0]
+  // Filters widen on the outside, words loosen on the inside: for each way of
+  // giving up a filter, every candidate phrase in turn. See buildSearchPlan for
+  // the order and why it is safe, and buildSearchAttempts for why a dropped
+  // phrase never becomes a dropped keyword.
+  const attempts = buildSearchAttempts(
+    buildSearchPlan(query, resolveQueryRange(query, timezone, now)),
+    needles,
+    { strict: paging },
+  )
+  let attempt = attempts[0]
   let result = await runAttempt(toolkit, attempt, timezone, page, now)
-  for (const next of plan.slice(1)) {
+  for (const next of attempts.slice(1)) {
     // Only the strictest search widens; page 2 of a widened search would show
     // rows that are not the rows the earlier pages were paging through.
     if (result.total > 0 || page > 1) break
@@ -200,12 +225,16 @@ async function runAttempt(
   now: Date,
 ): Promise<AgentEventPage> {
   const range = resolveQueryRange(attempt.query, timezone, now)
-  // Oldest first once the window is behind the user ("last year's meetings"
-  // should start in January, not in December); newest first while the window
-  // can still contain the future, so "next trip" leads with what is next.
-  const ascending = range.end
-    ? new Date(range.end).getTime() <= now.getTime()
-    : false
+  // Oldest first only for a CLOSED window that is entirely behind the user
+  // ("last year's meetings" should start in January, not in December). An
+  // open-ended range is not a window at all — `past` with no start means the
+  // whole past — and sorting that ascending buries the last trip under the 50
+  // oldest events the user ever had. Those get newest first, which is also
+  // what "next trip" wants while the window can still contain the future.
+  const ascending =
+    range.start !== undefined &&
+    range.end !== undefined &&
+    new Date(range.end).getTime() <= now.getTime()
   return toolkit.listEvents({
     start: range.start,
     end: range.end,

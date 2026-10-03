@@ -216,7 +216,7 @@
   "aiSearchDropNames": "фильтр по имени проигнорирован",
   "aiSearchDropCategories": "фильтр по категории проигнорирован",
   "aiSearchDropRange": "фильтр по дате проигнорирован",
-  "aiSearchDropKeyword": "слова проигнорированы",
+  "aiSearchDropKeyword": "слова послаблены",
   "aiSearch": "Поиск",
   "aiSemanticSearch": "Семантический поиск",
   "aiSemanticSearchHint": "Задайте вопрос и нажмите Enter для поиска",

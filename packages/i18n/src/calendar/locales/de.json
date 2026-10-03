@@ -216,7 +216,7 @@
   "aiSearchDropNames": "Namensfilter ignoriert",
   "aiSearchDropCategories": "Kategoriefilter ignoriert",
   "aiSearchDropRange": "Datumsfilter ignoriert",
-  "aiSearchDropKeyword": "Wörter ignoriert",
+  "aiSearchDropKeyword": "Wörter gelockert",
   "aiSearch": "Suche",
   "aiSemanticSearch": "Semantische Suche",
   "aiSemanticSearchHint": "Frage eingeben und mit Enter den Kalender durchsuchen",

@@ -216,7 +216,7 @@
   "aiSearchDropNames": "se ignoró el filtro de nombre",
   "aiSearchDropCategories": "se ignoró el filtro de categoría",
   "aiSearchDropRange": "se ignoró el filtro de fecha",
-  "aiSearchDropKeyword": "se ignoraron las palabras",
+  "aiSearchDropKeyword": "palabras relajadas",
   "aiSearch": "Búsqueda",
   "aiSemanticSearch": "Búsqueda semántica",
   "aiSemanticSearchHint": "Escribe una pregunta y pulsa Intro para buscar",

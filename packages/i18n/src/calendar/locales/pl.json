@@ -216,7 +216,7 @@
   "aiSearchDropNames": "zignorowano filtr nazw",
   "aiSearchDropCategories": "zignorowano filtr kategorii",
   "aiSearchDropRange": "zignorowano filtr daty",
-  "aiSearchDropKeyword": "zignorowano słowa",
+  "aiSearchDropKeyword": "słowa rozluźnione",
   "aiSearch": "Wyszukiwanie",
   "aiSemanticSearch": "Wyszukiwanie semantyczne",
   "aiSemanticSearchHint": "Wpisz pytanie i naciśnij Enter, aby przeszukać kalendarz",
