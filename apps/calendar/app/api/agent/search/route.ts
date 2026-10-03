@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
           nowIso: now.toISOString(),
           categories,
           previousQuery: previous?.success ? previous.data : undefined,
+          lastUserText: text,
         }),
         prompt: text,
       })

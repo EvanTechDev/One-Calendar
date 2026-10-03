@@ -100,6 +100,15 @@ describe('semantic search quality through route, toolkit and real retrieval', ()
     })
     expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dog'])
   })
+  it('中文牙医 finds English Dentist appointment', async () => {
+    seed('dentist', 'Dentist appointment', '2026-11-11')
+    seed('lunch', 'Lunch with Sam', '2026-11-11')
+    const body = await search('下次牙医', {
+      concepts: [['牙医', 'dentist', 'dental appointment']],
+      order: 'next',
+    })
+    expect(body.results.map((e: { id: string }) => e.id)).toEqual(['dentist'])
+  })
   it('公司今年第二季度报告: keeps report AND company AND the quarter', async () => {
     seed('report', '公司季度报告')
     seed('meeting', '公司例会')
