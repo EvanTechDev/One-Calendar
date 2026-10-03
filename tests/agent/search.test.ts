@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildSearchPlan,
+  hasAnyFilter,
   sanitizeSearchQuery,
   searchQuerySchema,
   type RawSearchQuery,
@@ -201,5 +203,104 @@ describe('sanitizeSearchQuery', () => {
       sanitizeSearchQuery(raw({ categories: ['财务', '财务'] }), { categories })
         .categoryIds,
     ).toEqual(['cat-fin'])
+  })
+})
+
+describe('the needle', () => {
+  it('strips the quoting a model adds around the words it kept', () => {
+    expect(
+      sanitizeSearchQuery(raw({ query: '  "旅游" ' }), { categories }).query,
+    ).toBe('旅游')
+    expect(
+      sanitizeSearchQuery(raw({ query: '「项目」' }), { categories }).query,
+    ).toBe('项目')
+  })
+
+  it('collapses the whitespace and drops a punctuation-only needle', () => {
+    expect(
+      sanitizeSearchQuery(raw({ query: 'budget   review' }), { categories })
+        .query,
+    ).toBe('budget review')
+    expect(
+      sanitizeSearchQuery(raw({ query: '（）「」' }), { categories }).query,
+    ).toBeUndefined()
+  })
+
+  it('drops a needle that is longer than the search can use', () => {
+    const long = 'a'.repeat(260)
+    expect(
+      sanitizeSearchQuery(raw({ query: long }), { categories }).query,
+    ).toBeUndefined()
+  })
+})
+
+describe('hasAnyFilter', () => {
+  it('an all-null query has no filter, which is what the endpoint bounds', () => {
+    expect(hasAnyFilter(sanitizeSearchQuery(EMPTY, { categories }))).toBe(false)
+  })
+
+  it('any single filter counts', () => {
+    for (const query of [
+      { preset: 'last_month' },
+      { start: '2026-01-01T00:00:00.000Z' },
+      { end: '2026-01-01T00:00:00.000Z' },
+      { query: 'x' },
+      { names: ['alex'] },
+      { categoryIds: ['cat-fin'] },
+    ]) {
+      expect(hasAnyFilter(query)).toBe(true)
+    }
+  })
+})
+
+describe('buildSearchPlan', () => {
+  const range = {
+    start: '2026-01-01T00:00:00.000Z',
+    end: '2026-02-01T00:00:00.000Z',
+  }
+
+  it('starts with the query as written, then widens one filter at a time', () => {
+    const plan = buildSearchPlan(
+      {
+        query: '旅游',
+        names: ['alex'],
+        categoryIds: ['cat-fin'],
+        preset: 'last_year',
+      },
+      range,
+    )
+    expect(plan.map((a) => a.relaxed)).toEqual([
+      null,
+      'names',
+      'categories',
+      'range',
+      'keyword',
+    ])
+  })
+
+  it('never widens into an unbounded listing', () => {
+    // No keyword, no names, no categories: dropping anything would turn this
+    // into "every event you have ever had".
+    expect(buildSearchPlan({ preset: 'last_year' }, range)).toHaveLength(1)
+    expect(buildSearchPlan({}, {})).toHaveLength(1)
+  })
+
+  it('never drops the keyword in a window too wide to browse', () => {
+    const wide = {
+      start: '2020-01-01T00:00:00.000Z',
+      end: '2026-01-01T00:00:00.000Z',
+    }
+    // The range may go — a keyword still has to match — the keyword may not.
+    expect(
+      buildSearchPlan({ query: '旅游' }, wide).map((a) => a.relaxed),
+    ).toEqual([null, 'range'])
+  })
+
+  it('drops the keyword last, and only in a window that can be browsed', () => {
+    const plan = buildSearchPlan({ query: '旅游' }, range)
+    expect(plan.map((a) => a.relaxed)).toEqual([null, 'range', 'keyword'])
+    // The last attempt is the whole window, which is only safe because it is
+    // short: a season of calendar is browsable, six years is not.
+    expect(plan[2].query).toEqual({})
   })
 })

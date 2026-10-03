@@ -65,7 +65,7 @@ import {
 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 // Type-only, so the client bundle never pulls in the agent's tool schemas.
-import type { SearchQuery } from '@zntr/agent'
+import type { Relaxation, SearchQuery } from '@zntr/agent'
 import { parseDateQuery } from '@/lib/parse-date-query'
 
 /**
@@ -96,6 +96,21 @@ const WRITE_TOOLS = new Set([
   'tool-delete_countdown',
 ])
 
+/** Exactly the keys this file reads, so a rename cannot slip through. */
+type TranslationKey = keyof (typeof translations)['en']
+
+/**
+ * Which filter the endpoint gave up to find rows, in the user's words rather
+ * than the plan's. See buildSearchPlan for why this is ordered the way it is;
+ * this is only the sentence that says so.
+ */
+const RELAXED: Record<Relaxation, TranslationKey> = {
+  names: 'aiSearchDropNames',
+  categories: 'aiSearchDropCategories',
+  range: 'aiSearchDropRange',
+  keyword: 'aiSearchDropKeyword',
+}
+
 export interface PaletteActions {
   setView: (view: 'day' | 'week' | 'month' | 'year' | 'four-day') => void
   goToToday: () => void
@@ -119,6 +134,12 @@ export interface PaletteActions {
 
 type Mode = 'palette' | 'chat' | 'results'
 
+/** The resolved instants the endpoint actually searched, for the scope line. */
+interface SearchScope {
+  start?: string
+  end?: string
+}
+
 type SearchState =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -131,6 +152,16 @@ type SearchState =
       hasMore: boolean
       /** The question that produced this, kept for the retry row. */
       text: string
+      /**
+       * What was actually searched, shown above the rows. A search that cannot
+       * say what it looked for cannot be told apart from one that ignored the
+       * question, and every wrong answer reads as the AI making things up.
+       */
+      scope: SearchScope
+      /** The user's question named no date, so a window was assumed. */
+      defaultedRange: boolean
+      /** A filter was dropped to find these rows — see buildSearchPlan. */
+      relaxed: Relaxation | null
     }
   | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' }
 
@@ -141,6 +172,9 @@ interface SearchResponseBody {
   total: number
   totalPages: number
   hasMore: boolean
+  range?: SearchScope
+  defaultedRange?: boolean
+  relaxed?: Relaxation | null
 }
 
 interface AiCommandPaletteProps {
@@ -278,6 +312,11 @@ export function AiCommandPalette({
                 total: body.total,
                 hasMore: body.hasMore,
                 text: prev.text,
+                // Paging replays the same query, so the scope cannot change;
+                // keeping the first page's values avoids a flash of blanks.
+                scope: body.range ?? prev.scope,
+                defaultedRange: body.defaultedRange ?? prev.defaultedRange,
+                relaxed: body.relaxed ?? prev.relaxed,
               }
             : {
                 status: 'ready',
@@ -287,6 +326,9 @@ export function AiCommandPalette({
                 total: body.total,
                 hasMore: body.hasMore,
                 text,
+                scope: body.range ?? {},
+                defaultedRange: body.defaultedRange ?? false,
+                relaxed: body.relaxed ?? null,
               },
         )
       } catch {
@@ -385,6 +427,39 @@ export function AiCommandPalette({
         ? t.aiSearchRefinePlaceholder
         : t.aiSearchPlaceholder
 
+  /**
+   * What the endpoint actually searched, as chips. This is not decoration: the
+   * endpoint has to guess "去年" and "和 Alex" into a date range and a name
+   * filter, and without the resolved answer on screen a wrong guess is
+   * indistinguishable from the AI ignoring the question. The keyword and names
+   * come from the query that RAN — which, after a relaxation, is not the one the
+   * model first wrote.
+   */
+  const scopeChips = React.useMemo(() => {
+    if (search.status !== 'ready') return []
+    const day = (iso: string) =>
+      new Date(iso).toLocaleDateString(language, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    const chips: string[] = []
+    const { start, end } = search.scope
+    if (start && end) chips.push(`${day(start)} – ${day(end)}`)
+    else if (start) chips.push(`${t.aiSearchFrom} ${day(start)}`)
+    else if (end) chips.push(`${t.aiSearchUntil} ${day(end)}`)
+    if (search.query.query) {
+      chips.push(`${t.aiSearchWords}: ${search.query.query}`)
+    }
+    if (search.query.names?.length) {
+      chips.push(`${t.aiSearchWith} ${search.query.names.join(', ')}`)
+    }
+    if (search.defaultedRange) chips.push(t.aiSearchDefaultRange)
+    if (search.relaxed)
+      chips.push(`${t.aiSearchRelaxed}: ${RELAXED[search.relaxed]}`)
+    return chips
+  }, [search, language, t])
+
   const searching = search.status === 'loading' || loadingMore
 
   return (
@@ -445,6 +520,17 @@ export function AiCommandPalette({
             />
           )}
         </div>
+
+        {mode === 'results' && scopeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 border-b px-3 py-1.5 text-xs text-muted-foreground">
+            <span>{t.aiSearchScope}</span>
+            {scopeChips.map((chip) => (
+              <span key={chip} className="rounded bg-muted px-1.5 py-0.5">
+                {chip}
+              </span>
+            ))}
+          </div>
+        )}
 
         {mode === 'results' ? (
           <ScrollArea className="max-h-[min(20rem,calc(100dvh-12rem))]">

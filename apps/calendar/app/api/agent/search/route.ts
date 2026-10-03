@@ -3,11 +3,15 @@ import { generateObject } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import {
   buildSearchInstructions,
+  buildSearchPlan,
+  hasAnyFilter,
   resolvePreset,
   searchQuerySchema,
   sanitizeSearchQuery,
   summarizeProviderError,
+  type AgentEventPage,
   type CalendarPreset,
+  type SearchAttempt,
   type SearchQuery,
 } from '@zntr/agent'
 import { createAppToolkit } from '@/lib/agent/toolkit'
@@ -126,31 +130,45 @@ export async function POST(request: NextRequest) {
   }
 
   const now = new Date()
-  const range = resolveQueryRange(query, timezone, now)
-  // A range that ends in the past reads oldest-first ("what did we discuss last
-  // year" should open in January, not December); anything that can still happen
-  // reads nearest-first, or a search for what is coming up starts at the oldest
-  // thing on the list.
-  const ascending = range.end
-    ? new Date(range.end).getTime() <= now.getTime()
-    : false
 
-  const result = await toolkit.listEvents({
-    start: range.start,
-    end: range.end,
-    query: query.query,
-    // Names ride the existing participants filter: "the meeting with Alex" is
-    // the same filter as "with alex@example.com", matched by name.
-    ...(query.names?.length ? { participants: { names: query.names } } : {}),
-    categoryIds: query.categoryIds,
-    page,
-    limit: PAGE_SIZE,
-    sortDirection: ascending ? 'asc' : 'desc',
-  })
+  // An all-null query is the one thing the model must never return, and if it
+  // does the range it would otherwise leave open makes `listEvents` return the
+  // user's ENTIRE history, first page, oldest first. Bounding it to a season is
+  // the difference between "here is what you might have meant" and "here is
+  // your life", and the client says which window it used.
+  let defaultedRange = false
+  if (!hasAnyFilter(query)) {
+    query = { preset: 'last_90_days' }
+    defaultedRange = true
+  }
+
+  // Widen rather than report nothing: a mistranslated filter and a genuinely
+  // absent event are indistinguishable from the outside, and the first is far
+  // more likely. See buildSearchPlan for the order and why it is safe.
+  const plan = buildSearchPlan(query, resolveQueryRange(query, timezone, now))
+  let attempt = plan[0]
+  let result = await runAttempt(toolkit, attempt, timezone, page, now)
+  for (const next of plan.slice(1)) {
+    // Only the strictest search widens; page 2 of a widened search would show
+    // rows that are not the rows the earlier pages were paging through.
+    if (result.total > 0 || page > 1) break
+    attempt = next
+    result = await runAttempt(toolkit, attempt, timezone, page, now)
+  }
 
   return NextResponse.json({
-    // Echoed so the client can page without paying for the model again.
-    query,
+    // Echoed so the client can page without paying for the model again — and
+    // echoed as the ATTEMPT that produced these rows, not the query the model
+    // first wrote: paging has to continue through the same search, or page 2
+    // would list the strict query's rows under page 1's relaxed heading.
+    query: attempt.query,
+    // With the RESOLVED instants, not the preset name: "last_year" means
+    // nothing to a user, two dates mean exactly what was searched.
+    range: resolveQueryRange(attempt.query, timezone, now),
+    defaultedRange,
+    // Which filter gave up its place for these rows, so the client can say so
+    // instead of the user wondering why the answer is wider than the question.
+    relaxed: attempt.relaxed,
     results: result.events.map((event) => ({
       id: event.id,
       title: event.title,
@@ -164,6 +182,41 @@ export async function POST(request: NextRequest) {
     total: result.total,
     totalPages: result.totalPages,
     hasMore: result.page < result.totalPages,
+  })
+}
+
+/**
+ * One attempt of the plan.
+ *
+ * The range resolves per attempt rather than once up front: dropping
+ * `start`/`end` changes what an open-ended `past`/`upcoming` even means, so an
+ * attempt that widened past the original instants has to resolve its own.
+ */
+async function runAttempt(
+  toolkit: ReturnType<typeof createAppToolkit>,
+  attempt: SearchAttempt,
+  timezone: string,
+  page: number,
+  now: Date,
+): Promise<AgentEventPage> {
+  const range = resolveQueryRange(attempt.query, timezone, now)
+  // Oldest first once the window is behind the user ("last year's meetings"
+  // should start in January, not in December); newest first while the window
+  // can still contain the future, so "next trip" leads with what is next.
+  const ascending = range.end
+    ? new Date(range.end).getTime() <= now.getTime()
+    : false
+  return toolkit.listEvents({
+    start: range.start,
+    end: range.end,
+    query: attempt.query.query,
+    ...(attempt.query.names?.length
+      ? { participants: { names: attempt.query.names } }
+      : {}),
+    categoryIds: attempt.query.categoryIds,
+    page,
+    limit: PAGE_SIZE,
+    sortDirection: ascending ? 'asc' : 'desc',
   })
 }
 

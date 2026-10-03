@@ -140,8 +140,8 @@ export function sanitizeSearchQuery(
     delete query.end
   }
 
-  const text = typeof raw.query === 'string' ? raw.query.trim() : undefined
-  if (text && text.length <= MAX_QUERY_LENGTH) query.query = text
+  const needle = cleanNeedle(raw.query)
+  if (needle) query.query = needle
 
   const names = cleanList(raw.names, MAX_NAMES, MAX_NAME_LENGTH)
   if (names.length > 0) query.names = names
@@ -150,6 +150,36 @@ export function sanitizeSearchQuery(
   if (categoryIds.length > 0) query.categoryIds = categoryIds
 
   return query
+}
+
+/**
+ * The subject words, cleaned for a substring match.
+ *
+ * Quoting is the model's habit — "budget", 「财务」, “trip” — and the stored
+ * field never has those characters in it, so a needle that keeps them can never
+ * match anything. Collapsing whitespace matters for the same reason: the
+ * database compares the needle as ONE substring, so "trip  to  Paris" is a
+ * needle that exists in no event at all.
+ *
+ * Deliberately NOT split into words and OR-ed together. That would make the
+ * search match any single common word, and "找个会议" would come back with every
+ * event that has a 2-character overlap with it — the same noise as no filter at
+ * all, but harder to see. One short distinctive span or nothing.
+ */
+function cleanNeedle(value: string | null | undefined): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const cleaned = value
+    // Quote and list punctuation the model adds around the user's words.
+    .replace(/["'“”‘’「」『』《》【()（）[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!cleaned) return undefined
+  // An over-long needle is a sentence, and no field holds a sentence-length
+  // substring: a half-sentence matches nothing either, and keeping it would
+  // hide the date and participant filters behind a query that cannot match.
+  // Dropping it leaves those filters working — and the plan can drop the range
+  // later if the user really did mean everything in that window.
+  return cleaned.length <= MAX_QUERY_LENGTH ? cleaned : undefined
 }
 
 function cleanList(
@@ -193,6 +223,108 @@ function resolveCategoryIds(
   return ids
 }
 
+/** True when the model constrained the search in at least one way. */
+export function hasAnyFilter(query: SearchQuery): boolean {
+  return Boolean(
+    query.preset ||
+    query.start ||
+    query.end ||
+    query.query ||
+    query.names?.length ||
+    query.categoryIds?.length,
+  )
+}
+
+/** A filter the widening plan can drop, in the order it gives them up. */
+export type Relaxation = 'names' | 'categories' | 'range' | 'keyword'
+
+export interface SearchAttempt {
+  query: SearchQuery
+  /** What this attempt gives up relative to the resolved query; null for the first. */
+  relaxed: Relaxation | null
+}
+
+/**
+ * How wide the keyword-less attempt is allowed to be. Past a season, "show me
+ * everything in this range" is the noise the search exists to avoid, so past
+ * this width the plan stops instead of dropping the keyword.
+ */
+const MAX_KEYWORD_DROPPED_RANGE_MS = 93 * 86_400_000
+
+/**
+ * The search, then the same search with one filter given up at a time.
+ *
+ * The model translates prose into filters, and a filter it got wrong does not
+ * return "nothing" — it returns nothing, which the user reads as "you never had
+ * that meeting". Since a mistranslation is far more likely than an absent
+ * event, an empty result page is treated as evidence against the filters and
+ * the search is re-run wider. Every attempt is a plain database read; the model
+ * is not asked twice.
+ *
+ * The order is the judgement, and it is deliberate:
+ *  - names first: a name is the easiest thing to invent, and "和 Alex" is common
+ *    while a stored participant for that meeting may simply not exist.
+ *  - categories next: resolvable from the user's own list, but the user may name
+ *    a topic ("财务") that maps to a real category the events do not use.
+ *  - the range before the keyword: dropping the range is SAFE while a keyword
+ *    still has to match ("旅游" anywhere in history is a search), whereas
+ *    dropping the keyword is only safe inside a narrow window.
+ *  - the keyword last, and only inside a window of at most 93 days.
+ *
+ * A query with nothing to drop yields a single attempt, so this can never
+ * widen into an unbounded listing.
+ */
+export function buildSearchPlan(
+  query: SearchQuery,
+  range: { start?: string; end?: string } = {},
+): SearchAttempt[] {
+  const attempts: SearchAttempt[] = [{ query, relaxed: null }]
+  const hasRange = Boolean(
+    query.preset || query.start || query.end || range.start || range.end,
+  )
+  const hasScope = Boolean(query.query || query.names?.length)
+
+  if (query.names?.length) {
+    const { names, ...rest } = query
+    void names
+    attempts.push({ query: rest, relaxed: 'names' })
+  }
+  if (query.categoryIds?.length) {
+    const { categoryIds, ...rest } = query
+    void categoryIds
+    attempts.push({ query: rest, relaxed: 'categories' })
+  }
+  if (hasRange && hasScope) {
+    const { preset, start, end, ...rest } = query
+    void preset
+    void start
+    void end
+    attempts.push({ query: rest, relaxed: 'range' })
+  }
+  if (query.query && rangeIsNarrow(range)) {
+    const { query: needle, ...rest } = query
+    void needle
+    attempts.push({ query: rest, relaxed: 'keyword' })
+  }
+  return attempts
+}
+
+/** Both ends inside one bounded window, or one end inside it. */
+function rangeIsNarrow(range: { start?: string; end?: string }): boolean {
+  const start = range.start ? Date.parse(range.start) : Number.NaN
+  const end = range.end ? Date.parse(range.end) : Number.NaN
+  if (Number.isNaN(start) && Number.isNaN(end)) return false
+  if (!Number.isNaN(start) && !Number.isNaN(end)) {
+    return end - start <= MAX_KEYWORD_DROPPED_RANGE_MS
+  }
+  // One open end: bounded only if the other end is close enough to "now" that
+  // the window cannot be a decade of history.
+  const openStart = Number.isNaN(start)
+  const known = openStart ? end : start
+  const now = Date.now()
+  return (openStart ? now - known : known - now) <= MAX_KEYWORD_DROPPED_RANGE_MS
+}
+
 export function buildSearchInstructions(context: {
   timezone: string
   nowIso: string
@@ -222,12 +354,13 @@ Current date/time: ${context.nowIso}
 User timezone: ${context.timezone}
 
 Rules:
-- Put the SUBJECT in query, with the time and people phrasing removed. "去年和 Alex 讨论项目的会议" → query "项目", names ["Alex"], preset "last_year". "上个月所有关于财务的安排" → query "财务", preset "last_month".
+- Put the SUBJECT in query, with the time and people phrasing removed. "去年和 Alex 讨论项目的会议" → query "项目", names ["Alex"], preset "last_year". "上个月所有关于财务的安排" → query "财务", preset "last_month". "去旅游的那次" → query "旅游", preset "last_year", names null.
+- query must be ONE short distinctive span, the words that would appear in the event itself: never a whole sentence, never "去年去旅游的会议" (nothing in the database holds that as a substring, so the search comes back empty and the user is told they never had that trip). Drop every word you have already turned into preset, names or categories.
 - query is matched as a substring against title, description and location. Use the words the user actually used, not your own paraphrase of them.
 - preset when the user describes a span by name. Use: ${PRESET_NAMES.join(', ')}. "last year" is the last calendar year, not the last 365 days; "recently" is last_30_days. Resolve against the current date above and never guess a year.
 - start/end only for an exact span ("from March 3 to March 20"), never alongside preset.
 - names for people, exactly as the user said them. Never invent an email address, and never put an address in names.
 - categories only from this list of the user's category NAMES: ${categoryList}. Null if none fits; an invented name is dropped by the app.
-- If the user says nothing beyond "search"/"我的日程", return nulls everywhere. That is a valid recent-events listing, not a failure.
+- If the user named a time span, ALWAYS put it in preset or start/end. "找个会议" is not an invitation to list the whole calendar: an all-null query is the one thing you must never return, because it comes back as every event the user has ever had. If they truly said nothing searchable, return a sensible recent window (last_30_days or last_90_days) rather than nulls everywhere.
 - Omit a filter the user did not state rather than guessing one. A too-narrow query returns nothing, and nothing looks like "you never had that meeting".${previous}`
 }
