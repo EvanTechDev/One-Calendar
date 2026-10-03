@@ -89,21 +89,12 @@ export function createAppToolkit(userId: string): CalendarToolkit {
         filter: {
           time: { start: input.start, end: input.end },
           category_ids: input.categoryIds,
-          ...(input.participants ? { participants: input.participants } : {}),
         },
         ...(input.query ? { search: { text: input.query } } : {}),
-        // page 1 is the default in the MCP tool too; passing it through keeps
-        // the two paths reading the same way.
-        pagination: { page: input.page ?? 1, limit: input.limit ?? 20 },
+        pagination: { page: 1, limit: input.limit ?? 20 },
         sort: { field: 'start_date', direction: 'asc' },
       })
-      return {
-        events: (events.events as unknown as ToolEventRow[]).map(toSummary),
-        page: events.pagination.page,
-        limit: events.pagination.limit,
-        total: events.pagination.total,
-        totalPages: events.pagination.totalPages,
-      }
+      return (events.events as unknown as ToolEventRow[]).map(toSummary)
     },
 
     async createEvent(input) {

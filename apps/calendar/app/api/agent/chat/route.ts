@@ -11,7 +11,6 @@ import { createGroq } from '@ai-sdk/groq'
 import {
   buildCalendarTools,
   buildInstructions,
-  buildSearchInstructions,
   summarizeProviderError,
 } from '@zntr/agent'
 import { createAppToolkit } from '@/lib/agent/toolkit'
@@ -29,11 +28,6 @@ const MAX_TEXT_LENGTH = 4000
  * boundary; the toolkit the tools close over is already user-scoped, so a
  * prompt-injected model cannot escalate past the signed-in user — exactly
  * the MCP server's posture.
- *
- * Two modes on one route: `mode: 'search'` is the palette's semantic search
- * (read-only tools + a lookup-only prompt), anything else is the full
- * assistant. Same auth, same rate limit, same stream — only the toolset and
- * the instructions differ.
  */
 export async function POST(request: NextRequest) {
   const user = await getAuthedUser()
@@ -69,16 +63,10 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json().catch(() => null)) as {
     messages?: UIMessage[]
-    mode?: string
   } | null
   if (!body?.messages || !Array.isArray(body.messages)) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
-
-  // 'search' is the palette's semantic search: read-only tools and a prompt
-  // that only knows how to look things up. Anything unrecognised falls back to
-  // the full assistant rather than 400ing a client mid-conversation.
-  const mode: 'chat' | 'search' = body.mode === 'search' ? 'search' : 'chat'
 
   // Bound the transcript: the client keeps history for one palette session,
   // and an unbounded replay both blows Groq's context window and lets a
@@ -100,8 +88,7 @@ export async function POST(request: NextRequest) {
   // Destructive tools carry needsApproval in their definitions, so they
   // pause for an in-palette confirmation (approve/deny buttons) before
   // executing — a prompt-injected model cannot delete anything on its own.
-  // Semantic search gets the read-only subset, so it has nothing to confirm.
-  const tools = buildCalendarTools(toolkit, { readOnly: mode === 'search' })
+  const tools = buildCalendarTools(toolkit)
   const timezone = await toolkit.getTimezone()
 
   const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
@@ -110,13 +97,12 @@ export async function POST(request: NextRequest) {
   // free/developer tier (250K TPM / 1K RPM).
   const model = groq(process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b')
 
-  const context = { timezone, nowIso: new Date().toISOString() }
   const result = streamText({
     model,
-    instructions:
-      mode === 'search'
-        ? buildSearchInstructions(context)
-        : buildInstructions(context),
+    instructions: buildInstructions({
+      timezone,
+      nowIso: new Date().toISOString(),
+    }),
     messages: await convertToModelMessages(messages),
     tools,
     // list → decide → act → confirm needs a few steps; eight is enough for
@@ -127,7 +113,7 @@ export async function POST(request: NextRequest) {
       // carries the whole request body, and with it the user's conversation.
       const failure = summarizeProviderError(error)
       console.error(
-        `[agent-chat:${mode}] groq ${failure.status ?? 'no-status'} ${failure.kind}: ${failure.detail}`,
+        `[agent-chat] groq ${failure.status ?? 'no-status'} ${failure.kind}: ${failure.detail}`,
       )
     },
   })
