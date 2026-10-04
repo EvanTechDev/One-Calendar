@@ -43,15 +43,20 @@ export function Dashboard({
       userName={userName}
       identity={identity}
       recentPreview={
-        <Suspense fallback={<RowsSkeleton rows={HOME_RECENT_LIMIT} />}>
+        <Suspense fallback={<RowsSkeleton rows={HOME_RECENT_LIMIT} compact />}>
           <RecentPreview />
         </Suspense>
       }
       history={
-        <section className="space-y-4 p-4 sm:p-6">
-          <h2 className="font-heading text-base font-semibold">
-            Your meetings
-          </h2>
+        <section className="mx-auto max-w-7xl space-y-7 p-4 sm:p-6 lg:p-10">
+          <div className="space-y-1.5">
+            <h2 className="font-heading text-2xl font-semibold tracking-tight lg:text-3xl">
+              Your meetings
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Find a conversation and pick up where you left off.
+            </p>
+          </div>
           <Suspense fallback={<HistorySkeleton />}>
             <RecentMeetings />
           </Suspense>
@@ -105,13 +110,27 @@ async function organiserId(): Promise<string> {
   return session?.user.id ?? ''
 }
 
-function RowsSkeleton({ rows }: { rows: number }) {
+function RowsSkeleton({
+  rows,
+  compact = false,
+}: {
+  rows: number
+  compact?: boolean
+}) {
   return (
-    <ul className="divide-y rounded-lg border" aria-busy="true">
+    <ul
+      className={compact ? 'divide-y' : 'divide-y rounded-2xl border'}
+      aria-busy="true"
+    >
       {Array.from({ length: rows }, (_, key) => (
-        <li key={key} className="space-y-2 px-4 py-3">
-          <div className="h-4 w-44 animate-pulse rounded bg-muted" />
-          <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+        <li
+          key={key}
+          className={
+            compact ? 'space-y-2 py-3 first:pt-0 last:pb-0' : 'space-y-2 p-5'
+          }
+        >
+          <div className="h-4 w-44 max-w-full animate-pulse rounded bg-muted motion-reduce:animate-none" />
+          <div className="h-3 w-32 animate-pulse rounded bg-muted motion-reduce:animate-none" />
         </li>
       ))}
     </ul>

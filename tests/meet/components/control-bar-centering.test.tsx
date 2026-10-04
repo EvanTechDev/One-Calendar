@@ -3,6 +3,7 @@ import { render, cleanup } from '@testing-library/react'
 import { ControlBar } from '@/components/room/control-bar'
 import {
   MOBILE_BAR_PADDING,
+  MOBILE_CONTROL_HEIGHT,
   TAILWIND_STEP,
   TOUCH_TARGET,
   controlBarFits,
@@ -181,6 +182,8 @@ describe('ControlBar centering', () => {
   it('puts the Organiser-only End for all in the right region, not the centre', () => {
     const { center, right } = renderBar({ organiser: true })
     expect(right!.textContent).toContain('End for all')
+    expect(right!.className).toMatch(/(^|\s)hidden(\s|$)/)
+    expect(right!.className).toContain('sm:flex')
     expect(center!.textContent).not.toContain('End for all')
   })
 
@@ -229,25 +232,25 @@ describe('ControlBar centering', () => {
     const paddingClass = `px-${MOBILE_BAR_PADDING / TAILWIND_STEP}`
     expect(bar.className).toContain(paddingClass)
     expect(center!.firstElementChild!.className).toContain(sizeClass)
+    expect(center!.firstElementChild!.className).toContain(
+      `h-${MOBILE_CONTROL_HEIGHT / TAILWIND_STEP}`,
+    )
     // And the arithmetic those classes feed says both target viewports work.
     expect(controlBarFits(360) && controlBarFits(390)).toBe(true)
   })
 
-  it('gives every phone control a 44px touch target', () => {
-    const { center, right } = renderBar({ organiser: true })
-    // 44px is the iOS minimum; these were 32px. `size-11` is 2.75rem = 44px.
-    const phoneTargets = [
-      ...Array.from(center!.children).filter(
-        (child) => child.getAttribute('aria-label') !== null,
-      ),
-      ...Array.from(right!.children),
-    ]
-    expect(phoneTargets.length).toBeGreaterThan(0)
+  it('gives all five phone controls at least 48px touch targets', () => {
+    const { center } = renderBar({ organiser: true })
+    const phoneTargets = Array.from(center!.children).filter(
+      (child) => child.getAttribute('aria-label') !== null,
+    )
+    expect(phoneTargets).toHaveLength(5)
     for (const button of phoneTargets) {
       expect(
         button.className,
         button.getAttribute('aria-label') ?? '',
-      ).toContain('size-11')
+      ).toContain('size-12')
+      expect(button.className).toContain('h-16')
     }
   })
 

@@ -17,7 +17,7 @@ import {
   Hand,
   Users,
   Smile,
-  MoreVertical,
+  Ellipsis,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@zntr/ui/button'
@@ -29,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -119,30 +120,9 @@ export function ControlBar({
 
   return (
     <>
-      {/*
-        From `sm` up: three independent regions, so the middle cluster is centred
-        on the viewport rather than on whatever is left over. `minmax(0, 1fr)` on
-        both side tracks is the load-bearing part: a bare `1fr` resolves to
-        `minmax(auto, 1fr)`, which lets a long event title in the left region
-        claim more than its share and push the controls off-centre. With an
-        explicit 0 minimum the two side tracks are always the same width, so the
-        centre track sits exactly in the middle regardless of role
-        (Organiser-only actions live on the right) or event title.
-
-        Below `sm` the grid is off entirely and the bar is one flex row. A phone
-        has no left region to centre against — it is hidden — so the grid there
-        only cost the controls half the viewport for an empty third track.
-      */}
-      <div className="border-t">
-        {/*
-          One flex line on a phone, the three-track grid from `sm` up.
-
-          Five targets on a phone: mic, camera, hand, More, Leave. The previous
-          version put six more toggles on a second row of identical circles,
-          which gave Settings the same visual weight as the microphone and spent
-          112px of a 640px viewport saying so. Rarer controls now sit behind
-          More, which is also where the room code lives.
-        */}
+      {/* Equal desktop side tracks keep the controls centred for either role.
+          On phones, host actions live in More so all five labelled targets fit. */}
+      <div className="shrink-0 border-t bg-background pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         <div className="flex items-center gap-2 px-3 py-2.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-4 sm:py-3">
           <div
             data-region="left"
@@ -160,14 +140,9 @@ export function ControlBar({
             </Button>
           </div>
 
-          {/*
-            On a phone this is the flex line's only growing child, so
-            `justify-center` centres its contents in the full width; from `sm`
-            it is the grid's middle track and the side tracks do the centring.
-          */}
           <div
             data-region="center"
-            className="flex flex-1 items-center justify-center gap-2 sm:flex-none"
+            className="mx-auto flex max-w-md flex-1 items-center justify-center gap-2 sm:max-w-none sm:flex-none"
           >
             <ControlButton
               active={isMicrophoneEnabled}
@@ -175,8 +150,9 @@ export function ControlBar({
                 localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
               }
               label={isMicrophoneEnabled ? 'Mute' : 'Unmute'}
-              onIcon={<Mic className="size-4" />}
-              offIcon={<MicOff className="size-4" />}
+              caption={isMicrophoneEnabled ? 'Mic on' : 'Mic off'}
+              onIcon={<Mic className="size-5 sm:size-4" />}
+              offIcon={<MicOff className="size-5 sm:size-4" />}
             />
             <ControlButton
               active={isCameraEnabled}
@@ -184,8 +160,9 @@ export function ControlBar({
                 localParticipant.setCameraEnabled(!isCameraEnabled)
               }
               label={isCameraEnabled ? 'Turn camera off' : 'Turn camera on'}
-              onIcon={<Video className="size-4" />}
-              offIcon={<VideoOff className="size-4" />}
+              caption={isCameraEnabled ? 'Cam on' : 'Cam off'}
+              onIcon={<Video className="size-5 sm:size-4" />}
+              offIcon={<VideoOff className="size-5 sm:size-4" />}
             />
 
             {/*
@@ -196,13 +173,19 @@ export function ControlBar({
             <Button
               size="icon"
               variant={handRaised ? 'default' : 'secondary'}
-              className="size-11 rounded-full sm:size-8"
+              className="size-12 h-16 flex-col gap-1.5 rounded-2xl sm:size-8 sm:rounded-full"
               onClick={onToggleHand}
               aria-label={handRaised ? 'Lower hand' : 'Raise hand'}
               aria-pressed={handRaised}
               title="Raise hand (Ctrl+Alt+H)"
             >
-              <Hand className="size-4" />
+              <Hand className="size-5 sm:size-4" />
+              <span
+                aria-hidden="true"
+                className="text-[10px] leading-none sm:hidden"
+              >
+                {handRaised ? 'Lower' : 'Raise'}
+              </span>
             </Button>
 
             <div
@@ -221,7 +204,7 @@ export function ControlBar({
             </div>
 
             <MoreSheet
-              className="size-11 sm:hidden"
+              className="size-12 h-16 flex-col gap-1.5 rounded-2xl sm:hidden"
               roomName={roomName}
               eventContext={eventContext}
               onCopyInvite={copyInvite}
@@ -232,6 +215,9 @@ export function ControlBar({
               onToggleScreenShare={toggleScreenShare}
               onOpenSettings={() => setSettingsOpen(true)}
               unreadChat={unreadChat}
+              isOrganiser={isOrganiser}
+              ending={ending}
+              onEndForAll={endForAll}
             />
 
             {/*
@@ -243,14 +229,20 @@ export function ControlBar({
             <Button
               size="icon"
               variant="destructive"
-              className="ml-4 size-11 rounded-full sm:ml-0 sm:size-8"
+              className="ml-4 size-12 h-16 flex-col gap-1.5 rounded-2xl bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive dark:text-background dark:hover:bg-destructive/90 sm:ml-0 sm:size-8 sm:rounded-full"
               onClick={() => {
                 onLeaveIntent()
                 room.disconnect()
               }}
               aria-label="Leave meeting"
             >
-              <PhoneOff className="size-4" />
+              <PhoneOff className="size-5 sm:size-4" />
+              <span
+                aria-hidden="true"
+                className="text-[10px] leading-none sm:hidden"
+              >
+                Leave
+              </span>
             </Button>
           </div>
 
@@ -262,7 +254,7 @@ export function ControlBar({
           */}
           <div
             data-region="right"
-            className="flex min-w-0 items-center justify-end gap-2"
+            className="hidden min-w-0 items-center justify-end gap-2 sm:flex"
           >
             {isOrganiser ? (
               <Button
@@ -271,7 +263,7 @@ export function ControlBar({
                 // `size="icon"` carries no gap (it is square by definition), so
                 // widening it for a label leaves the icon touching the text.
                 // 1.5 is what every non-icon size in @zntr/ui/button uses.
-                className="size-11 rounded-full sm:size-8 sm:w-auto sm:gap-1.5 sm:px-4"
+                className="size-8 w-auto gap-1.5 rounded-full px-4"
                 onClick={endForAll}
                 disabled={ending}
                 aria-label="End meeting for all"
@@ -294,12 +286,14 @@ function ControlButton({
   active,
   onClick,
   label,
+  caption,
   onIcon,
   offIcon,
 }: {
   active: boolean
   onClick: () => void
   label: string
+  caption: string
   onIcon: React.ReactNode
   offIcon: React.ReactNode
 }) {
@@ -307,13 +301,16 @@ function ControlButton({
     <Button
       size="icon"
       variant={active ? 'secondary' : 'destructive'}
-      // 44px on a phone (the iOS minimum, see lib/control-layout), the ordinary
-      // 32px `size="icon"` from `sm` up where a pointer is doing the aiming.
-      className={cn('size-11 rounded-full sm:size-8')}
+      className="size-12 h-16 flex-col gap-1.5 rounded-2xl sm:size-8 sm:rounded-full"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={active}
+      title={label}
     >
       {active ? onIcon : offIcon}
+      <span aria-hidden="true" className="text-[10px] leading-none sm:hidden">
+        {caption}
+      </span>
     </Button>
   )
 }
@@ -336,12 +333,7 @@ function UnreadDot({ count }: { count: number }) {
 }
 
 /**
- * The six secondary toggles: share, hand, reactions, people, chat, settings.
- *
- * One definition rendered twice — inline in the desktop centre track, and in the
- * phone's own row above the primary line. Two copies of six buttons is how the
- * phone's chat control drifted into a menu item with a different label and no
- * `aria-pressed` from the desktop one.
+ * Desktop secondary controls. The mobile sheet uses labelled actions below.
  */
 function SecondaryControls({
   buttonClassName,
@@ -407,12 +399,7 @@ function SecondaryControls({
         title="Chat (Ctrl+Alt+C)"
       >
         <MessageSquare className="size-4" />
-        {/*
-          Chat now outlives the panel, so a message can arrive while it is
-          closed. Without this the viewer has no way to know, which is what made
-          the old bug look like a lost message. It is on the button itself at
-          every width now that the phone no longer hides chat in a menu.
-        */}
+        {/* The More trigger surfaces this same unread count on mobile. */}
         {unreadChat > 0 ? <UnreadDot count={unreadChat} /> : null}
       </Button>
       <Button
@@ -454,6 +441,9 @@ function MoreSheet({
   onToggleScreenShare,
   onOpenSettings,
   unreadChat,
+  isOrganiser,
+  ending,
+  onEndForAll,
 }: {
   className?: string
   roomName: string
@@ -466,6 +456,9 @@ function MoreSheet({
   onToggleScreenShare: () => void
   onOpenSettings: () => void
   unreadChat: number
+  isOrganiser: boolean
+  ending: boolean
+  onEndForAll: () => void
 }) {
   const [open, setOpen] = useState(false)
 
@@ -487,15 +480,28 @@ function MoreSheet({
             unreadChat > 0 ? `More, ${unreadChat} unread messages` : 'More'
           }
         >
-          <MoreVertical className="size-4" />
+          <Ellipsis className="size-5" />
+          <span aria-hidden="true" className="text-[10px] leading-none">
+            More
+          </span>
           {/* Chat lives in here on a phone, so its badge has to surface on the
               trigger or an arriving message is invisible. */}
           {unreadChat > 0 ? <UnreadDot count={unreadChat} /> : null}
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="gap-0 pb-8">
-        <SheetHeader className="flex-row items-center gap-2 border-b pb-3">
-          <SheetTitle className="sr-only">Meeting controls</SheetTitle>
+      <SheetContent
+        side="bottom"
+        className="max-h-[85dvh] gap-0 overflow-y-auto rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] motion-reduce:animate-none [&>*]:shrink-0 [&_[data-slot=sheet-close]]:size-11"
+      >
+        <SheetHeader className="gap-1 border-b px-0 pb-4 pr-10 pt-5">
+          <SheetTitle className="text-lg font-semibold">
+            Meeting controls
+          </SheetTitle>
+          <SheetDescription>
+            People, messages, and room settings.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-4 flex items-center gap-3 rounded-xl border bg-muted/40 p-3">
           <MeetingIdentity
             roomName={roomName}
             eventContext={eventContext}
@@ -510,9 +516,9 @@ function MoreSheet({
           >
             <LinkIcon className="size-4" />
           </Button>
-        </SheetHeader>
+        </div>
 
-        <div className="grid grid-cols-4 gap-2 pt-4">
+        <div className="grid grid-cols-4 gap-2 pt-5">
           <SheetAction
             label={isScreenShareEnabled ? 'Stop share' : 'Share'}
             active={isScreenShareEnabled}
@@ -545,11 +551,11 @@ function MoreSheet({
           />
         </div>
 
-        <div className="mt-4 border-t pt-4">
+        <div className="mt-5 border-t pt-4">
           <span className="text-xs font-medium text-muted-foreground">
             Send a reaction
           </span>
-          <div className="mt-2 flex justify-between">
+          <div className="mt-3 grid grid-cols-3 gap-1 rounded-2xl bg-muted/50 p-1.5 min-[360px]:grid-cols-6">
             {REACTIONS.map((emoji) => (
               <button
                 key={emoji}
@@ -557,7 +563,7 @@ function MoreSheet({
                 // Reactions stay open: sending several in a row is the normal
                 // way they are used, and closing after one would fight that.
                 onClick={() => onReaction(emoji)}
-                className="flex size-11 items-center justify-center rounded-md text-2xl transition-transform hover:scale-110 hover:bg-accent"
+                className="flex min-h-11 min-w-0 items-center justify-center rounded-xl text-2xl transition-transform hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring motion-safe:hover:scale-110"
                 aria-label={`React with ${emoji}`}
               >
                 {emoji}
@@ -565,6 +571,23 @@ function MoreSheet({
             ))}
           </div>
         </div>
+        {isOrganiser ? (
+          <div className="mt-5 border-t pt-4">
+            <Button
+              variant="destructive"
+              className="h-12 w-full justify-start gap-3 rounded-xl px-4"
+              onClick={closeThen(onEndForAll)}
+              disabled={ending}
+              aria-label="End meeting for all"
+            >
+              <CircleSlash className="size-4" />
+              {ending ? 'Ending…' : 'End for all'}
+            </Button>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              This closes the room for everyone.
+            </p>
+          </div>
+        ) : null}
       </SheetContent>
     </Sheet>
   )
@@ -593,11 +616,13 @@ function SheetAction({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'flex flex-col items-center gap-1.5 rounded-lg px-1 py-2.5 transition-colors',
-        active ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
+        'flex min-h-20 min-w-0 flex-col items-center gap-2 rounded-2xl border px-1 py-3 transition-colors focus-visible:outline-2 focus-visible:outline-ring',
+        active
+          ? 'border-meet-accent/30 bg-meet-tint text-meet-accent'
+          : 'border-transparent bg-muted/50 hover:bg-muted',
       )}
     >
-      <span className="relative flex size-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+      <span className="relative flex size-8 items-center justify-center">
         {icon}
         {badge && badge > 0 ? <UnreadDot count={badge} /> : null}
       </span>

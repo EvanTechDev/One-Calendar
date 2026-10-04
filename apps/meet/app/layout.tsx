@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  viewportFit: 'cover',
   // A pair, not one value: light mode is now reachable (see ThemeProvider
   // below), and a fixed near-black here paints the browser chrome dark around
   // a white page.

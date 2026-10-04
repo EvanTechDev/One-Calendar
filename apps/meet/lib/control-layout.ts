@@ -1,17 +1,9 @@
 /**
  * Whether the control bar's buttons fit a phone at a proper touch size.
  *
- * The mobile bar used to hide six controls behind a dropdown because nine 32px
- * buttons in one row did not fit. The row did not fit for a second reason,
- * though: the bar is a three-track grid, and with the identity block hidden
- * below `sm` the controls got a single `minmax(0,1fr)` track — roughly half the
- * viewport — while the third track sat empty. Reclaiming the full width is what
- * makes a visible secondary row possible at all.
- *
- * The arithmetic lives here, as pure functions over a viewport width, for the
- * same reason lib/video-layout does: "do six 44px buttons fit a 360px phone
- * while the Organiser also has an End button" is a claim worth proving, and a
- * jsdom render has no layout to prove it with.
+ * Five labelled targets share one row for both roles; the organiser's End for
+ * all action lives in More. jsdom cannot measure layout, so these budgets are
+ * checked alongside the literal classes in the rendered component.
  */
 
 /**
@@ -23,13 +15,12 @@
 export const TAILWIND_STEP = 4
 
 /**
- * Touch target for every control on a phone — 44px, the iOS minimum and the
- * floor Android's 48dp guidance rounds from. Uniform because it fits: nothing
- * here has to be shrunk to make room (see `secondaryRowFits`).
- *
- * Rendered as `size-11`.
+ * Minimum width of a primary phone control. Rendered as `size-12`.
  */
-export const TOUCH_TARGET = 11 * TAILWIND_STEP
+export const TOUCH_TARGET = 12 * TAILWIND_STEP
+
+/** Room for both icon and caption. Rendered as `h-16`. */
+export const MOBILE_CONTROL_HEIGHT = 16 * TAILWIND_STEP
 
 /**
  * Horizontal padding the bar reserves on each side below `sm`.
@@ -69,17 +60,10 @@ export const MOBILE_CONTROL_COUNT = 5
 /**
  * The width a full-bleed row of controls actually gets on a phone.
  *
- * The Organiser's End button shares the primary line, so it is subtracted
- * rather than assumed away. The secondary row is a row of its own and never
- * pays for it.
+ * Both roles have the same width. safeAreaX is the sum of left and right insets.
  */
-export function mobileRowWidth(
-  viewportWidth: number,
-  isOrganiser = false,
-): number {
-  const usable = viewportWidth - 2 * MOBILE_BAR_PADDING
-  const organiserCost = isOrganiser ? TOUCH_TARGET + PRIMARY_GAP : 0
-  return Math.max(0, usable - organiserCost)
+export function mobileRowWidth(viewportWidth: number, safeAreaX = 0): number {
+  return Math.max(0, viewportWidth - 2 * MOBILE_BAR_PADDING - safeAreaX)
 }
 
 /** Width `count` buttons need at `target`, minimum gaps included. */
@@ -89,15 +73,14 @@ export function buttonRowWidth(count: number, target = TOUCH_TARGET): number {
 }
 
 /**
- * Whether all six secondary toggles fit one row — that is, whether every one of
- * them is reachable in one tap rather than behind a menu.
+ * A hypothetical secondary row's budget. The mobile UI uses a wrapping sheet
+ * instead; this remains useful when comparing layout alternatives.
  */
 export function secondaryRowFits(
   viewportWidth: number,
   count = SECONDARY_CONTROL_COUNT,
   target = TOUCH_TARGET,
 ): boolean {
-  // Never `isOrganiser`: this row is its own line, above the primary one.
   return buttonRowWidth(count, target) <= mobileRowWidth(viewportWidth)
 }
 
@@ -110,38 +93,30 @@ export function primaryRowWidth(target = TOUCH_TARGET): number {
   return buttons + between + DESTRUCTIVE_SEPARATION
 }
 
-/** Whether the primary line fits, Organiser End button included. */
+/** Whether all five primary controls fit without shrinking their targets. */
 export function primaryRowFits(
   viewportWidth: number,
-  isOrganiser = false,
   target = TOUCH_TARGET,
+  safeAreaX = 0,
 ): boolean {
-  return primaryRowWidth(target) <= mobileRowWidth(viewportWidth, isOrganiser)
+  return primaryRowWidth(target) <= mobileRowWidth(viewportWidth, safeAreaX)
 }
 
 /**
- * Whether the whole bar works at this width, in the hardest case (an Organiser,
- * who carries the extra End button).
+ * Whether the whole bar works at this width, for guests and organisers alike.
  */
 export function controlBarFits(viewportWidth: number): boolean {
-  return (
-    primaryRowFits(viewportWidth, true) && primaryRowFits(viewportWidth, false)
-  )
+  return primaryRowFits(viewportWidth)
 }
 
 /** Vertical padding on the phone's row, per side. Rendered as `py-2.5`. */
 const MOBILE_ROW_PADDING_Y = 2.5 * TAILWIND_STEP
 
 /**
- * The bar's height on a phone.
- *
- * One row, so 44 + 20 = 64px. The two-row version cost 112px to give six
- * secondary toggles the same prominence as the microphone; folding them behind
- * More returns 48px to the stage, which is why `portraitStageFraction` is now
- * comfortably clear of its floor rather than sitting just above it.
+ * One labelled row, vertical padding, top border, and the device's bottom inset.
  */
-export function mobileBarHeight(): number {
-  return MOBILE_ROW_PADDING_Y * 2 + TOUCH_TARGET
+export function mobileBarHeight(safeAreaBottom = 0): number {
+  return MOBILE_ROW_PADDING_Y * 2 + MOBILE_CONTROL_HEIGHT + 1 + safeAreaBottom
 }
 
 /**
@@ -152,15 +127,24 @@ export function mobileBarHeight(): number {
  * panels overlay the stage rather than splitting it below `sm`, so neither takes
  * further height from this — the bar is the whole vertical cost.
  */
-export function portraitStageFraction(viewportHeight: number): number {
+export function portraitStageFraction(
+  viewportHeight: number,
+  safeAreaBottom = 0,
+): number {
   if (viewportHeight <= 0) return 0
-  return Math.max(0, viewportHeight - mobileBarHeight()) / viewportHeight
+  return (
+    Math.max(0, viewportHeight - mobileBarHeight(safeAreaBottom)) /
+    viewportHeight
+  )
 }
 
 /**
  * Whether the stage still gets the majority of a portrait phone. Four fifths is
  * the line: below it the controls stop being a bar and start being the page.
  */
-export function portraitStageIsUsable(viewportHeight: number): boolean {
-  return portraitStageFraction(viewportHeight) >= 0.8
+export function portraitStageIsUsable(
+  viewportHeight: number,
+  safeAreaBottom = 0,
+): boolean {
+  return portraitStageFraction(viewportHeight, safeAreaBottom) >= 0.8
 }

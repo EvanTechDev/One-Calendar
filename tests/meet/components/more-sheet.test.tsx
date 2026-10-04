@@ -1,5 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, cleanup, fireEvent, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import {
+  render,
+  cleanup,
+  fireEvent,
+  screen,
+  within,
+  waitFor,
+} from '@testing-library/react'
 import { ControlBar } from '@/components/room/control-bar'
 import {
   MOBILE_CONTROL_COUNT,
@@ -23,8 +30,10 @@ const localParticipant = {
   setScreenShareEnabled: vi.fn(),
 }
 
+const disconnect = vi.fn()
+
 vi.mock('@livekit/components-react', () => ({
-  useRoomContext: () => ({ disconnect: vi.fn() }),
+  useRoomContext: () => ({ disconnect }),
   useLocalParticipant: () => ({
     localParticipant,
     isMicrophoneEnabled: true,
@@ -44,8 +53,12 @@ const handlers = {
   onLeaveIntent: vi.fn(),
 }
 
-function renderBar(overrides: { unreadChat?: number } = {}) {
-  localParticipant.metadata = null
+function renderBar(
+  overrides: { unreadChat?: number; organiser?: boolean } = {},
+) {
+  localParticipant.metadata = overrides.organiser
+    ? JSON.stringify({ organiser: true })
+    : null
   const { container } = render(
     <ControlBar
       roomName="ab3k-x9q2"
@@ -68,7 +81,10 @@ function openMore() {
 beforeEach(() => {
   cleanup()
   Object.values(handlers).forEach((fn) => fn.mockClear())
+  disconnect.mockClear()
 })
+
+afterEach(() => vi.unstubAllGlobals())
 
 describe('the phone control row', () => {
   it('shows exactly the five controls lib/control-layout budgets for', () => {
@@ -88,8 +104,8 @@ describe('the phone control row', () => {
   })
 
   it('leaves the stage more room than the two-row version did', () => {
-    // 64px rather than 112px. The floor is 80%; this is the margin above it.
-    expect(mobileBarHeight()).toBe(64)
+    // One labelled row plus padding and border, before the safe-area inset.
+    expect(mobileBarHeight()).toBe(85)
     expect(portraitStageIsUsable(640)).toBe(true)
     expect(portraitStageIsUsable(844)).toBe(true)
   })
@@ -106,6 +122,36 @@ describe('the phone control row', () => {
 })
 
 describe('the More sheet', () => {
+  it('lets the organiser end the meeting from the sheet', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+    renderBar({ organiser: true })
+    openMore()
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'End meeting for all',
+      }),
+    )
+
+    await waitFor(() => expect(disconnect).toHaveBeenCalledOnce())
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/meetings/ab3k-x9q2/end',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(handlers.onLeaveIntent).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('does not expose host actions to a guest', () => {
+    renderBar()
+    openMore()
+    expect(
+      within(screen.getByRole('dialog')).queryByRole('button', {
+        name: 'End meeting for all',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
   it('holds the room code, which ADR 0019 makes the join link', () => {
     renderBar()
     openMore()

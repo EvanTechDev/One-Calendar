@@ -58,7 +58,10 @@ export function DashboardShell({
           />
         </div>
         <div hidden={section !== 'upcoming'}>
-          <Section title="Next 7 days">
+          <Section
+            title="Next 7 days"
+            description="Your calendar, with a room ready for every conversation."
+          >
             <UpcomingMeetings {...upcoming} />
           </Section>
         </div>
@@ -78,14 +81,21 @@ export function DashboardShell({
  */
 function Section({
   title,
+  description,
   children,
 }: {
   title: string
+  description: string
   children: React.ReactNode
 }) {
   return (
-    <section className="space-y-4 p-4 sm:p-6">
-      <h2 className="font-heading text-base font-semibold">{title}</h2>
+    <section className="mx-auto max-w-7xl space-y-7 p-4 sm:p-6 lg:p-10">
+      <div className="space-y-1.5">
+        <h2 className="font-heading text-2xl font-semibold tracking-tight lg:text-3xl">
+          {title}
+        </h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
       {children}
     </section>
   )

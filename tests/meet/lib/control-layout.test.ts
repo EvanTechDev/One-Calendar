@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DESTRUCTIVE_SEPARATION,
+  MOBILE_CONTROL_HEIGHT,
   PRIMARY_GAP,
   SECONDARY_CONTROL_COUNT,
   TOUCH_TARGET,
@@ -24,10 +25,9 @@ const SMALL_PHONE = 360
 const IPHONE_PRO = 390
 
 describe('control bar touch targets', () => {
-  it('meets the 44px platform minimum', () => {
-    // iOS's minimum, and the floor Android's 48dp rounds from. These controls
-    // were 32px while six of them were also buried in a dropdown.
-    expect(TOUCH_TARGET).toBeGreaterThanOrEqual(44)
+  it('meets a 48px touch target on both axes', () => {
+    expect(TOUCH_TARGET).toBeGreaterThanOrEqual(48)
+    expect(MOBILE_CONTROL_HEIGHT).toBeGreaterThanOrEqual(48)
   })
 
   it('separates the destructive action further than the ordinary gap', () => {
@@ -41,16 +41,12 @@ describe('mobileRowWidth', () => {
     expect(mobileRowWidth(SMALL_PHONE)).toBe(SMALL_PHONE - 24)
   })
 
-  it('charges the Organiser for their End button', () => {
-    // It shares the primary line, so pretending it is free is how a row
-    // overflows for exactly one role.
-    expect(mobileRowWidth(SMALL_PHONE, true)).toBeLessThan(
-      mobileRowWidth(SMALL_PHONE, false),
-    )
+  it('reserves horizontal safe-area insets', () => {
+    expect(mobileRowWidth(SMALL_PHONE, 20)).toBe(SMALL_PHONE - 24 - 20)
   })
 
   it('never reports a negative width for an absurd viewport', () => {
-    expect(mobileRowWidth(10, true)).toBe(0)
+    expect(mobileRowWidth(10)).toBe(0)
   })
 })
 
@@ -66,13 +62,11 @@ describe('buttonRowWidth', () => {
 })
 
 describe('secondaryRowFits', () => {
-  it('fits all six controls on a 360px phone', () => {
-    // This is the whole justification for taking them out of the dropdown:
-    // every one of them is now reachable in one tap.
+  it('could fit the secondary controls on a 360px phone', () => {
     expect(secondaryRowFits(SMALL_PHONE)).toBe(true)
   })
 
-  it('fits all six on a 390px phone', () => {
+  it('could fit them on a 390px phone', () => {
     expect(secondaryRowFits(IPHONE_PRO)).toBe(true)
   })
 
@@ -100,13 +94,13 @@ describe('secondaryRowFits', () => {
 })
 
 describe('primaryRowFits', () => {
-  it('fits mic, camera, details and a separated Leave on a 360px phone', () => {
+  it('fits the five controls and separated Leave on a 360px phone', () => {
     expect(primaryRowFits(SMALL_PHONE)).toBe(true)
   })
 
-  it('fits them for an Organiser too, End button included', () => {
-    expect(primaryRowFits(SMALL_PHONE, true)).toBe(true)
-    expect(primaryRowFits(IPHONE_PRO, true)).toBe(true)
+  it('fits down to 320px now that host actions are in More', () => {
+    expect(primaryRowFits(320)).toBe(true)
+    expect(primaryRowWidth()).toBeLessThanOrEqual(mobileRowWidth(320))
   })
 
   it('includes the destructive separation in what it needs', () => {
@@ -145,13 +139,14 @@ describe('portrait height budget', () => {
     )
   })
 
-  it('spends one row of touch target, and says so', () => {
-    // One row plus its padding — not a number guessed from a screenshot. The
-    // two-row version cost 2 * TOUCH_TARGET + 24 = 112px to give six secondary
-    // toggles the microphone's prominence; folding them behind More returns
-    // 48px of a 640px viewport to the stage.
-    expect(mobileBarHeight()).toBe(TOUCH_TARGET + 20)
+  it('budgets for labels, padding, and the border', () => {
+    expect(mobileBarHeight()).toBe(MOBILE_CONTROL_HEIGHT + 20 + 1)
     expect(mobileBarHeight()).toBeLessThan(2 * TOUCH_TARGET + 24)
+  })
+
+  it('keeps four fifths of the stage even with a home-indicator inset', () => {
+    expect(mobileBarHeight(34)).toBe(119)
+    expect(portraitStageIsUsable(640, 34)).toBe(true)
   })
 
   it('reports honestly on a viewport too short for the bar to be a bar', () => {

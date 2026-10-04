@@ -14,6 +14,12 @@ export default defineConfig({
       '@zntr/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@zntr/utils': path.resolve(__dirname, '../../packages/utils/src'),
       '@zntr/meetings': path.resolve(__dirname, '../../packages/meetings/src'),
+      // tests/node_modules points at calendar, which can have a different Next
+      // version. Route mocks and Meet components must resolve the same module.
+      'next/navigation': path.resolve(
+        __dirname,
+        'node_modules/next/navigation.js',
+      ),
       // Tests live outside this app, and pnpm does not hoist to the repo root,
       // so a bare import from tests/meet cannot find the app's own dependency.
       'livekit-server-sdk': path.resolve(

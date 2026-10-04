@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Clock,
   Copy,
+  History,
   MessageSquare,
   Search,
   Trash2,
@@ -199,7 +200,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
       </p>
 
       {failed ? (
-        <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm">
+        <div className="rounded-2xl border bg-card px-6 py-12 text-center text-sm">
           <p className="text-muted-foreground">Search could not run.</p>
           <Button
             size="sm"
@@ -211,7 +212,10 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
           </Button>
         </div>
       ) : visible.length === 0 ? (
-        <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+        <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+          <span className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-meet-tint text-meet-accent">
+            <History className="size-6" />
+          </span>
           {isSearch ? (
             <>
               <p>
@@ -234,25 +238,25 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
           )}
         </div>
       ) : (
-        <ul className="divide-y rounded-lg border">
+        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
           {visible.map((row) => (
             <li
               key={row.id}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30 sm:p-5"
             >
-              <div className="min-w-0 space-y-1">
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1 basis-48 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-sm">{row.id}</span>
                   {row.endedAt ? (
                     <Badge variant="secondary">Ended</Badge>
                   ) : null}
                   {row.eventTitle ? (
-                    <span className="truncate text-sm text-muted-foreground">
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
                       {row.eventTitle}
                     </span>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   <span>{formatDate(row.createdAt)}</span>
                   {row.totalMinutes > 0 ? (
                     <span className="flex items-center gap-1">
@@ -273,13 +277,18 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className={cn('size-8')}
+                  className={cn('size-10 rounded-xl')}
                   onClick={() => copyLink(row.id)}
                   aria-label={`Copy link for ${row.id}`}
                 >
                   <Copy className="size-3.5" />
                 </Button>
-                <Button size="icon" variant="ghost" className="size-8" asChild>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="size-10 rounded-xl"
+                  asChild
+                >
                   <a href={`/${row.id}`} aria-label={`Rejoin ${row.id}`}>
                     <Video className="size-3.5" />
                   </a>
@@ -287,7 +296,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="size-8"
+                  className="size-10 rounded-xl"
                   onClick={() => remove(row.id)}
                   aria-label={`Delete ${row.id}`}
                 >
