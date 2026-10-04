@@ -23,40 +23,33 @@ interface InvitationEmailParams {
 export async function buildInvitationEmail(
   params: InvitationEmailParams,
 ): Promise<string> {
-  // With a meeting attached, joining is the action the recipient will want
-  // most often, so it takes the primary button and the RSVP page steps back.
-  const hasMeeting = Boolean(params.meetingUrl)
+  const details: Array<{ label: string; value: string; href?: string }> = [
+    { label: 'When', value: params.timeRange },
+  ]
+  if (params.location?.trim()) {
+    details.push({ label: 'Where', value: params.location })
+  }
+  if (params.meetingUrl) {
+    details.push({
+      label: 'Video call',
+      value: 'Join with Zentra Meet',
+      href: params.meetingUrl,
+    })
+  }
 
   return renderAuthEmailTemplate({
     brand: CALENDAR_EMAIL_BRAND,
     preview: `Invitation: ${params.title}`,
+    eyebrow: 'Event invitation',
     title: params.title,
-    body: `${params.inviterName} invited you to this event. Let them know if you can make it.`,
-    actionLabel: hasMeeting ? 'Join with Zentra Meet' : 'View Invitation',
-    actionUrl: hasMeeting ? params.meetingUrl : params.inviteLink,
-    ...(hasMeeting
-      ? {
-          secondaryActionLabel: 'View invitation and RSVP',
-          secondaryActionUrl: params.inviteLink,
-        }
-      : {}),
-    secondary: buildDetails(params),
+    body: `${params.inviterName} invited you. Let them know if you can make it.`,
+    details,
+    note: params.description?.trim()
+      ? { label: 'About this event', text: params.description }
+      : undefined,
+    // RSVP is the invitation's primary task. The durable meeting link remains
+    // visible (and copyable) alongside the event information above it.
+    actionLabel: 'Respond to invitation',
+    actionUrl: params.inviteLink,
   })
-}
-
-function buildDetails(params: InvitationEmailParams): string {
-  const details: string[] = []
-  details.push(`When: ${params.timeRange}`)
-  if (params.location) {
-    details.push(`Where: ${params.location}`)
-  }
-  // Spelled out as text too: a plain-text client renders no buttons, and this
-  // is the link the recipient may want to copy into a browser or share.
-  if (params.meetingUrl) {
-    details.push(`Join: ${params.meetingUrl}`)
-  }
-  if (params.description) {
-    details.push(`Notes: ${params.description}`)
-  }
-  return details.join('  ·  ')
 }

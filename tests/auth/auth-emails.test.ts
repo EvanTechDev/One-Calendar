@@ -40,6 +40,10 @@ describe('authEmailCallbacks', () => {
     expect(sent[0].from).toContain('Zentra Meet')
     expect(sent[0].html).toContain('Zentra Meet')
     expect(sent[0].html).not.toContain('Zentra Calendar')
+    const footer = sent[0].html.slice(sent[0].html.lastIndexOf('<hr'))
+    expect(footer).toContain('Privacy')
+    expect(footer).not.toContain(brand.appName)
+    expect(sent[0].html).not.toContain(brand.tagline)
   })
 
   it('sends a password reset to the account address', async () => {

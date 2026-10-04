@@ -25,9 +25,13 @@ interface AuthEmailTemplateProps {
   preview: string
   title: string
   body: string
+  eyebrow?: string
+  /** Structured information, read before the action rather than in a footnote. */
+  details?: Array<{ label: string; value: string; href?: string }>
+  note?: { label: string; text: string }
   actionLabel?: string
   actionUrl?: string
-  /** Invitations can link to both the meeting and its RSVP page. */
+  /** An optional secondary action below the main task. */
   secondaryActionLabel?: string
   secondaryActionUrl?: string
   secondary?: string
@@ -70,6 +74,9 @@ function AuthEmailTemplate({
   preview,
   title,
   body,
+  eyebrow,
+  details,
+  note,
   actionLabel,
   actionUrl,
   secondaryActionLabel,
@@ -77,7 +84,7 @@ function AuthEmailTemplate({
   secondary,
   code,
 }: AuthEmailTemplateProps) {
-  const { appName, tagline, baseUrl, logoUrl } = brand
+  const { appName, baseUrl, logoUrl } = brand
   return (
     <Html lang="en">
       <Head />
@@ -130,13 +137,28 @@ function AuthEmailTemplate({
               </Row>
             </Section>
 
+            {eyebrow ? (
+              <Text
+                style={{
+                  color: colors.muted,
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '1.5px',
+                  lineHeight: '16px',
+                  margin: '0 0 12px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {eyebrow}
+              </Text>
+            ) : null}
             <Heading
               as="h1"
               style={{
                 color: colors.ink,
-                fontSize: '24px',
+                fontSize: eyebrow ? '30px' : '24px',
                 fontWeight: 600,
-                lineHeight: '32px',
+                lineHeight: eyebrow ? '38px' : '32px',
                 margin: '0 0 8px',
                 overflowWrap: 'break-word',
               }}
@@ -146,7 +168,7 @@ function AuthEmailTemplate({
             <Text
               style={{
                 color: colors.muted,
-                fontSize: '18px',
+                fontSize: details ? '16px' : '18px',
                 fontWeight: 400,
                 lineHeight: '28px',
                 margin: '0 0 32px',
@@ -155,6 +177,115 @@ function AuthEmailTemplate({
             >
               {body}
             </Text>
+
+            {details?.length ? (
+              <Section
+                style={{
+                  backgroundColor: '#f7f7f7',
+                  border: `1px solid ${colors.rule}`,
+                  borderRadius: '16px',
+                  marginBottom: '28px',
+                  padding: '24px 20px',
+                }}
+              >
+                {details.map((detail, index) => (
+                  <Row key={detail.label} style={{ tableLayout: 'fixed' }}>
+                    <Column
+                      style={{
+                        width: '72px',
+                        verticalAlign: 'top',
+                        padding: `0 12px ${index < details.length - 1 ? '20px' : '0'} 0`,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: colors.muted,
+                          fontSize: '12px',
+                          lineHeight: '24px',
+                          margin: 0,
+                        }}
+                      >
+                        {detail.label}
+                      </Text>
+                    </Column>
+                    <Column
+                      style={{
+                        verticalAlign: 'top',
+                        paddingBottom: index < details.length - 1 ? '20px' : 0,
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: colors.ink,
+                          fontSize: '15px',
+                          fontWeight: index === 0 ? 600 : 400,
+                          lineHeight: '24px',
+                          margin: 0,
+                          whiteSpace: 'pre-line',
+                        }}
+                      >
+                        {detail.href ? (
+                          <Link
+                            href={detail.href}
+                            style={{
+                              color: colors.ink,
+                              textDecoration: 'underline',
+                            }}
+                          >
+                            {detail.value}
+                          </Link>
+                        ) : (
+                          detail.value
+                        )}
+                      </Text>
+                      {detail.href ? (
+                        <Text
+                          style={{
+                            color: colors.muted,
+                            fontSize: '12px',
+                            lineHeight: '18px',
+                            margin: '4px 0 0',
+                            wordBreak: 'break-all',
+                          }}
+                        >
+                          {detail.href}
+                        </Text>
+                      ) : null}
+                    </Column>
+                  </Row>
+                ))}
+              </Section>
+            ) : null}
+
+            {note ? (
+              <Section style={{ marginBottom: '28px' }}>
+                <Text
+                  style={{
+                    color: colors.muted,
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    lineHeight: '20px',
+                    margin: '0 0 8px',
+                  }}
+                >
+                  {note.label}
+                </Text>
+                <Text
+                  style={{
+                    color: colors.ink,
+                    fontSize: '15px',
+                    lineHeight: '25px',
+                    margin: 0,
+                    whiteSpace: 'pre-line',
+                    overflowWrap: 'break-word',
+                  }}
+                >
+                  {note.text}
+                </Text>
+              </Section>
+            ) : null}
 
             {code ? (
               <Section
@@ -233,41 +364,16 @@ function AuthEmailTemplate({
               style={{
                 border: 0,
                 borderTop: `1px solid ${colors.rule}`,
-                margin: '48px 0 32px',
+                margin: '40px 0 20px',
               }}
             />
 
             <Section>
               <Text
                 style={{
-                  margin: '0 0 8px',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  lineHeight: '24px',
-                }}
-              >
-                <Link
-                  href={baseUrl}
-                  style={{ color: colors.ink, textDecoration: 'none' }}
-                >
-                  {appName}
-                </Link>
-              </Text>
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: '14px',
-                  lineHeight: '20px',
-                  margin: '0 0 24px',
-                }}
-              >
-                {tagline}
-              </Text>
-              <Text
-                style={{
                   fontSize: '12px',
                   lineHeight: '20px',
-                  margin: '0 0 12px',
+                  margin: 0,
                 }}
               >
                 <Link href={`${baseUrl}/privacy`} style={footerLinkStyle}>
@@ -284,16 +390,6 @@ function AuthEmailTemplate({
                 >
                   GitHub
                 </Link>
-              </Text>
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: '12px',
-                  lineHeight: '20px',
-                  margin: 0,
-                }}
-              >
-                © {new Date().getFullYear()} {appName}
               </Text>
             </Section>
           </Container>
