@@ -219,8 +219,11 @@ export default function YearView({
                         isToday &&
                           isCurrentMonth &&
                           'bg-cal-today text-cal-today-foreground hover:bg-cal-today/90',
+                        isCreateTarget && 'ring-2 ring-cal-accent/60',
                         isCreateTarget &&
-                          'ring-2 ring-cal-accent/60 bg-cal-accent/10',
+                          (isToday
+                            ? 'ring-offset-2 ring-offset-background hover:bg-cal-today'
+                            : 'bg-cal-accent/10'),
                       )}
                       onClick={(e) => handleDayClick(e, day, dayKey)}
                     >
