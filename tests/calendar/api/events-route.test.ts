@@ -13,6 +13,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
+const reminderCalls = vi.hoisted(() =>
+  vi.fn(
+    async (_params: {
+      userId: string
+      eventId: string
+      strictQuota?: boolean
+    }) => ({ scheduled: 0, cancelled: 0 }),
+  ),
+)
+vi.mock('@/lib/reminders/reconcile', () => ({
+  reconcileEventReminders: reminderCalls,
+  SendQuotaExceeded: class extends Error {},
+}))
+
 vi.mock('drizzle-orm', async (importOriginal) => {
   const actual = await importOriginal<typeof import('drizzle-orm')>()
   const { drizzleOperatorsMock } = await import('./route-test-db')
@@ -133,6 +147,11 @@ const baseUpdateFields = {
 
 beforeEach(() => {
   fake.reset()
+  reminderCalls.mockClear()
+  reminderCalls.mockImplementation(async ({ eventId }) => {
+    fake.ops.push(`reminder:${eventId}`)
+    return { scheduled: 0, cancelled: 0 }
+  })
 })
 
 describe('events route series mutations (characterization)', () => {
@@ -155,6 +174,13 @@ describe('events route series mutations (characterization)', () => {
       expect(tail?.rrule).toContain('FREQ=DAILY')
       expect(tail?.rrule).toContain('INTERVAL=2')
       expect(tail?.rrule).toContain('COUNT=3')
+      expect(reminderCalls.mock.calls.map(([p]) => p.eventId)).toEqual([
+        'm1',
+        tail!.id,
+      ])
+      expect(fake.ops.indexOf('reminder:m1')).toBeGreaterThan(
+        fake.ops.lastIndexOf('tx:commit'),
+      )
       if (id !== 'm1') expect(fake.row('m1')?.rrule).toContain('FREQ=WEEKLY')
     },
   )

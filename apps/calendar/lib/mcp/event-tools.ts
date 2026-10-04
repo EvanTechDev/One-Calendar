@@ -1199,6 +1199,7 @@ async function updateEventImpl(
     color?: string | null
     category_id?: string | null
     notification_minutes?: number | null
+    email_reminder?: boolean
     rrule?: string | null
     exdate?: string[] | null
     apply_to?: ApplyTo
@@ -1593,6 +1594,8 @@ async function updateEventImpl(
   if (data.category_id !== undefined) values.categoryId = data.category_id
   if (data.notification_minutes !== undefined)
     values.notificationMinutes = data.notification_minutes
+  if (data.email_reminder !== undefined)
+    values.emailReminder = data.email_reminder
   if (data.rrule !== undefined) values.rrule = rawRrule
   if (data.exdate !== undefined) values.exdate = data.exdate
   values.updatedAt = new Date()
@@ -1787,7 +1790,7 @@ async function deleteEventImpl(
 async function seriesCacheSpans(
   userId: string,
   eventId: string,
-): Promise<Array<{ startDate: Date; endDate: Date }>> {
+): Promise<Array<{ startDate: Date; endDate: Date; reminderRoot: string }>> {
   try {
     const db = await getDb()
     const parsed = isInstanceId(eventId) ? parseInstanceId(eventId) : null
@@ -1807,6 +1810,7 @@ async function seriesCacheSpans(
     return rows.map((r) => ({
       startDate: new Date(r.startDate),
       endDate: new Date(r.endDate),
+      reminderRoot: r.seriesId ?? r.id,
     }))
   } catch {
     return []
@@ -1856,6 +1860,16 @@ export async function updateEvent(
     eventId,
     (data as { email_reminder?: unknown } | undefined)?.email_reminder === true,
   )
+  const originalRoot = parseInstanceId(eventId)?.seriesId ?? eventId
+  const changedRoots = new Set([
+    ...before.map((r) => r.reminderRoot),
+    ...(result
+      ? [result.seriesId ?? parseInstanceId(result.id)?.seriesId ?? result.id]
+      : []),
+  ])
+  changedRoots.delete(originalRoot)
+  for (const root of changedRoots)
+    await reconcileReminders(userId, root, data.email_reminder === true)
   return result
 }
 
@@ -1867,4 +1881,8 @@ export async function deleteEvent(
   await deleteEventImpl(...args)
   await invalidateSeriesCache(userId, before)
   await reconcileReminders(userId, eventId, false)
+  for (const root of new Set(before.map((r) => r.reminderRoot))) {
+    if (root !== (parseInstanceId(eventId)?.seriesId ?? eventId))
+      await reconcileReminders(userId, root, false)
+  }
 }

@@ -391,6 +391,16 @@ function AuthEmailTemplate({
                   GitHub
                 </Link>
               </Text>
+              <Text
+                style={{
+                  color: colors.muted,
+                  fontSize: '12px',
+                  lineHeight: '20px',
+                  margin: '12px 0 0',
+                }}
+              >
+                © {new Date().getFullYear()} {appName}. All rights reserved.
+              </Text>
             </Section>
           </Container>
         </Section>

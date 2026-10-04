@@ -20,16 +20,18 @@ export async function buildReminderEmail(
     brand: CALENDAR_EMAIL_BRAND,
     preview: `Reminder: ${params.title}`,
     title: params.title,
+    eyebrow: 'Event reminder',
     body: 'This event is coming up.',
+    details: [
+      { label: 'When', value: params.timeRange },
+      ...(params.location?.trim()
+        ? [{ label: 'Where', value: params.location }]
+        : []),
+    ],
+    note: params.description?.trim()
+      ? { label: 'About this event', text: params.description }
+      : undefined,
     actionLabel: 'Open Calendar',
     actionUrl: params.appUrl,
-    secondary: buildDetails(params),
   })
-}
-
-function buildDetails(params: ReminderEmailParams): string {
-  const details: string[] = [`When: ${params.timeRange}`]
-  if (params.location) details.push(`Where: ${params.location}`)
-  if (params.description) details.push(`Notes: ${params.description}`)
-  return details.join('  ·  ')
 }

@@ -7,8 +7,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 const reconcile = vi.hoisted(() => ({
-  reconcileEventReminders: vi.fn(async () => ({ scheduled: 1, cancelled: 0 })),
+  reconcileEventReminders: vi.fn(
+    async (_params: {
+      userId: string
+      eventId: string
+      strictQuota?: boolean
+    }) => ({ scheduled: 1, cancelled: 0 }),
+  ),
   pruneSpentReminders: vi.fn(async () => 0),
+  pendingReminderEvents: vi.fn(
+    async (): Promise<Array<{ id: string; userId: string }>> => [],
+  ),
 }))
 
 vi.mock('@/lib/reminders/reconcile', () => reconcile)
@@ -47,10 +56,29 @@ beforeEach(() => {
   events.length = 0
   reconcile.reconcileEventReminders.mockClear()
   reconcile.pruneSpentReminders.mockClear()
+  reconcile.pendingReminderEvents.mockReset().mockResolvedValue([])
   process.env.CRON_SECRET = 'correct-horse'
 })
 
 describe('GET /api/reminders/topup', () => {
+  it('repairs orphaned receipts first and expands each parent only once', async () => {
+    reconcile.pendingReminderEvents.mockResolvedValue([
+      { id: 'deleted-root', userId: 'u1' },
+    ])
+    events.push(
+      { id: 'master', userId: 'u1' },
+      { id: 'override', seriesId: 'master', userId: 'u1' },
+      {
+        id: 'only-enabled-override',
+        seriesId: 'disabled-master',
+        userId: 'u1',
+      },
+    )
+    await GET(request('correct-horse'))
+    expect(
+      reconcile.reconcileEventReminders.mock.calls.map(([p]) => p.eventId),
+    ).toEqual(['deleted-root', 'master', 'disabled-master'])
+  })
   it('rejects a request with no token', async () => {
     const res = await GET(request())
     expect(res.status).toBe(401)

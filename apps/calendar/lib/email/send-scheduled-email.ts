@@ -10,7 +10,15 @@ import { APP_CONFIG } from '@/lib/config'
  */
 
 const resendKey = process.env.RESEND_API_KEY
-const resend = resendKey ? new Resend(resendKey) : null
+class ScheduledEmailClient extends Resend {
+  override fetchRequest<T>(path: string, options: RequestInit = {}) {
+    return super.fetchRequest<T>(path, {
+      ...options,
+      signal: AbortSignal.timeout(15_000),
+    })
+  }
+}
+const resend = resendKey ? new ScheduledEmailClient(resendKey) : null
 
 /** The provider accepts a send at most this far ahead. */
 export const MAX_SCHEDULE_AHEAD_MS = 30 * 24 * 60 * 60 * 1000
@@ -24,18 +32,23 @@ function client(): Resend {
 
 /** Schedules an email and returns the provider's message id. */
 export async function scheduleEmail(payload: {
+  from?: string
   to: string
   subject: string
   html: string
   scheduledAt: Date
+  idempotencyKey: string
 }): Promise<string> {
-  const result = await client().emails.send({
-    from: APP_CONFIG.auth.resend.sender,
-    to: [payload.to],
-    subject: payload.subject,
-    html: payload.html,
-    scheduledAt: payload.scheduledAt.toISOString(),
-  })
+  const result = await client().emails.send(
+    {
+      from: payload.from ?? APP_CONFIG.auth.resend.sender,
+      to: [payload.to],
+      subject: payload.subject,
+      html: payload.html,
+      scheduledAt: payload.scheduledAt.toISOString(),
+    },
+    { idempotencyKey: payload.idempotencyKey },
+  )
 
   if (result.error) throw new Error(result.error.message)
   if (!result.data?.id) {
@@ -46,8 +59,8 @@ export async function scheduleEmail(payload: {
 
 /**
  * Moves an already-scheduled send. Returns false when the provider refuses —
- * typically because it already sent — so the caller can cancel-and-reschedule
- * rather than leaving a stale row.
+ * or times out. A false result is ambiguous; the caller retains its receipt
+ * rather than guessing that the message was sent or canceled.
  */
 export async function rescheduleEmail(
   providerId: string,
@@ -65,9 +78,8 @@ export async function rescheduleEmail(
 }
 
 /**
- * Cancels a scheduled send. Returns false if the provider would not, which for
- * a delete path means the row should still go — an orphaned provider record is
- * better than an event that cannot be deleted.
+ * False is an uncertain outcome, not proof of cancellation. Keep the receipt
+ * and retry; otherwise deletion would orphan a live provider email.
  */
 export async function cancelEmail(providerId: string): Promise<boolean> {
   try {
@@ -75,5 +87,32 @@ export async function cancelEmail(providerId: string): Promise<boolean> {
     return !result.error
   } catch {
     return false
+  }
+}
+
+export async function scheduledEmailStatus(
+  providerId: string,
+): Promise<'pending' | 'sent' | 'canceled' | 'unknown'> {
+  try {
+    const result = await client().emails.get(providerId)
+    if (result.error || !result.data) return 'unknown'
+    const status = result.data.last_event
+    if (status === 'canceled') return 'canceled'
+    if (
+      [
+        'sent',
+        'delivered',
+        'opened',
+        'clicked',
+        'bounced',
+        'complained',
+        'suppressed',
+        'failed',
+      ].includes(status)
+    )
+      return 'sent'
+    return 'pending'
+  } catch {
+    return 'unknown'
   }
 }

@@ -9,6 +9,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { getFakeDb } from '../../api/route-test-db'
 
+const reminderCalls = vi.hoisted(() =>
+  vi.fn(
+    async (_params: {
+      userId: string
+      eventId: string
+      strictQuota?: boolean
+    }) => ({ scheduled: 0, cancelled: 0 }),
+  ),
+)
+vi.mock('@/lib/reminders/reconcile', () => ({
+  reconcileEventReminders: reminderCalls,
+  SendQuotaExceeded: class extends Error {},
+}))
+
 vi.mock('drizzle-orm', async (importOriginal) => {
   const actual = await importOriginal<typeof import('drizzle-orm')>()
   const { drizzleOperatorsMock } = await import('../../api/route-test-db')
@@ -113,10 +127,44 @@ function seedOverride(
 
 beforeEach(() => {
   fake.reset()
+  reminderCalls.mockClear()
+  reminderCalls.mockImplementation(async ({ eventId }) => {
+    fake.ops.push(`reminder:${eventId}`)
+    return { scheduled: 0, cancelled: 0 }
+  })
   vi.mocked(getSettings).mockResolvedValue({ timezone: 'UTC' })
 })
 
 describe('MCP event tool mutations (characterization)', () => {
+  it('reconciles both sides of a following split only after the transaction commits', async () => {
+    seedMaster({ emailReminder: true, notificationMinutes: 15 })
+    const result = await updateEvent('u1', 'm1_20260810T090000Z', {
+      apply_to: 'following',
+      title: 'New tail',
+    })
+    expect(result).toBeTruthy()
+    expect(reminderCalls.mock.calls.map(([p]) => p.eventId)).toEqual([
+      'm1',
+      result!.seriesId ?? result!.id,
+    ])
+    expect(fake.ops.indexOf('reminder:m1')).toBeGreaterThan(
+      fake.ops.lastIndexOf('tx:commit'),
+    )
+  })
+
+  it('persists reminder opt-in through the ordinary MCP update path', async () => {
+    seedMaster({ rrule: null, emailReminder: false })
+    await updateEvent('u1', 'm1', {
+      email_reminder: true,
+      notification_minutes: 60,
+    })
+    expect(fake.row('m1')?.emailReminder).toBe(true)
+    expect(reminderCalls).toHaveBeenCalledWith({
+      userId: 'u1',
+      eventId: 'm1',
+      strictQuota: true,
+    })
+  })
   it('characterizes MCP deleteEvent single with override: deletes override AND adds exdate', async () => {
     seedMaster()
     seedOverride('o1', '20260810T090000Z')

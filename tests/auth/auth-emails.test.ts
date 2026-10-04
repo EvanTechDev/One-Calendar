@@ -40,9 +40,12 @@ describe('authEmailCallbacks', () => {
     expect(sent[0].from).toContain('Zentra Meet')
     expect(sent[0].html).toContain('Zentra Meet')
     expect(sent[0].html).not.toContain('Zentra Calendar')
-    const footer = sent[0].html.slice(sent[0].html.lastIndexOf('<hr'))
+    const footer = sent[0].html
+      .slice(sent[0].html.lastIndexOf('<hr'))
+      .replace(/<!--.*?-->/g, '')
     expect(footer).toContain('Privacy')
-    expect(footer).not.toContain(brand.appName)
+    expect(footer).toContain(`© ${new Date().getFullYear()}`)
+    expect(footer).toContain(`${brand.appName}. All rights reserved.`)
     expect(sent[0].html).not.toContain(brand.tagline)
   })
 

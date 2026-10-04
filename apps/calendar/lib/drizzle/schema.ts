@@ -356,9 +356,8 @@ export const scheduledReminders = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    eventId: text('event_id')
-      .notNull()
-      .references(() => calendarEvents.id, { onDelete: 'cascade' }),
+    // Receipts must survive event deletion until the provider confirms cancel.
+    eventId: text('event_id').notNull(),
     /** RFC stamp of the occurrence; null for a non-recurring event. */
     recurrenceId: text('recurrence_id'),
     /** The reminder time — when the provider should send. */
@@ -380,6 +379,9 @@ export const scheduledReminders = pgTable(
      * re-creating, and this column is how such an edit is detected.
      */
     contentHash: text('content_hash'),
+    /** Encrypted immutable send request, persisted before calling the provider. */
+    payload: text('payload'),
+    cancelPending: boolean('cancel_pending').default(false).notNull(),
     sentAt: timestamp('sent_at', { precision: 3, withTimezone: true }),
     createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
       .defaultNow()
@@ -396,14 +398,26 @@ export const scheduledReminders = pgTable(
     ),
     dueAtIdx: index('idx_scheduled_reminders_due_at').on(table.dueAt),
     eventIdx: index('idx_scheduled_reminders_event_id').on(table.eventId),
-    // NULLs are pairwise distinct in Postgres, so non-recurring events (both
-    // NULL) never collide — the same trick as uq_events_series_recurrence.
+    // NULL stamps do not collide in Postgres. Non-recurring deduplication and
+    // the user's daily quota are serialized together by withReminderLock.
     eventOccurrenceUq: uniqueIndex('uq_scheduled_reminders_event_stamp').on(
       table.eventId,
       table.recurrenceId,
     ),
   }),
 )
+
+/** Cross-instance lease: serializes a user's quota and provider operations. */
+export const reminderLocks = pgTable('reminder_locks', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  token: text('token').notNull(),
+  expiresAt: timestamp('expires_at', {
+    precision: 3,
+    withTimezone: true,
+  }).notNull(),
+}).enableRLS()
 
 // ============================================================
 // MCP TABLES

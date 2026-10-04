@@ -214,16 +214,8 @@ async function deleteRow(
     ? [row.id]
     : [row.id, ...(await fetchOverrides(row.id, dbx)).map((r) => r.id)]
   if (rowIds.length > 0) {
-    // Scheduled reminder rows cascade with the event, but the PROVIDER's copy
-    // does not — it must be cancelled explicitly or the user is emailed about a
-    // deleted event. See ADR-0010.
-    try {
-      const { cancelRemindersForEvents } =
-        await import('@/lib/reminders/reconcile')
-      await cancelRemindersForEvents(rowIds)
-    } catch {
-      // Never block a delete on the email provider.
-    }
+    // Reminder receipts survive deletion. Reconcile after the transaction has
+    // committed, never call the provider from inside an event transaction.
     // Occurrence rows cascade from event_invites, which cascades from
     // calendar_events, so deleting the invites removes their per-occurrence
     // visibility and RSVPs with them.
@@ -392,19 +384,8 @@ async function applySplitPlan(
     ),
   ])
 
-  // Occurrences past the boundary now belong to the new master and may have
-  // moved, so their scheduled sends are cancelled and left for the top-up cron
-  // to re-create. Outside the transaction: this calls the email provider.
-  try {
-    const { clearRemindersPastSplit } =
-      await import('@/lib/reminders/reconcile')
-    await clearRemindersPastSplit({
-      oldMasterId: master.id,
-      boundaryStamp: split.masterUntil,
-    })
-  } catch {
-    // Never fail a split because of the email provider.
-  }
+  // The response identifies both roots. The outer mutation boundary reconciles
+  // the head then the tail AFTER commit, including reminders due before cron.
 
   return decryptEvent(newMaster)
 }
@@ -2094,17 +2075,42 @@ async function withReminderReconciliation(
     .json()
     .catch(() => null)
 
+  const user = await getAuthedUser()
+  const rawId = (peek as { id?: unknown } | null)?.id
+  const roots = new Set<string>()
+  if (typeof rawId === 'string') {
+    roots.add(parseInstanceId(rawId)?.seriesId ?? rawId)
+    if (user && !isInstanceId(rawId)) {
+      const [before] = await getDb()
+        .select({ seriesId: calendarEvents.seriesId })
+        .from(calendarEvents)
+        .where(
+          and(eq(calendarEvents.id, rawId), eq(calendarEvents.userId, user.id)),
+        )
+      if (before?.seriesId) roots.add(before.seriesId)
+    }
+  }
+
   const response = await handler(request)
   if (response.status < 200 || response.status >= 300) return response
 
-  const user = await getAuthedUser()
   if (!user) return response
-
-  const rawId = (peek as { id?: unknown } | null)?.id
-  if (typeof rawId !== 'string') return response
-  const eventId = isInstanceId(rawId)
-    ? (parseInstanceId(rawId)?.seriesId ?? rawId)
-    : rawId
+  const body = await response
+    .clone()
+    .json()
+    .catch(() => ({}))
+  if (body.event?.id)
+    roots.add(
+      body.event.seriesId ??
+        parseInstanceId(body.event.id)?.seriesId ??
+        body.event.id,
+    )
+  for (const event of body.seriesEvents ?? []) {
+    if (typeof event.id === 'string')
+      roots.add(
+        event.seriesId ?? parseInstanceId(event.id)?.seriesId ?? event.id,
+      )
+  }
 
   try {
     const { reconcileEventReminders, SendQuotaExceeded } =
@@ -2112,18 +2118,18 @@ async function withReminderReconciliation(
     const wantsEmail = (peek as { emailReminder?: unknown } | null)
       ?.emailReminder
     try {
-      await reconcileEventReminders({
-        userId: user.id,
-        eventId,
-        // A quota refusal is only worth surfacing when the user just asked for
-        // email reminders; on unrelated edits it is noise.
-        strictQuota: wantsEmail === true,
-      })
+      for (const eventId of roots)
+        await reconcileEventReminders({
+          userId: user.id,
+          eventId,
+          // A quota refusal is only worth surfacing when the user just asked for
+          // email reminders; on unrelated edits it is noise.
+          strictQuota: wantsEmail === true,
+        })
     } catch (error) {
       if (error instanceof SendQuotaExceeded) {
         // The event was saved. Report the refusal alongside it rather than
         // failing the save — see ADR-0010.
-        const body = await response.json().catch(() => ({}))
         return NextResponse.json(
           { ...body, reminderWarning: error.message },
           { status: response.status },
