@@ -18,6 +18,7 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai'
 import { ChatTranscript } from './chat-transcript'
+import { PaletteSearchResults } from './palette-search-results'
 import {
   commandFilter,
   Command,
@@ -31,12 +32,18 @@ import {
   CommandShortcut,
 } from '@zntr/ui/command'
 import { ScrollArea } from '@zntr/ui/scroll-area'
-import { Skeleton } from '@zntr/ui/skeleton'
 import { Kbd } from '@zntr/ui/kbd'
 import { Button } from '@zntr/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@zntr/ui/tabs'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuShortcut,
+} from '@zntr/ui/dropdown-menu'
+import { Textarea } from '@zntr/ui/textarea'
 import type { CalendarEvent } from '@/lib/calendar-types'
-import { getEventAccentColor } from '@/lib/event-colors'
 import {
   ArrowLeft,
   ArrowRight,
@@ -45,6 +52,7 @@ import {
   CalendarRange,
   CalendarSearch,
   ChartNoAxesColumn,
+  ChevronDown,
   Columns4,
   Grid3x3,
   LoaderCircle,
@@ -179,23 +187,6 @@ interface AiCommandPaletteProps {
   events?: CalendarEvent[]
 }
 
-/**
- * A colour swatch for a result row. Only a real hex is honoured; anything else
- * falls back to the muted border colour rather than being dropped into a class
- * name, because a class built at runtime is not in the stylesheet.
- */
-function swatch(color: string | null): string {
-  return color && /^#[0-9a-f]{3,8}$/i.test(color)
-    ? 'border-transparent'
-    : 'border-muted-foreground/40'
-}
-
-function swatchStyle(color: string | null): React.CSSProperties {
-  return color && /^#[0-9a-f]{3,8}$/i.test(color)
-    ? { backgroundColor: color }
-    : {}
-}
-
 export function AiCommandPalette({
   open,
   onOpenChange,
@@ -212,12 +203,16 @@ export function AiCommandPalette({
   // screen must stay on screen while page 2 loads.
   const [loadingMore, setLoadingMore] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
-  const panelId = React.useId()
+  const composerRef = React.useRef<HTMLTextAreaElement>(null)
+  const focusInput = React.useCallback(() => {
+    if (mode === 'chat') composerRef.current?.focus()
+    else inputRef.current?.focus()
+  }, [mode])
   React.useEffect(() => {
     if (!open) return
-    const frame = requestAnimationFrame(() => inputRef.current?.focus())
+    const frame = requestAnimationFrame(focusInput)
     return () => cancelAnimationFrame(frame)
-  }, [open])
+  }, [open, focusInput])
   const localResults = React.useMemo(() => {
     const keyword = input.trim().toLowerCase()
     if (mode !== 'search' || !keyword) return []
@@ -404,14 +399,13 @@ export function AiCommandPalette({
     [onOpenChange],
   )
 
-  const backToCommands = React.useCallback(() => {
+  const newConversation = React.useCallback(() => {
     void chat.stop()
     chat.setMessages([])
-    resetSearch()
-    setMode('palette')
     setInput('')
     lastNotified.current = null
-  }, [chat, resetSearch])
+    composerRef.current?.focus()
+  }, [chat])
 
   const reset = React.useCallback(
     (nextOpen: boolean) => {
@@ -511,6 +505,8 @@ export function AiCommandPalette({
         ]
       : []),
   ] as const
+  const activeMode = modes.find((item) => item.value === mode) ?? modes[0]
+  const ModeIcon = activeMode.icon
 
   return (
     <CommandDialog
@@ -540,36 +536,121 @@ export function AiCommandPalette({
               e.preventDefault()
               e.stopPropagation()
               switchMode(target.value as Mode)
-              inputRef.current?.focus()
+              focusInput()
             }
           }
         }}
       >
         <div
-          className="flex items-center gap-2 px-1 pb-2"
-          onKeyDown={(e) => e.stopPropagation()}
+          className="flex items-center gap-1 border-b pb-2"
+          onKeyDown={(e) => {
+            // Header buttons own Enter; it must not also run cmdk's selected row.
+            if (e.target instanceof Element && e.target.closest('button'))
+              e.stopPropagation()
+          }}
         >
-          <Tabs
-            value={mode}
-            onValueChange={(value) => switchMode(value as Mode)}
-            className="min-w-0 flex-1"
-          >
-            <TabsList aria-label={t.commandPaletteTitle} className="w-full">
-              {modes.map(({ value, label, icon: Icon }) => (
-                <TabsTrigger
-                  key={value}
-                  value={value}
-                  onClick={() => inputRef.current?.focus()}
-                  id={`${panelId}-${value}`}
-                  aria-controls={`${panelId}-panel`}
-                  className="gap-1.5 px-2 text-xs sm:text-sm"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 gap-1.5 px-2"
+                aria-label={`${t.commandPaletteMode}: ${activeMode.label}`}
+              >
+                <ModeIcon className="size-4" />
+                <span className="hidden sm:inline">{activeMode.label}</span>
+                <ChevronDown className="size-3 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-56"
+              onKeyDown={(e) => e.stopPropagation()}
+              onCloseAutoFocus={(e) => {
+                e.preventDefault()
+                focusInput()
+              }}
+            >
+              <DropdownMenuRadioGroup
+                value={mode}
+                onValueChange={(value) => switchMode(value as Mode)}
+              >
+                {modes.map(({ value, label, icon: Icon }, index) => (
+                  <DropdownMenuRadioItem
+                    key={value}
+                    value={value}
+                    className="gap-2 py-2"
+                  >
+                    <Icon />
+                    {label}
+                    <DropdownMenuShortcut>
+                      ⌘ / Ctrl {index + 1}
+                    </DropdownMenuShortcut>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {mode !== 'chat' ? (
+            <div className="relative min-w-0 flex-1 [&_[data-slot=command-input-wrapper]]:p-0">
+              <CommandInput
+                ref={inputRef}
+                aria-label={activeMode.label}
+                placeholder={
+                  mode === 'palette'
+                    ? t.commandPalettePlaceholder
+                    : mode === 'search'
+                      ? t.commandPaletteSearchPlaceholder
+                      : placeholder
+                }
+                value={input}
+                onValueChange={(value) => {
+                  setInput(value)
+                  setLocalLimit(30)
+                }}
+                className={mode === 'results' ? 'pr-9' : undefined}
+                onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing || e.key !== 'Enter') return
+                  if (
+                    mode === 'results' &&
+                    (e.metaKey || e.ctrlKey || search.status !== 'ready')
+                  ) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (!searching) void runSearch(1)
+                  }
+                }}
+              />
+              {mode === 'results' && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="absolute right-0 top-1/2 -translate-y-1/2"
+                  aria-label={t.aiSemanticSearch}
+                  disabled={searching || !input.trim()}
+                  onClick={() => void runSearch(1)}
                 >
-                  <Icon className="hidden size-3.5 sm:block" />
-                  {label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+                  {searching ? (
+                    <LoaderCircle className="animate-spin" />
+                  ) : (
+                    <ArrowRight />
+                  )}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-1 justify-end">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t.aiAssistantNewChat}
+                title={t.aiAssistantNewChat}
+                onClick={newConversation}
+                disabled={chat.messages.length === 0 && !chatBusy}
+              >
+                <RotateCcw />
+              </Button>
+            </div>
+          )}
           <Button
             variant="ghost"
             size="icon-sm"
@@ -579,295 +660,110 @@ export function AiCommandPalette({
             <X />
           </Button>
         </div>
-        <div
-          role="tabpanel"
-          id={`${panelId}-panel`}
-          aria-labelledby={`${panelId}-${mode}`}
-        >
-          <div className="relative">
-            <CommandInput
-              ref={inputRef}
-              aria-label={modes.find((item) => item.value === mode)?.label}
-              placeholder={
-                mode === 'palette'
-                  ? t.commandPalettePlaceholder
-                  : mode === 'search'
-                    ? t.commandPaletteSearchPlaceholder
-                    : placeholder
-              }
-              value={input}
-              onValueChange={(value) => {
-                setInput(value)
-                setLocalLimit(30)
-              }}
-              className="pr-20"
-              onKeyDown={(e) => {
-                if (e.nativeEvent.isComposing) return
-                const modifier = e.metaKey || e.ctrlKey
-                if (e.key === 'Enter') {
-                  // ⌘/Ctrl+Enter re-searches from anywhere, and in the result
-                  // view it is the ONLY way to narrow: plain Enter belongs to
-                  // cmdk there, which opens the highlighted event.
-                  if (modifier && mode === 'results' && AI_ENABLED) {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    void runSearch(1)
-                    return
-                  }
-                  if (mode === 'results' && search.status !== 'ready') {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    if (!searching) void runSearch(1)
-                    return
-                  }
-                  // Palette mode also belongs to cmdk — its Enter is what picks
-                  // the highlighted command, including the search row.
-                  if (mode === 'chat' && input.trim()) {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    sendToChat()
-                  }
-                  return
-                }
-              }}
-            />
-            {(mode === 'chat' || mode === 'results') && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2"
-                aria-label={
-                  mode === 'chat'
-                    ? chatBusy
-                      ? t.commandPaletteStop
-                      : t.send
-                    : t.aiSemanticSearch
-                }
-                disabled={
-                  mode === 'results'
-                    ? searching || !input.trim()
-                    : !chatBusy && !input.trim()
-                }
-                onClick={() =>
-                  mode === 'chat'
-                    ? chatBusy
-                      ? void chat.stop()
-                      : sendToChat()
-                    : void runSearch(1)
-                }
-              >
-                {mode === 'chat' && chatBusy ? <Square /> : <ArrowRight />}
-              </Button>
-            )}
-            {/* The one piece of feedback search gets: it is working. */}
-            {searching && (
-              <LoaderCircle
-                className="pointer-events-none absolute right-12 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
-                aria-hidden
-              />
-            )}
-          </div>
-
-          {mode === 'results' && scopeChips.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1 border-b px-3 py-1.5 text-xs text-muted-foreground">
-              <span>{t.aiSearchScope}</span>
-              {scopeChips.map((chip) => (
-                <span key={chip} className="rounded bg-muted px-1.5 py-0.5">
-                  {chip}
-                </span>
-              ))}
-            </div>
-          )}
-
+        <div>
           {mode === 'search' ? (
-            <CommandList className="min-h-48 max-h-[min(24rem,calc(100dvh-15rem))]">
-              <div className="px-3 py-2 text-xs text-muted-foreground">
-                {t.commandPaletteSearchHint}
-              </div>
-              {!input.trim() ? (
-                <p className="px-6 py-12 text-center text-sm text-muted-foreground">
-                  {t.commandPaletteSearchPlaceholder}
-                </p>
-              ) : localResults.length === 0 ? (
-                <p className="px-6 py-12 text-center text-sm text-muted-foreground">
-                  {t.noMatchingEvents}
-                </p>
-              ) : (
-                <CommandGroup heading={`${localResults.length} ${t.events}`}>
-                  {localResults.slice(0, localLimit).map((event) => (
-                    <CommandItem
-                      key={event.id}
-                      value={`local:${event.id}`}
-                      className="gap-3 py-2.5"
-                      onSelect={() =>
-                        goToEvent({
-                          ...event,
-                          startDate: new Date(event.startDate).toISOString(),
-                          endDate: new Date(event.endDate).toISOString(),
-                          location: event.location ?? null,
-                          color: event.color ?? null,
-                        })
-                      }
-                    >
-                      <span
-                        className="h-7 w-1 shrink-0 rounded-full"
-                        style={{
-                          backgroundColor: getEventAccentColor(event.color),
-                        }}
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">
-                          {event.title || t.unnamedEvent}
-                        </span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {formatWhen({
-                            ...event,
-                            startDate: new Date(event.startDate).toISOString(),
-                            endDate: new Date(event.endDate).toISOString(),
-                            location: event.location ?? null,
-                            color: event.color ?? null,
-                          })}
-                          {event.location ? ` · ${event.location}` : ''}
-                        </span>
-                      </span>
-                    </CommandItem>
-                  ))}
-                  {localResults.length > localLimit && (
-                    <CommandItem
-                      value="local:more"
-                      onSelect={() => setLocalLimit((value) => value + 30)}
-                    >
-                      {t.aiSearchMore}
-                    </CommandItem>
-                  )}
-                </CommandGroup>
-              )}
-            </CommandList>
-          ) : mode === 'results' ? (
-            <ScrollArea className="max-h-[min(20rem,calc(100dvh-12rem))]">
-              <CommandList className="max-h-none">
-                {search.status === 'idle' && (
-                  <p className="px-6 py-12 text-center text-sm text-muted-foreground">
-                    {t.aiSemanticSearchHint}
-                  </p>
-                )}
-                {search.status === 'loading' && (
-                  <div className="space-y-2 px-2 py-1" aria-live="polite">
-                    <span className="text-xs text-muted-foreground">
-                      {t.aiSearchLoading}
-                    </span>
-                    {[0, 1, 2].map((row) => (
-                      <div key={row} className="flex items-center gap-3">
-                        <Skeleton className="size-2.5 rounded-full" />
-                        <div className="flex-1 space-y-1.5">
-                          <Skeleton className="h-3 w-24" />
-                          <Skeleton className="h-3.5 w-3/4" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {search.status === 'ready' &&
-                  search.results.map((hit) => (
-                    <CommandItem
-                      key={hit.id}
-                      value={`hit:${hit.id}`}
-                      onSelect={() => goToEvent(hit)}
-                    >
-                      <span
-                        className={`size-2.5 shrink-0 rounded-full border-2 ${swatch(hit.color)}`}
-                        style={swatchStyle(hit.color)}
-                        aria-hidden
-                      />
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-xs text-muted-foreground">
-                          {formatWhen(hit)}
-                        </span>
-                        <span className="truncate font-medium">
-                          {hit.title}
-                        </span>
-                        {hit.location && (
-                          <span className="truncate text-xs text-muted-foreground">
-                            {hit.location}
-                          </span>
-                        )}
-                      </span>
-                    </CommandItem>
-                  ))}
-                {search.status === 'ready' && search.results.length === 0 && (
-                  <>
-                    <CommandItem value="empty" disabled>
-                      {t.noMatchingEvents}
-                    </CommandItem>
-                    <CommandItem
-                      value="empty-hint"
-                      disabled
-                      className="text-xs text-muted-foreground"
-                    >
-                      {t.aiSearchNoResultsHint}
-                    </CommandItem>
-                  </>
-                )}
-                {search.status === 'ready' && search.hasMore && (
-                  <CommandItem
-                    value="load-more"
-                    onSelect={() => void runSearch(search.page + 1)}
-                    disabled={loadingMore}
-                  >
-                    <LoaderCircle
-                      className={loadingMore ? 'animate-spin' : undefined}
-                    />
-                    {t.aiSearchMore}
-                  </CommandItem>
-                )}
-                {search.status === 'error' && (
-                  <>
-                    <CommandItem
-                      value="search-error"
-                      disabled
-                      className="text-destructive"
-                    >
-                      {search.kind === 'rate'
-                        ? t.aiSearchRateLimited
-                        : search.kind === 'timeout'
-                          ? t.aiSearchTimedOut
-                          : search.kind === 'unavailable'
-                            ? t.aiSearchUnavailable
-                            : t.aiSearchFailed}
-                    </CommandItem>
-                    {/* A missing key is not something a retry can fix, so that
-                      one state gets no retry row. */}
-                    {search.kind !== 'unavailable' && (
-                      <CommandItem
-                        value="search-retry"
-                        onSelect={() => void runSearch(1)}
-                      >
-                        <RotateCcw />
-                        {t.aiSearchRetry}
-                      </CommandItem>
-                    )}
-                  </>
-                )}
-              </CommandList>
-            </ScrollArea>
-          ) : mode === 'chat' ? (
-            <ChatTranscript
+            <PaletteSearchResults
               t={t}
-              messages={chat.messages}
-              busy={chatBusy}
-              error={chat.error ?? null}
-              onApproval={chat.addToolApprovalResponse}
+              status={input.trim() ? 'ready' : 'idle'}
+              hits={localResults.slice(0, localLimit).map((event) => ({
+                ...event,
+                startDate: new Date(event.startDate).toISOString(),
+                endDate: new Date(event.endDate).toISOString(),
+                location: event.location ?? null,
+                color: event.color ?? null,
+              }))}
+              total={localResults.length}
+              hint={t.commandPaletteSearchHint}
+              onSelect={goToEvent}
+              formatWhen={formatWhen}
+              onMore={
+                localResults.length > localLimit
+                  ? () => setLocalLimit((value) => value + 30)
+                  : undefined
+              }
             />
+          ) : mode === 'results' ? (
+            <PaletteSearchResults
+              t={t}
+              status={search.status}
+              hits={search.status === 'ready' ? search.results : []}
+              total={search.status === 'ready' ? search.total : 0}
+              hint={t.aiSemanticSearchHint}
+              scope={scopeChips}
+              onSelect={goToEvent}
+              formatWhen={formatWhen}
+              loadingMore={loadingMore}
+              onMore={
+                search.status === 'ready' && search.hasMore
+                  ? () => void runSearch(search.page + 1)
+                  : undefined
+              }
+              error={
+                search.status === 'error'
+                  ? search.kind === 'rate'
+                    ? t.aiSearchRateLimited
+                    : search.kind === 'timeout'
+                      ? t.aiSearchTimedOut
+                      : search.kind === 'unavailable'
+                        ? t.aiSearchUnavailable
+                        : t.aiSearchFailed
+                  : undefined
+              }
+              onRetry={
+                search.status === 'error' && search.kind !== 'unavailable'
+                  ? () => void runSearch(1)
+                  : undefined
+              }
+            />
+          ) : mode === 'chat' ? (
+            <>
+              <ChatTranscript
+                t={t}
+                messages={chat.messages}
+                busy={chatBusy}
+                error={chat.error ?? null}
+                onApproval={chat.addToolApprovalResponse}
+              />
+              <div className="relative mx-1 mb-2 rounded-lg border bg-muted/30 focus-within:ring-1 focus-within:ring-ring">
+                <Textarea
+                  ref={composerRef}
+                  aria-label={t.aiAssistantAsk}
+                  placeholder={t.aiAssistantPlaceholder}
+                  value={input}
+                  rows={2}
+                  className="min-h-20 max-h-36 resize-none border-0 bg-transparent! pr-12 shadow-none focus-visible:ring-0"
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation()
+                    if (
+                      e.key === 'Enter' &&
+                      !e.shiftKey &&
+                      !e.nativeEvent.isComposing
+                    ) {
+                      e.preventDefault()
+                      sendToChat()
+                    }
+                  }}
+                />
+                <Button
+                  size="icon-sm"
+                  variant={chatBusy ? 'secondary' : 'default'}
+                  className="absolute bottom-2 right-2"
+                  aria-label={chatBusy ? t.commandPaletteStop : t.send}
+                  disabled={!chatBusy && !input.trim()}
+                  onClick={() => (chatBusy ? void chat.stop() : sendToChat())}
+                >
+                  {chatBusy ? <Square /> : <ArrowRight />}
+                </Button>
+              </div>
+            </>
           ) : (
             /* ScrollArea owns overflow so long command lists scroll inside
              the dvh-capped dialog instead of pushing past it. */
             <ScrollArea className="max-h-[min(18rem,calc(100dvh-12rem))]">
               <CommandList className="max-h-none">
                 <CommandEmpty>{t.noMatchingEvents}</CommandEmpty>
-                {/* Above the AI rows on purpose: for an input like "10/5" both
-                  this and the search row match, and cmdk keeps DOM order for
-                  equal scores — so the more specific reading of the same
-                  keystrokes is the one Enter takes. */}
+                {/* Date navigation precedes general commands on equal scores. */}
                 {typedDate && (
                   <CommandGroup heading={t.aiGoToDate}>
                     <CommandItem
@@ -996,14 +892,13 @@ export function AiCommandPalette({
             results open on Enter and search on ⌘↵, chat sends on Enter. */}
         <div className="flex items-center justify-between border-t px-3 py-1.5 text-xs text-muted-foreground">
           {mode === 'chat' ? (
-            <button
-              type="button"
-              className="flex cursor-pointer items-center gap-1 hover:text-foreground"
-              onClick={backToCommands}
-            >
-              <ArrowLeft className="size-3" />
-              {t.aiAssistantBack}
-            </button>
+            <span className="flex items-center gap-1">
+              <Kbd>↵</Kbd>
+              {t.send}
+              <span className="ml-2 hidden sm:inline">
+                Shift ↵ · {t.aiAssistantNewLine}
+              </span>
+            </span>
           ) : mode === 'results' ? (
             <span className="flex items-center gap-3">
               <span className="flex items-center gap-1">

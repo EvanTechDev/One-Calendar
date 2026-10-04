@@ -67,10 +67,12 @@ async function typeQuestion(question: string) {
 }
 
 function selectMode(name: string) {
-  fireEvent.mouseDown(screen.getByRole('tab', { name, exact: true }), {
-    button: 0,
-    ctrlKey: false,
+  fireEvent.keyDown(screen.getByRole('button', { name: /^Mode:/ }), {
+    key: 'Enter',
   })
+  fireEvent.click(
+    screen.getByRole('menuitemradio', { name: new RegExp(`^${name}`) }),
+  )
 }
 
 it('external close cancels work and reopens on a clean command menu', async () => {
@@ -80,19 +82,18 @@ it('external close cancels work and reopens on a clean command menu', async () =
   )
   const input = await typeQuestion('find my trip')
   fireEvent.keyDown(input, { key: '3', ctrlKey: true })
-  expect(screen.getByRole('tab', { name: 'Semantic search' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  )
+  expect(
+    screen.getByRole('button', { name: 'Mode: Semantic search' }),
+  ).toBeInTheDocument()
+  expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
   fireEvent.keyDown(input, { key: 'Enter' })
   const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
   rerender(<AiCommandPalette open={false} onOpenChange={onOpenChange} />)
   expect(signal.aborted).toBe(true)
   rerender(<AiCommandPalette open onOpenChange={onOpenChange} />)
-  expect(screen.getByRole('tab', { name: 'Commands' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  )
+  expect(
+    screen.getByRole('button', { name: 'Mode: Commands' }),
+  ).toBeInTheDocument()
   expect(screen.getByRole('combobox')).toHaveValue('')
 })
 
@@ -224,13 +225,98 @@ it('switching modes preserves the draft and aborts a pending semantic search', a
   const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
   selectMode('Ask AI')
   expect(signal.aborted).toBe(true)
-  expect(screen.getByRole('combobox')).toHaveValue('find my trip')
+  expect(screen.getByRole('textbox', { name: 'Ask AI' })).toHaveValue(
+    'find my trip',
+  )
   expect(fetchSearch).toHaveBeenCalledTimes(1)
   expect(sendMessage).not.toHaveBeenCalled()
-  fireEvent.keyDown(screen.getByRole('combobox'), {
+  fireEvent.keyDown(screen.getByRole('textbox', { name: 'Ask AI' }), {
+    key: 'Enter',
+    shiftKey: true,
+  })
+  expect(sendMessage).not.toHaveBeenCalled()
+  fireEvent.keyDown(screen.getByRole('textbox', { name: 'Ask AI' }), {
     key: 'Enter',
     code: 'Enter',
     keyCode: 13,
   })
   expect(sendMessage).toHaveBeenCalledExactlyOnceWith({ text: 'find my trip' })
+})
+
+it('renders the same event row in keyword and semantic search, with paging and Enter navigation', async () => {
+  const hit = {
+    id: 'e1',
+    title: 'Team planning',
+    startDate: '2026-10-05T09:00:00Z',
+    endDate: '2026-10-05T10:00:00Z',
+    isAllDay: false,
+    color: '#3B82F6',
+    location: 'Office',
+  }
+  const second = { ...hit, id: 'e2', title: 'Next planning' }
+  const goToEvent = vi.fn()
+  const query = { concepts: [['planning']], names: [] }
+  fetchSearch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [hit],
+        total: 2,
+        page: 1,
+        hasMore: true,
+        searchToken: 'sealed',
+        query,
+      }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        results: [second],
+        total: 2,
+        page: 2,
+        hasMore: false,
+        searchToken: 'sealed',
+        query,
+      }),
+    })
+  render(
+    <AiCommandPalette
+      open
+      onOpenChange={vi.fn()}
+      actions={{ goToEvent } as unknown as PaletteActions}
+      events={[
+        {
+          ...hit,
+          startDate: new Date(hit.startDate),
+          endDate: new Date(hit.endDate),
+          color: 'bg-[#E6F6FD]',
+        },
+      ]}
+    />,
+  )
+  selectMode('Search')
+  await typeQuestion('planning')
+  const localRow = screen.getByRole('option', { name: /Team planning/ })
+  const content = localRow.innerHTML
+  const classes = localRow.className
+  selectMode('Semantic search')
+  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' })
+  const semanticRow = await screen.findByRole('option', {
+    name: /Team planning/,
+  })
+  expect(semanticRow.innerHTML).toBe(content)
+  expect(semanticRow.className).toBe(classes)
+  fireEvent.click(screen.getByRole('option', { name: 'Load more' }))
+  await screen.findByRole('option', { name: /Next planning/ })
+  expect(JSON.parse(fetchSearch.mock.calls[1][1].body)).toEqual({
+    page: 2,
+    searchToken: 'sealed',
+  })
+  fireEvent.pointerMove(semanticRow)
+  fireEvent.keyDown(screen.getByRole('combobox'), {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+  })
+  expect(goToEvent).toHaveBeenCalledExactlyOnceWith(hit)
 })
