@@ -27,6 +27,92 @@ vi.mock('@zntr/ui/message-scroller', () => ({
 afterEach(cleanup)
 const t = translations.en
 
+it('shows exactly three generated follow-ups below the answer, sending only the clicked prompt', () => {
+  const prompts = [
+    'Show Monday’s conflicts',
+    'Find a free afternoon',
+    'Plan time for a break',
+  ]
+  const onSuggestion = vi.fn()
+  const messages: UIMessage[] = [
+    {
+      id: 'a1',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-suggest_followups',
+          toolCallId: 's1',
+          state: 'output-available',
+          input: { prompts },
+          output: { prompts },
+        },
+        { type: 'text', text: 'Your schedule is ready.' },
+      ],
+    },
+  ]
+  const view = (busy: boolean) => (
+    <ChatTranscript
+      t={t}
+      messages={messages}
+      busy={busy}
+      error={null}
+      onApproval={vi.fn()}
+      onSuggestion={onSuggestion}
+    />
+  )
+  const { rerender } = render(view(true))
+  expect(
+    screen.queryByRole('button', { name: prompts[0] }),
+  ).not.toBeInTheDocument()
+  rerender(view(false))
+  expect(screen.getAllByRole('button')).toHaveLength(3)
+  expect(screen.queryByText('Completed')).not.toBeInTheDocument()
+  expect(
+    screen
+      .getByText('Your schedule is ready.')
+      .compareDocumentPosition(
+        screen.getByRole('button', { name: prompts[0] }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy()
+  expect(onSuggestion).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: prompts[1] }))
+  expect(onSuggestion).toHaveBeenCalledExactlyOnceWith(prompts[1])
+})
+
+it('does not expose incomplete or failed suggestion tool output as chat actions', () => {
+  render(
+    <ChatTranscript
+      t={t}
+      busy={false}
+      error={null}
+      onApproval={vi.fn()}
+      onSuggestion={vi.fn()}
+      messages={[
+        {
+          id: 'a1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-suggest_followups',
+              toolCallId: 's1',
+              state: 'input-available',
+              input: { prompts: ['One', 'Two', 'Three'] },
+            },
+            {
+              type: 'tool-suggest_followups',
+              toolCallId: 's2',
+              state: 'output-available',
+              input: {},
+              output: { error: 'Invalid prompts' },
+            },
+          ],
+        },
+      ]}
+    />,
+  )
+  expect(screen.queryByRole('button')).not.toBeInTheDocument()
+})
+
 function transcript(
   parts: UIMessage['parts'],
   busy = false,

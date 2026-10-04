@@ -119,6 +119,7 @@ export function ChatTranscript({
   onApproval,
   timedOut = false,
   onContinue,
+  onSuggestion,
 }: {
   t: Translation
   messages: ChatMessages
@@ -128,7 +129,13 @@ export function ChatTranscript({
   onApproval: (response: { id: string; approved: boolean }) => void
   timedOut?: boolean
   onContinue?: () => void
+  onSuggestion?: (prompt: string) => void
 }) {
+  const awaitingApproval = messages.some((message) =>
+    message.parts.some(
+      (part) => asToolPart(part)?.state === 'approval-requested',
+    ),
+  )
   return (
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
       {/* dvh-aware: fill what the dialog allows, never more than the
@@ -174,6 +181,14 @@ export function ChatTranscript({
                         busy={busy && messageIndex === messages.length - 1}
                       />
                     ))}
+                    {onSuggestion &&
+                      !(busy && messageIndex === messages.length - 1) && (
+                        <FollowupSuggestions
+                          parts={message.parts}
+                          disabled={busy || awaitingApproval}
+                          onSelect={onSuggestion}
+                        />
+                      )}
                   </div>
                 )}
               </MessageScrollerItem>
@@ -240,6 +255,7 @@ function AssistantPart({
 
   const toolPart = asToolPart(part)
   if (!toolPart) return null
+  if (toolPart.type === 'tool-suggest_followups') return null
 
   const Icon = TOOL_ICONS[toolPart.type] ?? Wrench
   const approvalId =
@@ -330,6 +346,59 @@ function AssistantPart({
           </Button>
         </div>
       )}
+    </div>
+  )
+}
+
+function FollowupSuggestions({
+  parts,
+  disabled,
+  onSelect,
+}: {
+  parts: MessagePart[]
+  disabled: boolean
+  onSelect: (prompt: string) => void
+}) {
+  const result = parts
+    .map(asToolPart)
+    .findLast(
+      (part) =>
+        part?.type === 'tool-suggest_followups' &&
+        part.state === 'output-available' &&
+        part.output &&
+        typeof part.output === 'object' &&
+        'prompts' in part.output,
+    )?.output
+  if (!result || typeof result !== 'object' || !('prompts' in result))
+    return null
+  const prompts = result.prompts
+  if (
+    !Array.isArray(prompts) ||
+    prompts.length !== 3 ||
+    !prompts.every(
+      (prompt) =>
+        typeof prompt === 'string' && prompt.trim() && prompt.length <= 120,
+    )
+  )
+    return null
+  return (
+    <div className="flex flex-col items-start gap-1.5 pt-1">
+      {prompts.map((prompt) => (
+        <Button
+          key={prompt}
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          className="h-auto max-w-full justify-start whitespace-normal py-1.5 text-left text-xs font-normal"
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelect(prompt)
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          {prompt}
+        </Button>
+      ))}
     </div>
   )
 }

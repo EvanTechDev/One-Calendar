@@ -119,8 +119,6 @@ export interface PaletteActions {
   nextPeriod: () => void
   /** Jump the visible date, e.g. from the "go to" row. */
   goToDate: (date: Date) => void
-  /** Put the caret in the top-bar keyword search. */
-  focusSearch: () => void
   /**
    * Open a search result. It carries no more than the list showed plus the
    * fields the preview reads, so the calendar owns the lookup against its own
@@ -157,6 +155,7 @@ interface SearchResponseBody {
 
 interface AiCommandPaletteProps {
   open: boolean
+  initialMode?: 'palette' | 'search'
   onOpenChange: (open: boolean) => void
   /**
    * Called after any assistant turn that ran a write tool, so the calendar
@@ -170,6 +169,7 @@ interface AiCommandPaletteProps {
 
 export function AiCommandPalette({
   open,
+  initialMode = 'palette',
   onOpenChange,
   onEventsMutated,
   actions,
@@ -178,7 +178,10 @@ export function AiCommandPalette({
   const [language] = useLanguage()
   const t = translations[language]
   const [input, setInput] = React.useState('')
-  const [mode, setMode] = React.useState<Mode>('palette')
+  const [mode, setMode] = React.useState<Mode>(initialMode)
+  React.useEffect(() => {
+    if (open) setMode(initialMode)
+  }, [open, initialMode])
   const [search, setSearch] = React.useState<SearchState>({ status: 'idle' })
   // The next page's fetch, as distinct from a new search: the rows already on
   // screen must stay on screen while page 2 loads.
@@ -691,6 +694,12 @@ export function AiCommandPalette({
                   void chat.sendMessage({ text: t.aiAssistantContinuePrompt })
                 }}
                 onApproval={chat.addToolApprovalResponse}
+                onSuggestion={(text) => {
+                  if (chatBusy) return
+                  setChatTimedOut(false)
+                  setInput('')
+                  void chat.sendMessage({ text })
+                }}
               />
               <div className="relative mx-1 my-2 shrink-0 rounded-lg border bg-muted/30 focus-within:ring-1 focus-within:ring-ring">
                 <Textarea
@@ -745,7 +754,6 @@ export function AiCommandPalette({
               )}
               {actions && (
                 <>
-                  <CommandSeparator />
                   <CommandGroup heading={t.calendar}>
                     <CommandItem
                       onSelect={() => runAction(actions.createEvent)}

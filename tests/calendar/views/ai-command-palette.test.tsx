@@ -105,6 +105,33 @@ it('external close cancels work and reopens on a clean command menu', async () =
   expect(screen.getByRole('combobox')).toHaveValue('')
 })
 
+it('the search entry opens keyword search immediately and reopening applies the requested entry mode', async () => {
+  const onOpenChange = vi.fn()
+  const { rerender } = render(
+    <AiCommandPalette open initialMode="search" onOpenChange={onOpenChange} />,
+  )
+  expect(
+    screen.getByRole('button', { name: 'Mode: Search' }),
+  ).toBeInTheDocument()
+  await typeQuestion('Monday')
+  expect(fetchSearch).not.toHaveBeenCalled()
+  selectMode('Ask AI')
+  rerender(
+    <AiCommandPalette
+      open={false}
+      initialMode="search"
+      onOpenChange={onOpenChange}
+    />,
+  )
+  rerender(
+    <AiCommandPalette open initialMode="search" onOpenChange={onOpenChange} />,
+  )
+  expect(
+    screen.getByRole('button', { name: 'Mode: Search' }),
+  ).toBeInTheDocument()
+  expect(screen.getByRole('combobox')).toHaveValue('')
+})
+
 it('a stalled request stops loading and offers retry after the deadline', async () => {
   render(<AiCommandPalette open onOpenChange={vi.fn()} />)
   selectMode('Search')

@@ -1,6 +1,5 @@
 'use client'
 
-import { getEventAccentColor } from '@/lib/event-colors'
 import { useNotifications } from '@/hooks/use-notifications'
 import { anchorRectForClick } from '@/hooks/use-anchored-popover'
 import { defaultCreateRange } from '@/components/app/views/selection-range'
@@ -17,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Command as CommandIcon,
   PanelLeft,
   CircleHelp,
   ShieldCheck,
@@ -27,7 +25,6 @@ import {
   House,
   Menu,
   CalendarCheck,
-  ArrowLeft,
   Plus,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -41,7 +38,6 @@ import {
   useMemo,
   useCallback,
 } from 'react'
-import { createPortal } from 'react-dom'
 import { useCalendar } from '@/components/providers/calendar-context'
 
 // Re-exported for the ~35 modules that already import it from here. The
@@ -89,11 +85,6 @@ import {
   type TimeFormatValue,
 } from '@/lib/calendar-types'
 import { toast } from 'sonner'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '@zntr/ui/input-group'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -237,14 +228,15 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   // Mobile Form only (ADR-0019): the left drawer holding the sidebar content.
   // Opened by the hamburger button, which exists only below the md breakpoint.
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
-  // Mobile Form only: search lives behind a magnifier icon and opens as a
-  // full-screen overlay (the universal mobile overlay rule, ADR-0019).
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   // Deferred mount: the palette chunk is only fetched the first time the
   // user opens it, and stays mounted afterwards to keep its conversation.
   const [aiPaletteOpen, setAiPaletteOpen] = useState(false)
   const [aiPaletteMounted, setAiPaletteMounted] = useState(false)
-  const openAiPalette = useCallback(() => {
+  const [aiPaletteMode, setAiPaletteMode] = useState<'palette' | 'search'>(
+    'palette',
+  )
+  const openSearchPalette = useCallback(() => {
+    setAiPaletteMode('search')
     setAiPaletteMounted(true)
     setAiPaletteOpen(true)
   }, [])
@@ -259,9 +251,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [editorReplacesPreview, setEditorReplacesPreview] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const { events, setEvents, calendars } = useCalendar()
-  const [searchTerm, setSearchTerm] = useState('')
-  const searchInputRef = useRef<HTMLDivElement>(null)
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<
     string[]
   >([])
@@ -668,6 +657,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const handlePaletteKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
+        setAiPaletteMode('palette')
         setAiPaletteMounted(true)
         setAiPaletteOpen((prev) => !prev)
       }
@@ -725,13 +715,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         }
         case '/': {
           e.preventDefault()
-
-          const searchInput = document.querySelector(
-            'input[placeholder="' + t.searchEvents + '"]',
-          ) as HTMLInputElement
-          if (searchInput) {
-            searchInput.focus()
-          }
+          openSearchPalette()
           break
         }
         case 't':
@@ -774,7 +758,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [enableShortcuts, t.searchEvents, view])
+  }, [enableShortcuts, openSearchPalette, view])
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => !prev)
@@ -1422,32 +1406,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     createDraftRange,
   ])
 
-  const filteredEvents = useMemo(() => {
-    const keyword = searchTerm.trim().toLowerCase()
-    if (!keyword) return eventsByCategory
-
-    return eventsByCategory
-      .filter((event) => {
-        const title = event.title?.toLowerCase() || ''
-        const location = event.location?.toLowerCase() || ''
-        const description = event.description?.toLowerCase() || ''
-        return (
-          title.includes(keyword) ||
-          location.includes(keyword) ||
-          description.includes(keyword)
-        )
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      )
-  }, [eventsByCategory, searchTerm])
-
-  const searchResultEvents = useMemo(() => {
-    if (!searchTerm.trim()) return []
-    return filteredEvents.slice(0, 8)
-  }, [filteredEvents, searchTerm])
-
   useNotifications(events)
 
   // Settings are fetched after the calendar mounts. Do not render the default
@@ -1514,12 +1472,11 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           {' '}
           {/*
             `overflow-x-auto` is the last-resort defence: when the window is
-            narrower than the header's shrink floors (nav controls + compressed
-            search + icon buttons), the row scrolls instead of clipping the
-            trailing buttons out of reach. With no overflow it renders nothing —
-            no scrollbar, no layout change. Every popup in here (select, search
-            results, menus) is portalled to <body>, so the overflow container
-            cannot clip them.
+            narrower than the header's controls, the row scrolls instead of
+            clipping the trailing buttons out of reach. With no overflow it
+            renders nothing — no scrollbar, no layout change. Every popup here
+            (select, command palette, menus) is portalled to <body>, so the
+            overflow container cannot clip them.
           */}
           <header className="flex items-center px-4 h-16 border-b relative z-40 bg-background overflow-x-auto">
             {/* Cover strip for the right rail's slice of the header border.
@@ -1599,15 +1556,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               )}
             </div>
 
-            {/*
-              `max-xl:shrink`: below the 1280px reference width the cluster may
-              give up width — the search box (the only shrinkable child, see
-              its min-w floor) compresses before the header falls back to
-              scrolling. At ≥1280px `shrink-0` still wins, so wide desktops
-              cannot re-distribute space differently than before, even in
-              locales whose long date string already truncates there.
-            */}
-            <div className="ml-auto flex shrink-0 max-xl:shrink items-center space-x-2">
+            <div className="ml-auto flex shrink-0 items-center space-x-2">
               <TooltipProvider delayDuration={300}>
                 <div className="relative z-50 shrink-0">
                   <Select
@@ -1654,111 +1603,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                {/*
-                The search box is the one child of this cluster allowed to
-                compress. Below the 1280px reference width the wrapper takes
-                the same 12rem basis the InputGroup always had but may shrink
-                to a 7rem floor; a flex item never shrinks unless the row is
-                actually short of space, so an uncompressed window renders
-                exactly as before. At ≥1280px none of these classes apply.
-              */}
-                <div
-                  className="relative z-50 max-xl:w-48 max-xl:min-w-28 max-xl:shrink max-md:hidden"
-                  ref={searchInputRef}
-                >
-                  <InputGroup className="w-48 max-xl:w-full">
-                    <InputGroupAddon>
-                      <Search className="h-5 w-5 text-gray-400" />
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      type="text"
-                      placeholder={t.searchEvents}
-                      value={searchTerm}
-                      onFocus={() => setIsSearchFocused(true)}
-                      onBlur={() => {
-                        window.setTimeout(() => setIsSearchFocused(false), 120)
-                      }}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (
-                          e.key === 'Enter' &&
-                          searchResultEvents.length > 0
-                        ) {
-                          handleNavigateAndPreview(searchResultEvents[0])
-                          setSearchTerm('')
-                          setIsSearchFocused(false)
-                        }
-                      }}
-                      className="pr-4"
-                    />
-                  </InputGroup>
-                  {isSearchFocused &&
-                    !!searchTerm &&
-                    searchInputRef.current &&
-                    typeof document !== 'undefined' &&
-                    createPortal(
-                      <div
-                        className="fixed z-[100] w-80 rounded-md border bg-popover p-1 shadow-md"
-                        style={{
-                          left: searchInputRef.current.getBoundingClientRect()
-                            .right,
-                          top:
-                            searchInputRef.current.getBoundingClientRect()
-                              .bottom + 6,
-                          transform: 'translateX(-100%)',
-                        }}
-                      >
-                        {searchResultEvents.length > 0 ? (
-                          <div className="min-h-0 max-h-[320px] overflow-y-auto">
-                            <div className="space-y-1">
-                              {searchResultEvents.map((event) => (
-                                <button
-                                  key={event.id}
-                                  type="button"
-                                  className="flex w-full cursor-pointer items-start gap-2 rounded-sm px-2 py-2 text-left hover:bg-accent"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault()
-                                    handleNavigateAndPreview(event)
-                                    setSearchTerm('')
-                                    setIsSearchFocused(false)
-                                  }}
-                                >
-                                  <div
-                                    className="mt-0.5 h-4 w-1 shrink-0 rounded-full"
-                                    style={{
-                                      backgroundColor: getEventAccentColor(
-                                        event.color,
-                                      ),
-                                    }}
-                                  />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="truncate text-sm font-medium leading-none">
-                                      {event.title || t.unnamedEvent}
-                                    </div>
-                                    <div className="mt-1 text-xs text-muted-foreground">
-                                      {formatDateDisplay(
-                                        new Date(event.startDate),
-                                      )}
-                                    </div>
-                                    {event.location && (
-                                      <div className="truncate text-xs text-muted-foreground">
-                                        {event.location}
-                                      </div>
-                                    )}
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="px-2 py-3 text-center text-sm text-muted-foreground">
-                            {t.noMatchingEvents}
-                          </div>
-                        )}
-                      </div>,
-                      document.body,
-                    )}
-                </div>
                 {/* Unified command menu, also available via Cmd/Ctrl+K. */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1766,27 +1610,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                       variant="outline"
                       size="icon"
                       className="rounded-full h-8 w-8"
-                      aria-label={t.commandPaletteTitle}
-                      onClick={openAiPalette}
+                      aria-label={t.searchEvents}
+                      onClick={openSearchPalette}
                     >
-                      <CommandIcon className="h-4 w-4" />
+                      <Search className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {t.commandPaletteTitle} · Ctrl / ⌘ K
-                  </TooltipContent>
+                  <TooltipContent>{t.searchEvents} · Ctrl / ⌘ K</TooltipContent>
                 </Tooltip>
-                {/* Mobile Form: search collapses to an icon that opens the
-                  full-screen overlay rendered after the header. */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-8 w-8 md:hidden"
-                  aria-label={t.searchEvents}
-                  onClick={() => setMobileSearchOpen(true)}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1851,89 +1682,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               </TooltipProvider>
             </div>
           </header>
-          {/* Mobile Form: full-screen search overlay with a back arrow — the
-              universal mobile overlay rule (ADR-0019). md:hidden guarantees
-              it can never exist on desktop even while open. */}
-          {mobileSearchOpen && (
-            <div className="fixed inset-0 z-[100] flex flex-col bg-background md:hidden animate-in fade-in-0 slide-in-from-bottom-4 duration-200">
-              <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t.back}
-                  onClick={() => {
-                    setMobileSearchOpen(false)
-                    setSearchTerm('')
-                  }}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <InputGroup className="flex-1">
-                  <InputGroupAddon>
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    type="text"
-                    placeholder={t.searchEvents}
-                    value={searchTerm}
-                    autoFocus
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchResultEvents.length > 0) {
-                        handleNavigateAndPreview(searchResultEvents[0])
-                        setSearchTerm('')
-                        setMobileSearchOpen(false)
-                      }
-                    }}
-                  />
-                </InputGroup>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                {searchTerm ? (
-                  searchResultEvents.length > 0 ? (
-                    <div className="space-y-1">
-                      {searchResultEvents.map((event) => (
-                        <button
-                          key={event.id}
-                          type="button"
-                          className="flex w-full cursor-pointer items-start gap-2 rounded-sm px-2 py-2 text-left hover:bg-accent"
-                          onClick={() => {
-                            handleNavigateAndPreview(event)
-                            setSearchTerm('')
-                            setMobileSearchOpen(false)
-                          }}
-                        >
-                          <div
-                            className="mt-0.5 h-4 w-1 shrink-0 rounded-full"
-                            style={{
-                              backgroundColor: getEventAccentColor(event.color),
-                            }}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-medium leading-none">
-                              {event.title || t.unnamedEvent}
-                            </div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {formatDateDisplay(new Date(event.startDate))}
-                            </div>
-                            {event.location && (
-                              <div className="truncate text-xs text-muted-foreground">
-                                {event.location}
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-2 py-3 text-center text-sm text-muted-foreground">
-                      {t.noMatchingEvents}
-                    </div>
-                  )
-                ) : null}
-              </div>
-            </div>
-          )}
           <div
             className="relative flex-1 overflow-auto pr-14 max-md:pr-0"
             ref={calendarRef}
@@ -1941,7 +1689,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'day' && (
               <DayView
                 date={date}
-                events={filteredEvents}
+                events={eventsByCategory}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 config={viewConfig}
@@ -1956,7 +1704,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'week' && (
               <WeekView
                 date={date}
-                events={filteredEvents}
+                events={eventsByCategory}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 onDayHeaderClick={handleDayLabelClick}
@@ -1971,7 +1719,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'four-day' && (
               <WeekView
                 date={date}
-                events={filteredEvents}
+                events={eventsByCategory}
                 onEventClick={handleEventClick}
                 onTimeSlotClick={handleTimeRangeSelect}
                 onDayHeaderClick={handleDayLabelClick}
@@ -1988,7 +1736,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'month' && (
               <MonthView
                 date={date}
-                events={filteredEvents}
+                events={eventsByCategory}
                 onDayNumberClick={handleDayLabelClick}
                 onCellClick={handleMonthCellClick}
                 onEventClick={handleEventClick}
@@ -2000,7 +1748,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             {view === 'year' && (
               <YearView
                 date={date}
-                events={filteredEvents}
+                events={eventsByCategory}
                 onDayHeaderClick={handleDayLabelClick}
                 onEventClick={handleEventClick}
                 config={viewConfig}
@@ -2341,6 +2089,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         {aiPaletteMounted && (
           <AiCommandPalette
             open={aiPaletteOpen}
+            initialMode={aiPaletteMode}
             events={eventsByCategory}
             onOpenChange={setAiPaletteOpen}
             onEventsMutated={() => void refreshEvents()}
@@ -2356,16 +2105,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               previousPeriod: handlePrevious,
               nextPeriod: handleNext,
               goToDate: handleDateSelect,
-              // The '/' shortcut already focuses it by placeholder lookup;
-              // do the same here so the palette row works without a
-              // keyboard handler behind it.
-              focusSearch: () => {
-                const searchInput = document.querySelector(
-                  'input[placeholder="' + t.searchEvents + '"]',
-                ) as HTMLInputElement | null
-                searchInput?.focus()
-                searchInput?.select()
-              },
               // A search row carries only what the list showed, so the preview
               // gets the same shape the palette had. handleNavigateAndPreview
               // looks the id up in the loaded events first and only falls back

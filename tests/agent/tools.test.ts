@@ -144,6 +144,28 @@ function exec(tool: unknown, input: unknown): Promise<unknown> {
 }
 
 describe('buildCalendarTools', () => {
+  it('publishes three contextual follow-ups without executing any calendar action', async () => {
+    const { toolkit, calls } = makeFakeToolkit()
+    const tool = buildCalendarTools(toolkit).suggest_followups
+    const prompts = [
+      'Show the conflicts on Monday',
+      'Find time for a break',
+      'Summarize my free afternoons',
+    ]
+    expect(await exec(tool, { prompts })).toEqual({ prompts })
+    for (const invalid of [
+      undefined,
+      ['One'],
+      ['Same', 'Same', 'Third'],
+      ['', 'Two', 'Three'],
+      ['x'.repeat(121), 'Two', 'Three'],
+    ]) {
+      expect(await exec(tool, { prompts: invalid })).toEqual({
+        error: expect.any(String),
+      })
+    }
+    expect(calls).toEqual([])
+  })
   it('exposes the full tool set', () => {
     const { toolkit } = makeFakeToolkit()
     const tools = buildCalendarTools(toolkit)
@@ -160,6 +182,7 @@ describe('buildCalendarTools', () => {
       'list_countdowns',
       'list_events',
       'remove_bookmark',
+      'suggest_followups',
       'update_event',
     ])
   })

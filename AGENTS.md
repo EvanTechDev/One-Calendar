@@ -122,6 +122,9 @@ at 12 tool-capable steps plus a final tool-free summary, per-user rate limit
 to the provider, have a 270s total deadline, and discard unfinished tool calls
 when continuing an interrupted conversation. The palette retains its transcript
 until New conversation is selected; closing stops the current response.
+The response-only `suggest_followups` tool supplies three contextual prompts
+under an assistant reply; clicking one sends a new user message. It performs
+no calendar actions and is hidden from the execution-marker list.
 
 Semantic search is separate: `POST /api/agent/search` makes one `generateObject`
 call to compile conditions (`packages/agent/src/search.ts`, `maxRetries: 0`).

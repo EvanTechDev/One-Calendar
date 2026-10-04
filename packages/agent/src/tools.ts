@@ -630,6 +630,33 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
     },
   })
 
+  const suggest_followups = defineTool({
+    description:
+      'Present exactly three short, distinct follow-up prompts the user could send next, based on this conversation and confirmed results. Use the user’s language and perspective. This only displays suggestions; it never performs the suggested actions. Call once after completing the requested work, before your final reply.',
+    inputSchema: z.looseObject({
+      prompts: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Exactly three distinct, nonempty prompts, each at most 120 characters.',
+        ),
+    }),
+    async execute({ prompts }) {
+      const cleaned = prompts?.map((prompt) => prompt.trim()) ?? []
+      if (
+        cleaned.length !== 3 ||
+        new Set(cleaned).size !== 3 ||
+        cleaned.some((prompt) => !prompt || prompt.length > 120)
+      ) {
+        return {
+          error:
+            'Provide exactly three distinct prompts, each 1–120 characters.',
+        }
+      }
+      return { prompts: cleaned }
+    },
+  })
+
   return {
     list_events,
     create_event,
@@ -644,6 +671,7 @@ export function buildCalendarTools(toolkit: CalendarToolkit) {
     list_countdowns,
     create_countdown,
     delete_countdown,
+    suggest_followups,
   }
 }
 
