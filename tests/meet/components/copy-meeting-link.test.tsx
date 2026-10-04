@@ -34,7 +34,6 @@ function renderHome(writeText: ReturnType<typeof vi.fn>) {
         ],
       }}
       recentPreview={null}
-      onNewMeeting={vi.fn()}
       onSectionChange={vi.fn()}
     />,
   )

@@ -142,8 +142,7 @@ function SidebarBody({
         {newMeetingPending ? 'Starting…' : 'New meeting'}
       </Button>
 
-      <nav aria-label="Sections" className="mt-8 space-y-3">
-        <span className="text-sm font-medium">Meetings</span>
+      <nav aria-label="Sections">
         <div className="flex flex-col gap-1">
           {NAV.map((item) => {
             const active = item.id === section

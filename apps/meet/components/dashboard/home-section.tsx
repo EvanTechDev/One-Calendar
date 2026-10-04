@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, CalendarClock, Clock3, History, Plus } from 'lucide-react'
+import { ArrowRight, CalendarClock, Clock3, History } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { JoinMeetingForm } from '@/components/join-meeting-form'
 import { CopyMeetingLink } from '@/components/dashboard/copy-meeting-link'
@@ -20,14 +20,12 @@ export function HomeSection({
   userName,
   upcoming,
   recentPreview,
-  onNewMeeting,
   onSectionChange,
 }: {
   userName?: string
   upcoming: UpcomingState
   /** Server-rendered compact recent list, suspended by the caller. */
   recentPreview: React.ReactNode
-  onNewMeeting: () => void
   onSectionChange: (section: MeetSection) => void
 }) {
   // Resolved after mount: rendering a local-time greeting on the server would
@@ -72,10 +70,6 @@ export function HomeSection({
             </time>
           ) : null}
         </div>
-        <Button className="h-11 px-4 sm:h-9" onClick={onNewMeeting}>
-          <Plus className="size-4" />
-          New meeting
-        </Button>
       </div>
 
       <section

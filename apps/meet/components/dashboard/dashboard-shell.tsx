@@ -19,7 +19,7 @@ import type { MeetSection } from '@/components/shell/meet-shell'
  * did.
  *
  * Home is composed here instead: it needs the same client state the sidebar
- * does (open the New meeting dialog, jump to another section) and reads the
+ * does (jump to another section) and reads the
  * upcoming list from the one fetch this component owns, so home's "next
  * meeting" and the Upcoming list cannot disagree.
  */
@@ -53,7 +53,6 @@ export function DashboardShell({
             userName={userName}
             upcoming={upcoming}
             recentPreview={recentPreview}
-            onNewMeeting={() => setNewMeetingOpen(true)}
             onSectionChange={setSection}
           />
         </div>

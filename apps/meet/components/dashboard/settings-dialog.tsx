@@ -10,7 +10,6 @@ import {
   Info,
   Image as ImageIcon,
   Mic,
-  Monitor,
   Palette,
   SlidersHorizontal,
   Video,
@@ -245,7 +244,7 @@ function SettingRow({
 
 function SettingsGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="divide-y divide-border rounded-xl border bg-card">
+    <div className="divide-y divide-border rounded-lg border bg-card">
       {children}
     </div>
   )
@@ -275,8 +274,6 @@ function PreferencesSettings() {
     setChoices((current) => (current ? { ...current, ...patch } : current))
   }
 
-  const selectClass = 'w-40 sm:w-48'
-
   return (
     <div className="space-y-6">
       <SettingsGroup>
@@ -291,11 +288,7 @@ function PreferencesSettings() {
           >
             {/* Labelled explicitly: the SettingRow's title is a plain div, not
                 a <label>, so without this the select has no accessible name. */}
-            <SelectTrigger
-              id="theme"
-              aria-label="Theme"
-              className={selectClass}
-            >
+            <SelectTrigger id="theme" aria-label="Theme">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -370,7 +363,6 @@ function PreferencesSettings() {
               <SelectTrigger
                 id="join-background"
                 aria-label="Camera background"
-                className={selectClass}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -414,31 +406,15 @@ function AboutSettings() {
   }, [])
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4 rounded-xl border bg-card p-4">
-        <h3 className="text-sm font-medium">Build</h3>
-        <dl className="space-y-3 text-sm">
-          <Fact label="Version" value={APP_VERSION} mono />
-          <Fact label="Commit" value={COMMIT_HASH} mono />
-          {/* Only rendered when there is a real value: an "unknown" row here
-              would look like a bug rather than an unset build variable. */}
-          {deployedAge ? <Fact label="Deployed" value={deployedAge} /> : null}
-        </dl>
-      </div>
-
-      {/*
-        No update-check row, unlike the calendar's BuildInfoCard. That card
-        drives a service worker and a /api/build-info endpoint; meet registers no
-        service worker and has no such endpoint, so the button would have nothing
-        to do.
-      */}
-      <SettingsGroup>
-        <SettingRow
-          icon={<Monitor />}
-          title="Zentra Meet"
-          description="Video meetings for Zentra Calendar. Part of the Zentra suite."
-        />
-      </SettingsGroup>
+    <div className="space-y-4 rounded-lg border bg-card p-4">
+      <h3 className="text-sm font-medium">Build</h3>
+      <dl className="space-y-3 text-sm">
+        <Fact label="Version" value={APP_VERSION} mono />
+        <Fact label="Commit" value={COMMIT_HASH} mono />
+        {/* Only rendered when there is a real value: an "unknown" row here
+            would look like a bug rather than an unset build variable. */}
+        {deployedAge ? <Fact label="Deployed" value={deployedAge} /> : null}
+      </dl>
     </div>
   )
 }

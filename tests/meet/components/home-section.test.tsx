@@ -15,10 +15,8 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 
 /**
  * Home after the redesign. The behaviours worth pinning are that it is not an
- * empty shell (it surfaces the next meeting and a rejoin list), that it offers
- * a path to the New meeting dialog on its own — the sidebar's button is
- * invisible below `sm`, where the rail collapses into a Sheet — and that it
- * hands off to the other sections rather than duplicating them.
+ * empty shell (it surfaces the next meeting and a rejoin list), that it joins
+ * invited rooms directly, and that it hands off to the other sections.
  */
 
 const row = (overrides?: Partial<UpcomingRow>): UpcomingRow => ({
@@ -35,7 +33,6 @@ function renderHome(overrides?: {
   failed?: boolean
   userName?: string | undefined
 }) {
-  const onNewMeeting = vi.fn()
   const onSectionChange = vi.fn()
   render(
     <HomeSection
@@ -47,11 +44,10 @@ function renderHome(overrides?: {
         failed: overrides?.failed ?? false,
       }}
       recentPreview={<p>recent rooms list</p>}
-      onNewMeeting={onNewMeeting}
       onSectionChange={onSectionChange}
     />,
   )
-  return { onNewMeeting, onSectionChange }
+  return { onSectionChange }
 }
 
 afterEach(() => {
@@ -76,15 +72,8 @@ describe('HomeSection', () => {
     )
   })
 
-  it('offers its own route into the New meeting dialog', () => {
-    // The sidebar's button is behind a Sheet below sm, so home needs one too.
-    const { onNewMeeting } = renderHome()
-    fireEvent.click(screen.getByRole('button', { name: 'New meeting' }))
-    expect(onNewMeeting).toHaveBeenCalledOnce()
-  })
-
-  it('joins from home without opening the creation dialog and preserves the invite key', () => {
-    const { onNewMeeting } = renderHome()
+  it('joins from home and preserves the invite key', () => {
+    renderHome()
     fireEvent.change(screen.getByLabelText('Meeting code or link'), {
       target: {
         value: 'https://meet.example.com/ab3k-x9q2?hq=true#pass-phrase',
@@ -92,7 +81,6 @@ describe('HomeSection', () => {
     })
     fireEvent.submit(screen.getByRole('form', { name: 'Join a meeting' }))
     expect(push).toHaveBeenCalledWith('/ab3k-x9q2?hq=true#pass-phrase')
-    expect(onNewMeeting).not.toHaveBeenCalled()
   })
 
   it('keeps meeting creation and its encryption choice in the dialog', () => {
