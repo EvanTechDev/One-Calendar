@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "app/api/agent/chat/route.ts": { "supportsCancellation": true }
+  },
   "crons": [
     {
       "path": "/api/blob/check",

@@ -117,7 +117,11 @@ Cmd/Ctrl+K opens an AI command palette (`components/app/ai/ai-command-palette.ts
 shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
 `POST /api/agent/chat`: Groq `openai/gpt-oss-120b` via the AI SDK (override
 with `GROQ_MODEL`), multi-step tool loop capped
-at 8 steps, per-user rate limit 20/5min. Requires `GROQ_API_KEY` (503 without).
+at 12 tool-capable steps plus a final tool-free summary, per-user rate limit
+20/5min. Requires `GROQ_API_KEY` (503 without). Requests propagate cancellation
+to the provider, have a 270s total deadline, and discard unfinished tool calls
+when continuing an interrupted conversation. The palette retains its transcript
+until New conversation is selected; closing stops the current response.
 
 Semantic search is separate: `POST /api/agent/search` makes one `generateObject`
 call to compile conditions (`packages/agent/src/search.ts`, `maxRetries: 0`).

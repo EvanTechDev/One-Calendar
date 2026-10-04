@@ -1,4 +1,12 @@
 {
+  "commandDuplicate": "Duplicate this occurrence",
+  "commandWorkspace": "Workspace",
+  "commandUpcoming": "Upcoming · choose an event to act on",
+  "commandFilterCalendar": "Show one calendar…",
+  "commandAllCalendars": "Show all calendars",
+  "aiAssistantContinue": "Continue unfinished work",
+  "aiAssistantContinuePrompt": "Continue the unfinished parts of my request. First check existing results and current calendar state; do not repeat successful writes. Report what is completed and what remains.",
+  "aiAssistantTimedOut": "The response timed out. Completed changes are kept. You can continue after checking the current state.",
   "calendar": "Calendar",
   "loadingCalendar": "Loading calendar",
   "createEvent": "Create Event",

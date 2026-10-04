@@ -23,6 +23,7 @@
 import * as React from 'react'
 import type { useChat } from '@ai-sdk/react'
 import { Streamdown } from 'streamdown'
+import { AssistantIcon } from './assistant-icon'
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -44,7 +45,6 @@ import {
   ChevronDown,
   Clock,
   Hourglass,
-  Sparkles,
   Trash2,
   TriangleAlert,
   Wrench,
@@ -117,6 +117,8 @@ export function ChatTranscript({
   busy,
   error,
   onApproval,
+  timedOut = false,
+  onContinue,
 }: {
   t: Translation
   messages: ChatMessages
@@ -124,17 +126,19 @@ export function ChatTranscript({
   error: Error | null
   /** addToolApprovalResponse from useChat. */
   onApproval: (response: { id: string; approved: boolean }) => void
+  timedOut?: boolean
+  onContinue?: () => void
 }) {
   return (
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
       {/* dvh-aware: fill what the dialog allows, never more than the
           dynamic viewport minus the dialog's own chrome. */}
-      <MessageScroller className="h-[min(26rem,calc(100dvh-19rem))]">
+      <MessageScroller className="h-auto min-h-0 flex-1 basis-80">
         <MessageScrollerViewport aria-label={t.aiAssistant}>
           <MessageScrollerContent className="gap-6 px-4 py-5">
             {messages.length === 0 && !busy && (
               <div className="my-auto flex flex-col items-start gap-3 px-2 py-8">
-                <Sparkles className="size-5 text-muted-foreground" />
+                <AssistantIcon className="size-6 text-muted-foreground" />
                 <h3 className="text-base font-medium">{t.aiAssistant}</h3>
                 <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
                   {t.aiAssistantHint}
@@ -185,9 +189,19 @@ export function ChatTranscript({
               </MessageScrollerItem>
             )}
 
-            {error && (
-              <MessageScrollerItem className="rounded-lg bg-destructive/10 px-3 py-1.5 text-sm text-destructive">
-                {t.aiAssistantError}
+            {(error || timedOut) && (
+              <MessageScrollerItem
+                role="alert"
+                className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
+                {timedOut ? t.aiAssistantTimedOut : t.aiAssistantError}
+              </MessageScrollerItem>
+            )}
+            {!busy && messages.length > 0 && onContinue && (
+              <MessageScrollerItem>
+                <Button size="sm" variant="ghost" onClick={onContinue}>
+                  {t.aiAssistantContinue}
+                </Button>
               </MessageScrollerItem>
             )}
           </MessageScrollerContent>
@@ -217,7 +231,7 @@ function AssistantPart({
         isAnimating={busy}
         // Scope prose styling: compact spacing so the palette reads like
         // a panel, not an article.
-        className="min-w-0 text-sm leading-relaxed [&_a]:underline [&_a]:underline-offset-2 [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:text-xs [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 first:[&_p]:mt-0 last:[&_p]:mb-0"
+        className="agent-markdown min-w-0 text-sm leading-relaxed"
       >
         {part.text}
       </Streamdown>

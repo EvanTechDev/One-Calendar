@@ -17,6 +17,12 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai'
 import { ChatTranscript } from './chat-transcript'
+import { AssistantIcon } from './assistant-icon'
+import {
+  PaletteWorkspaceCommands,
+  type CommandPage,
+  type WorkspaceCommands,
+} from './palette-workspace-commands'
 import { PaletteSearchResults } from './palette-search-results'
 import {
   commandFilter,
@@ -57,7 +63,6 @@ import {
   Rows3,
   Search,
   Settings,
-  Sparkles,
   Sun,
   Terminal,
   X,
@@ -166,6 +171,7 @@ interface AiCommandPaletteProps {
   /** App commands surfaced as palette items alongside the AI. */
   actions?: PaletteActions
   events?: CalendarEvent[]
+  workspace?: WorkspaceCommands
 }
 
 export function AiCommandPalette({
@@ -174,11 +180,19 @@ export function AiCommandPalette({
   onEventsMutated,
   actions,
   events = [],
+  workspace,
 }: AiCommandPaletteProps) {
   const [language] = useLanguage()
   const t = translations[language]
   const [input, setInput] = React.useState('')
   const [mode, setMode] = React.useState<Mode>('palette')
+  const [commandTrail, setCommandTrail] = React.useState<CommandPage[]>([])
+  const commandPage = commandTrail.at(-1) ?? null
+  const navigateCommand = (page: CommandPage | null) => {
+    setCommandTrail((trail) => (page ? [...trail, page] : trail.slice(0, -1)))
+    setInput('')
+    inputRef.current?.focus()
+  }
   const [search, setSearch] = React.useState<SearchState>({ status: 'idle' })
   // The next page's fetch, as distinct from a new search: the rows already on
   // screen must stay on screen while page 2 loads.
@@ -218,17 +232,31 @@ export function AiCommandPalette({
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
   })
   const chatBusy = chat.status === 'submitted' || chat.status === 'streaming'
+  const [chatTimedOut, setChatTimedOut] = React.useState(false)
+  // A broken connection must not leave the composer disabled forever.
+  React.useEffect(() => {
+    if (!chatBusy) return
+    const timer = setTimeout(() => {
+      setChatTimedOut(true)
+      void chat.stop()
+    }, 285_000)
+    return () => clearTimeout(timer)
+  }, [chatBusy, chat.stop])
 
-  // Refresh the calendar after a completed turn that wrote something.
+  // Show confirmed writes even if a later step fails or the user stops.
   const lastNotified = React.useRef<string | null>(null)
   React.useEffect(() => {
-    if (chat.status !== 'ready') return
     const last = chat.messages[chat.messages.length - 1]
-    if (!last || last.role !== 'assistant' || last.id === lastNotified.current)
-      return
-    const wrote = last.parts?.some((part) => WRITE_TOOLS.has(part.type))
-    if (wrote) {
-      lastNotified.current = last.id
+    if (!last || last.role !== 'assistant') return
+    const writes = last.parts?.filter(
+      (part) =>
+        WRITE_TOOLS.has(part.type) &&
+        'state' in part &&
+        part.state === 'output-available',
+    )
+    const signature = `${last.id}:${writes.length}`
+    if (writes.length && signature !== lastNotified.current) {
+      lastNotified.current = signature
       onEventsMutated?.()
     }
   }, [chat.status, chat.messages, onEventsMutated])
@@ -249,17 +277,16 @@ export function AiCommandPalette({
     setNavigatingResults(false)
   }, [cancelSearch])
   const stopChat = chat.stop
-  const setMessages = chat.setMessages
   React.useEffect(() => {
     if (!open) {
       resetSearch()
       void stopChat()
-      setMessages([])
       setMode('palette')
+      setCommandTrail([])
       setInput('')
       lastNotified.current = null
     }
-  }, [open, resetSearch, stopChat, setMessages])
+  }, [open, resetSearch, stopChat])
 
   /**
    * Page 1 asks the model to judge candidates; later pages replay sealed
@@ -365,6 +392,7 @@ export function AiCommandPalette({
     const text = input.trim()
     if (!text || chatBusy) return
     setMode('chat')
+    setChatTimedOut(false)
     setInput('')
     void chat.sendMessage({ text })
   }, [chat, chatBusy, input])
@@ -380,6 +408,7 @@ export function AiCommandPalette({
   const newConversation = React.useCallback(() => {
     void chat.stop()
     chat.setMessages([])
+    setChatTimedOut(false)
     setInput('')
     lastNotified.current = null
     composerRef.current?.focus()
@@ -438,7 +467,7 @@ export function AiCommandPalette({
     { value: 'palette', label: t.commandPaletteCommands, icon: Terminal },
     { value: 'search', label: t.commandPaletteSearch, icon: Search },
     ...(AI_ENABLED
-      ? [{ value: 'chat', label: t.aiAssistantAsk, icon: Sparkles }]
+      ? [{ value: 'chat', label: t.aiAssistantAsk, icon: AssistantIcon }]
       : []),
   ] as const
   const activeMode = modes.find((item) => item.value === mode) ?? modes[0]
@@ -448,12 +477,19 @@ export function AiCommandPalette({
     <CommandDialog
       open={open}
       onOpenChange={reset}
+      onEscapeKeyDown={(event) => {
+        if (mode === 'palette' && commandPage) {
+          event.preventDefault()
+          event.stopPropagation()
+          navigateCommand(null)
+        }
+      }}
       title={t.commandPaletteTitle}
       description={t.commandPaletteDescription}
       // top-1/3 from the ui component collides with short dynamic
       // viewports (mobile URL bar): pin to a dvh-safe band instead so the
       // dialog never extends past what is actually visible.
-      className="top-[max(1rem,min(20dvh,8rem))] flex max-h-[calc(100dvh-max(1rem,min(20dvh,8rem))-1rem)] flex-col sm:max-w-2xl"
+      className={`top-[max(1rem,min(20dvh,8rem))] flex max-h-[calc(100dvh-max(1rem,min(20dvh,8rem))-1rem)] flex-col sm:max-w-2xl ${mode === 'chat' ? 'h-[min(38rem,calc(100dvh-max(1rem,min(20dvh,8rem))-1rem))]' : ''}`}
     >
       {/* The new CommandDialog renders children bare (no implicit Command
           root), so cmdk's context is established here explicitly.
@@ -462,10 +498,21 @@ export function AiCommandPalette({
           every row the moment the question text stopped matching a title. */}
       <Command
         label={t.commandPaletteTitle}
-        className="min-h-0 h-auto rounded-xl! p-2"
+        className="min-h-0 flex-1 rounded-xl! p-2"
         shouldFilter={mode === 'palette'}
         filter={filterCommand}
         onKeyDownCapture={(e) => {
+          if (
+            mode === 'palette' &&
+            commandPage &&
+            e.key === 'Backspace' &&
+            !input
+          ) {
+            e.preventDefault()
+            e.stopPropagation()
+            navigateCommand(null)
+            return
+          }
           if (
             e.altKey &&
             !e.ctrlKey &&
@@ -491,6 +538,16 @@ export function AiCommandPalette({
               e.stopPropagation()
           }}
         >
+          {mode === 'palette' && commandPage && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t.back}
+              onClick={() => navigateCommand(null)}
+            >
+              <ArrowLeft />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -507,7 +564,6 @@ export function AiCommandPalette({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-56"
               onKeyDown={(e) => e.stopPropagation()}
               onCloseAutoFocus={(e) => {
                 e.preventDefault()
@@ -519,11 +575,7 @@ export function AiCommandPalette({
                 onValueChange={(value) => switchMode(value as Mode)}
               >
                 {modes.map(({ value, label, icon: Icon }) => (
-                  <DropdownMenuRadioItem
-                    key={value}
-                    value={value}
-                    className="gap-2 py-2"
-                  >
+                  <DropdownMenuRadioItem key={value} value={value}>
                     <Icon />
                     {label}
                   </DropdownMenuRadioItem>
@@ -611,7 +663,13 @@ export function AiCommandPalette({
             <X />
           </Button>
         </div>
-        <div className="min-h-0 overflow-y-auto overscroll-contain">
+        <div
+          className={
+            mode === 'chat'
+              ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
+              : 'min-h-0 overflow-y-auto overscroll-contain'
+          }
+        >
           {mode === 'search' && search.status === 'idle' ? (
             <PaletteSearchResults
               t={t}
@@ -670,16 +728,21 @@ export function AiCommandPalette({
                 messages={chat.messages}
                 busy={chatBusy}
                 error={chat.error ?? null}
+                timedOut={chatTimedOut}
+                onContinue={() => {
+                  setChatTimedOut(false)
+                  void chat.sendMessage({ text: t.aiAssistantContinuePrompt })
+                }}
                 onApproval={chat.addToolApprovalResponse}
               />
-              <div className="relative mx-1 mb-2 rounded-lg border bg-muted/30 focus-within:ring-1 focus-within:ring-ring">
+              <div className="relative mx-1 my-2 shrink-0 rounded-lg border bg-muted/30 focus-within:ring-1 focus-within:ring-ring">
                 <Textarea
                   ref={composerRef}
                   aria-label={t.aiAssistantAsk}
                   placeholder={t.aiAssistantPlaceholder}
                   value={input}
                   rows={2}
-                  className="min-h-20 max-h-36 resize-none border-0 bg-transparent! pr-12 shadow-none focus-visible:ring-0"
+                  className="h-20 min-h-0 max-h-28 field-sizing-fixed resize-none overflow-y-auto border-0 bg-transparent! pr-12 shadow-none focus-visible:ring-0"
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
                     e.stopPropagation()
@@ -709,7 +772,7 @@ export function AiCommandPalette({
             <CommandList className="max-h-[min(24rem,calc(100dvh-13rem))] overscroll-contain">
               <CommandEmpty>{t.noMatchingEvents}</CommandEmpty>
               {/* Date navigation precedes general commands on equal scores. */}
-              {typedDate && (
+              {!commandPage && typedDate && (
                 <CommandGroup heading={t.aiGoToDate}>
                   <CommandItem
                     value={DATE_ACTION}
@@ -723,7 +786,27 @@ export function AiCommandPalette({
                   </CommandItem>
                 </CommandGroup>
               )}
-              {actions && (
+              {workspace && (
+                <PaletteWorkspaceCommands
+                  t={t}
+                  events={events}
+                  query={input}
+                  page={commandPage}
+                  navigate={navigateCommand}
+                  workspace={workspace}
+                  run={runAction}
+                  preview={(event) =>
+                    goToEvent({
+                      ...event,
+                      startDate: new Date(event.startDate).toISOString(),
+                      endDate: new Date(event.endDate).toISOString(),
+                      location: event.location ?? null,
+                      color: event.color ?? null,
+                    })
+                  }
+                />
+              )}
+              {!commandPage && actions && (
                 <>
                   <CommandSeparator />
                   <CommandGroup heading={t.calendar}>

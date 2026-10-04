@@ -9,14 +9,18 @@ import {
   waitFor,
 } from '@testing-library/react'
 
-const { sendMessage, stop, setMessages } = vi.hoisted(() => {
+const { sendMessage, stop, setMessages, chatState } = vi.hoisted(() => {
   process.env.NEXT_PUBLIC_AI_ENABLED = '1'
-  return { sendMessage: vi.fn(), stop: vi.fn(), setMessages: vi.fn() }
+  return {
+    sendMessage: vi.fn(),
+    stop: vi.fn(),
+    setMessages: vi.fn(),
+    chatState: { status: 'ready', messages: [] as unknown[] },
+  }
 })
 vi.mock('@ai-sdk/react', () => ({
   useChat: () => ({
-    status: 'ready',
-    messages: [],
+    ...chatState,
     stop,
     setMessages,
     sendMessage,
@@ -38,6 +42,10 @@ import {
 
 const fetchSearch = vi.fn()
 beforeEach(() => {
+  chatState.status = 'ready'
+  chatState.messages = []
+  stop.mockClear()
+  setMessages.mockClear()
   sendMessage.mockClear()
   vi.stubGlobal(
     'ResizeObserver',
@@ -403,4 +411,77 @@ it('Enter still searches after arrow navigation in an empty result list', async 
   fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(fetchSearch).toHaveBeenCalledTimes(1)
+})
+
+it('chooses an event, edits it and navigates nested workspace commands without AI', async () => {
+  const event = {
+    id: 'e1',
+    title: 'Roadmap workshop',
+    startDate: new Date('2026-10-05T09:00Z'),
+    endDate: new Date('2026-10-05T10:00Z'),
+    isAllDay: false,
+  }
+  const workspace = {
+    calendars: [{ id: 'work', name: 'Work' }],
+    bookmarkedIds: ['e1'],
+    editEvent: vi.fn(),
+    duplicateEvent: vi.fn(),
+    toggleBookmark: vi.fn(),
+    filterCalendar: vi.fn(),
+    setTheme: vi.fn(),
+  }
+  const close = vi.fn()
+  render(
+    <AiCommandPalette
+      open
+      onOpenChange={close}
+      events={[event]}
+      workspace={workspace}
+    />,
+  )
+  await typeQuestion('Roadmap')
+  fireEvent.click(screen.getByRole('option', { name: /Roadmap workshop/ }))
+  expect(close).not.toHaveBeenCalled()
+  expect(screen.getByRole('combobox')).toHaveValue('')
+  fireEvent.click(screen.getByRole('option', { name: 'Edit' }))
+  expect(workspace.editEvent).toHaveBeenCalledExactlyOnceWith(event)
+  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' })
+  expect(close).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('option', { name: 'Bookmarks' }))
+  fireEvent.click(screen.getByRole('option', { name: /Roadmap workshop/ }))
+  fireEvent.click(
+    screen.getByRole('option', { name: 'Duplicate this occurrence' }),
+  )
+  expect(workspace.duplicateEvent).toHaveBeenCalledExactlyOnceWith(event)
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+  expect(
+    screen.getByRole('option', { name: /Roadmap workshop/ }),
+  ).toBeInTheDocument()
+  expect(
+    screen.queryByRole('option', { name: 'Show one calendar…' }),
+  ).not.toBeInTheDocument()
+  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Backspace' })
+  fireEvent.click(screen.getByRole('option', { name: 'Show one calendar…' }))
+  fireEvent.click(screen.getByRole('option', { name: 'Work' }))
+  expect(workspace.filterCalendar).toHaveBeenCalledExactlyOnceWith('work')
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+  fireEvent.click(screen.getByRole('option', { name: 'Theme' }))
+  fireEvent.click(screen.getByRole('option', { name: 'Dark' }))
+  expect(workspace.setTheme).toHaveBeenCalledExactlyOnceWith('dark')
+  expect(fetchSearch).not.toHaveBeenCalled()
+})
+
+it('stops a stalled agent and retains its transcript when the palette closes', async () => {
+  chatState.status = 'streaming'
+  chatState.messages = [
+    { id: 'a1', role: 'assistant', parts: [{ type: 'text', text: 'Working' }] },
+  ]
+  vi.useFakeTimers()
+  const { rerender } = render(<AiCommandPalette open onOpenChange={vi.fn()} />)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(285_000)
+  })
+  expect(stop).toHaveBeenCalledTimes(1)
+  rerender(<AiCommandPalette open={false} onOpenChange={vi.fn()} />)
+  expect(setMessages).not.toHaveBeenCalledWith([])
 })

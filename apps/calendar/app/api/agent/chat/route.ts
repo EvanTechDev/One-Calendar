@@ -18,7 +18,7 @@ import { getAuthedUser } from '@/lib/api-helpers'
 import { checkFixedWindowLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 300
 
 const MAX_MESSAGES = 30
 const MAX_TEXT_LENGTH = 4000
@@ -103,11 +103,24 @@ export async function POST(request: NextRequest) {
       timezone,
       nowIso: new Date().toISOString(),
     }),
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages, {
+      tools,
+      ignoreIncompleteToolCalls: true,
+    }),
     tools,
-    // list → decide → act → confirm needs a few steps; eight is enough for
-    // any calendar task and small enough that a confused model stops fast.
-    stopWhen: stepCountIs(8),
+    abortSignal: request.signal,
+    timeout: { totalMs: 270_000, stepMs: 60_000, chunkMs: 45_000 },
+    maxRetries: 1,
+    // Reserve a final model turn to explain completed and remaining work,
+    // rather than ending silently immediately after the last tool result.
+    stopWhen: stepCountIs(13),
+    prepareStep: ({ stepNumber }) =>
+      stepNumber >= 12
+        ? {
+            toolChoice: 'none',
+            instructions: `${buildInstructions({ timezone, nowIso: new Date().toISOString() })}\nThis turn has reached its tool budget. Summarize only confirmed results, explicitly list unfinished work, and ask the user whether to continue. Do not claim unfinished work is complete.`,
+          }
+        : undefined,
     onError({ error }) {
       // Status and the provider's own message only — the SDK error object
       // carries the whole request body, and with it the user's conversation.
