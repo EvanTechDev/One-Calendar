@@ -13,6 +13,88 @@ import { translations as localeTranslations } from '@zntr/i18n/calendar/locales'
 
 export const MAX_EXPANSION = 1000
 
+const DAY_MS = 24 * 60 * 60 * 1000
+// Bounds include the walk from DTSTART to the window, not just emitted rows.
+const MAX_SCAN_DAYS = 36_600
+const MAX_SCAN_SLOTS = 100_000
+
+export class RecurrenceBudgetError extends Error {
+  constructor() {
+    super('Recurrence exceeds the expansion budget')
+    this.name = 'RecurrenceBudgetError'
+  }
+}
+
+function parseExpansionRule(text: string): RRule {
+  if (!text.trim() || text.length > 4096) throw new RecurrenceBudgetError()
+  const rule = RRule.fromString(text)
+  const { freq, interval, count, byhour, byminute, bysecond } = rule.options
+  // The calendar models one anchor-clock occurrence per day. Sub-daily rules
+  // cannot be represented faithfully and can otherwise enumerate billions.
+  if (
+    rule.origOptions.freq === null ||
+    rule.origOptions.freq === undefined ||
+    freq < RRule.YEARLY ||
+    freq > RRule.DAILY ||
+    !Number.isSafeInteger(interval) ||
+    interval < 1 ||
+    (count !== null && (!Number.isSafeInteger(count) || count < 1)) ||
+    byhour.length * byminute.length * bysecond.length > 24
+  )
+    throw new RecurrenceBudgetError()
+  return rule
+}
+
+function checkExpansionBudget(rule: RRule, end: Date) {
+  const { dtstart, until, byhour, byminute, bysecond } = rule.options
+  const last = Math.min(end.getTime(), until?.getTime() ?? Infinity)
+  const days = Math.max(0, Math.ceil((last - dtstart.getTime()) / DAY_MS))
+  if (
+    !Number.isFinite(days) ||
+    days > MAX_SCAN_DAYS ||
+    days * byhour.length * byminute.length * bysecond.length > MAX_SCAN_SLOTS
+  )
+    throw new RecurrenceBudgetError()
+}
+
+/**
+ * rrule 2.8.x checks UNTIL/between bounds only when it finds a candidate.
+ * An impossible BY* filter can therefore walk to year 9999 without invoking
+ * the result callback. Its iterator reads `interval` each period and
+ * `bymonth` for each tested day, including rejected days. Meter those reads
+ * on this private rule instance; never mutate the library or shared state.
+ * The impossible-rule tests must stay in place when upgrading rrule.
+ */
+function withRuleWorkBudget<T>(rule: RRule, run: () => T): T {
+  const options = rule.options
+  const slotCost = Math.max(
+    1,
+    options.byhour.length * options.byminute.length * options.bysecond.length,
+    options.bysetpos?.length ?? 0,
+  )
+  let work = 0
+  const descriptors = ['interval', 'bymonth'].map((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(options, key)!
+    Object.defineProperty(options, key, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        work += key === 'bymonth' ? slotCost : 1
+        if (work > MAX_SCAN_SLOTS) throw new RecurrenceBudgetError()
+        return descriptor.value
+      },
+    })
+    return { key, descriptor }
+  })
+  try {
+    return run()
+  } finally {
+    for (const { key, descriptor } of descriptors) {
+      Object.defineProperty(options, key, descriptor)
+    }
+  }
+}
+
 export const DEFAULT_EXPANSION_WINDOW_MS = 2 * 365 * 24 * 60 * 60 * 1000
 
 export const defaultExpansionWindow = () => {
@@ -313,7 +395,17 @@ export function wallClockToInstant(
       clock.minute,
       clock.second,
     )
-    return new Date(naive - tzOffsetMs(timeZone, naive))
+    // Resolve offsets on BOTH sides of a possible transition. Using only the
+    // offset at `naive` gives the wrong instant near DST. Compatible semantics:
+    // choose the earlier instant in a fold, and shift forward through a gap.
+    const offsets = new Set(
+      [-DAY_MS, 0, DAY_MS].map((delta) => tzOffsetMs(timeZone, naive + delta)),
+    )
+    const candidates = [...offsets].map((offset) => naive - offset)
+    const exact = candidates.filter(
+      (instant) => instant + tzOffsetMs(timeZone, instant) === naive,
+    )
+    return new Date(exact.length ? Math.min(...exact) : Math.max(...candidates))
   }
   return new Date(
     parts.year,
@@ -463,7 +555,11 @@ export function expandSeries(
   }
   const windowFrom = windowStart.getTime()
   const windowTo = windowEnd.getTime()
-  if (windowFrom > windowTo) {
+  if (
+    !Number.isFinite(windowFrom) ||
+    !Number.isFinite(windowTo) ||
+    windowFrom > windowTo
+  ) {
     return []
   }
   const isAllDay = series.isAllDay
@@ -480,58 +576,56 @@ export function expandSeries(
   const ruleDtstart = new Date(
     Date.UTC(anchorParts.year, anchorParts.month - 1, anchorParts.day),
   )
-  const toDayParts = (date: Date): DateParts =>
-    timeZone ? partsInTz(date, timeZone) : partsOfUtcDay(date)
+  // RRule dates encode calendar components in UTC; they are not instants in
+  // the organiser's zone. Interpreting them there shifts negative zones a day.
+  const toDayParts = partsOfUtcDay
   const toOccurrence = (date: Date): Date =>
     wallClockToInstant(toDayParts(date), clock, timeZone)
 
-  let occurrences: Date[] = []
+  let rule: RRule
   try {
-    const parsed = RRule.fromString(rruleString.trim())
-    const rule = new RRule({ ...parsed.origOptions, dtstart: ruleDtstart })
-    occurrences = rule.between(windowStart, windowEnd, true)
+    const parsed = parseExpansionRule(rruleString)
+    rule = new RRule({ ...parsed.origOptions, dtstart: ruleDtstart }, true)
   } catch {
-    occurrences = []
+    // Invalid/unsupported legacy rules must not enter the synchronous iterator.
+    return []
   }
-
-  const included = new Set(occurrences.map((date) => date.getTime()))
-  const anchorTime = ruleDtstart.getTime()
-  if (
-    anchorTime >= windowFrom &&
-    anchorTime <= windowTo &&
-    !included.has(anchorTime)
-  ) {
-    occurrences.unshift(ruleDtstart)
-  }
-
-  const exdateStamps = new Set(series.exdate ?? [])
-  occurrences = occurrences.filter(
-    (date) =>
-      !exdateStamps.has(
-        isAllDay
-          ? dayStamp(toDayParts(date))
-          : toRfcStamp(toOccurrence(date), false),
-      ),
+  // Slot dates and instants can straddle opposite UTC days. Filter by the
+  // reconstructed instant below, rather than losing boundary occurrences.
+  const slotStart = windowFrom - 2 * DAY_MS
+  const slotEnd = Math.min(8.64e15, windowTo + 2 * DAY_MS)
+  const slotsPerDay =
+    rule.options.byhour.length *
+    rule.options.byminute.length *
+    rule.options.bysecond.length
+  const budgetEnd =
+    ruleDtstart.getTime() +
+    Math.min(
+      MAX_SCAN_DAYS,
+      Math.floor(MAX_SCAN_SLOTS / Math.max(1, slotsPerDay)),
+    ) *
+      DAY_MS
+  const naturalEnd = Math.min(
+    slotEnd,
+    rule.options.until?.getTime() ?? Infinity,
   )
-
-  if (max > 0 && occurrences.length > max) {
-    occurrences = occurrences.slice(0, max)
-  }
-
-  // Occurrences are identified by a day+anchor-clock stamp, so a rule that
-  // selects several times within one day (BYHOUR/BYMINUTE/BYSECOND, or a
-  // sub-daily INTERVAL) would otherwise emit duplicate instances sharing one
-  // recurrenceId — indistinguishable rows that break override matching and
-  // render as stacked copies. Collapse them to one instance per stamp.
+  const scanEnd = Math.min(naturalEnd, budgetEnd)
+  const exdateStamps = new Set(series.exdate ?? [])
+  const limit =
+    Number.isFinite(max) && max > 0
+      ? Math.max(1, Math.min(Math.floor(max), MAX_EXPANSION))
+      : MAX_EXPANSION
   const seenStamps = new Set<string>()
   const instances: RecurrenceInstance[] = []
-  for (const date of occurrences) {
+  const include = (date: Date) => {
     const dayParts = toDayParts(date)
     const startDate = toOccurrence(date)
+    if (startDate.getTime() < windowFrom || startDate.getTime() > windowTo)
+      return
     const recurrenceId = isAllDay
       ? dayStamp(dayParts)
       : toRfcStamp(startDate, false)
-    if (seenStamps.has(recurrenceId)) continue
+    if (seenStamps.has(recurrenceId) || exdateStamps.has(recurrenceId)) return
     seenStamps.add(recurrenceId)
     instances.push({
       id: buildInstanceId(series.id, recurrenceId),
@@ -542,6 +636,26 @@ export function expandSeries(
       isAllDay,
     })
   }
+  include(ruleDtstart)
+  let visited = 0
+  if (instances.length < limit) {
+    withRuleWorkBudget(rule, () =>
+      rule.between(ruleDtstart, new Date(scanEnd), true, (date) => {
+        visited++
+        if (date.getTime() >= slotStart) include(date)
+        return instances.length < limit
+      }),
+    )
+  }
+  // A finite COUNT may finish before the budget even for an open-ended query.
+  // Otherwise refuse explicitly rather than returning a silently incomplete
+  // calendar. The separate work meter also stops scans with no matching slots.
+  if (
+    instances.length < limit &&
+    scanEnd < naturalEnd &&
+    (rule.options.count === null || visited < rule.options.count)
+  )
+    throw new RecurrenceBudgetError()
   return instances
 }
 
@@ -871,7 +985,7 @@ export function remainingSeriesCount(
   timeZone?: string,
 ): number | null {
   try {
-    const parsed = RRule.fromString(rruleString.trim())
+    const parsed = parseExpansionRule(rruleString)
     const count = parsed.origOptions.count
     if (typeof count !== 'number') return null
     const anchorParts = timeZone
@@ -887,9 +1001,13 @@ export function remainingSeriesCount(
     const splitDay = new Date(
       Date.UTC(splitParts.year, splitParts.month - 1, splitParts.day),
     )
-    const beforeSplit = rule.between(new Date(0), splitDay, false).length
+    checkExpansionBudget(rule, splitDay)
+    const beforeSplit = withRuleWorkBudget(rule, () =>
+      rule.between(ruleDtstart, splitDay, true),
+    ).filter((date) => date < splitDay).length
     return Math.max(count - beforeSplit, 1)
-  } catch {
+  } catch (error) {
+    if (error instanceof RecurrenceBudgetError) throw error
     return null
   }
 }
@@ -899,8 +1017,8 @@ export function isValidRrule(rule: string): boolean {
     return false
   }
   try {
-    const options = RRule.fromString(rule).origOptions
-    return options.freq !== null && options.freq !== undefined
+    parseExpansionRule(rule)
+    return true
   } catch {
     return false
   }
@@ -971,8 +1089,12 @@ function matchesParts(
       ...RRule.fromString(rruleFromParts(unbounded)).origOptions,
       dtstart: dayStart,
     })
-    return rule.between(dayStart, dayEnd, true).length > 0
-  } catch {
+    return (
+      withRuleWorkBudget(rule, () => rule.between(dayStart, dayEnd, true))
+        .length > 0
+    )
+  } catch (error) {
+    if (error instanceof RecurrenceBudgetError) throw error
     // Unparsable rule: treat the anchor as a member so callers leave it alone
     // rather than rewriting a rule they cannot reason about.
     return true

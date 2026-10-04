@@ -44,6 +44,11 @@ import {
 } from '@/lib/recurrence/engine'
 import { isValidTimezone } from '@/lib/timezone'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
+import {
+  baselineOf,
+  getOccurrencesForInvites,
+} from '@/lib/invites/invite-service'
+import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
 import { normalizeEmails as normalizeEmailsShared } from '@/lib/email'
 import {
   encryptMergedFields,
@@ -51,6 +56,7 @@ import {
   isValidStamp,
   remapSeriesOverrideStamps,
   shiftOverrideStamps,
+  writeInstanceOverride,
 } from '@/lib/event-write'
 import crypto from 'crypto'
 
@@ -740,40 +746,7 @@ async function applySinglePlan(
       )
   }
 
-  const encrypted = encryptMergedFields(upsert.id, upsert.fields)
-  let stored
-  if (upsert.isNew) {
-    // Upsert on the (seriesId, recurrenceId) unique index: a double-submit
-    // resolves to one row (last writer wins) instead of erroring.
-    ;[stored] = await db
-      .insert(calendarEvents)
-      .values({
-        id: upsert.id,
-        userId,
-        seriesId: upsert.seriesId,
-        recurrenceId: upsert.recurrenceId,
-        createdAt: upsert.fields.createdAt as Date,
-        updatedAt: upsert.fields.updatedAt as Date,
-        ...encrypted,
-      } as typeof calendarEvents.$inferInsert)
-      .onConflictDoUpdate({
-        target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
-        set: { ...encrypted, updatedAt: new Date() },
-      })
-      .returning()
-  } else {
-    ;[stored] = await db
-      .update(calendarEvents)
-      .set({ ...encrypted, updatedAt: new Date() })
-      .where(
-        and(
-          eq(calendarEvents.id, upsert.id),
-          eq(calendarEvents.userId, userId),
-        ),
-      )
-      .returning()
-  }
-
+  const stored = await writeInstanceOverride(db, userId, upsert)
   return stored ? decryptEvent(stored) : null
 }
 
@@ -781,7 +754,8 @@ async function applySinglePlan(
 // listEvents
 // ---------------------------------------------------------------------------
 
-export async function listEvents(
+/** One materialization of the user's candidates, before presentation paging. */
+export async function listEventCandidates(
   userId: string,
   params: ListEventsParams = {},
 ) {
@@ -809,11 +783,6 @@ export async function listEvents(
   const searchFields = hasStructuredSearch ? params.search!.fields : undefined
 
   const defaultTimezone = await resolveUserTimeZone(userId)
-
-  const { page, limit } = validatePagination(
-    params.pagination?.page ?? params.page,
-    params.pagination?.limit ?? params.limit,
-  )
 
   const sqlFilters: SQL[] = [eq(calendarEvents.userId, userId)]
 
@@ -903,10 +872,12 @@ export async function listEvents(
       ),
     )
 
-  let events = rows.map(decryptEvent)
   const recurring = recurringRows.map(decryptEvent)
   const recurringIds = new Set(recurring.map((e) => e.id))
-  const plainRows = events.filter((e) => !recurringIds.has(e.id))
+  const plainRows = rows
+    .filter((e) => !recurringIds.has(e.id))
+    .map(decryptEvent)
+  let events = plainRows
 
   if (timeRange.start || timeRange.end) {
     events = expandRows([...plainRows, ...recurring], {
@@ -941,11 +912,9 @@ export async function listEvents(
 
   // Merge invite emails into participants so returned events show the full
   // participant set, not just the ones stored on the event row.
-  const emailSets = await buildParticipantEmailSets([
-    ...new Set(events.map((e) => (e.seriesId ?? e.id) as string)),
-  ])
+  const emailSets = await buildParticipantEmailSets(events)
   for (const event of events) {
-    const inviteEmails = emailSets.get((event.seriesId ?? event.id) as string)
+    const inviteEmails = emailSets.get(event.id)
     if (inviteEmails && inviteEmails.size > 0) {
       event.participants = mergeParticipantEmails(
         event.participants,
@@ -1032,6 +1001,19 @@ export async function listEvents(
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   })
 
+  return events
+}
+
+export async function listEvents(
+  userId: string,
+  params: ListEventsParams = {},
+) {
+  const { page, limit } = validatePagination(
+    params.pagination?.page ?? params.page,
+    params.pagination?.limit ?? params.limit,
+  )
+  const events = await listEventCandidates(userId, params)
+
   const total = events.length
   const offset = (page - 1) * limit
   const paged = events.slice(offset, offset + limit)
@@ -1055,22 +1037,49 @@ export async function listEvents(
 }
 
 async function buildParticipantEmailSets(
-  eventIds: string[],
+  events: ReturnType<typeof decryptEvent>[],
 ): Promise<Map<string, Set<string>>> {
   const emailSets = new Map<string, Set<string>>()
+  const eventIds = [
+    ...new Set(events.map((event) => event.seriesId ?? event.id)),
+  ]
   if (eventIds.length === 0) return emailSets
-  for (const id of eventIds) emailSets.set(id, new Set())
 
   const invites = await getDb()
     .select({
+      id: eventInvites.id,
       eventId: eventInvites.eventId,
       email: eventInvites.email,
+      baselineKind: eventInvites.baselineKind,
+      fromStamp: eventInvites.fromStamp,
+      untilStamp: eventInvites.untilStamp,
     })
     .from(eventInvites)
     .where(inArray(eventInvites.eventId, eventIds))
 
+  const exceptions = await getOccurrencesForInvites(invites.map((i) => i.id))
+  const byEvent = new Map<string, typeof invites>()
   for (const invite of invites) {
-    emailSets.get(invite.eventId)?.add(invite.email.toLowerCase())
+    const group = byEvent.get(invite.eventId) ?? []
+    group.push(invite)
+    byEvent.set(invite.eventId, group)
+  }
+  for (const event of events) {
+    const emails = new Set<string>()
+    for (const invite of byEvent.get(event.seriesId ?? event.id) ?? []) {
+      // Unbounded master results intentionally aggregate the series' invitees.
+      // An instance (including a moved override) uses its original stamp.
+      if (
+        !event.recurrenceId ||
+        canParticipantSeeOccurrence(
+          baselineOf(invite),
+          exceptions.get(invite.id) ?? [],
+          event.recurrenceId,
+        )
+      )
+        emails.add(invite.email.toLowerCase())
+    }
+    emailSets.set(event.id, emails)
   }
 
   return emailSets

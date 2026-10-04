@@ -28,7 +28,7 @@ import {
   DEFAULT_EXPANSION_WINDOW_MS,
   MAX_EXPANSION,
   describeRecurrence,
-  expandSeries,
+  expandSeriesView,
 } from '@/lib/recurrence/engine'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { firstZodMessage, invitePatchSchema } from '@/lib/validation'
@@ -156,11 +156,23 @@ export const GET = async function GET(
               .where(eq(calendarEvents.id, grant.eventId))
       if (!segment?.rrule) continue
 
-      const exceptions = await getInviteOccurrences(grant.id)
+      const [exceptions, overrides] = await Promise.all([
+        getInviteOccurrences(grant.id),
+        getDb()
+          .select()
+          .from(calendarEvents)
+          .where(
+            and(
+              eq(calendarEvents.seriesId, segment.id),
+              eq(calendarEvents.userId, segment.userId),
+            ),
+          ),
+      ])
       const baseline = baselineOf(grant)
 
-      for (const instance of expandSeries(
-        segment,
+      for (const instance of expandSeriesView(
+        [segment],
+        overrides,
         new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
         new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
         MAX_EXPANSION,
@@ -168,6 +180,7 @@ export const GET = async function GET(
         // the organiser scoped the invite.
         timeZone,
       )) {
+        if (!instance.recurrenceId) continue
         if (
           !canParticipantSeeOccurrence(
             baseline,

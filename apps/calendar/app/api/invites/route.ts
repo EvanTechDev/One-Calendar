@@ -23,7 +23,7 @@ import {
   ParticipantScopeError,
 } from '@/lib/invites/scoped-invites'
 import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
-import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
+import { limitInviteSend } from '@/lib/invites/send-limit'
 import type { ApplyTo } from '@/lib/event-service'
 import { isEmail } from '@/lib/email'
 
@@ -44,13 +44,8 @@ export const POST = async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const limit = await checkFixedWindowLimit({
-    name: 'invite-send',
-    subject: currentUser.id,
-    limit: 50,
-    windowSeconds: 3600,
-  })
-  if (!limit.allowed) return rateLimitedResponse(limit.retryAfter)
+  const limited = await limitInviteSend(currentUser.id)
+  if (limited) return limited
 
   const body = await request.json()
   const { eventId, emails, scope, timezone } = body as {

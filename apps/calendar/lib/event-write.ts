@@ -1,13 +1,14 @@
 import { and, eq, inArray } from 'drizzle-orm'
-import { RRule } from 'rrule'
 import { calendarEvents } from '@/lib/drizzle/schema'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import {
   parseRfcStamp,
   shiftExdates,
   translateStampsByDays,
+  isValidRrule as isSupportedRrule,
 } from '@/lib/recurrence/engine'
 import { getDb } from '@/lib/drizzle/client'
+import type { InstanceChangePlan } from '@/lib/event-service'
 
 /**
  * The parts of an event write that BOTH write paths have to agree on.
@@ -46,11 +47,7 @@ export type EventWriteDb =
  */
 export function isValidRrule(rule: string | null | undefined): boolean {
   if (rule === null || rule === undefined) return true
-  try {
-    return typeof RRule.fromString(rule).options.freq === 'number'
-  } catch {
-    return false
-  }
+  return isSupportedRrule(rule)
 }
 
 /** RFC 5545 stamp: local `YYYYMMDD`, or UTC `YYYYMMDDTHHMMSSZ`. */
@@ -101,6 +98,62 @@ export function encryptMergedFields(
   if (fields.emailReminder !== undefined)
     encrypted.emailReminder = fields.emailReminder
   return encrypted
+}
+
+/**
+ * A conflicting insert must keep the winning row's encryption identity. Never
+ * put ciphertext encrypted for the proposed UUID into an existing row. Called
+ * inside the same transaction as the master's EXDATE write by both write paths.
+ */
+export async function writeInstanceOverride(
+  db: EventWriteDb,
+  userId: string,
+  upsert: NonNullable<InstanceChangePlan['overrideUpsert']>,
+) {
+  let rowId = upsert.id
+  if (upsert.isNew) {
+    const [inserted] = await db
+      .insert(calendarEvents)
+      .values({
+        id: rowId,
+        userId,
+        seriesId: upsert.seriesId,
+        recurrenceId: upsert.recurrenceId,
+        createdAt: upsert.fields.createdAt as Date,
+        updatedAt: upsert.fields.updatedAt as Date,
+        ...encryptMergedFields(rowId, upsert.fields),
+      } as typeof calendarEvents.$inferInsert)
+      .onConflictDoNothing({
+        target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
+      })
+      .returning()
+    if (inserted) return inserted
+
+    // INSERT waits for the conflicting transaction. This separate statement
+    // sees its committed row at PostgreSQL's default READ COMMITTED isolation.
+    const [winner] = await db
+      .select({ id: calendarEvents.id })
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.seriesId, upsert.seriesId),
+          eq(calendarEvents.recurrenceId, upsert.recurrenceId),
+          eq(calendarEvents.userId, userId),
+        ),
+      )
+    if (!winner) throw new Error('Override changed during write; retry')
+    rowId = winner.id
+  }
+  const [updated] = await db
+    .update(calendarEvents)
+    .set({
+      ...encryptMergedFields(rowId, upsert.fields),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(calendarEvents.id, rowId), eq(calendarEvents.userId, userId)))
+    .returning()
+  if (!updated) throw new Error('Override changed during write; retry')
+  return updated
 }
 
 /** Ids of a series' single-instance overrides. */

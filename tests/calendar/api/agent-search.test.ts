@@ -12,7 +12,7 @@ vi.mock('drizzle-orm', async (original) => ({
 vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
 vi.mock('@/lib/api-helpers', () => ({
   getAuthedUser: async () => auth,
-  decryptEvent: (e: unknown) => e,
+  decryptEvent: vi.fn((e: unknown) => e),
 }))
 vi.mock('@/lib/mcp/settings-tools', () => ({
   getSettings: async () => ({ timezone: 'Asia/Shanghai' }),
@@ -26,6 +26,7 @@ vi.mock('@/lib/rate-limit', () => ({
 vi.mock('ai', () => ({ generateObject: vi.fn() }))
 import { generateObject } from 'ai'
 import { POST } from '@/app/api/agent/search/route'
+import { decryptEvent } from '@/lib/api-helpers'
 
 const fake = getFakeDb()
 function seed(id: string, title = id, extra = {}) {
@@ -85,6 +86,46 @@ afterEach(() => {
 })
 
 describe('search route: one compilation, complete local retrieval', () => {
+  it.each(['single', 'following'])(
+    'matches invitees only on granted occurrences (%s)',
+    async (scope) => {
+      seed('series', 'Team sync', { rrule: 'FREQ=DAILY;COUNT=3' })
+      fake.seed(
+        {
+          id: 'invite',
+          eventId: 'series',
+          email: 'guest@example.com',
+          baselineKind: scope === 'single' ? 'none' : 'all',
+          fromStamp: scope === 'single' ? null : '20260413T080000Z',
+          untilStamp: null,
+        },
+        'event_invites',
+      )
+      fake.seed(
+        {
+          id: 'exception',
+          inviteId: 'invite',
+          recurrenceId:
+            scope === 'single' ? '20260413T080000Z' : '20260414T080000Z',
+          visible: scope === 'single',
+          status: 'pending',
+        },
+        'event_invite_occurrences',
+      )
+      model({
+        ...plan,
+        concepts: [['guest@example.com']],
+        start: '2026-04-10T00:00:00Z',
+        end: '2026-04-20T00:00:00Z',
+      })
+      const response = await post({ text: 'guest@example.com 的日程' })
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(body.results.map((e: { id: string }) => e.id)).toEqual([
+        'series_20260413T080000Z',
+      ])
+    },
+  )
   it('returns provider 429 without scheduling retries or hiding it as 502', async () => {
     vi.mocked(generateObject).mockRejectedValueOnce({
       statusCode: 429,
@@ -133,6 +174,8 @@ describe('search route: one compilation, complete local retrieval', () => {
     expect(body.results.map((e: any) => e.id)).toEqual(['flight', 'transfer'])
     expect(generateObject).toHaveBeenCalledTimes(1)
     const options = vi.mocked(generateObject).mock.calls[0][0]
+    // All three candidate pages share one scan; foreign-user rows stay out.
+    expect(decryptEvent).toHaveBeenCalledTimes(207)
     expect(options.schema).toBe(searchQuerySchema)
     expect(options.maxRetries).toBe(0)
     expect(options.prompt).toBe('查找上次去日本东京旅游')
@@ -184,6 +227,7 @@ describe('search route: one compilation, complete local retrieval', () => {
       new Set([...first.results, ...second.results].map((e) => e.id)).size,
     ).toBe(56)
     expect(generateObject).toHaveBeenCalledTimes(calls)
+    expect(decryptEvent).toHaveBeenCalledTimes(112)
     const altered =
       (first.searchToken[0] === 'A' ? 'B' : 'A') + first.searchToken.slice(1)
     expect((await post({ page: 2, searchToken: altered })).status).toBe(400)

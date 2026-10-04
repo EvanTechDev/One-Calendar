@@ -17,6 +17,7 @@
  */
 import {
   listEvents,
+  listEventCandidates,
   createEvent,
   updateEvent,
   deleteEvent,
@@ -84,8 +85,41 @@ function toSummary(row: ToolEventRow): AgentEventSummary {
 }
 
 export function createAppToolkit(userId: string): CalendarToolkit {
+  // A toolkit belongs to ONE authenticated request. Candidate pages share one
+  // complete materialization; the next HTTP request revalidates against fresh
+  // data. Never promote this private snapshot to module/global cache state.
+  const candidateScans = new Map<string, Promise<AgentEventSummary[]>>()
   return {
     async listEvents(input) {
+      if (input.searchCandidates) {
+        const { page = 1, limit = 20, ...query } = input
+        const key = JSON.stringify(query)
+        let pending = candidateScans.get(key)
+        if (!pending) {
+          pending = listEventCandidates(userId, {
+            searchCandidates: true,
+            filter: {
+              time: { start: input.start, end: input.end },
+              category_ids: input.categoryIds,
+              participants: input.participants,
+            },
+            ...(input.query ? { search: { text: input.query } } : {}),
+            sort: {
+              field: 'start_date',
+              direction: input.sortDirection ?? 'asc',
+            },
+          }).then((rows) => rows.map(toSummary))
+          candidateScans.set(key, pending)
+        }
+        const rows = await pending
+        return {
+          events: rows.slice((page - 1) * limit, page * limit),
+          page,
+          limit,
+          total: rows.length,
+          totalPages: Math.ceil(rows.length / limit),
+        }
+      }
       // Presets were already resolved to instants in @zntr/agent/presets.
       const events = await listEvents(userId, {
         filter: {
@@ -113,6 +147,7 @@ export function createAppToolkit(userId: string): CalendarToolkit {
     },
 
     async createEvent(input) {
+      candidateScans.clear()
       const created = await createEvent(userId, {
         title: input.title,
         description: input.description ?? null,
@@ -128,6 +163,7 @@ export function createAppToolkit(userId: string): CalendarToolkit {
     },
 
     async updateEvent(input) {
+      candidateScans.clear()
       const updated = await updateEvent(userId, input.eventId, {
         title: input.title,
         description: input.description,
@@ -145,6 +181,7 @@ export function createAppToolkit(userId: string): CalendarToolkit {
     },
 
     async deleteEvent(input) {
+      candidateScans.clear()
       await deleteEvent(userId, input.eventId, input.applyTo)
     },
 

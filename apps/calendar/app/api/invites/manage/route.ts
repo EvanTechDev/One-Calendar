@@ -16,6 +16,7 @@ import {
 } from '@/lib/invites/scoped-invites'
 import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
 import type { ApplyTo } from '@/lib/event-service'
+import { limitInviteSend } from '@/lib/invites/send-limit'
 
 export const runtime = 'nodejs'
 
@@ -104,6 +105,9 @@ export const POST = async function POST(request: NextRequest) {
   if (!currentUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const limited = await limitInviteSend(currentUser.id)
+  if (limited) return limited
 
   const body = await request.json()
   const { inviteId } = body as { inviteId: string }

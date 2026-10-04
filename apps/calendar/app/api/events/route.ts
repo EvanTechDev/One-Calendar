@@ -68,6 +68,7 @@ import {
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
   encryptMergedFields,
+  writeInstanceOverride,
   isValidRrule,
   isValidStamp,
   remapSeriesOverrideStamps,
@@ -1350,7 +1351,6 @@ const postHandler = async function POST(request: NextRequest) {
     // its override silently deletes the instance; an override without the
     // exdate duplicates it.
     const upsert = plan.overrideUpsert!
-    const encryptedOverride = encryptMergedFields(upsert.id, upsert.fields)
     const stored = await getDb().transaction(async (tx) => {
       if (plan.exdateToAdd) {
         await tx
@@ -1367,40 +1367,7 @@ const postHandler = async function POST(request: NextRequest) {
           )
       }
 
-      let row
-      if (upsert.isNew) {
-        // Upsert on the (seriesId, recurrenceId) unique index: two
-        // concurrent single-edits of the same occurrence resolve to one row
-        // (last writer wins) instead of a 500.
-        ;[row] = await tx
-          .insert(calendarEvents)
-          .values({
-            id: upsert.id,
-            userId: user.id,
-            seriesId: upsert.seriesId,
-            recurrenceId: upsert.recurrenceId,
-            createdAt: upsert.fields.createdAt as Date,
-            updatedAt: upsert.fields.updatedAt as Date,
-            ...encryptedOverride,
-          } as typeof calendarEvents.$inferInsert)
-          .onConflictDoUpdate({
-            target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
-            set: { ...encryptedOverride, updatedAt: new Date() },
-          })
-          .returning()
-      } else {
-        ;[row] = await tx
-          .update(calendarEvents)
-          .set({ ...encryptedOverride, updatedAt: new Date() })
-          .where(
-            and(
-              eq(calendarEvents.id, upsert.id),
-              eq(calendarEvents.userId, user.id),
-            ),
-          )
-          .returning()
-      }
-      return row
+      return writeInstanceOverride(tx, user.id, upsert)
     })
 
     await invalidateEventCache(
