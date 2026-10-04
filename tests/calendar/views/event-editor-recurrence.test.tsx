@@ -36,6 +36,10 @@ const config = ViewConfig.create({
 })
 
 beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  })
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -45,7 +49,17 @@ beforeEach(() => {
     },
   )
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView
+  vi.unstubAllGlobals()
+})
+
+function chooseOption(label: string, option: string) {
+  fireEvent.keyDown(screen.getByRole('combobox', { name: label }), {
+    key: 'ArrowDown',
+  })
+  fireEvent.click(screen.getByRole('option', { name: option }))
+}
 
 describe('editing recurrence from an occurrence', () => {
   it.each([
@@ -85,22 +99,20 @@ describe('editing recurrence from an occurrence', () => {
     )
 
     expect(screen.queryByRole('spinbutton')).toBeNull()
-    fireEvent.click(document.getElementById('edit-scope-series')!)
+    chooseOption('Repeat scope', first ? 'All events' : 'This and following')
     const interval = screen.getAllByRole('spinbutton')[0]
     expect(interval).toHaveValue(1)
     fireEvent.change(interval, { target: { value: '2' } })
     expect(screen.queryByText(/FREQ=/)).toBeNull()
     expect(screen.getByText(/Every 2 weeks/)).toBeInTheDocument()
-    fireEvent.click(screen.getByText('Never', { selector: 'label' }))
-    expect(screen.getByRole('radio', { name: 'Never' })).toHaveAttribute(
-      'aria-checked',
-      'true',
+    chooseOption('Ends', 'Never')
+    expect(screen.getByRole('combobox', { name: 'Ends' })).toHaveTextContent(
+      'Never',
     )
     expect(screen.getAllByRole('spinbutton')).toHaveLength(1)
-    fireEvent.click(screen.getByText('Count', { selector: 'label' }))
-    expect(screen.getByRole('radio', { name: 'Count' })).toHaveAttribute(
-      'aria-checked',
-      'true',
+    chooseOption('Ends', 'Count')
+    expect(screen.getByRole('combobox', { name: 'Ends' })).toHaveTextContent(
+      'Count',
     )
     expect(screen.getAllByRole('spinbutton')).toHaveLength(2)
     fireEvent.click(screen.getByRole('button', { name: 'Update' }))

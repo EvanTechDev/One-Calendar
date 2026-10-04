@@ -32,7 +32,7 @@ import {
 } from '@zntr/ui/alert-dialog'
 import { RadioGroup, RadioGroupItem } from '@zntr/ui/radio-group'
 import { addDays, format, getHours, getMinutes, set } from 'date-fns'
-import { Calendar as CalendarIcon, Clock, Repeat2, X } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, X } from 'lucide-react'
 import { translations } from '@zntr/i18n/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { requestNotificationPermission } from '@/lib/notifications'
@@ -94,9 +94,6 @@ const NO_REMINDER = 'none'
 
 /** Reminder values the select offers directly; anything else is "custom". */
 const PRESET_REMINDER_MINUTES = [0, 5, 15, 30, 60]
-
-const RECURRENCE_SEGMENT_CLASS =
-  'relative flex min-h-9 cursor-pointer items-center justify-center rounded-sm px-2 py-1.5 text-center text-xs leading-snug transition-colors has-[[aria-checked=true]]:bg-background has-[[aria-checked=true]]:text-foreground has-[[aria-checked=true]]:shadow-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring'
 
 interface EventEditorProps {
   open: boolean
@@ -1793,10 +1790,7 @@ export default function EventEditor({
                       )}
                     </div>
 
-                    <section
-                      aria-label={t.repeatRule}
-                      className="space-y-4 rounded-lg border bg-muted/20 p-3"
-                    >
+                    <section aria-label={t.repeatRule} className="space-y-4">
                       {(!event || !isRecurringEvent) && (
                         <div className="flex items-center space-x-2">
                           {isAiParsing ? (
@@ -1821,16 +1815,9 @@ export default function EventEditor({
                       )}
 
                       {event && isRecurringEvent && (
-                        <div className="space-y-2.5">
-                          <Label
-                            id="edit-scope-label"
-                            className="text-xs text-muted-foreground"
-                          >
-                            {t.repeatScope}
-                          </Label>
-                          <RadioGroup
-                            aria-labelledby="edit-scope-label"
-                            className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1"
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-scope">{t.repeatScope}</Label>
+                          <Select
                             value={applyTo}
                             onValueChange={(value) =>
                               setApplyTo(
@@ -1838,31 +1825,22 @@ export default function EventEditor({
                               )
                             }
                           >
-                            <Label
-                              htmlFor="edit-scope-single"
-                              className={RECURRENCE_SEGMENT_CLASS}
-                            >
-                              <RadioGroupItem
-                                value="single"
-                                id="edit-scope-single"
-                                className="sr-only absolute size-px border-0"
-                              />
-                              {t.repeatScopeSingle}
-                            </Label>
-                            <Label
-                              htmlFor="edit-scope-series"
-                              className={RECURRENCE_SEGMENT_CLASS}
-                            >
-                              <RadioGroupItem
+                            <SelectTrigger id="edit-scope">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="single">
+                                {t.repeatScopeSingle}
+                              </SelectItem>
+                              <SelectItem
                                 value={canAllScope ? 'all' : 'following'}
-                                id="edit-scope-series"
-                                className="sr-only absolute size-px border-0"
-                              />
-                              {canAllScope
-                                ? t.repeatScopeAll
-                                : t.repeatScopeFollowing}
-                            </Label>
-                          </RadioGroup>
+                              >
+                                {canAllScope
+                                  ? t.repeatScopeAll
+                                  : t.repeatScopeFollowing}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       )}
 
@@ -1874,10 +1852,7 @@ export default function EventEditor({
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-2">
-                                <Label
-                                  htmlFor="repeat-frequency"
-                                  className="text-xs text-muted-foreground"
-                                >
+                                <Label htmlFor="repeat-frequency">
                                   {t.repeatLabel}
                                 </Label>
                                 <Select
@@ -1894,7 +1869,7 @@ export default function EventEditor({
                                 >
                                   <SelectTrigger
                                     id="repeat-frequency"
-                                    className="w-full bg-background"
+                                    className="w-full"
                                   >
                                     <SelectValue />
                                   </SelectTrigger>
@@ -1915,10 +1890,7 @@ export default function EventEditor({
                                 </Select>
                               </div>
                               <div className="space-y-2">
-                                <Label
-                                  htmlFor="repeat-interval"
-                                  className="text-xs text-muted-foreground"
-                                >
+                                <Label htmlFor="repeat-interval">
                                   {t.repeatEveryIntervalHint}
                                 </Label>
                                 <Input
@@ -1934,7 +1906,7 @@ export default function EventEditor({
                                       ),
                                     )
                                   }
-                                  className="w-full bg-background tabular-nums"
+                                  className="tabular-nums"
                                 />
                               </div>
                             </div>
@@ -1948,12 +1920,8 @@ export default function EventEditor({
                                       key={d}
                                       type="button"
                                       size="sm"
-                                      className={cn(
-                                        'h-9 min-w-0 rounded-md px-0 text-xs',
-                                        selected &&
-                                          'bg-cal-accent/15 text-cal-accent hover:bg-cal-accent/25',
-                                      )}
-                                      variant={selected ? 'secondary' : 'ghost'}
+                                      className="min-w-0 px-0 text-xs"
+                                      variant={selected ? 'default' : 'outline'}
                                       aria-pressed={selected}
                                       onClick={() =>
                                         setRecWeeklyDays((prev) =>
@@ -2111,108 +2079,95 @@ export default function EventEditor({
                               </div>
                             )}
 
-                            <div className="space-y-2.5">
-                              <Label
-                                id="repeat-end-label"
-                                className="text-xs text-muted-foreground"
-                              >
-                                {t.repeatEnds}
-                              </Label>
-                              <RadioGroup
-                                aria-labelledby="repeat-end-label"
-                                value={recEndMode}
-                                onValueChange={(value) =>
-                                  setRecEndMode(
-                                    value as 'never' | 'count' | 'until',
-                                  )
-                                }
-                                className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1"
-                              >
-                                {(
-                                  [
-                                    ['never', t.repeatEndNever],
-                                    ['count', t.repeatEndCount],
-                                    ['until', t.repeatEndUntil],
-                                  ] as const
-                                ).map(([value, label]) => (
-                                  <Label
-                                    key={value}
-                                    htmlFor={`repeat-end-${value}`}
-                                    className={RECURRENCE_SEGMENT_CLASS}
-                                  >
-                                    <RadioGroupItem
-                                      id={`repeat-end-${value}`}
-                                      value={value}
-                                      className="sr-only absolute size-px border-0"
+                            <div className="space-y-2">
+                              <Label htmlFor="repeat-end">{t.repeatEnds}</Label>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Select
+                                  value={recEndMode}
+                                  onValueChange={(value) =>
+                                    setRecEndMode(
+                                      value as 'never' | 'count' | 'until',
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger id="repeat-end">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(
+                                      [
+                                        ['never', t.repeatEndNever],
+                                        ['count', t.repeatEndCount],
+                                        ['until', t.repeatEndUntil],
+                                      ] as const
+                                    ).map(([value, label]) => (
+                                      <SelectItem key={value} value={value}>
+                                        {label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {recEndMode === 'count' && (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      aria-label={t.repeatOccurrencesSuffix}
+                                      min={1}
+                                      value={recCount}
+                                      onChange={(e) =>
+                                        setRecCount(
+                                          Math.max(
+                                            1,
+                                            parseInt(e.target.value, 10) || 1,
+                                          ),
+                                        )
+                                      }
+                                      className="w-20"
                                     />
-                                    {label}
-                                  </Label>
-                                ))}
-                              </RadioGroup>
-                              {recEndMode === 'count' && (
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    type="number"
-                                    aria-label={t.repeatOccurrencesSuffix}
-                                    min={1}
-                                    value={recCount}
-                                    onChange={(e) =>
-                                      setRecCount(
-                                        Math.max(
-                                          1,
-                                          parseInt(e.target.value, 10) || 1,
-                                        ),
-                                      )
-                                    }
-                                    className="w-20"
-                                  />
-                                  <span className="text-sm text-muted-foreground">
-                                    {t.repeatOccurrencesSuffix}
-                                  </span>
-                                </div>
-                              )}
-                              {recEndMode === 'until' && (
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      className="w-full justify-start text-left font-normal"
+                                    <span className="text-sm text-muted-foreground">
+                                      {t.repeatOccurrencesSuffix}
+                                    </span>
+                                  </div>
+                                )}
+                                {recEndMode === 'until' && (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="justify-start text-left font-normal"
+                                      >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {recUntil.toLocaleDateString(
+                                          languageCode,
+                                          {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                          },
+                                        )}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-0"
+                                      align="start"
                                     >
-                                      <CalendarIcon className="mr-2 h-4 w-4" />
-                                      {recUntil.toLocaleDateString(
-                                        languageCode,
-                                        {
-                                          year: 'numeric',
-                                          month: 'short',
-                                          day: 'numeric',
-                                        },
-                                      )}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent
-                                    className="w-auto p-0"
-                                    align="start"
-                                  >
-                                    <Calendar
-                                      mode="single"
-                                      selected={recUntil}
-                                      onSelect={(date) => {
-                                        if (date) setRecUntil(date)
-                                      }}
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                              )}
+                                      <Calendar
+                                        mode="single"
+                                        selected={recUntil}
+                                        onSelect={(date) => {
+                                          if (date) setRecUntil(date)
+                                        }}
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                )}
+                              </div>
                             </div>
 
                             {rulePreview && (
-                              <p className="flex items-start gap-2 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
-                                <Repeat2
-                                  aria-hidden="true"
-                                  className="mt-0.5 size-3.5 shrink-0"
-                                />
-                                <span>{rulePreview}</span>
+                              <p className="text-xs leading-relaxed text-muted-foreground">
+                                {rulePreview}
                               </p>
                             )}
                           </div>
@@ -2222,15 +2177,9 @@ export default function EventEditor({
                         isRecurringEvent &&
                         event &&
                         applyTo === 'single' && (
-                          <div className="flex items-start gap-2 text-muted-foreground">
-                            <Repeat2
-                              aria-hidden="true"
-                              className="mt-0.5 size-3.5 shrink-0"
-                            />
-                            <p className="text-xs leading-relaxed">
-                              {describeRecurrence(seriesRule, languageCode)}
-                            </p>
-                          </div>
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            {describeRecurrence(seriesRule, languageCode)}
+                          </p>
                         )}
                     </section>
 
