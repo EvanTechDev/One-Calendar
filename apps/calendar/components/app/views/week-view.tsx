@@ -14,7 +14,7 @@ import {
 } from 'date-fns'
 import { cn } from '@zntr/utils'
 import { translations } from '@zntr/i18n/calendar'
-import type { CalendarEvent } from '../calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
 import type { ViewConfig } from '@/lib/calendar-types'
 import {
   formatSelectionRange,
@@ -32,6 +32,7 @@ import {
 } from '@/components/app/views/event-layout-engine'
 import { useEventResize } from '@/hooks/use-event-resize'
 import { eventsOnDay, useEventsByDay } from '@/hooks/use-events-by-day'
+import { fromCalendarDate, toCalendarDate } from '@/lib/zoned-date'
 
 interface WeekViewProps {
   date: Date
@@ -96,7 +97,7 @@ export default function WeekView({
 
   // One index of events by day for the whole grid, instead of a full scan of
   // the event list per day cell.
-  const eventsByDay = useEventsByDay(events)
+  const eventsByDay = useEventsByDay(events, config.timezone)
 
   /**
    * Memoised because `weekDays` is a dependency of the drag, selection and
@@ -128,11 +129,17 @@ export default function WeekView({
   // as before. The Mobile Form sets --wv-gutter on the root (ADR-0019) to
   // reclaim width for the seven day columns.
   const gridTemplateColumns = `var(--wv-gutter, ${TIME_GUTTER_WIDTH}px) repeat(${weekDays.length}, minmax(0, 1fr))`
-  const today = new Date()
   const t = translations[config.language.code as keyof typeof translations]
 
   const [currentTime, setCurrentTime] = useState(new Date())
-  const hasScrolledRef = useRef(false)
+  const today = toCalendarDate(currentTime, config.timezone)
+  const calendarSelection = selection
+    ? {
+        start: toCalendarDate(selection.start, config.timezone),
+        end: toCalendarDate(selection.end, config.timezone),
+      }
+    : null
+  const scrolledTimezoneRef = useRef<string | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // The time grid is the scroll container; when its scrollbar shows, its
@@ -164,7 +171,7 @@ export default function WeekView({
   } | null>(null)
   const [dragEventDuration, setDragEventDuration] = useState<number>(0)
   const dragOffsetMinutesRef = useRef(0)
-  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const ignoreNextEventClickRef = useRef(false)
   const isDraggingRef = useRef(false)
 
@@ -244,26 +251,18 @@ export default function WeekView({
     document.documentElement.classList.contains('dark')
 
   useEffect(() => {
-    if (!hasScrolledRef.current && scrollContainerRef.current) {
-      const now = new Date()
-      const currentHour = now.getHours()
-
-      const hourElements =
-        scrollContainerRef.current.querySelectorAll('.h-\\[60px\\]')
-      if (hourElements.length > 0 && currentHour < hourElements.length) {
-        const currentHourElement = hourElements[currentHour + 1]
-
-        if (currentHourElement) {
-          scrollContainerRef.current.scrollTo({
-            top: (currentHourElement as HTMLElement).offsetTop - 100,
-            behavior: 'auto',
-          })
-
-          hasScrolledRef.current = true
-        }
-      }
+    if (
+      scrolledTimezoneRef.current !== config.timezone &&
+      scrollContainerRef.current
+    ) {
+      const now = toCalendarDate(new Date(), config.timezone)
+      scrollContainerRef.current.scrollTo({
+        top: Math.max(0, now.getHours() * 60 + now.getMinutes() - 100),
+        behavior: 'auto',
+      })
+      scrolledTimezoneRef.current = config.timezone
     }
-  }, [date, weekDays])
+  }, [date, weekDays, config.timezone])
 
   useEffect(() => {
     setCurrentTime(new Date())
@@ -322,8 +321,11 @@ export default function WeekView({
         dragPreview &&
         onEventDrop
       ) {
-        const newStartDate = new Date(dragPreview.day)
-        newStartDate.setHours(dragPreview.hour, dragPreview.minute, 0, 0)
+        const wallStart = new Date(dragPreview.day)
+        wallStart.setHours(dragPreview.hour, dragPreview.minute, 0, 0)
+        const newStartDate = draggingEvent.isAllDay
+          ? wallStart
+          : fromCalendarDate(wallStart, config.timezone)
 
         const newEndDate = add(newStartDate, { minutes: dragEventDuration })
 
@@ -359,6 +361,7 @@ export default function WeekView({
     onEventDrop,
     weekDays,
     dragEventDuration,
+    config.timezone,
   ])
 
   useEffect(() => {
@@ -389,7 +392,10 @@ export default function WeekView({
         const endDate = new Date(day)
         endDate.setHours(0, Math.min(effectiveEndMinute, 24 * 60), 0, 0)
 
-        onTimeSlotClick(startDate, endDate)
+        onTimeSlotClick(
+          fromCalendarDate(startDate, config.timezone),
+          fromCalendarDate(endDate, config.timezone),
+        )
       }
 
       isCreatingRef.current = false
@@ -404,7 +410,7 @@ export default function WeekView({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [createSelection, onTimeSlotClick, weekDays])
+  }, [createSelection, onTimeSlotClick, weekDays, config.timezone])
 
   const formatTime = (hour: number) => {
     if (config.timeFormat.is12Hour()) {
@@ -422,10 +428,6 @@ export default function WeekView({
       return `${twelveHour}:${minute.toString().padStart(2, '0')} ${period}`
     }
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-  }
-
-  const formatDateWithTimezone = (date: Date) => {
-    return layoutEngine.formatDateWithTimezone(date)
   }
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
@@ -454,7 +456,9 @@ export default function WeekView({
 
       let offsetMinutes = 0
       if (!event.isAllDay) {
-        const eventStartMinutes = start.getHours() * 60 + start.getMinutes()
+        const wallStart = toCalendarDate(start, config.timezone)
+        const eventStartMinutes =
+          wallStart.getHours() * 60 + wallStart.getMinutes()
         offsetMinutes =
           getMinutesFromMousePosition(e.clientY) - eventStartMinutes
       }
@@ -491,7 +495,11 @@ export default function WeekView({
     resize,
     beginResize,
     suppressClickRef: suppressResizeClickRef,
-  } = useEventResize({ onEventDrop, getMinutesFromMousePosition })
+  } = useEventResize({
+    onEventDrop,
+    getMinutesFromMousePosition,
+    timeZone: config.timezone,
+  })
 
   const handleGridMouseDown = (
     dayIndex: number,
@@ -510,7 +518,10 @@ export default function WeekView({
         startDate.setHours(0, startMinute, 0, 0)
         const endDate = new Date(day)
         endDate.setHours(0, Math.min(startMinute + 30, 24 * 60), 0, 0)
-        onTimeSlotClick(startDate, endDate)
+        onTimeSlotClick(
+          fromCalendarDate(startDate, config.timezone),
+          fromCalendarDate(endDate, config.timezone),
+        )
       }
       return
     }
@@ -526,8 +537,9 @@ export default function WeekView({
   const ALL_DAY_BAR_INSET = 2
 
   const allDaySegments = layoutAllDaySegments(
-    events.filter((event) => isBannerEvent(event)),
+    events.filter((event) => isBannerEvent(event, config.timezone)),
     weekDays,
+    config.timezone,
   )
   const allDayLaneCount =
     allDaySegments.length > 0
@@ -782,7 +794,7 @@ export default function WeekView({
               ))}
 
               {eventLayouts.map(
-                ({ event, start, end, column, totalColumns }) => {
+                ({ event, start, end, column, totalColumns, isMultiDay }) => {
                   const startMinutes =
                     start.getHours() * 60 + start.getMinutes()
                   const endMinutes = end.getHours() * 60 + end.getMinutes()
@@ -791,8 +803,8 @@ export default function WeekView({
                     ? resize.liveStart
                     : startMinutes
                   const displayEnd = isResizing ? resize.liveEnd : endMinutes
-                  const renderStart = Math.min(displayStart, displayEnd)
-                  const renderEnd = Math.max(displayStart, displayEnd)
+                  const renderStart = displayStart
+                  const renderEnd = displayEnd
                   const duration = renderEnd - renderStart
                   const displayStartDate = new Date(start)
                   displayStartDate.setHours(0, renderStart, 0, 0)
@@ -805,12 +817,11 @@ export default function WeekView({
                   const width = `calc((100% - 4px) / ${totalColumns})`
                   const left = `calc(${column} * ${width})`
 
-                  const isMultiDayEvent = !isSameDay(
-                    new Date(event.startDate),
-                    new Date(event.endDate),
-                  )
                   const canResize =
-                    !event.viewOnly && !isMultiDayEvent && !isResizing
+                    !event.viewOnly &&
+                    !isMultiDay &&
+                    !isResizing &&
+                    endMinutes >= startMinutes
 
                   return (
                     <div
@@ -911,8 +922,15 @@ export default function WeekView({
                               color: getEventAccentColor(event.color),
                             }}
                           >
-                            {formatDateWithTimezone(displayStartDate)} -{' '}
-                            {formatDateWithTimezone(displayEndDate)}
+                            {formatHourMinute(
+                              displayStartDate.getHours(),
+                              displayStartDate.getMinutes(),
+                            )}{' '}
+                            -{' '}
+                            {formatHourMinute(
+                              displayEndDate.getHours(),
+                              displayEndDate.getMinutes(),
+                            )}
                           </div>
                         )}
                       </div>
@@ -948,17 +966,17 @@ export default function WeekView({
                   the editor's date-time fields. A multi-day range renders a
                   clamped slice per visible day column; days outside this
                   period simply produce no slice. */}
-              {selection &&
+              {calendarSelection &&
                 !createSelection &&
                 (() => {
-                  const slice = clampRangeToDay(selection, day)
+                  const slice = clampRangeToDay(calendarSelection, day)
                   if (!slice) return null
                   const { startMinute, endMinute } = slice
                   // Anchor the editor to the first *visible* slice — when the
                   // range starts before this period, its true start day is
                   // not on screen.
                   const firstVisibleIndex = weekDays.findIndex(
-                    (d) => clampRangeToDay(selection, d) !== null,
+                    (d) => clampRangeToDay(calendarSelection, d) !== null,
                   )
                   const isFirstDay = dayIndex === firstVisibleIndex
                   return (
@@ -991,13 +1009,8 @@ export default function WeekView({
 
               {isSameDay(day, today) &&
                 (() => {
-                  const currentTimeInTimezone = new Date(
-                    currentTime.toLocaleString('en-US', {
-                      timeZone: config.timezone,
-                    }),
-                  )
-                  const currentHours = currentTimeInTimezone.getHours()
-                  const currentMinutes = currentTimeInTimezone.getMinutes()
+                  const currentHours = today.getHours()
+                  const currentMinutes = today.getMinutes()
 
                   const topPosition = currentHours * 60 + currentMinutes
 

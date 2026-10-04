@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
-import type { CalendarEvent } from '@/components/app/calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
 import { isTouchInteraction } from '@/lib/mobile-viewport'
+import { fromCalendarDate } from '@/lib/zoned-date'
 
 export interface EventResizeState {
   event: CalendarEvent
@@ -13,6 +14,7 @@ export interface EventResizeState {
 }
 
 interface UseEventResizeOptions {
+  timeZone: string
   onEventDrop?: (
     event: CalendarEvent,
     newStartDate: Date,
@@ -27,6 +29,7 @@ const MOVE_THRESHOLD_PX = 3
 export function useEventResize({
   onEventDrop,
   getMinutesFromMousePosition,
+  timeZone,
 }: UseEventResizeOptions) {
   const [resize, setResize] = useState<EventResizeState | null>(null)
   const suppressClickRef = useRef(false)
@@ -41,9 +44,17 @@ export function useEventResize({
     startClientY: number
     active: boolean
   } | null>(null)
-  const callbacksRef = useRef({ onEventDrop, getMinutesFromMousePosition })
+  const callbacksRef = useRef({
+    onEventDrop,
+    getMinutesFromMousePosition,
+    timeZone,
+  })
   useEffect(() => {
-    callbacksRef.current = { onEventDrop, getMinutesFromMousePosition }
+    callbacksRef.current = {
+      onEventDrop,
+      getMinutesFromMousePosition,
+      timeZone,
+    }
   })
 
   const beginResize = (
@@ -114,7 +125,17 @@ export function useEventResize({
         startDate.setHours(0, g.liveStart, 0, 0)
         const endDate = new Date(g.day)
         endDate.setHours(0, g.liveEnd, 0, 0)
-        callbacksRef.current.onEventDrop?.(g.event, startDate, endDate)
+        // Preserve an unchanged edge's exact instant, including the later hour
+        // in a DST fold; only the edited wall-clock edge needs conversion.
+        callbacksRef.current.onEventDrop?.(
+          g.event,
+          g.liveStart === g.originalStart
+            ? g.event.startDate
+            : fromCalendarDate(startDate, callbacksRef.current.timeZone),
+          g.liveEnd === g.originalEnd
+            ? g.event.endDate
+            : fromCalendarDate(endDate, callbacksRef.current.timeZone),
+        )
         suppressClickRef.current = true
         setTimeout(() => {
           suppressClickRef.current = false

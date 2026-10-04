@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
 import { format, isSameDay, add } from 'date-fns'
 import { cn } from '@zntr/utils'
-import type { CalendarEvent } from '../calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
 import { translations } from '@zntr/i18n/calendar'
 import {
   formatSelectionRange,
@@ -22,6 +22,7 @@ import {
 } from '@/components/app/views/event-renderer'
 import { useEventFilter } from '@/hooks/use-event-filter'
 import { useEventResize } from '@/hooks/use-event-resize'
+import { fromCalendarDate, toCalendarDate } from '@/lib/zoned-date'
 
 interface DayViewProps {
   date: Date
@@ -75,8 +76,15 @@ export default function DayView({
   } = useEventFilter({ events, config, date })
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const hasScrolledRef = useRef(false)
+  const scrolledTimezoneRef = useRef<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const today = toCalendarDate(currentTime, config.timezone)
+  const calendarSelection = selection
+    ? {
+        start: toCalendarDate(selection.start, config.timezone),
+        end: toCalendarDate(selection.end, config.timezone),
+      }
+    : null
   const t = translations[config.language.code as keyof typeof translations]
 
   const [draggingEvent, setDraggingEvent] = useState<CalendarEvent | null>(null)
@@ -93,7 +101,7 @@ export default function DayView({
   } | null>(null)
   const [dragEventDuration, setDragEventDuration] = useState<number>(0)
   const dragOffsetMinutesRef = useRef(0)
-  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const ignoreNextEventClickRef = useRef(false)
   const isDraggingRef = useRef(false)
 
@@ -122,26 +130,18 @@ export default function DayView({
   }
 
   useEffect(() => {
-    if (!hasScrolledRef.current && scrollContainerRef.current) {
-      const now = new Date()
-      const currentHour = now.getHours()
-
-      const hourElements =
-        scrollContainerRef.current.querySelectorAll('.h-\\[60px\\]')
-      if (hourElements.length > 0 && currentHour < hourElements.length) {
-        const currentHourElement = hourElements[currentHour + 1]
-
-        if (currentHourElement) {
-          scrollContainerRef.current.scrollTo({
-            top: (currentHourElement as HTMLElement).offsetTop - 100,
-            behavior: 'auto',
-          })
-
-          hasScrolledRef.current = true
-        }
-      }
+    if (
+      scrolledTimezoneRef.current !== config.timezone &&
+      scrollContainerRef.current
+    ) {
+      const now = toCalendarDate(new Date(), config.timezone)
+      scrollContainerRef.current.scrollTo({
+        top: Math.max(0, now.getHours() * 60 + now.getMinutes() - 100),
+        behavior: 'auto',
+      })
+      scrolledTimezoneRef.current = config.timezone
     }
-  }, [date])
+  }, [date, config.timezone])
 
   useEffect(() => {
     setCurrentTime(new Date())
@@ -184,8 +184,11 @@ export default function DayView({
         dragPreview &&
         onEventDrop
       ) {
-        const newStartDate = new Date(date)
-        newStartDate.setHours(dragPreview.hour, dragPreview.minute, 0, 0)
+        const wallStart = new Date(date)
+        wallStart.setHours(dragPreview.hour, dragPreview.minute, 0, 0)
+        const newStartDate = draggingEvent.isAllDay
+          ? wallStart
+          : fromCalendarDate(wallStart, config.timezone)
 
         const newEndDate = add(newStartDate, { minutes: dragEventDuration })
 
@@ -220,6 +223,7 @@ export default function DayView({
     onEventDrop,
     date,
     dragEventDuration,
+    config.timezone,
   ])
 
   useEffect(() => {
@@ -254,7 +258,10 @@ export default function DayView({
       const endDate = new Date(date)
       endDate.setHours(0, Math.min(effectiveEndMinute, 24 * 60), 0, 0)
 
-      onTimeSlotClick(startDate, endDate)
+      onTimeSlotClick(
+        fromCalendarDate(startDate, config.timezone),
+        fromCalendarDate(endDate, config.timezone),
+      )
 
       isCreatingRef.current = false
       createStartMinuteRef.current = null
@@ -268,7 +275,7 @@ export default function DayView({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [createSelection, date, onTimeSlotClick])
+  }, [createSelection, date, onTimeSlotClick, config.timezone])
 
   const handleEventDragStart = (event: CalendarEvent, e: React.MouseEvent) => {
     if (event.viewOnly) {
@@ -296,7 +303,9 @@ export default function DayView({
 
       let offsetMinutes = 0
       if (!event.isAllDay) {
-        const eventStartMinutes = start.getHours() * 60 + start.getMinutes()
+        const wallStart = toCalendarDate(start, config.timezone)
+        const eventStartMinutes =
+          wallStart.getHours() * 60 + wallStart.getMinutes()
         offsetMinutes =
           getMinutesFromMousePosition(e.clientY) - eventStartMinutes
       }
@@ -333,7 +342,11 @@ export default function DayView({
     resize,
     beginResize,
     suppressClickRef: suppressResizeClickRef,
-  } = useEventResize({ onEventDrop, getMinutesFromMousePosition })
+  } = useEventResize({
+    onEventDrop,
+    getMinutesFromMousePosition,
+    timeZone: config.timezone,
+  })
 
   const handleGridMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0 || draggingEvent) return
@@ -348,7 +361,10 @@ export default function DayView({
       startDate.setHours(0, startMinute, 0, 0)
       const endDate = new Date(date)
       endDate.setHours(0, Math.min(startMinute + 30, 24 * 60), 0, 0)
-      onTimeSlotClick(startDate, endDate)
+      onTimeSlotClick(
+        fromCalendarDate(startDate, config.timezone),
+        fromCalendarDate(endDate, config.timezone),
+      )
       return
     }
 
@@ -447,7 +463,7 @@ export default function DayView({
           <div
             className={cn(
               'mx-auto flex h-6 w-6 items-center justify-center text-sm',
-              isSameDay(date, new Date()) &&
+              isSameDay(date, today) &&
                 'rounded-md bg-cal-today text-cal-today-foreground',
             )}
           >
@@ -569,10 +585,10 @@ export default function DayView({
               while the editor popover is open (CORE-191) and following the
               editor's date-time fields. A range wider than this day renders
               clamped to the day; a range that misses it renders nothing. */}
-          {selection &&
+          {calendarSelection &&
             !createSelection &&
             (() => {
-              const slice = clampRangeToDay(selection, date)
+              const slice = clampRangeToDay(calendarSelection, date)
               if (!slice) return null
               const { startMinute, endMinute } = slice
               return (
@@ -600,18 +616,12 @@ export default function DayView({
           {dragPreview && renderDragPreview()}
 
           {(() => {
-            const today = new Date()
             const isToday = isSameDay(date, today)
 
             if (!isToday) return null
 
-            const currentTimeInTimezone = new Date(
-              currentTime.toLocaleString('en-US', {
-                timeZone: config.timezone,
-              }),
-            )
-            const currentHours = currentTimeInTimezone.getHours()
-            const currentMinutes = currentTimeInTimezone.getMinutes()
+            const currentHours = today.getHours()
+            const currentMinutes = today.getMinutes()
 
             const topPosition = currentHours * 60 + currentMinutes
 

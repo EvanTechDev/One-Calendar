@@ -3,12 +3,9 @@
 import type React from 'react'
 import { Edit3, Bookmark, Trash2 } from 'lucide-react'
 import { cn } from '@zntr/utils'
-import type { CalendarEvent } from '@/components/app/calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
 import type { ViewConfig } from '@/lib/calendar-types'
-import {
-  EventLayoutEngine as EventLayoutEngineClass,
-  formatDateWithTimezone,
-} from '@/components/app/views/event-layout-engine'
+import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
 import { translations } from '@zntr/i18n/calendar'
 import {
   getEventAccentColor,
@@ -131,7 +128,11 @@ export function EventRenderer({
   const width = `calc((100% - 8px) / ${layout.totalColumns})`
   const left = `calc(${layout.column} * ${width})`
 
-  const canResize = !event.viewOnly && !layout.isMultiDay && showTime
+  const canResize =
+    !event.viewOnly &&
+    !layout.isMultiDay &&
+    showTime &&
+    endMinutes >= startMinutes
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -238,34 +239,14 @@ export function EventRenderer({
                 className="text-xs truncate"
                 style={{ color: getEventAccentColor(event.color) }}
               >
-                {layout.isMultiDay ? (
-                  <>
-                    {formatDateWithTimezone(
-                      displayStartDate,
-                      config.language,
-                      config.timeFormat,
-                      config.timezone,
-                    )}{' '}
-                    -{' '}
-                    {formatDateWithTimezone(
-                      displayEndDate,
-                      config.language,
-                      config.timeFormat,
-                      config.timezone,
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {layoutEngine.formatHourMinute(
-                      displayStartDate.getHours(),
-                      displayStartDate.getMinutes(),
-                    )}{' '}
-                    -{' '}
-                    {layoutEngine.formatHourMinute(
-                      displayEndDate.getHours(),
-                      displayEndDate.getMinutes(),
-                    )}
-                  </>
+                {layoutEngine.formatHourMinute(
+                  displayStartDate.getHours(),
+                  displayStartDate.getMinutes(),
+                )}{' '}
+                -{' '}
+                {layoutEngine.formatHourMinute(
+                  displayEndDate.getHours(),
+                  displayEndDate.getMinutes(),
                 )}
               </div>
             )}

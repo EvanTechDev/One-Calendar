@@ -1,5 +1,17 @@
 import { RRule } from 'rrule'
 import type { Frequency, Options, Weekday } from 'rrule'
+import {
+  partsInTz,
+  partsInLocal,
+  wallClockToInstant,
+  type DateParts,
+} from '@/lib/zoned-date'
+export {
+  partsInTz,
+  partsInLocal,
+  tzOffsetMs,
+  wallClockToInstant,
+} from '@/lib/zoned-date'
 /**
  * The raw locale map, NOT `@zntr/i18n/calendar`.
  *
@@ -261,85 +273,6 @@ function pad(value: number): string {
   return value < 10 ? `0${value}` : String(value)
 }
 
-interface DateParts {
-  year: number
-  month: number
-  day: number
-  hour: number
-  minute: number
-  second: number
-}
-
-const tzFormatterCache = new Map<string, Intl.DateTimeFormat>()
-
-function getTzFormatter(timeZone: string): Intl.DateTimeFormat {
-  let formatter = tzFormatterCache.get(timeZone)
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hourCycle: 'h23',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-    tzFormatterCache.set(timeZone, formatter)
-  }
-  return formatter
-}
-
-export function partsInTz(date: Date, timeZone: string): DateParts {
-  const parts = getTzFormatter(timeZone).formatToParts(date)
-  // One walk, not six: this runs once per expanded occurrence per request and
-  // once per occurrence on every client-side optimistic edit, and `find` over
-  // the ~10-entry parts array six times is ~60 comparisons plus six closures
-  // where one pass and six assignments will do.
-  const result: DateParts = {
-    year: 0,
-    month: 0,
-    day: 0,
-    hour: 0,
-    minute: 0,
-    second: 0,
-  }
-  for (const part of parts) {
-    switch (part.type) {
-      case 'year':
-        result.year = Number(part.value)
-        break
-      case 'month':
-        result.month = Number(part.value)
-        break
-      case 'day':
-        result.day = Number(part.value)
-        break
-      case 'hour':
-        result.hour = Number(part.value)
-        break
-      case 'minute':
-        result.minute = Number(part.value)
-        break
-      case 'second':
-        result.second = Number(part.value)
-        break
-    }
-  }
-  return result
-}
-
-export function partsInLocal(date: Date): DateParts {
-  return {
-    year: date.getFullYear(),
-    month: date.getMonth() + 1,
-    day: date.getDate(),
-    hour: date.getHours(),
-    minute: date.getMinutes(),
-    second: date.getSeconds(),
-  }
-}
-
 function partsOfUtcDay(date: Date): DateParts {
   return {
     year: date.getUTCFullYear(),
@@ -352,24 +285,6 @@ function partsOfUtcDay(date: Date): DateParts {
 }
 
 /**
- * The zone's UTC offset, in ms, at the given instant.
- *
- * Note the argument order — the zone first, then the instant. A sibling copy
- * used to live in `lib/mcp/event-tools.ts` with these two swapped and built a
- * fresh `Intl.DateTimeFormat` per call; two same-named helpers taking their
- * arguments in opposite orders is a footgun, so there is one now.
- *
- * Throws `RangeError` for an unrecognised zone, because the underlying
- * `Intl.DateTimeFormat` constructor does.
- */
-export function tzOffsetMs(timeZone: string, utcMs: number): number {
-  const p = partsInTz(new Date(utcMs), timeZone)
-  return (
-    Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - utcMs
-  )
-}
-
-/**
  * The weekday `date` falls on in `timeZone`, 0 = Sunday.
  *
  * Derived from the calendar date rather than asking the formatter for a
@@ -379,42 +294,6 @@ export function tzOffsetMs(timeZone: string, utcMs: number): number {
 export function weekdayIndexInTz(date: Date, timeZone: string): number {
   const p = partsInTz(date, timeZone)
   return new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()
-}
-
-export function wallClockToInstant(
-  parts: DateParts,
-  clock: { hour: number; minute: number; second: number },
-  timeZone?: string,
-): Date {
-  if (timeZone) {
-    const naive = Date.UTC(
-      parts.year,
-      parts.month - 1,
-      parts.day,
-      clock.hour,
-      clock.minute,
-      clock.second,
-    )
-    // Resolve offsets on BOTH sides of a possible transition. Using only the
-    // offset at `naive` gives the wrong instant near DST. Compatible semantics:
-    // choose the earlier instant in a fold, and shift forward through a gap.
-    const offsets = new Set(
-      [-DAY_MS, 0, DAY_MS].map((delta) => tzOffsetMs(timeZone, naive + delta)),
-    )
-    const candidates = [...offsets].map((offset) => naive - offset)
-    const exact = candidates.filter(
-      (instant) => instant + tzOffsetMs(timeZone, instant) === naive,
-    )
-    return new Date(exact.length ? Math.min(...exact) : Math.max(...candidates))
-  }
-  return new Date(
-    parts.year,
-    parts.month - 1,
-    parts.day,
-    clock.hour,
-    clock.minute,
-    clock.second,
-  )
 }
 
 function dayStamp(parts: DateParts): string {

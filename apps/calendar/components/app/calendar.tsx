@@ -53,6 +53,7 @@ import {
   useBookmarks,
 } from '@/components/providers/data-provider'
 import { getValidTimezone } from '@/lib/timezone'
+import { toCalendarDate } from '@/lib/zoned-date'
 import { uuid } from '@/lib/uuid'
 import RightSidebar from '@/components/app/sidebar/right-sidebar'
 import { addDays, addYears, subDays, subYears } from 'date-fns'
@@ -782,7 +783,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   }
 
   const handleTodayClick = () => {
-    const today = new Date()
+    const today = toCalendarDate(new Date(), timezone)
     setDate(today)
     setSidebarDate(today)
   }

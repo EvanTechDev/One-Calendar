@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { CalendarEvent } from '@/components/app/calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
 import type { ViewConfig } from '@/lib/calendar-types'
 import { EventLayoutEngine as EventLayoutEngineClass } from '@/components/app/views/event-layout-engine'
 import type { LayoutEvent } from '@/components/app/views/event-layout-engine'

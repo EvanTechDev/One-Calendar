@@ -1,13 +1,9 @@
 'use client'
 
 import { isWithinInterval, isSameDay, startOfDay, addDays } from 'date-fns'
-import type { CalendarEvent } from '@/components/app/calendar'
-import {
-  Language,
-  TimeFormat,
-  ViewConfig,
-  EventTimeRange,
-} from '@/lib/calendar-types'
+import type { CalendarEvent } from '@/lib/calendar-types'
+import { toCalendarDate } from '@/lib/zoned-date'
+import { Language, TimeFormat, ViewConfig } from '@/lib/calendar-types'
 
 export interface LayoutEvent {
   event: CalendarEvent
@@ -16,6 +12,25 @@ export interface LayoutEvent {
   column: number
   totalColumns: number
   isMultiDay: boolean
+}
+
+// These are grid coordinates, not an elapsed-time interval. In a DST fold
+// a valid event can finish at 01:15 after starting at the earlier 01:30.
+type GridTimeRange = Pick<LayoutEvent, 'start' | 'end' | 'isMultiDay'>
+
+/** Original events stay as instants; only layout coordinates use wall time. */
+export function eventCalendarRange(event: CalendarEvent, timeZone?: string) {
+  const start = new Date(event.startDate)
+  const end = new Date(event.endDate)
+  // Preserve invalid dates for the existing filters; Intl rejects them before
+  // the grid can discard the malformed event.
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return { start, end }
+  return timeZone && !event.isAllDay
+    ? {
+        start: toCalendarDate(start, timeZone),
+        end: toCalendarDate(end, timeZone),
+      }
+    : { start, end }
 }
 
 /**
@@ -69,20 +84,7 @@ export class EventLayoutEngine {
   }
 
   isAllDayEvent(event: CalendarEvent): boolean {
-    if (event.isAllDay) return true
-
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    const isFullDay =
-      start.getHours() === 0 &&
-      start.getMinutes() === 0 &&
-      ((end.getHours() === 23 && end.getMinutes() === 59) ||
-        (end.getHours() === 0 &&
-          end.getMinutes() === 0 &&
-          end.getDate() !== start.getDate()))
-
-    return isFullDay
+    return isAllDayEvent(event, this.config.timezone)
   }
 
   isMultiDayEvent(start: Date, end: Date): boolean {
@@ -96,47 +98,25 @@ export class EventLayoutEngine {
   }
 
   shouldShowEventOnDay(event: CalendarEvent, day: Date): boolean {
-    return shouldShowEventOnDay(event, day)
+    return shouldShowEventOnDay(event, day, this.config.timezone)
   }
 
   layoutAllDaySegments(
     events: CalendarEvent[],
     rowDays: Date[],
   ): AllDaySegment[] {
-    return layoutAllDaySegments(events, rowDays)
+    return layoutAllDaySegments(events, rowDays, this.config.timezone)
   }
 
-  getEventTimesForDay(event: CalendarEvent, day: Date): EventTimeRange | null {
-    const start = new Date(event.startDate)
-    const end = new Date(event.endDate)
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null
-
-    const isMultiDay = this.isMultiDayEvent(start, end)
-
-    let dayStart = start
-    let dayEnd = end
-
-    if (isMultiDay) {
-      if (!isSameDay(start, day)) {
-        dayStart = new Date(day)
-        dayStart.setHours(0, 0, 0, 0)
-      }
-
-      if (!isSameDay(end, day)) {
-        dayEnd = new Date(day)
-        dayEnd.setHours(23, 59, 59, 999)
-      }
-    }
-
-    return EventTimeRange.create({ start: dayStart, end: dayEnd, isMultiDay })
+  getEventTimesForDay(event: CalendarEvent, day: Date): GridTimeRange | null {
+    return getEventTimesForDay(event, day, this.config.timezone)
   }
 
   separateEvents(
     dayEvents: readonly CalendarEvent[],
     day: Date,
   ): { allDayEvents: CalendarEvent[]; regularEvents: CalendarEvent[] } {
-    return separateEvents(dayEvents, day)
+    return separateEvents(dayEvents, day, this.config.timezone)
   }
 
   layoutEventsForDay(
@@ -167,7 +147,7 @@ export class EventLayoutEngine {
 
     eventsWithTimes.forEach((eventWithTime, index) => {
       const startTime = eventWithTime.start.getTime()
-      const endTime = eventWithTime.end.getTime()
+      const endTime = Math.max(startTime + 1, eventWithTime.end.getTime())
 
       timePoints.push({ time: startTime, isStart: true, eventIndex: index })
       timePoints.push({ time: endTime, isStart: false, eventIndex: index })
@@ -270,11 +250,13 @@ export class EventLayoutEngine {
 }
 
 // Standalone functions for backward compatibility with tests
-export function isAllDayEvent(event: CalendarEvent): boolean {
+export function isAllDayEvent(
+  event: CalendarEvent,
+  timeZone?: string,
+): boolean {
   if (event.isAllDay) return true
 
-  const start = new Date(event.startDate)
-  const end = new Date(event.endDate)
+  const { start, end } = eventCalendarRange(event, timeZone)
 
   const isFullDay =
     start.getHours() === 0 &&
@@ -301,9 +283,11 @@ export function isMultiDayEvent(start: Date, end: Date): boolean {
  * True when the event fully covers at least one calendar day (midnight to
  * midnight). An end at 23:59 counts as reaching the next midnight.
  */
-export function coversFullCalendarDay(event: CalendarEvent): boolean {
-  const start = new Date(event.startDate)
-  const end = new Date(event.endDate)
+export function coversFullCalendarDay(
+  event: CalendarEvent,
+  timeZone?: string,
+): boolean {
+  const { start, end } = eventCalendarRange(event, timeZone)
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return false
 
   // First midnight at or after the start.
@@ -326,12 +310,14 @@ export function coversFullCalendarDay(event: CalendarEvent): boolean {
  * calendar day (e.g. 1st 00:00 – 5th 16:00). Short overnight events
  * (Mon 22:00 – Tue 03:00) stay in the time grid.
  */
-export function isBannerEvent(event: CalendarEvent): boolean {
-  if (isAllDayEvent(event)) return true
+export function isBannerEvent(
+  event: CalendarEvent,
+  timeZone?: string,
+): boolean {
+  if (isAllDayEvent(event, timeZone)) return true
 
-  const start = new Date(event.startDate)
-  const end = new Date(event.endDate)
-  return isMultiDayEvent(start, end) && coversFullCalendarDay(event)
+  const { start, end } = eventCalendarRange(event, timeZone)
+  return isMultiDayEvent(start, end) && coversFullCalendarDay(event, timeZone)
 }
 
 /**
@@ -339,9 +325,8 @@ export function isBannerEvent(event: CalendarEvent): boolean {
  * midnight is treated as exclusive-end (the event occupies up to the
  * previous day) — a bar for 1st 00:00 – 5th 00:00 must not cover the 5th.
  */
-function getEventLastDay(event: CalendarEvent): Date {
-  const start = new Date(event.startDate)
-  const end = new Date(event.endDate)
+function getEventLastDay(event: CalendarEvent, timeZone?: string): Date {
+  const { start, end } = eventCalendarRange(event, timeZone)
 
   if (
     end.getHours() === 0 &&
@@ -354,18 +339,21 @@ function getEventLastDay(event: CalendarEvent): Date {
   return startOfDay(end)
 }
 
-export function shouldShowEventOnDay(event: CalendarEvent, day: Date): boolean {
-  const start = new Date(event.startDate)
-  const end = new Date(event.endDate)
+export function shouldShowEventOnDay(
+  event: CalendarEvent,
+  day: Date,
+  timeZone?: string,
+): boolean {
+  const { start, end } = eventCalendarRange(event, timeZone)
 
   if (isSameDay(start, day)) return true
 
   if (isMultiDayEvent(start, end)) {
     // Banner events (all-day, or timed spanning full days) occupy whole
     // calendar days; an end exactly at midnight excludes that day.
-    if (isBannerEvent(event)) {
+    if (isBannerEvent(event, timeZone)) {
       const rangeStart = startOfDay(start)
-      const rangeEnd = getEventLastDay(event)
+      const rangeEnd = getEventLastDay(event, timeZone)
       if (rangeEnd.getTime() < rangeStart.getTime()) return false
       return isWithinInterval(startOfDay(day), {
         start: rangeStart,
@@ -387,6 +375,7 @@ export function shouldShowEventOnDay(event: CalendarEvent, day: Date): boolean {
 export function layoutAllDaySegments(
   events: CalendarEvent[],
   rowDays: Date[],
+  timeZone?: string,
 ): AllDaySegment[] {
   if (!events || events.length === 0 || rowDays.length === 0) return []
 
@@ -402,8 +391,8 @@ export function layoutAllDaySegments(
     if (seen.has(event.id)) continue
     seen.add(event.id)
 
-    const eventStart = startOfDay(new Date(event.startDate))
-    const eventLastDay = getEventLastDay(event)
+    const eventStart = startOfDay(eventCalendarRange(event, timeZone).start)
+    const eventLastDay = getEventLastDay(event, timeZone)
     if (eventLastDay.getTime() < eventStart.getTime()) continue
 
     // Clip to this row of days
@@ -500,11 +489,12 @@ export function barLanesByColumn(
 export function getEventTimesForDay(
   event: CalendarEvent,
   day: Date,
-): EventTimeRange | null {
-  const start = new Date(event.startDate)
-  const end = new Date(event.endDate)
+  timeZone?: string,
+): GridTimeRange | null {
+  const { start, end } = eventCalendarRange(event, timeZone)
 
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return null
+  if (new Date(event.endDate) < new Date(event.startDate)) return null
 
   const isMultiDay = isMultiDayEvent(start, end)
 
@@ -523,12 +513,13 @@ export function getEventTimesForDay(
     }
   }
 
-  return EventTimeRange.create({ start: dayStart, end: dayEnd, isMultiDay })
+  return { start: dayStart, end: dayEnd, isMultiDay }
 }
 
 export function separateEvents(
   dayEvents: readonly CalendarEvent[],
   _day: Date,
+  timeZone?: string,
 ): { allDayEvents: CalendarEvent[]; regularEvents: CalendarEvent[] } {
   const allDayEvents: CalendarEvent[] = []
   const regularEvents: CalendarEvent[] = []
@@ -536,7 +527,7 @@ export function separateEvents(
   dayEvents.forEach((event) => {
     // Banner events (explicit all-day, or timed multi-day covering at least
     // one full calendar day) live in the all-day area, not the time grid.
-    if (isBannerEvent(event)) {
+    if (isBannerEvent(event, timeZone)) {
       allDayEvents.push(event)
     } else {
       regularEvents.push(event)
@@ -574,7 +565,7 @@ export function layoutEventsForDay(
 
   eventsWithTimes.forEach((eventWithTime, index) => {
     const startTime = eventWithTime.start.getTime()
-    const endTime = eventWithTime.end.getTime()
+    const endTime = Math.max(startTime + 1, eventWithTime.end.getTime())
 
     timePoints.push({ time: startTime, isStart: true, eventIndex: index })
     timePoints.push({ time: endTime, isStart: false, eventIndex: index })

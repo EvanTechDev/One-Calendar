@@ -1,7 +1,10 @@
 import { addDays, format, startOfDay } from 'date-fns'
 import { useMemo } from 'react'
-import type { CalendarEvent } from '@/components/app/calendar'
-import { shouldShowEventOnDay } from '@/components/app/views/event-layout-engine'
+import type { CalendarEvent } from '@/lib/calendar-types'
+import {
+  eventCalendarRange,
+  shouldShowEventOnDay,
+} from '@/components/app/views/event-layout-engine'
 
 /**
  * Buckets events by every day they occupy, keyed `yyyy-MM-dd`.
@@ -31,13 +34,13 @@ import { shouldShowEventOnDay } from '@/components/app/views/event-layout-engine
  */
 export function useEventsByDay(
   events: CalendarEvent[],
+  timeZone?: string,
 ): ReadonlyMap<string, CalendarEvent[]> {
   return useMemo(() => {
     const grouped = new Map<string, CalendarEvent[]>()
 
     for (const event of events) {
-      const start = new Date(event.startDate)
-      const end = new Date(event.endDate)
+      const { start, end } = eventCalendarRange(event, timeZone)
       const lastDay = startOfDay(end.getTime() > start.getTime() ? end : start)
 
       for (
@@ -45,7 +48,7 @@ export function useEventsByDay(
         day.getTime() <= lastDay.getTime();
         day = addDays(day, 1)
       ) {
-        if (!shouldShowEventOnDay(event, day)) continue
+        if (!shouldShowEventOnDay(event, day, timeZone)) continue
         const key = format(day, 'yyyy-MM-dd')
         const existing = grouped.get(key)
         if (existing) existing.push(event)
@@ -64,7 +67,7 @@ export function useEventsByDay(
     }
 
     return grouped
-  }, [events])
+  }, [events, timeZone])
 }
 
 /**
