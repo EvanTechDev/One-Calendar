@@ -21,7 +21,13 @@ vi.mock('@/lib/drizzle/client', async () => {
 })
 
 vi.mock('@/lib/api-helpers', () => ({
-  decryptEvent: (e: unknown) => e,
+  decryptEvent: (e: Record<string, unknown>) => ({
+    seriesId: null,
+    recurrenceId: null,
+    rrule: null,
+    exdate: null,
+    ...e,
+  }),
 }))
 
 vi.mock('@/lib/field-crypto', () => ({
@@ -195,6 +201,53 @@ describe('MCP event tool mutations (characterization)', () => {
     expect(tail!.color).toBe('bg-[#E6F6FD]')
     expect(tail!.rrule).toContain('BYDAY=MO,TH,SA')
   })
+
+  it.each([false, true])(
+    'lists a single-edited occurrence with following split=%s',
+    async (split) => {
+      vi.mocked(getSettings).mockResolvedValue({ timezone: 'Asia/Shanghai' })
+      seedMaster({
+        startDate: new Date('2026-10-04T23:45:00Z'),
+        endDate: new Date('2026-10-05T00:15:00Z'),
+        rrule: 'FREQ=WEEKLY;INTERVAL=1;UNTIL=20261030T160000Z;BYDAY=MO,TH,SA',
+      })
+      const query = {
+        start_date: '2026-10-05T00:00:00+08:00',
+        end_date: '2026-10-31T00:00:00+08:00',
+        query: 'Team sync',
+        limit: 100,
+      }
+      const before = await listEvents('u1', query)
+      expect(before.pagination.total).toBe(11)
+      const editedId = 'm1_20261007T234500Z'
+      await updateEvent('u1', editedId, { apply_to: 'single', color: 'green' })
+      if (split) {
+        await updateEvent('u1', 'm1_20261014T234500Z', {
+          apply_to: 'following',
+          color: 'purple',
+        })
+      }
+      const after = await listEvents('u1', query)
+      const edited = await getEvent('u1', editedId)
+      expect(after.pagination.total).toBe(11)
+      expect(after.events.map((e) => e.startDate)).toEqual(
+        before.events.map((e) => e.startDate),
+      )
+      expect(after.events.find((e) => e.id === editedId)).toMatchObject({
+        startDate: edited!.startDate,
+        endDate: edited!.endDate,
+        color: 'bg-[#E7F8F2]',
+        seriesId: 'm1',
+        recurrenceId: '20261007T234500Z',
+      })
+      // A real deletion removes the override too; it must not be restored by
+      // the same list merge that keeps edited occurrences visible.
+      await deleteEvent('u1', editedId, 'single')
+      const deleted = await listEvents('u1', query)
+      expect(deleted.pagination.total).toBe(10)
+      expect(deleted.events.some((e) => e.id === editedId)).toBe(false)
+    },
+  )
 
   it('an all-day colour-only override retains the organiser midnight', async () => {
     vi.mocked(getSettings).mockResolvedValue({ timezone: 'Asia/Shanghai' })

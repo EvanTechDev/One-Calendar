@@ -605,6 +605,7 @@ export default function MonthView({
             side="right"
             align="center"
             sideOffset={8}
+            collisionPadding={20}
             className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
             // The event preview opened from one of these rows is a CHILD of
             // this list, not an outside click. Radix portals it to <body>, so

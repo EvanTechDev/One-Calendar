@@ -89,6 +89,20 @@ describe('editing recurrence from an occurrence', () => {
     const interval = screen.getAllByRole('spinbutton')[0]
     expect(interval).toHaveValue(1)
     fireEvent.change(interval, { target: { value: '2' } })
+    expect(screen.queryByText(/FREQ=/)).toBeNull()
+    expect(screen.getByText(/Every 2 weeks/)).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Never', { selector: 'label' }))
+    expect(screen.getByRole('radio', { name: 'Never' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(screen.getAllByRole('spinbutton')).toHaveLength(1)
+    fireEvent.click(screen.getByText('Count', { selector: 'label' }))
+    expect(screen.getByRole('radio', { name: 'Count' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(screen.getAllByRole('spinbutton')).toHaveLength(2)
     fireEvent.click(screen.getByRole('button', { name: 'Update' }))
     const confirmation = screen.getByRole('alertdialog')
     fireEvent.click(

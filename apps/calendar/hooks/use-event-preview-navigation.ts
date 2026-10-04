@@ -40,7 +40,11 @@ export function useEventPreviewNavigation(
         // Once found, allow the positioning frame to finish even on a busy
         // year grid. The missing-event timeout must not race that frame.
         window.clearTimeout(timeout)
-        anchor.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+        anchor.scrollIntoView({
+          block: 'center',
+          inline: 'nearest',
+          behavior: 'instant',
+        })
         // Radix positions the portal after mounting it. Measure on the next
         // frame, rather than capturing its initial off-screen rectangle.
         frame = requestAnimationFrame(() => {
@@ -59,8 +63,18 @@ export function useEventPreviewNavigation(
       )
       if (trigger && trigger !== revealed) {
         revealed = trigger
-        trigger.scrollIntoView({ block: 'nearest', behavior: 'instant' })
-        trigger.click()
+        // A visible date near the edge is not a good preview location. Centre
+        // it before the list measures its fixed anchor and locks grid scroll.
+        trigger.scrollIntoView({
+          block: 'center',
+          inline: 'nearest',
+          behavior: 'instant',
+        })
+        frame = requestAnimationFrame(() => {
+          frame = 0
+          if (trigger.isConnected) trigger.click()
+          locate()
+        })
       }
     }
 

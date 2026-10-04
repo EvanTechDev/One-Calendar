@@ -136,7 +136,12 @@ describe('search/bookmark preview navigation', () => {
       const row = await screen.findByRole('button', { name: 'Event 4' })
       await waitFor(() => expect(onReady).toHaveBeenCalledWith(row))
       expect(row.closest('[data-slot="popover-content"]')).not.toBeNull()
-      expect(scroll).toHaveBeenCalled()
+      // Reveal the calendar date in a comfortable part of the viewport BEFORE
+      // opening its fixed-position portal. Nearest left it against the edge.
+      expect(scroll.mock.calls[0][0]).toMatchObject({ block: 'center' })
+      expect(scroll.mock.contexts[0]).toBe(
+        document.querySelector('[data-event-reveal-date="2025-01-15"]'),
+      )
       delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView
     },
   )

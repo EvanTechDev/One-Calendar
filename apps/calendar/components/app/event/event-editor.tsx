@@ -32,7 +32,7 @@ import {
 } from '@zntr/ui/alert-dialog'
 import { RadioGroup, RadioGroupItem } from '@zntr/ui/radio-group'
 import { addDays, format, getHours, getMinutes, set } from 'date-fns'
-import { Calendar as CalendarIcon, Clock, X } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, Repeat2, X } from 'lucide-react'
 import { translations } from '@zntr/i18n/calendar'
 import { useCalendar } from '@/components/providers/calendar-context'
 import { requestNotificationPermission } from '@/lib/notifications'
@@ -94,6 +94,9 @@ const NO_REMINDER = 'none'
 
 /** Reminder values the select offers directly; anything else is "custom". */
 const PRESET_REMINDER_MINUTES = [0, 5, 15, 30, 60]
+
+const RECURRENCE_SEGMENT_CLASS =
+  'relative flex min-h-9 cursor-pointer items-center justify-center rounded-sm px-2 py-1.5 text-center text-xs leading-snug transition-colors has-[[aria-checked=true]]:bg-background has-[[aria-checked=true]]:text-foreground has-[[aria-checked=true]]:shadow-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring'
 
 interface EventEditorProps {
   open: boolean
@@ -1129,7 +1132,7 @@ export default function EventEditor({
     const parts = buildRruleParts()
     if (!parts) return null
     try {
-      return rruleFromParts(parts)
+      return describeRecurrence(rruleFromParts(parts), languageCode)
     } catch {
       return null
     }
@@ -1790,182 +1793,310 @@ export default function EventEditor({
                       )}
                     </div>
 
-                    {(!event || !isRecurringEvent) && (
-                      <div className="flex items-center space-x-2">
-                        {isAiParsing ? (
-                          <Skeleton className="h-6 w-full" />
-                        ) : (
-                          <>
-                            <Checkbox
-                              id="repeat"
-                              checked={recurrenceEnabled}
-                              onCheckedChange={(checked) => {
-                                const enabled = checked as boolean
-                                setRecurrenceEnabled(enabled)
-                                if (enabled) {
-                                  setRecWeeklyDays([weekdayOfDate(startDate)])
-                                }
-                              }}
-                            />
-                            <Label htmlFor="repeat">{t.repeatLabel}</Label>
-                          </>
-                        )}
-                      </div>
-                    )}
+                    <section
+                      aria-label={t.repeatRule}
+                      className="space-y-4 rounded-lg border bg-muted/20 p-3"
+                    >
+                      {(!event || !isRecurringEvent) && (
+                        <div className="flex items-center space-x-2">
+                          {isAiParsing ? (
+                            <Skeleton className="h-6 w-full" />
+                          ) : (
+                            <>
+                              <Checkbox
+                                id="repeat"
+                                checked={recurrenceEnabled}
+                                onCheckedChange={(checked) => {
+                                  const enabled = checked as boolean
+                                  setRecurrenceEnabled(enabled)
+                                  if (enabled) {
+                                    setRecWeeklyDays([weekdayOfDate(startDate)])
+                                  }
+                                }}
+                              />
+                              <Label htmlFor="repeat">{t.repeatLabel}</Label>
+                            </>
+                          )}
+                        </div>
+                      )}
 
-                    {event && isRecurringEvent && (
-                      <div className="space-y-2">
-                        <Label>{t.repeatScope}</Label>
-                        <RadioGroup
-                          value={applyTo}
-                          onValueChange={(value) =>
-                            setApplyTo(value as 'single' | 'following' | 'all')
-                          }
-                        >
-                          <div className="flex items-center gap-2">
-                            <RadioGroupItem
-                              value="single"
-                              id="edit-scope-single"
-                            />
-                            <Label htmlFor="edit-scope-single">
+                      {event && isRecurringEvent && (
+                        <div className="space-y-2.5">
+                          <Label
+                            id="edit-scope-label"
+                            className="text-xs text-muted-foreground"
+                          >
+                            {t.repeatScope}
+                          </Label>
+                          <RadioGroup
+                            aria-labelledby="edit-scope-label"
+                            className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1"
+                            value={applyTo}
+                            onValueChange={(value) =>
+                              setApplyTo(
+                                value as 'single' | 'following' | 'all',
+                              )
+                            }
+                          >
+                            <Label
+                              htmlFor="edit-scope-single"
+                              className={RECURRENCE_SEGMENT_CLASS}
+                            >
+                              <RadioGroupItem
+                                value="single"
+                                id="edit-scope-single"
+                                className="sr-only absolute size-px border-0"
+                              />
                               {t.repeatScopeSingle}
                             </Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <RadioGroupItem
-                              value={canAllScope ? 'all' : 'following'}
-                              id="edit-scope-series"
-                            />
-                            <Label htmlFor="edit-scope-series">
+                            <Label
+                              htmlFor="edit-scope-series"
+                              className={RECURRENCE_SEGMENT_CLASS}
+                            >
+                              <RadioGroupItem
+                                value={canAllScope ? 'all' : 'following'}
+                                id="edit-scope-series"
+                                className="sr-only absolute size-px border-0"
+                              />
                               {canAllScope
                                 ? t.repeatScopeAll
                                 : t.repeatScopeFollowing}
                             </Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                    )}
+                          </RadioGroup>
+                        </div>
+                      )}
 
-                    {recurrenceEnabled &&
-                      (event === null || applyTo !== 'single') &&
-                      (isAiParsing ? (
-                        <Skeleton className="h-40 w-full" />
-                      ) : (
-                        <div className="space-y-3 rounded-md border p-3">
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={recFreq}
-                              onValueChange={(value) =>
-                                setRecFreq(
-                                  value as
-                                    | 'DAILY'
-                                    | 'WEEKLY'
-                                    | 'MONTHLY'
-                                    | 'YEARLY',
-                                )
-                              }
-                            >
-                              <SelectTrigger className="w-[120px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="DAILY">
-                                  {t.repeatFrequencyDaily}
-                                </SelectItem>
-                                <SelectItem value="WEEKLY">
-                                  {t.repeatFrequencyWeekly}
-                                </SelectItem>
-                                <SelectItem value="MONTHLY">
-                                  {t.repeatFrequencyMonthly}
-                                </SelectItem>
-                                <SelectItem value="YEARLY">
-                                  {t.repeatFrequencyYearly}
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <div className="flex items-center gap-1">
-                              <Input
-                                type="number"
-                                min={1}
-                                value={recInterval}
-                                onChange={(e) =>
-                                  setRecInterval(
-                                    Math.max(
-                                      1,
-                                      parseInt(e.target.value, 10) || 1,
-                                    ),
-                                  )
-                                }
-                                className="w-16"
-                              />
-                              <span className="text-sm text-muted-foreground">
-                                {t.repeatEveryIntervalHint}
-                              </span>
+                      {recurrenceEnabled &&
+                        (event === null || applyTo !== 'single') &&
+                        (isAiParsing ? (
+                          <Skeleton className="h-40 w-full" />
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor="repeat-frequency"
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  {t.repeatLabel}
+                                </Label>
+                                <Select
+                                  value={recFreq}
+                                  onValueChange={(value) =>
+                                    setRecFreq(
+                                      value as
+                                        | 'DAILY'
+                                        | 'WEEKLY'
+                                        | 'MONTHLY'
+                                        | 'YEARLY',
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger
+                                    id="repeat-frequency"
+                                    className="w-full bg-background"
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="DAILY">
+                                      {t.repeatFrequencyDaily}
+                                    </SelectItem>
+                                    <SelectItem value="WEEKLY">
+                                      {t.repeatFrequencyWeekly}
+                                    </SelectItem>
+                                    <SelectItem value="MONTHLY">
+                                      {t.repeatFrequencyMonthly}
+                                    </SelectItem>
+                                    <SelectItem value="YEARLY">
+                                      {t.repeatFrequencyYearly}
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label
+                                  htmlFor="repeat-interval"
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  {t.repeatEveryIntervalHint}
+                                </Label>
+                                <Input
+                                  id="repeat-interval"
+                                  type="number"
+                                  min={1}
+                                  value={recInterval}
+                                  onChange={(e) =>
+                                    setRecInterval(
+                                      Math.max(
+                                        1,
+                                        parseInt(e.target.value, 10) || 1,
+                                      ),
+                                    )
+                                  }
+                                  className="w-full bg-background tabular-nums"
+                                />
+                              </div>
                             </div>
-                          </div>
 
-                          {recFreq === 'WEEKLY' && (
-                            <div className="flex flex-wrap gap-1">
-                              {WEEKDAY_ORDER.map((d) => {
-                                const selected = recWeeklyDays.includes(d)
-                                return (
+                            {recFreq === 'WEEKLY' && (
+                              <div className="grid grid-cols-7 gap-1">
+                                {WEEKDAY_ORDER.map((d) => {
+                                  const selected = recWeeklyDays.includes(d)
+                                  return (
+                                    <Button
+                                      key={d}
+                                      type="button"
+                                      size="sm"
+                                      className={cn(
+                                        'h-9 min-w-0 rounded-md px-0 text-xs',
+                                        selected &&
+                                          'bg-cal-accent/15 text-cal-accent hover:bg-cal-accent/25',
+                                      )}
+                                      variant={selected ? 'secondary' : 'ghost'}
+                                      aria-pressed={selected}
+                                      onClick={() =>
+                                        setRecWeeklyDays((prev) =>
+                                          selected
+                                            ? prev.filter((x) => x !== d)
+                                            : [...prev, d],
+                                        )
+                                      }
+                                    >
+                                      <span className="truncate">
+                                        {weekdayLabel(d)}
+                                      </span>
+                                    </Button>
+                                  )
+                                })}
+                              </div>
+                            )}
+
+                            {recFreq === 'MONTHLY' && (
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
                                   <Button
-                                    key={d}
                                     type="button"
                                     size="sm"
-                                    className="h-7 px-2"
-                                    variant={selected ? 'default' : 'outline'}
-                                    onClick={() =>
-                                      setRecWeeklyDays((prev) =>
-                                        selected
-                                          ? prev.filter((x) => x !== d)
-                                          : [...prev, d],
+                                    variant={
+                                      recMonthlyMode === 'day'
+                                        ? 'default'
+                                        : 'outline'
+                                    }
+                                    onClick={() => setRecMonthlyMode('day')}
+                                    aria-pressed={recMonthlyMode === 'day'}
+                                  >
+                                    {t.repeatMonthlyModeDay}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                      recMonthlyMode === 'weekday'
+                                        ? 'default'
+                                        : 'outline'
+                                    }
+                                    onClick={() => setRecMonthlyMode('weekday')}
+                                    aria-pressed={recMonthlyMode === 'weekday'}
+                                  >
+                                    {t.repeatMonthlyModeWeekday}
+                                  </Button>
+                                </div>
+                                {recMonthlyMode === 'day' ? (
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    max={31}
+                                    value={recMonthlyDay}
+                                    onChange={(e) =>
+                                      setRecMonthlyDay(
+                                        Math.min(
+                                          31,
+                                          Math.max(
+                                            1,
+                                            parseInt(e.target.value, 10) || 1,
+                                          ),
+                                        ),
                                       )
                                     }
-                                  >
-                                    {weekdayLabel(d)}
-                                  </Button>
-                                )
-                              })}
-                            </div>
-                          )}
-
-                          {recFreq === 'MONTHLY' && (
-                            <div className="space-y-2">
-                              <div className="flex gap-2">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={
-                                    recMonthlyMode === 'day'
-                                      ? 'default'
-                                      : 'outline'
-                                  }
-                                  onClick={() => setRecMonthlyMode('day')}
-                                >
-                                  {t.repeatMonthlyModeDay}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={
-                                    recMonthlyMode === 'weekday'
-                                      ? 'default'
-                                      : 'outline'
-                                  }
-                                  onClick={() => setRecMonthlyMode('weekday')}
-                                >
-                                  {t.repeatMonthlyModeWeekday}
-                                </Button>
+                                    className="w-20"
+                                  />
+                                ) : (
+                                  <div className="flex gap-2">
+                                    <Select
+                                      value={String(recMonthlyWeek)}
+                                      onValueChange={(v) =>
+                                        setRecMonthlyWeek(parseInt(v, 10))
+                                      }
+                                    >
+                                      <SelectTrigger className="w-[110px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {[1, 2, 3, 4, -1].map((w) => (
+                                          <SelectItem key={w} value={String(w)}>
+                                            {w === -1
+                                              ? t.recurrenceLastWeek
+                                              : t.recurrenceNthWeek.replace(
+                                                  '{n}',
+                                                  String(w),
+                                                )}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Select
+                                      value={recMonthlyWeekday}
+                                      onValueChange={setRecMonthlyWeekday}
+                                    >
+                                      <SelectTrigger className="w-[110px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {WEEKDAY_ORDER.map((d) => (
+                                          <SelectItem key={d} value={d}>
+                                            {weekdayLabel(d)}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                )}
                               </div>
-                              {recMonthlyMode === 'day' ? (
+                            )}
+
+                            {recFreq === 'YEARLY' && (
+                              <div className="flex gap-2">
+                                <Select
+                                  value={String(recYearlyMonth)}
+                                  onValueChange={(v) =>
+                                    setRecYearlyMonth(parseInt(v, 10))
+                                  }
+                                >
+                                  <SelectTrigger className="w-[130px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from(
+                                      { length: 12 },
+                                      (_, i) => i + 1,
+                                    ).map((m) => (
+                                      <SelectItem key={m} value={String(m)}>
+                                        {t.recurrenceYearlyMonth.replace(
+                                          '{n}',
+                                          String(m),
+                                        )}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                                 <Input
                                   type="number"
                                   min={1}
                                   max={31}
-                                  value={recMonthlyDay}
+                                  value={recYearlyDay}
                                   onChange={(e) =>
-                                    setRecMonthlyDay(
+                                    setRecYearlyDay(
                                       Math.min(
                                         31,
                                         Math.max(
@@ -1977,201 +2108,131 @@ export default function EventEditor({
                                   }
                                   className="w-20"
                                 />
-                              ) : (
-                                <div className="flex gap-2">
-                                  <Select
-                                    value={String(recMonthlyWeek)}
-                                    onValueChange={(v) =>
-                                      setRecMonthlyWeek(parseInt(v, 10))
-                                    }
-                                  >
-                                    <SelectTrigger className="w-[110px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {[1, 2, 3, 4, -1].map((w) => (
-                                        <SelectItem key={w} value={String(w)}>
-                                          {w === -1
-                                            ? t.recurrenceLastWeek
-                                            : t.recurrenceNthWeek.replace(
-                                                '{n}',
-                                                String(w),
-                                              )}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <Select
-                                    value={recMonthlyWeekday}
-                                    onValueChange={setRecMonthlyWeekday}
-                                  >
-                                    <SelectTrigger className="w-[110px]">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {WEEKDAY_ORDER.map((d) => (
-                                        <SelectItem key={d} value={d}>
-                                          {weekdayLabel(d)}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {recFreq === 'YEARLY' && (
-                            <div className="flex gap-2">
-                              <Select
-                                value={String(recYearlyMonth)}
-                                onValueChange={(v) =>
-                                  setRecYearlyMonth(parseInt(v, 10))
-                                }
-                              >
-                                <SelectTrigger className="w-[130px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Array.from(
-                                    { length: 12 },
-                                    (_, i) => i + 1,
-                                  ).map((m) => (
-                                    <SelectItem key={m} value={String(m)}>
-                                      {t.recurrenceYearlyMonth.replace(
-                                        '{n}',
-                                        String(m),
-                                      )}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Input
-                                type="number"
-                                min={1}
-                                max={31}
-                                value={recYearlyDay}
-                                onChange={(e) =>
-                                  setRecYearlyDay(
-                                    Math.min(
-                                      31,
-                                      Math.max(
-                                        1,
-                                        parseInt(e.target.value, 10) || 1,
-                                      ),
-                                    ),
-                                  )
-                                }
-                                className="w-20"
-                              />
-                            </div>
-                          )}
-
-                          <div className="space-y-2">
-                            <Label>{t.repeatEnds}</Label>
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                  recEndMode === 'never' ? 'default' : 'outline'
-                                }
-                                onClick={() => setRecEndMode('never')}
-                              >
-                                {t.repeatEndNever}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                  recEndMode === 'count' ? 'default' : 'outline'
-                                }
-                                onClick={() => setRecEndMode('count')}
-                              >
-                                {t.repeatEndCount}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={
-                                  recEndMode === 'until' ? 'default' : 'outline'
-                                }
-                                onClick={() => setRecEndMode('until')}
-                              >
-                                {t.repeatEndUntil}
-                              </Button>
-                            </div>
-                            {recEndMode === 'count' && (
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  value={recCount}
-                                  onChange={(e) =>
-                                    setRecCount(
-                                      Math.max(
-                                        1,
-                                        parseInt(e.target.value, 10) || 1,
-                                      ),
-                                    )
-                                  }
-                                  className="w-20"
-                                />
-                                <span className="text-sm text-muted-foreground">
-                                  {t.repeatOccurrencesSuffix}
-                                </span>
                               </div>
                             )}
-                            {recEndMode === 'until' && (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full justify-start text-left font-normal"
+
+                            <div className="space-y-2.5">
+                              <Label
+                                id="repeat-end-label"
+                                className="text-xs text-muted-foreground"
+                              >
+                                {t.repeatEnds}
+                              </Label>
+                              <RadioGroup
+                                aria-labelledby="repeat-end-label"
+                                value={recEndMode}
+                                onValueChange={(value) =>
+                                  setRecEndMode(
+                                    value as 'never' | 'count' | 'until',
+                                  )
+                                }
+                                className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1"
+                              >
+                                {(
+                                  [
+                                    ['never', t.repeatEndNever],
+                                    ['count', t.repeatEndCount],
+                                    ['until', t.repeatEndUntil],
+                                  ] as const
+                                ).map(([value, label]) => (
+                                  <Label
+                                    key={value}
+                                    htmlFor={`repeat-end-${value}`}
+                                    className={RECURRENCE_SEGMENT_CLASS}
                                   >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {format(recUntil, 'yyyy-MM-dd')}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-0"
-                                  align="start"
-                                >
-                                  <Calendar
-                                    mode="single"
-                                    selected={recUntil}
-                                    onSelect={(date) => {
-                                      if (date) setRecUntil(date)
-                                    }}
+                                    <RadioGroupItem
+                                      id={`repeat-end-${value}`}
+                                      value={value}
+                                      className="sr-only absolute size-px border-0"
+                                    />
+                                    {label}
+                                  </Label>
+                                ))}
+                              </RadioGroup>
+                              {recEndMode === 'count' && (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    aria-label={t.repeatOccurrencesSuffix}
+                                    min={1}
+                                    value={recCount}
+                                    onChange={(e) =>
+                                      setRecCount(
+                                        Math.max(
+                                          1,
+                                          parseInt(e.target.value, 10) || 1,
+                                        ),
+                                      )
+                                    }
+                                    className="w-20"
                                   />
-                                </PopoverContent>
-                              </Popover>
+                                  <span className="text-sm text-muted-foreground">
+                                    {t.repeatOccurrencesSuffix}
+                                  </span>
+                                </div>
+                              )}
+                              {recEndMode === 'until' && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className="w-full justify-start text-left font-normal"
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {recUntil.toLocaleDateString(
+                                        languageCode,
+                                        {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                        },
+                                      )}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto p-0"
+                                    align="start"
+                                  >
+                                    <Calendar
+                                      mode="single"
+                                      selected={recUntil}
+                                      onSelect={(date) => {
+                                        if (date) setRecUntil(date)
+                                      }}
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              )}
+                            </div>
+
+                            {rulePreview && (
+                              <p className="flex items-start gap-2 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                                <Repeat2
+                                  aria-hidden="true"
+                                  className="mt-0.5 size-3.5 shrink-0"
+                                />
+                                <span>{rulePreview}</span>
+                              </p>
                             )}
                           </div>
+                        ))}
 
-                          {rulePreview && (
-                            <p className="text-xs font-mono text-muted-foreground">
-                              {rulePreview}
+                      {seriesRule &&
+                        isRecurringEvent &&
+                        event &&
+                        applyTo === 'single' && (
+                          <div className="flex items-start gap-2 text-muted-foreground">
+                            <Repeat2
+                              aria-hidden="true"
+                              className="mt-0.5 size-3.5 shrink-0"
+                            />
+                            <p className="text-xs leading-relaxed">
+                              {describeRecurrence(seriesRule, languageCode)}
                             </p>
-                          )}
-                        </div>
-                      ))}
-
-                    {seriesRule &&
-                      isRecurringEvent &&
-                      event &&
-                      applyTo === 'single' && (
-                        <div className="space-y-2 rounded-md border p-3">
-                          <Label>{t.repeatRule}</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {describeRecurrence(seriesRule, languageCode)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t.repeatRuleEditHint}
-                          </p>
-                        </div>
-                      )}
+                          </div>
+                        )}
+                    </section>
 
                     <div className="space-y-2">
                       <Label htmlFor="notification">{t.notification}</Label>

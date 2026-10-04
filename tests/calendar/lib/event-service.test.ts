@@ -186,7 +186,7 @@ describe('expandRows', () => {
     )
   })
 
-  it('exdate suppresses an occurrence even when an override row still exists (post-delete state)', () => {
+  it('keeps an exdated occurrence when its override still exists (single edit)', () => {
     const master = makeDailySeries({
       startDate: day(2024, 1, 1),
       endDate: day(2024, 1, 1, 1),
@@ -205,8 +205,11 @@ describe('expandRows', () => {
       windowEnd: day(2024, 1, 3),
     })
     expect(results.some((e) => e.recurrenceId === '20240102T000000Z')).toBe(
-      false,
+      true,
     )
+    expect(
+      results.filter((e) => e.recurrenceId === '20240102T000000Z'),
+    ).toHaveLength(1)
   })
 
   it('passes through a stranded override whose master is missing (route nulls seriesId first)', () => {

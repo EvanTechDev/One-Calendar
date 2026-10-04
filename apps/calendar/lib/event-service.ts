@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import {
   expandSeries,
+  expandSeriesView,
   firstVisibleStampOfSeries,
   isSeriesEvent,
   mergeOverride,
@@ -134,56 +135,21 @@ export function expandRows(
 ): ExpandedEventRow[] {
   const windowStart = opts.windowStart ?? new Date(-8640000000000000)
   const windowEnd = opts.windowEnd ?? new Date(8640000000000000)
-  const timezone = opts.timezone
-  const explicit = opts.overrides ?? {}
-  const overridesBySeries: Record<string, EventRow[]> = {}
-  for (const row of rows) {
-    if (row.seriesId === null) continue
-    const list = overridesBySeries[row.seriesId] ?? []
-    list.push(row)
-    overridesBySeries[row.seriesId] = list
-  }
-  for (const [seriesId, list] of Object.entries(explicit)) {
-    const merged = overridesBySeries[seriesId] ?? []
-    overridesBySeries[seriesId] = [...merged, ...list]
-  }
-
-  const result: ExpandedEventRow[] = []
-  for (const row of rows) {
-    if (row.seriesId !== null) continue
-    if (isSeriesEvent(row)) {
-      const instances = expandSeries(
-        row,
-        windowStart,
-        windowEnd,
-        1000,
-        timezone,
-      )
-      const seriesOverrides = overridesBySeries[row.id] ?? []
-      for (const instance of instances) {
-        const override =
-          seriesOverrides.find(
-            (o) => o.recurrenceId === instance.recurrenceId,
-          ) ?? null
-        const base = {
-          ...row,
-          startDate: instance.startDate,
-          endDate: instance.endDate,
-          seriesId: row.id,
-          recurrenceId: instance.recurrenceId,
-        }
-        const merged = override ? mergeOverride(base, override) : base
-        result.push({
-          ...merged,
-          instanceId: instance.id,
-          recurrenceId: instance.recurrenceId,
-        })
-      }
-    } else {
-      result.push({ ...row, instanceId: row.id, recurrenceId: null })
-    }
-  }
-  return result
+  // Use the same override reconciliation as the calendar. An EXDATE plus an
+  // override is an edited occurrence, not a deletion: expanding only the base
+  // slots silently dropped these rows from MCP lists and analytics (CORE-219).
+  const overrides = [
+    ...rows.filter((row) => row.seriesId !== null),
+    ...Object.values(opts.overrides ?? {}).flat(),
+  ]
+  return expandSeriesView(
+    rows.map((row) => ({ ...row })),
+    overrides.map((row) => ({ ...row })),
+    windowStart,
+    windowEnd,
+    1000,
+    opts.timezone,
+  ).map((row) => ({ ...row, instanceId: row.id }))
 }
 
 export function resolveInstance(

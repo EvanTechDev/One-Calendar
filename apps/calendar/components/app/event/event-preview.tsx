@@ -473,7 +473,7 @@ export default function EventPreview({
           side={popoverSide}
           align="center"
           sideOffset={12}
-          collisionPadding={12}
+          collisionPadding={20}
           // Same height discipline as the editor: cap at what actually fits
           // (Radix subtracts browser chrome), scroll inside.
           // `mobile-fullscreen`: below 768px this popover becomes a
