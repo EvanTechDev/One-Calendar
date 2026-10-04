@@ -2344,49 +2344,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             events={eventsByCategory}
             onOpenChange={setAiPaletteOpen}
             onEventsMutated={() => void refreshEvents()}
-            workspace={{
-              currentEvent: previewOpen ? previewEvent : selectedEvent,
-              bookmarkedIds: bookmarks.map((bookmark) => bookmark.eventId),
-              calendars,
-              editEvent: (event) => {
-                setDate(new Date(event.startDate))
-                if (!isCalendarView(view)) setView(defaultView)
-                setQuickCreateStartTime(null)
-                setQuickCreateEndTime(null)
-                setPreviewOpen(false)
-                setPreviewAnchorEl(null)
-                setPreviewAnchorRect(null)
-                setEditorAnchorEl(null)
-                setEditorAnchorRect(null)
-                setEditorReplacesPreview(false)
-                setSelectedEvent(event)
-                setEventEditorOpen(true)
-              },
-              duplicateEvent: (event) => {
-                void upsertEvent({
-                  title: event.title,
-                  description: event.description,
-                  location: event.location,
-                  startDate: new Date(event.startDate).toISOString(),
-                  endDate: new Date(event.endDate).toISOString(),
-                  isAllDay: event.isAllDay,
-                  color: event.color,
-                  categoryId: event.calendarId || null,
-                  timezone,
-                })
-                  .then(() => toast(t.eventCreated))
-                  .catch(() => {})
-              },
-              toggleBookmark: (event) => {
-                void toggleBookmark(event).catch(() => {})
-              },
-              filterCalendar: (id) =>
-                setSelectedCategoryFilters(id ? [id] : []),
-              setTheme: (theme) => {
-                setTheme(theme)
-                void updateSettings({ theme }).catch(() => {})
-              },
-            }}
             actions={{
               setView: (v) => setView(v),
               goToToday: handleTodayClick,

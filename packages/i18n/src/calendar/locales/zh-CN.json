@@ -1,9 +1,4 @@
 {
-  "commandDuplicate": "复制本次日程",
-  "commandWorkspace": "工作区",
-  "commandUpcoming": "即将开始 · 选择日程以执行操作",
-  "commandFilterCalendar": "只显示某个日历…",
-  "commandAllCalendars": "显示全部日历",
   "aiAssistantContinue": "继续未完成的任务",
   "aiAssistantContinuePrompt": "继续完成我之前请求中尚未完成的部分。先检查已有工具结果和日历当前状态，不要重复已成功的修改。说明已经完成和仍未完成的内容。",
   "aiAssistantTimedOut": "回答已超时，已完成的修改会保留。你可以继续，让助手先检查当前状态再处理剩余任务。",

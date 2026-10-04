@@ -18,11 +18,6 @@ import {
 } from 'ai'
 import { ChatTranscript } from './chat-transcript'
 import { AssistantIcon } from './assistant-icon'
-import {
-  PaletteWorkspaceCommands,
-  type CommandPage,
-  type WorkspaceCommands,
-} from './palette-workspace-commands'
 import { PaletteSearchResults } from './palette-search-results'
 import {
   commandFilter,
@@ -171,7 +166,6 @@ interface AiCommandPaletteProps {
   /** App commands surfaced as palette items alongside the AI. */
   actions?: PaletteActions
   events?: CalendarEvent[]
-  workspace?: WorkspaceCommands
 }
 
 export function AiCommandPalette({
@@ -180,19 +174,11 @@ export function AiCommandPalette({
   onEventsMutated,
   actions,
   events = [],
-  workspace,
 }: AiCommandPaletteProps) {
   const [language] = useLanguage()
   const t = translations[language]
   const [input, setInput] = React.useState('')
   const [mode, setMode] = React.useState<Mode>('palette')
-  const [commandTrail, setCommandTrail] = React.useState<CommandPage[]>([])
-  const commandPage = commandTrail.at(-1) ?? null
-  const navigateCommand = (page: CommandPage | null) => {
-    setCommandTrail((trail) => (page ? [...trail, page] : trail.slice(0, -1)))
-    setInput('')
-    inputRef.current?.focus()
-  }
   const [search, setSearch] = React.useState<SearchState>({ status: 'idle' })
   // The next page's fetch, as distinct from a new search: the rows already on
   // screen must stay on screen while page 2 loads.
@@ -282,7 +268,6 @@ export function AiCommandPalette({
       resetSearch()
       void stopChat()
       setMode('palette')
-      setCommandTrail([])
       setInput('')
       lastNotified.current = null
     }
@@ -477,13 +462,6 @@ export function AiCommandPalette({
     <CommandDialog
       open={open}
       onOpenChange={reset}
-      onEscapeKeyDown={(event) => {
-        if (mode === 'palette' && commandPage) {
-          event.preventDefault()
-          event.stopPropagation()
-          navigateCommand(null)
-        }
-      }}
       title={t.commandPaletteTitle}
       description={t.commandPaletteDescription}
       // top-1/3 from the ui component collides with short dynamic
@@ -502,17 +480,6 @@ export function AiCommandPalette({
         shouldFilter={mode === 'palette'}
         filter={filterCommand}
         onKeyDownCapture={(e) => {
-          if (
-            mode === 'palette' &&
-            commandPage &&
-            e.key === 'Backspace' &&
-            !input
-          ) {
-            e.preventDefault()
-            e.stopPropagation()
-            navigateCommand(null)
-            return
-          }
           if (
             e.altKey &&
             !e.ctrlKey &&
@@ -538,16 +505,6 @@ export function AiCommandPalette({
               e.stopPropagation()
           }}
         >
-          {mode === 'palette' && commandPage && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t.back}
-              onClick={() => navigateCommand(null)}
-            >
-              <ArrowLeft />
-            </Button>
-          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -772,7 +729,7 @@ export function AiCommandPalette({
             <CommandList className="max-h-[min(24rem,calc(100dvh-13rem))] overscroll-contain">
               <CommandEmpty>{t.noMatchingEvents}</CommandEmpty>
               {/* Date navigation precedes general commands on equal scores. */}
-              {!commandPage && typedDate && (
+              {typedDate && (
                 <CommandGroup heading={t.aiGoToDate}>
                   <CommandItem
                     value={DATE_ACTION}
@@ -786,27 +743,7 @@ export function AiCommandPalette({
                   </CommandItem>
                 </CommandGroup>
               )}
-              {workspace && (
-                <PaletteWorkspaceCommands
-                  t={t}
-                  events={events}
-                  query={input}
-                  page={commandPage}
-                  navigate={navigateCommand}
-                  workspace={workspace}
-                  run={runAction}
-                  preview={(event) =>
-                    goToEvent({
-                      ...event,
-                      startDate: new Date(event.startDate).toISOString(),
-                      endDate: new Date(event.endDate).toISOString(),
-                      location: event.location ?? null,
-                      color: event.color ?? null,
-                    })
-                  }
-                />
-              )}
-              {!commandPage && actions && (
+              {actions && (
                 <>
                   <CommandSeparator />
                   <CommandGroup heading={t.calendar}>

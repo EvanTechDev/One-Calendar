@@ -413,64 +413,6 @@ it('Enter still searches after arrow navigation in an empty result list', async 
   expect(fetchSearch).toHaveBeenCalledTimes(1)
 })
 
-it('chooses an event, edits it and navigates nested workspace commands without AI', async () => {
-  const event = {
-    id: 'e1',
-    title: 'Roadmap workshop',
-    startDate: new Date('2026-10-05T09:00Z'),
-    endDate: new Date('2026-10-05T10:00Z'),
-    isAllDay: false,
-  }
-  const workspace = {
-    calendars: [{ id: 'work', name: 'Work' }],
-    bookmarkedIds: ['e1'],
-    editEvent: vi.fn(),
-    duplicateEvent: vi.fn(),
-    toggleBookmark: vi.fn(),
-    filterCalendar: vi.fn(),
-    setTheme: vi.fn(),
-  }
-  const close = vi.fn()
-  render(
-    <AiCommandPalette
-      open
-      onOpenChange={close}
-      events={[event]}
-      workspace={workspace}
-    />,
-  )
-  await typeQuestion('Roadmap')
-  fireEvent.click(screen.getByRole('option', { name: /Roadmap workshop/ }))
-  expect(close).not.toHaveBeenCalled()
-  expect(screen.getByRole('combobox')).toHaveValue('')
-  fireEvent.click(screen.getByRole('option', { name: 'Edit' }))
-  expect(workspace.editEvent).toHaveBeenCalledExactlyOnceWith(event)
-  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' })
-  expect(close).toHaveBeenCalledTimes(1)
-  fireEvent.click(screen.getByRole('option', { name: 'Bookmarks' }))
-  fireEvent.click(screen.getByRole('option', { name: /Roadmap workshop/ }))
-  fireEvent.click(
-    screen.getByRole('option', { name: 'Duplicate this occurrence' }),
-  )
-  expect(workspace.duplicateEvent).toHaveBeenCalledExactlyOnceWith(event)
-  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-  expect(
-    screen.getByRole('option', { name: /Roadmap workshop/ }),
-  ).toBeInTheDocument()
-  expect(
-    screen.queryByRole('option', { name: 'Show one calendar…' }),
-  ).not.toBeInTheDocument()
-  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Backspace' })
-  fireEvent.click(screen.getByRole('option', { name: 'Show one calendar…' }))
-  fireEvent.click(screen.getByRole('option', { name: 'Work' }))
-  expect(workspace.filterCalendar).toHaveBeenCalledExactlyOnceWith('work')
-  fireEvent.click(screen.getByRole('button', { name: 'Back' }))
-  fireEvent.click(screen.getByRole('option', { name: 'Theme' }))
-  fireEvent.click(screen.getByRole('option', { name: 'Dark' }))
-  expect(workspace.setTheme).toHaveBeenCalledExactlyOnceWith('dark')
-  expect(fetchSearch).not.toHaveBeenCalled()
-})
-
 it('stops a stalled agent and retains its transcript when the palette closes', async () => {
   chatState.status = 'streaming'
   chatState.messages = [
