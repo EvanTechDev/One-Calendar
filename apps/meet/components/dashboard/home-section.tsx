@@ -73,7 +73,7 @@ export function HomeSection({
       </div>
 
       <section
-        className="grid items-center gap-4 rounded-lg border bg-card p-4 dark:border-transparent lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:gap-8 lg:p-5"
+        className="grid items-center gap-4 rounded-lg border p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] lg:gap-8 lg:p-5"
         aria-labelledby="home-join-heading"
       >
         <div className="space-y-1">
@@ -89,10 +89,10 @@ export function HomeSection({
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <section
-          className="min-w-0 rounded-lg border bg-card dark:border-transparent"
+          className="min-w-0 rounded-lg border"
           aria-labelledby="home-next-heading"
         >
-          <div className="flex items-center justify-between gap-3 border-b px-4 py-3 dark:border-border/50">
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
             <h3
               id="home-next-heading"
               className="flex items-center gap-2 text-sm font-semibold"
@@ -161,10 +161,10 @@ export function HomeSection({
         </section>
 
         <section
-          className="min-w-0 rounded-lg border bg-card dark:border-transparent"
+          className="min-w-0 rounded-lg border"
           aria-labelledby="home-recent-heading"
         >
-          <div className="flex items-center justify-between gap-3 border-b px-4 py-3 dark:border-border/50">
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
             <h3
               id="home-recent-heading"
               className="flex items-center gap-2 text-sm font-semibold"

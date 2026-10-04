@@ -134,7 +134,7 @@ function SidebarBody({
           it needs no glyph to be found, and the nav items below it are the
           icon-bearing things. */}
       <Button
-        className="mb-4 h-10 w-full justify-center"
+        className="mb-4 w-full justify-center"
         variant="secondary"
         onClick={onNewMeeting}
         disabled={newMeetingPending}

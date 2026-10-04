@@ -194,7 +194,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
       </p>
 
       {failed ? (
-        <div className="rounded-lg border bg-card px-6 py-8 text-center text-sm dark:border-transparent">
+        <div className="rounded-lg border px-6 py-8 text-center text-sm">
           <p className="text-muted-foreground">Search could not run.</p>
           <Button
             size="sm"
@@ -206,7 +206,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
           </Button>
         </div>
       ) : visible.length === 0 ? (
-        <div className="flex min-h-52 flex-col items-center justify-center rounded-lg border bg-card px-6 py-8 text-center text-sm text-muted-foreground dark:border-transparent">
+        <div className="flex min-h-52 flex-col items-center justify-center rounded-lg border px-6 py-8 text-center text-sm text-muted-foreground">
           <History className="mb-3 size-6" />
           {isSearch ? (
             <>
@@ -230,7 +230,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
           )}
         </div>
       ) : (
-        <ul className="divide-y overflow-hidden rounded-lg border bg-card dark:border-transparent">
+        <ul className="divide-y overflow-hidden rounded-lg border">
           {visible.map((row) => (
             <li
               key={row.id}
@@ -267,12 +267,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <CopyMeetingLink roomId={row.id} />
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="size-11 sm:size-10"
-                  asChild
-                >
+                <Button size="icon" variant="secondary" asChild>
                   <a href={`/${row.id}`} aria-label={`Rejoin ${row.id}`}>
                     <Video className="size-3.5" />
                   </a>
@@ -280,7 +275,6 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="size-11 sm:size-10"
                   onClick={() => remove(row.id)}
                   aria-label={`Delete ${row.id}`}
                 >

@@ -119,11 +119,7 @@ function RowsSkeleton({
 }) {
   return (
     <ul
-      className={
-        compact
-          ? 'divide-y'
-          : 'divide-y rounded-lg border bg-card dark:border-transparent'
-      }
+      className={compact ? 'divide-y' : 'divide-y rounded-lg border'}
       aria-busy="true"
     >
       {Array.from({ length: rows }, (_, key) => (

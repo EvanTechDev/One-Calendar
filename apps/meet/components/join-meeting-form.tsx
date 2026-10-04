@@ -49,7 +49,7 @@ export function JoinMeetingForm({ onNavigate }: { onNavigate?: () => void }) {
     >
       <div className="flex gap-2">
         <div className="relative min-w-0 flex-1">
-          <Keyboard className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Keyboard className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             ref={inputRef}
             value={value}
@@ -59,7 +59,7 @@ export function JoinMeetingForm({ onNavigate }: { onNavigate?: () => void }) {
             }}
             onBlur={() => setTouched(true)}
             placeholder="Enter a code or link"
-            className="h-11 pl-9 pr-12"
+            className="pl-8 pr-9"
             aria-label="Meeting code or link"
             aria-describedby={hintId}
             aria-invalid={invalid}
@@ -70,22 +70,17 @@ export function JoinMeetingForm({ onNavigate }: { onNavigate?: () => void }) {
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="absolute right-0 top-0 size-11"
+            size="icon-sm"
+            className="absolute right-0.5 top-1/2 -translate-y-1/2"
             onClick={paste}
             disabled={pasting}
             aria-label="Paste meeting link"
             title="Paste from clipboard"
           >
-            <ClipboardPaste className="size-4" />
+            <ClipboardPaste className="size-3.5" />
           </Button>
         </div>
-        <Button
-          type="submit"
-          variant="secondary"
-          className="h-11 px-4"
-          disabled={!roomId || pasting}
-        >
+        <Button type="submit" variant="secondary" disabled={!roomId || pasting}>
           Join
         </Button>
       </div>

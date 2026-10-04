@@ -29,7 +29,6 @@ export function CopyMeetingLink({ roomId }: { roomId: string }) {
     <Button
       size="icon"
       variant="ghost"
-      className="size-11 sm:size-10"
       onClick={copy}
       aria-label={`Copy link for ${roomId}`}
       title={copied ? 'Link copied' : 'Copy meeting link'}

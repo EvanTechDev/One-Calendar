@@ -244,9 +244,7 @@ function SettingRow({
 
 function SettingsGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="divide-y divide-border rounded-lg border bg-card">
-      {children}
-    </div>
+    <div className="divide-y divide-border rounded-lg border">{children}</div>
   )
 }
 
@@ -406,7 +404,7 @@ function AboutSettings() {
   }, [])
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card p-4">
+    <div className="space-y-4 rounded-lg border p-4">
       <h3 className="text-sm font-medium">Build</h3>
       <dl className="space-y-3 text-sm">
         <Fact label="Version" value={APP_VERSION} mono />

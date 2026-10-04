@@ -19,10 +19,7 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
     // heading of its own.
     <div className="space-y-3">
       {rows === null ? (
-        <ul
-          className="divide-y rounded-lg border bg-card dark:border-transparent"
-          aria-busy="true"
-        >
+        <ul className="divide-y rounded-lg border" aria-busy="true">
           {[0, 1].map((key) => (
             <li key={key} className="flex items-center gap-3 p-5">
               <div className="min-w-0 flex-1 space-y-2">
@@ -33,7 +30,7 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
           ))}
         </ul>
       ) : rows.length === 0 ? (
-        <div className="flex min-h-52 flex-col items-center justify-center rounded-lg border bg-card px-6 py-8 text-center dark:border-transparent">
+        <div className="flex min-h-52 flex-col items-center justify-center rounded-lg border px-6 py-8 text-center">
           <CalendarClock className="mb-3 size-6 text-muted-foreground" />
           <p className="text-sm font-semibold">
             {failed ? 'Calendar unavailable' : 'No upcoming meetings'}
@@ -45,7 +42,7 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
           </p>
         </div>
       ) : (
-        <ul className="divide-y overflow-hidden rounded-lg border bg-card dark:border-transparent">
+        <ul className="divide-y overflow-hidden rounded-lg border">
           {rows.map((item) => (
             <li
               key={`${item.meetingId}-${item.startDate}`}
@@ -92,10 +89,7 @@ export function JoinLink({
   className?: string
 }) {
   return (
-    <a
-      href={`/${row.meetingId}`}
-      className={cn(buttonVariants(), 'h-11 px-4 text-xs sm:h-10', className)}
-    >
+    <a href={`/${row.meetingId}`} className={cn(buttonVariants(), className)}>
       <Video className="size-3.5" />
       Join
     </a>

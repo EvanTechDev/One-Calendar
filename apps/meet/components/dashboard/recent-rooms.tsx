@@ -51,12 +51,7 @@ export function RecentRooms({ rows }: { rows: MeetingRow[] }) {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <CopyMeetingLink roomId={row.id} />
-            <Button
-              size="icon"
-              variant="secondary"
-              className="size-11 sm:size-10"
-              asChild
-            >
+            <Button size="icon" variant="secondary" asChild>
               <a
                 href={`/${row.id}`}
                 aria-label={`Rejoin ${row.id}`}
