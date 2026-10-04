@@ -1,5 +1,5 @@
 import { withRedis } from './client'
-import { eventsMonthKey, affectedMonths, yearMonthFromDate } from './keys'
+import { eventsMonthKey, affectedMonths } from './keys'
 import { calendarEvents } from '@/lib/drizzle/schema'
 
 const EVENT_CACHE_TTL = 600
@@ -52,7 +52,9 @@ export async function getCachedEvents(
 
       const start = new Date(startDate)
       const end = new Date(endDate)
-      return allEvents.filter((e) => e.startDate >= start && e.endDate <= end)
+      return [
+        ...new Map(allEvents.map((event) => [event.id, event])).values(),
+      ].filter((e) => e.startDate < end && e.endDate > start)
     },
     async () => null,
   )
@@ -94,12 +96,20 @@ export async function invalidateEventCache(
 
 export function groupByMonth(
   events: CachedEvent[],
+  range?: { start: Date; end: Date },
 ): Map<string, CachedEvent[]> {
   const grouped = new Map<string, CachedEvent[]>()
   for (const event of events) {
-    const ym = yearMonthFromDate(event.startDate)
-    if (!grouped.has(ym)) grouped.set(ym, [])
-    grouped.get(ym)!.push(event)
+    const start = range
+      ? new Date(Math.max(range.start.getTime(), event.startDate.getTime()))
+      : event.startDate
+    const end = range
+      ? new Date(Math.min(range.end.getTime(), event.endDate.getTime()))
+      : event.endDate
+    for (const ym of affectedMonths(start.toISOString(), end.toISOString())) {
+      if (!grouped.has(ym)) grouped.set(ym, [])
+      grouped.get(ym)!.push(event)
+    }
   }
   return grouped
 }

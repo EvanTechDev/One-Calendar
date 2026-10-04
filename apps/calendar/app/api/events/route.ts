@@ -19,7 +19,7 @@ import {
   resolveEventSource,
   groupByMonth,
 } from '@/lib/cache/events'
-import { fullMonthRange } from '@/lib/cache/keys'
+import { fullMonthRange, affectedMonths } from '@/lib/cache/keys'
 import {
   eventSchema,
   firstZodMessage,
@@ -599,7 +599,10 @@ async function enrichEventsWithInvites(
   })
 }
 
-async function getSharedEvents(currentUser: { email: string }): Promise<
+async function getSharedEvents(
+  currentUser: { email: string },
+  window?: { windowStart: Date; windowEnd: Date },
+): Promise<
   Array<
     ReturnType<typeof decryptEvent> & {
       viewOnly: boolean
@@ -699,8 +702,8 @@ async function getSharedEvents(currentUser: { email: string }): Promise<
     const instances = expandSeriesView(
       [decrypted as unknown as SeriesViewInput],
       overrides.map(decryptEvent) as unknown as SeriesViewInput[],
-      new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
-      new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
+      window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
+      window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
       MAX_EXPANSION,
       // The organiser's timezone, so the participant sees the occurrences the
       // organiser actually scheduled rather than a UTC-shifted set.
@@ -799,7 +802,7 @@ async function loadMergedView(
   ) as MergedViewEvent[]
   const withShared = [
     ...expanded,
-    ...(await getSharedEvents(user)),
+    ...(await getSharedEvents(user, { windowStart, windowEnd })),
   ] as MergedViewEvent[]
   return enrichEventsWithInvites(withShared, user.id, user.email)
 }
@@ -874,8 +877,60 @@ export const GET = async function GET(request: NextRequest) {
   const categoryIds = searchParams.get('categoryIds')
   const timeZone = await resolveUserTz(currentUser.id, searchParams.get('tz'))
 
+  if (
+    Boolean(startDate) !== Boolean(endDate) ||
+    (startDate &&
+      endDate &&
+      (!Number.isFinite(Date.parse(startDate)) ||
+        !Number.isFinite(Date.parse(endDate)) ||
+        Date.parse(startDate) >= Date.parse(endDate) ||
+        Date.parse(endDate) - Date.parse(startDate) > 550 * 86400000))
+  ) {
+    return NextResponse.json({ error: 'Invalid date range' }, { status: 400 })
+  }
+
   if (id) {
     const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
+    // Shared search hits can be outside the currently loaded window. Reuse
+    // the same grant/occurrence visibility checks as the calendar list.
+    const sharedFallback = async () => {
+      let window: { windowStart: Date; windowEnd: Date } | undefined
+      if (parsedId) {
+        const stamp = parseRfcStamp(parsedId.recurrenceId).date
+        window = {
+          windowStart: new Date(stamp.getTime() - 86400000),
+          windowEnd: new Date(stamp.getTime() + 86400000),
+        }
+        const [override] = await getDb()
+          .select()
+          .from(calendarEvents)
+          .where(
+            and(
+              eq(calendarEvents.seriesId, parsedId.seriesId),
+              eq(calendarEvents.recurrenceId, parsedId.recurrenceId),
+            ),
+          )
+        if (override)
+          window = {
+            windowStart: override.startDate,
+            windowEnd: new Date(override.endDate.getTime() + 1),
+          }
+      }
+      const shared = (await getSharedEvents(currentUser, window)).find(
+        (event) => event.id === id,
+      )
+      if (!shared)
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      const [event] = await enrichEventsWithInvites(
+        [shared],
+        currentUser.id,
+        currentUser.email,
+      )
+      return NextResponse.json(
+        { event },
+        { headers: { 'Cache-Control': 'private, no-store' } },
+      )
+    }
     if (parsedId) {
       const [master] = await getDb()
         .select()
@@ -892,7 +947,7 @@ export const GET = async function GET(request: NextRequest) {
           rrule: master.rrule,
         })
       ) {
-        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+        return sharedFallback()
       }
       const overrides = (await fetchOverrides(master.id)).map((o) =>
         decryptEvent(o as typeof calendarEvents.$inferSelect),
@@ -912,6 +967,13 @@ export const GET = async function GET(request: NextRequest) {
             ...resolved,
             id,
             instanceId: id,
+            seriesStartDate: master.startDate,
+            isFirstInstance:
+              parsedId.recurrenceId ===
+              firstVisibleStampOfSeries(master, timeZone),
+            isOverride: overrides.some(
+              (override) => override.recurrenceId === parsedId.recurrenceId,
+            ),
           },
         ],
         currentUser.id,
@@ -930,7 +992,7 @@ export const GET = async function GET(request: NextRequest) {
         ),
       )
     if (!row) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      return sharedFallback()
     }
     const [withInvites] = await enrichEventsWithInvites(
       [{ ...decryptEvent(row), instanceId: row.id }],
@@ -963,8 +1025,8 @@ export const GET = async function GET(request: NextRequest) {
       ).map(decryptEvent)
     } else {
       const range = fullMonthRange(startDate, endDate)
-      filters.push(gte(calendarEvents.startDate, range.start))
-      filters.push(lte(calendarEvents.endDate, range.end))
+      filters.push(lte(calendarEvents.startDate, range.end))
+      filters.push(gte(calendarEvents.endDate, range.start))
     }
   }
 
@@ -994,10 +1056,12 @@ export const GET = async function GET(request: NextRequest) {
     const results = await query
 
     if (startDate && endDate && writeBackToCache) {
-      const grouped = groupByMonth(results)
-      for (const [ym, monthEvents] of grouped) {
-        await setCachedEvents(currentUser.id, ym, monthEvents)
-      }
+      const grouped = groupByMonth(results, fullMonthRange(startDate, endDate))
+      await Promise.all(
+        affectedMonths(startDate, endDate).map((ym) =>
+          setCachedEvents(currentUser.id, ym, grouped.get(ym) ?? []),
+        ),
+      )
     }
 
     decrypted = results.map(decryptEvent)
@@ -1038,7 +1102,7 @@ export const GET = async function GET(request: NextRequest) {
     const end = new Date(endDate)
     return NextResponse.json({
       events: eventsWithInvites.filter(
-        (e) => e.startDate >= start && e.endDate <= end,
+        (e) => e.startDate < end && e.endDate > start,
       ),
     })
   }

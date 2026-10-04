@@ -221,36 +221,44 @@ it.each(['找出所有遛狗的日程', 'find my trip', '找出所有遛狗的�
   },
 )
 
-it('searches local event descriptions without calling AI and opens the chosen event', async () => {
+it('searches server event descriptions without calling AI and opens an unloaded event', async () => {
   const goToEvent = vi.fn()
+  fetchSearch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      results: [
+        {
+          id: 'event-1',
+          title: 'Team planning',
+          startDate: '2026-10-05T09:00:00Z',
+          endDate: '2026-10-05T10:00:00Z',
+          isAllDay: false,
+          location: null,
+          color: null,
+        },
+      ],
+      cursor: null,
+    }),
+  })
   render(
     <AiCommandPalette
       open
       onOpenChange={vi.fn()}
       actions={{ goToEvent } as unknown as PaletteActions}
-      events={[
-        {
-          id: 'event-1',
-          title: 'Team planning',
-          description: 'Roadmap workshop',
-          startDate: new Date('2026-10-05T09:00:00Z'),
-          endDate: new Date('2026-10-05T10:00:00Z'),
-          isAllDay: false,
-        },
-      ]}
     />,
   )
   selectMode('Search')
   const input = await typeQuestion('workshop')
   expect(
-    screen.getByRole('option', { name: /Team planning/ }),
+    await screen.findByRole('option', { name: /Team planning/ }),
   ).toBeInTheDocument()
   fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
   expect(goToEvent).toHaveBeenCalledWith(
     expect.objectContaining({ id: 'event-1' }),
   )
-  expect(fetchSearch).not.toHaveBeenCalled()
+  expect(fetchSearch).toHaveBeenCalledTimes(1)
+  expect(fetchSearch.mock.calls[0][0]).toBe('/api/events/search?q=workshop')
 })
 
 it('switching modes preserves the draft and aborts a pending semantic search', async () => {
@@ -258,13 +266,21 @@ it('switching modes preserves the draft and aborts a pending semantic search', a
   selectMode('Search')
   const input = await typeQuestion('find my trip')
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
-  const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
+  const signal = fetchSearch.mock.calls.find(
+    ([url]) => url === '/api/agent/search',
+  )![1].signal as AbortSignal
   selectMode('Ask AI')
   expect(signal.aborted).toBe(true)
   expect(screen.getByRole('textbox', { name: 'Ask AI' })).toHaveValue(
     'find my trip',
   )
-  expect(fetchSearch).toHaveBeenCalledTimes(1)
+  expect(
+    fetchSearch.mock.calls.filter(([url]) => url === '/api/agent/search'),
+  ).toHaveLength(1)
+  for (const [url, options] of fetchSearch.mock.calls) {
+    if (url.startsWith('/api/events/search'))
+      expect(options.signal.aborted).toBe(true)
+  }
   expect(sendMessage).not.toHaveBeenCalled()
   fireEvent.keyDown(screen.getByRole('textbox', { name: 'Ask AI' }), {
     key: 'Enter',
@@ -298,6 +314,10 @@ it('renders the same event row in keyword and semantic search, with paging and E
   fetchSearch
     .mockResolvedValueOnce({
       ok: true,
+      json: async () => ({ results: [hit], cursor: null }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
       json: async () => ({
         results: [hit],
         total: 2,
@@ -323,22 +343,14 @@ it('renders the same event row in keyword and semantic search, with paging and E
       open
       onOpenChange={vi.fn()}
       actions={{ goToEvent } as unknown as PaletteActions}
-      events={[
-        {
-          ...hit,
-          startDate: new Date(hit.startDate),
-          endDate: new Date(hit.endDate),
-          color: 'bg-[#E6F6FD]',
-        },
-      ]}
     />,
   )
   selectMode('Search')
   await typeQuestion('planning')
-  const localRow = screen.getByRole('option', { name: /Team planning/ })
+  const localRow = await screen.findByRole('option', { name: /Team planning/ })
   const content = localRow.innerHTML
   const classes = localRow.className
-  expect(fetchSearch).not.toHaveBeenCalled()
+  expect(fetchSearch).toHaveBeenCalledTimes(1)
   fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' })
   expect(goToEvent).not.toHaveBeenCalled()
   const semanticRow = await screen.findByRole('option', {
@@ -351,7 +363,7 @@ it('renders the same event row in keyword and semantic search, with paging and E
   ).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('option', { name: 'Load more' }))
   await screen.findByRole('option', { name: /Next planning/ })
-  expect(JSON.parse(fetchSearch.mock.calls[1][1].body)).toEqual({
+  expect(JSON.parse(fetchSearch.mock.calls[2][1].body)).toEqual({
     page: 2,
     searchToken: 'sealed',
   })
@@ -365,41 +377,44 @@ it('renders the same event row in keyword and semantic search, with paging and E
   expect(goToEvent).toHaveBeenCalledExactlyOnceWith(hit)
 })
 
-it('typing a new query cancels AI and restores instant local results', async () => {
+it('typing a new query cancels AI and restores server keyword search', async () => {
   let resolveSearch!: (value: unknown) => void
-  fetchSearch.mockImplementation(
-    () =>
-      new Promise((resolve) => {
-        resolveSearch = resolve
-      }),
+  fetchSearch.mockImplementation((url: string) =>
+    url.startsWith('/api/events/search')
+      ? Promise.resolve({
+          ok: true,
+          json: async () => ({
+            results: [
+              {
+                id: 'e1',
+                title: 'Workshop',
+                startDate: '2026-10-05T09:00:00Z',
+                endDate: '2026-10-05T10:00:00Z',
+                isAllDay: false,
+              },
+            ],
+            cursor: null,
+          }),
+        })
+      : new Promise((resolve) => {
+          resolveSearch = resolve
+        }),
   )
-  render(
-    <AiCommandPalette
-      open
-      onOpenChange={vi.fn()}
-      events={[
-        {
-          id: 'e1',
-          title: 'Workshop',
-          startDate: new Date('2026-10-05T09:00:00Z'),
-          endDate: new Date('2026-10-05T10:00:00Z'),
-          isAllDay: false,
-        },
-      ]}
-    />,
-  )
+  render(<AiCommandPalette open onOpenChange={vi.fn()} />)
   selectMode('Search')
   const input = await typeQuestion('trip')
   fireEvent.keyDown(input, { key: 'Enter' })
   const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
   await typeQuestion('workshop')
   expect(signal.aborted).toBe(true)
-  expect(screen.getByRole('option', { name: /Workshop/ })).toBeInTheDocument()
+  expect(
+    await screen.findByRole('option', { name: /Workshop/ }),
+  ).toBeInTheDocument()
   await act(async () =>
     resolveSearch({ ok: true, json: async () => ({ results: [], total: 0 }) }),
   )
   expect(screen.getByRole('option', { name: /Workshop/ })).toBeInTheDocument()
-  expect(fetchSearch).toHaveBeenCalledTimes(1)
+  expect(fetchSearch).toHaveBeenCalledTimes(2)
 })
 
 it('cycles all three modes with Alt arrows without submitting or showing number shortcuts', async () => {

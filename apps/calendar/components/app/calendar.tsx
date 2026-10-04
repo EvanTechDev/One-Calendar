@@ -38,7 +38,11 @@ import {
   useMemo,
   useCallback,
 } from 'react'
-import { useCalendar } from '@/components/providers/calendar-context'
+import {
+  useCalendar,
+  eventDataToCalendarEvent,
+} from '@/components/providers/calendar-context'
+import { calendarLoadRange } from '@/lib/calendar-range'
 
 // Re-exported for the ~35 modules that already import it from here. The
 // declaration has one home now (lib/calendar-types.ts); this used to be a
@@ -264,7 +268,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const t = translations[language]
   const { settings, loading: settingsLoading, updateSettings } = useSettings()
   const { setTheme } = useTheme()
-  const { upsertEvent, deleteEvent, refreshEvents } = useEvents()
+  const {
+    upsertEvent,
+    deleteEvent,
+    refreshEvents,
+    setEventsRange,
+    eventsLoading,
+    eventsError,
+  } = useEvents()
   const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
   const [firstDayOfWeek, setFirstDayOfWeek] = useState<FirstDayOfWeekValue>(
     (settings.firstDayOfWeek as FirstDayOfWeekValue) ?? 0,
@@ -279,6 +290,10 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
       settings.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     ),
   )
+  useEffect(() => {
+    if (isCalendarView(view))
+      setEventsRange(calendarLoadRange(date, view, timezone))
+  }, [date, view, timezone, setEventsRange])
   const handleTimezoneChange = (tz: string) => {
     const validTz = getValidTimezone(tz)
     setTimezone(validTz)
@@ -1702,6 +1717,20 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             className="relative flex-1 overflow-auto pr-14 max-md:pr-0"
             ref={calendarRef}
           >
+            {(eventsLoading || eventsError) && (
+              <div
+                className="sticky top-0 z-30 bg-background/95 p-2 text-center text-sm"
+                role={eventsError ? 'alert' : 'status'}
+              >
+                {eventsError ? (
+                  <Button variant="ghost" onClick={() => void refreshEvents()}>
+                    {t.aiSearchRetry}
+                  </Button>
+                ) : (
+                  t.loadingCalendar
+                )}
+              </div>
+            )}
             {view === 'day' && (
               <DayView
                 date={date}
@@ -2106,7 +2135,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           <AiCommandPalette
             open={aiPaletteOpen}
             initialMode={aiPaletteMode}
-            events={eventsByCategory}
+            categoryIds={selectedCategoryFilters}
+            timezone={timezone}
             onOpenChange={setAiPaletteOpen}
             onEventsMutated={() => void refreshEvents()}
             actions={{
@@ -2121,13 +2151,20 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               previousPeriod: handlePrevious,
               nextPeriod: handleNext,
               goToDate: handleDateSelect,
-              // A search row carries only what the list showed, so the preview
-              // gets the same shape the palette had. handleNavigateAndPreview
-              // looks the id up in the loaded events first and only falls back
-              // to the row itself, which is the right behaviour for an event
-              // outside the range that is currently loaded.
-              goToEvent: (hit) =>
-                handleNavigateAndPreview(hit as unknown as CalendarEvent),
+              // Search spans unloaded periods. Resolve complete, authorized
+              // details before opening the preview or edit controls.
+              goToEvent: async (hit) => {
+                try {
+                  const response = await fetch(
+                    `/api/events?${new URLSearchParams({ id: hit.id, tz: timezone })}`,
+                  )
+                  if (!response.ok) throw new Error('Event unavailable')
+                  const body = await response.json()
+                  handleNavigateAndPreview(eventDataToCalendarEvent(body.event))
+                } catch {
+                  toast.error(t.aiSearchFailed)
+                }
+              },
             }}
           />
         )}

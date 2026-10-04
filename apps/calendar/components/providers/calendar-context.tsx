@@ -20,7 +20,7 @@ export interface CalendarCategory {
   keywords?: string[]
 }
 
-function eventDataToCalendarEvent(e: EventData): CalendarEvent {
+export function eventDataToCalendarEvent(e: EventData): CalendarEvent {
   return {
     id: e.id,
     title: e.title,

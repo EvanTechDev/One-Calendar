@@ -3,8 +3,8 @@
 /**
  * The command palette (Cmd/Ctrl+K).
  *
- * Commands, search and the AI assistant share a draft. Search matches locally
- * while typing; Enter submits to semantic search. Arrow keys select a result
+ * Commands, search and the AI assistant share a draft. Typing searches bounded
+ * server pages; Enter submits to semantic search. Arrow keys select a result
  * to open with Enter. Selecting a mode never submits the draft.
  *
  * Heights are dvh-based: on mobile the browser's URL bar eats real viewport,
@@ -41,7 +41,7 @@ import {
   DropdownMenuRadioItem,
 } from '@zntr/ui/dropdown-menu'
 import { Textarea } from '@zntr/ui/textarea'
-import type { CalendarEvent } from '@/lib/calendar-types'
+import { useKeywordSearch } from '@/hooks/use-keyword-search'
 import {
   ArrowLeft,
   ArrowRight,
@@ -67,6 +67,7 @@ import { translations, useLanguage } from '@zntr/i18n/calendar'
 // Type-only, so the client bundle never pulls in the agent's tool schemas.
 import type { SearchQuery } from '@zntr/agent/search'
 import { parseDateQuery } from '@/lib/parse-date-query'
+import type { EventSearchHit } from '@/lib/api-client'
 
 /**
  * Build-time presence flag from next.config.ts — never the key itself. It
@@ -88,15 +89,7 @@ function filterCommand(value: string, search: string, keywords?: string[]) {
 }
 
 /** One row of a search result, as the endpoint returns it. */
-export interface PaletteSearchHit {
-  id: string
-  title: string
-  startDate: string
-  endDate: string
-  isAllDay: boolean
-  location: string | null
-  color: string | null
-}
+export type PaletteSearchHit = EventSearchHit
 
 const WRITE_TOOLS = new Set([
   'tool-create_event',
@@ -121,8 +114,8 @@ export interface PaletteActions {
   goToDate: (date: Date) => void
   /**
    * Open a search result. It carries no more than the list showed plus the
-   * fields the preview reads, so the calendar owns the lookup against its own
-   * loaded events and this stays a plain row.
+   * fields the preview reads. The calendar fetches the full authorized event
+   * before navigating, including results outside its currently loaded range.
    */
   goToEvent: (hit: PaletteSearchHit) => void
 }
@@ -164,7 +157,8 @@ interface AiCommandPaletteProps {
   onEventsMutated?: () => void
   /** App commands surfaced as palette items alongside the AI. */
   actions?: PaletteActions
-  events?: CalendarEvent[]
+  categoryIds?: string[]
+  timezone?: string
 }
 
 export function AiCommandPalette({
@@ -173,7 +167,8 @@ export function AiCommandPalette({
   onOpenChange,
   onEventsMutated,
   actions,
-  events = [],
+  categoryIds = [],
+  timezone,
 }: AiCommandPaletteProps) {
   const [language] = useLanguage()
   const t = translations[language]
@@ -197,21 +192,12 @@ export function AiCommandPalette({
     const frame = requestAnimationFrame(focusInput)
     return () => cancelAnimationFrame(frame)
   }, [open, focusInput])
-  const localResults = React.useMemo(() => {
-    const keyword = input.trim().toLowerCase()
-    if (mode !== 'search' || !keyword) return []
-    return events
-      .filter((event) =>
-        [event.title, event.description, event.location].some((value) =>
-          value?.toLowerCase().includes(keyword),
-        ),
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      )
-  }, [events, input, mode])
-  const [localLimit, setLocalLimit] = React.useState(30)
+  const keyword = useKeywordSearch(
+    input,
+    open && mode === 'search' && search.status === 'idle',
+    categoryIds,
+  )
+  const localResults = keyword.results
   const [navigatingResults, setNavigatingResults] = React.useState(false)
 
   const chat = useChat({
@@ -429,6 +415,7 @@ export function AiCommandPalette({
     (hit: PaletteSearchHit) => {
       const start = new Date(hit.startDate)
       const date = start.toLocaleDateString(language, {
+        timeZone: hit.isAllDay ? undefined : timezone,
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -437,12 +424,13 @@ export function AiCommandPalette({
       const time = hit.isAllDay
         ? t.allDay
         : start.toLocaleTimeString(language, {
+            timeZone: timezone,
             hour: '2-digit',
             minute: '2-digit',
           })
       return `${date} · ${time}`
     },
-    [language, t],
+    [language, t, timezone],
   )
 
   const searching = search.status === 'loading' || loadingMore
@@ -556,7 +544,6 @@ export function AiCommandPalette({
                 value={input}
                 onValueChange={(value) => {
                   setInput(value)
-                  setLocalLimit(30)
                   resetSearch()
                 }}
                 className={mode === 'search' && AI_ENABLED ? 'pr-9' : undefined}
@@ -633,22 +620,16 @@ export function AiCommandPalette({
           {mode === 'search' && search.status === 'idle' ? (
             <PaletteSearchResults
               t={t}
-              status={input.trim() ? 'ready' : 'idle'}
-              hits={localResults.slice(0, localLimit).map((event) => ({
-                ...event,
-                startDate: new Date(event.startDate).toISOString(),
-                endDate: new Date(event.endDate).toISOString(),
-                location: event.location ?? null,
-                color: event.color ?? null,
-              }))}
+              status={keyword.status}
+              hits={localResults}
               total={localResults.length}
+              totalIsPartial={!!keyword.cursor}
+              error={t.aiSearchFailed}
+              onRetry={keyword.retry}
+              loadingMore={keyword.loadingMore}
               onSelect={goToEvent}
               formatWhen={formatWhen}
-              onMore={
-                localResults.length > localLimit
-                  ? () => setLocalLimit((value) => value + 30)
-                  : undefined
-              }
+              onMore={keyword.cursor ? keyword.more : undefined}
             />
           ) : mode === 'search' ? (
             <PaletteSearchResults

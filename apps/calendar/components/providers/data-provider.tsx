@@ -7,9 +7,10 @@ import {
   useRef,
   useMemo,
   useCallback,
+  useState,
   type ReactNode,
 } from 'react'
-import useSWR, { mutate } from 'swr'
+import useSWR, { useSWRConfig } from 'swr'
 import {
   api,
   type EventData,
@@ -19,6 +20,12 @@ import {
   type SettingsData,
 } from '@/lib/api-client'
 import { toast } from 'sonner'
+import {
+  calendarLoadRange,
+  eventRangeKey,
+  isEventRangeKey,
+  type CalendarLoadRange,
+} from '@/lib/calendar-range'
 import {
   LANGUAGE_STORAGE_KEY,
   translations,
@@ -81,6 +88,9 @@ interface DataContextValue {
   error: string | null
   eventsLoaded: boolean
   categoriesLoaded: boolean
+  setEventsRange: (range: CalendarLoadRange) => void
+  eventsLoading: boolean
+  eventsError: Error | undefined
 
   refresh: () => Promise<void>
   refreshEvents: () => Promise<void>
@@ -121,6 +131,7 @@ interface DataContextValue {
 const DataContext = createContext<DataContextValue | null>(null)
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { mutate } = useSWRConfig()
   /**
    * Held in a ref, not read directly, because every mutation below is a
    * `useCallback` with an empty dep list — reading `t` from the closure would
@@ -132,11 +143,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const tRef = useRef(translations[language])
   tRef.current = translations[language]
 
-  const eventsReq = useSWR(DATA_KEYS.events, () =>
-    api.events.list({
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }),
+  const [eventsRange, setEventsRange] = useState(() =>
+    calendarLoadRange(
+      new Date(),
+      'month',
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+    ),
   )
+  const eventsKey = eventRangeKey(eventsRange)
+  const eventsKeyRef = useRef(eventsKey)
+  eventsKeyRef.current = eventsKey
+  const eventsReq = useSWR(eventsKey, () => api.events.list(eventsRange))
   const categoriesReq = useSWR(DATA_KEYS.categories, () =>
     api.categories.list(),
   )
@@ -183,24 +200,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   bookmarksRef.current = bookmarks
 
   const refreshEvents = useCallback(
-    () => mutate(DATA_KEYS.events).then(() => undefined),
-    [],
+    () =>
+      mutate(isEventRangeKey, undefined, { revalidate: true }).then(
+        () => undefined,
+      ),
+    [mutate],
   )
   const refreshCategories = useCallback(
     () => mutate(DATA_KEYS.categories).then(() => undefined),
-    [],
+    [mutate],
   )
   const refreshCountdowns = useCallback(
     () => mutate(DATA_KEYS.countdowns).then(() => undefined),
-    [],
+    [mutate],
   )
   const refreshBookmarks = useCallback(
     () => mutate(DATA_KEYS.bookmarks).then(() => undefined),
-    [],
+    [mutate],
   )
   const refreshSettings = useCallback(
     () => mutate(DATA_KEYS.settings).then(() => undefined),
-    [],
+    [mutate],
   )
 
   const refresh = useCallback(
@@ -282,6 +302,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       data: Parameters<typeof api.events.create>[0],
       oldSeriesIds?: Set<string>,
     ) => {
+      const eventKey = eventsKeyRef.current
       try {
         // A "this and following" split orphans the old series: the server
         // truncates it, and when nothing survives before the split point
@@ -366,7 +387,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         if (optimistic) {
           await mutate(
-            DATA_KEYS.events,
+            eventKey,
             (cur?: { events: EventData[] }) => ({
               events: replaceSeriesInstances(
                 cur?.events ?? [],
@@ -386,7 +407,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const seriesEvents = res.seriesEvents
         if (seriesEvents && seriesEvents.length > 0) {
           await mutate(
-            DATA_KEYS.events,
+            eventKey,
             (cur?: { events: EventData[] }) => ({
               events: replaceSeriesInstances(
                 cur?.events ?? [],
@@ -396,23 +417,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }),
             { revalidate: false },
           )
-        } else if (res.event?.rrule) {
-          // A series master row must never enter the expanded-view cache —
-          // it would render as a standalone duplicate of the series' first
-          // instance. Without seriesEvents there is nothing safe to apply
-          // locally, so fall back to server truth.
-          await mutate(DATA_KEYS.events)
-        } else {
+        } else if (!res.event?.rrule) {
           await mutate(
-            DATA_KEYS.events,
+            eventKey,
             (cur?: { events: EventData[] }) => ({
               events: upsertById(cur?.events ?? [], res.event),
             }),
             { revalidate: false },
           )
         }
+        await refreshEvents()
         return res.event
       } catch (e) {
+        await refreshEvents()
         toast.error(tRef.current.saveEventFailed, {
           description:
             e instanceof Error ? e.message : tRef.current.unknownError,
@@ -420,7 +437,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [],
+    [refreshEvents, mutate],
   )
 
   const deleteEvent = useCallback(
@@ -429,6 +446,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       applyTo?: 'single' | 'following' | 'all',
       timezone?: string,
     ) => {
+      const eventKey = eventsKeyRef.current
       const prev = eventsRef.current
       const target = prev.find((e) => e.id === id)
       const seriesId = target?.seriesId
@@ -448,7 +466,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Keep SWR's mutation open until the write is durable. Revalidations
         // started before/during the DELETE must not resurrect removed rows.
         await mutate(
-          DATA_KEYS.events,
+          eventKey,
           async () => {
             const res = await api.events.delete(id, applyTo, timezone)
             return {
@@ -464,6 +482,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             revalidate: false,
           },
         )
+        await refreshEvents()
       } catch (e) {
         toast.error(tRef.current.deleteEventFailed, {
           description:
@@ -472,7 +491,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [],
+    [refreshEvents, mutate],
   )
 
   const createCategory = useCallback(
@@ -496,30 +515,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [],
+    [mutate],
   )
 
-  const deleteCategory = useCallback(async (id: string) => {
-    const prev = categoriesRef.current
-    await mutate(
-      DATA_KEYS.categories,
-      { categories: removeById(prev, id) },
-      { revalidate: false },
-    )
-    try {
-      await api.categories.delete(id)
-    } catch (e) {
+  const deleteCategory = useCallback(
+    async (id: string) => {
+      const prev = categoriesRef.current
       await mutate(
         DATA_KEYS.categories,
-        { categories: prev },
+        { categories: removeById(prev, id) },
         { revalidate: false },
       )
-      toast.error(tRef.current.deleteCategoryFailed, {
-        description: e instanceof Error ? e.message : tRef.current.unknownError,
-      })
-      throw e
-    }
-  }, [])
+      try {
+        await api.categories.delete(id)
+      } catch (e) {
+        await mutate(
+          DATA_KEYS.categories,
+          { categories: prev },
+          { revalidate: false },
+        )
+        toast.error(tRef.current.deleteCategoryFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
+        })
+        throw e
+      }
+    },
+    [mutate],
+  )
 
   const createCountdown = useCallback(
     async (data: Parameters<typeof api.countdowns.create>[0]) => {
@@ -542,30 +565,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [],
+    [mutate],
   )
 
-  const deleteCountdown = useCallback(async (id: string) => {
-    const prev = countdownsRef.current
-    await mutate(
-      DATA_KEYS.countdowns,
-      { countdowns: removeById(prev, id) },
-      { revalidate: false },
-    )
-    try {
-      await api.countdowns.delete(id)
-    } catch (e) {
+  const deleteCountdown = useCallback(
+    async (id: string) => {
+      const prev = countdownsRef.current
       await mutate(
         DATA_KEYS.countdowns,
-        { countdowns: prev },
+        { countdowns: removeById(prev, id) },
         { revalidate: false },
       )
-      toast.error(tRef.current.deleteCountdownFailed, {
-        description: e instanceof Error ? e.message : tRef.current.unknownError,
-      })
-      throw e
-    }
-  }, [])
+      try {
+        await api.countdowns.delete(id)
+      } catch (e) {
+        await mutate(
+          DATA_KEYS.countdowns,
+          { countdowns: prev },
+          { revalidate: false },
+        )
+        toast.error(tRef.current.deleteCountdownFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
+        })
+        throw e
+      }
+    },
+    [mutate],
+  )
 
   const createBookmark = useCallback(
     async (data: Parameters<typeof api.bookmarks.create>[0]) => {
@@ -601,68 +628,80 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [],
+    [mutate],
   )
 
-  const deleteBookmark = useCallback(async (id: string) => {
-    const prev = bookmarksRef.current
-    await mutate(
-      DATA_KEYS.bookmarks,
-      { bookmarks: removeById(prev, id) },
-      { revalidate: false },
-    )
-    try {
-      await api.bookmarks.delete(id)
-    } catch (e) {
+  const deleteBookmark = useCallback(
+    async (id: string) => {
+      const prev = bookmarksRef.current
       await mutate(
         DATA_KEYS.bookmarks,
-        { bookmarks: prev },
+        { bookmarks: removeById(prev, id) },
         { revalidate: false },
       )
-      toast.error(tRef.current.deleteBookmarkFailed, {
-        description: e instanceof Error ? e.message : tRef.current.unknownError,
-      })
-      throw e
-    }
-  }, [])
+      try {
+        await api.bookmarks.delete(id)
+      } catch (e) {
+        await mutate(
+          DATA_KEYS.bookmarks,
+          { bookmarks: prev },
+          { revalidate: false },
+        )
+        toast.error(tRef.current.deleteBookmarkFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
+        })
+        throw e
+      }
+    },
+    [mutate],
+  )
 
-  const deleteBookmarkByEvent = useCallback(async (eventId: string) => {
-    const prev = bookmarksRef.current
-    await mutate(
-      DATA_KEYS.bookmarks,
-      { bookmarks: prev.filter((b) => b.eventId !== eventId) },
-      { revalidate: false },
-    )
-    try {
-      await api.bookmarks.deleteByEvent(eventId)
-    } catch (e) {
+  const deleteBookmarkByEvent = useCallback(
+    async (eventId: string) => {
+      const prev = bookmarksRef.current
       await mutate(
         DATA_KEYS.bookmarks,
-        { bookmarks: prev },
+        { bookmarks: prev.filter((b) => b.eventId !== eventId) },
         { revalidate: false },
       )
-      toast.error(tRef.current.deleteBookmarkFailed, {
-        description: e instanceof Error ? e.message : tRef.current.unknownError,
-      })
-      throw e
-    }
-  }, [])
+      try {
+        await api.bookmarks.deleteByEvent(eventId)
+      } catch (e) {
+        await mutate(
+          DATA_KEYS.bookmarks,
+          { bookmarks: prev },
+          { revalidate: false },
+        )
+        toast.error(tRef.current.deleteBookmarkFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
+        })
+        throw e
+      }
+    },
+    [mutate],
+  )
 
-  const updateSettings = useCallback(async (data: SettingsData) => {
-    try {
-      const res = await api.settings.update(data)
-      await mutate(
-        DATA_KEYS.settings,
-        { settings: res.settings },
-        { revalidate: false },
-      )
-    } catch (e) {
-      toast.error(tRef.current.updateSettingsFailed, {
-        description: e instanceof Error ? e.message : tRef.current.unknownError,
-      })
-      throw e
-    }
-  }, [])
+  const updateSettings = useCallback(
+    async (data: SettingsData) => {
+      try {
+        const res = await api.settings.update(data)
+        await mutate(
+          DATA_KEYS.settings,
+          { settings: res.settings },
+          { revalidate: false },
+        )
+      } catch (e) {
+        toast.error(tRef.current.updateSettingsFailed, {
+          description:
+            e instanceof Error ? e.message : tRef.current.unknownError,
+        })
+        throw e
+      }
+    },
+    [mutate],
+  )
 
   // The provider sits above the whole signed-in app, and every consumer reads
   // through `useData()`, so an unstable value re-rendered the calendar and
@@ -680,6 +719,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       error,
       eventsLoaded,
       categoriesLoaded,
+      setEventsRange,
+      eventsLoading: eventsReq.isLoading,
+      eventsError: eventsReq.error,
       refresh,
       refreshEvents,
       refreshCategories,
@@ -707,6 +749,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       error,
       eventsLoaded,
       categoriesLoaded,
+      eventsReq.isLoading,
+      eventsReq.error,
       refresh,
       refreshEvents,
       refreshCategories,
@@ -736,8 +780,26 @@ export function useData(): DataContextValue {
 }
 
 export function useEvents() {
-  const { events, loading, upsertEvent, deleteEvent, refreshEvents } = useData()
-  return { events, loading, upsertEvent, deleteEvent, refreshEvents }
+  const {
+    events,
+    loading,
+    upsertEvent,
+    deleteEvent,
+    refreshEvents,
+    setEventsRange,
+    eventsLoading,
+    eventsError,
+  } = useData()
+  return {
+    events,
+    loading,
+    upsertEvent,
+    deleteEvent,
+    refreshEvents,
+    setEventsRange,
+    eventsLoading,
+    eventsError,
+  }
 }
 export function useCategories() {
   const {

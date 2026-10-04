@@ -8,7 +8,7 @@ export function sessionKey(token: string): string {
 }
 
 export function eventsMonthKey(userId: string, yearMonth: string): string {
-  return `events:${userId}:${yearMonth}`
+  return `events:overlap-v2:${userId}:${yearMonth}`
 }
 
 export function yearMonthFromDate(date: Date): string {
@@ -18,7 +18,12 @@ export function yearMonthFromDate(date: Date): string {
 export function affectedMonths(startDate: string, endDate: string): string[] {
   const start = new Date(startDate)
   const end = new Date(endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return []
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    start > end
+  )
+    return []
 
   // Walk the year/month pair, not the Date. `cursor.setUTCMonth(m + 1)`
   // overflows and normalises forward: from 31 January it lands on 3 March,

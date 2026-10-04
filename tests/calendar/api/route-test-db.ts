@@ -86,6 +86,7 @@ export const drizzleOperatorsMock = {
     val,
   }),
   desc: (col: unknown) => ({ __order: 'desc', col: colKey(col) }),
+  asc: (col: unknown) => ({ __order: 'asc', col: colKey(col) }),
 }
 
 function matches(cond: Cond | undefined, row: FakeRow): boolean {
@@ -205,19 +206,35 @@ function makeFakeDb(): FakeDb {
     projection: Record<string, unknown> | undefined,
   ) {
     let cond: Cond | undefined
+    let order: { __order: 'asc' | 'desc'; col: string }[] = []
+    let limit = Infinity
     const resolveRows = () =>
       [...tbl(name).values()]
         .filter((r) => matches(cond, r))
+        .sort((a, b) => {
+          for (const { col, __order } of order) {
+            const av = a[col] as string | number
+            const bv = b[col] as string | number
+            if (av === bv) continue
+            return (av < bv ? -1 : 1) * (__order === 'asc' ? 1 : -1)
+          }
+          return 0
+        })
+        .slice(0, limit)
         .map((r) => project(r, projection))
     const q = {
       where(c: Cond) {
         cond = c
         return q
       },
-      orderBy() {
+      orderBy(...values: typeof order) {
+        if (values.some((value) => !['asc', 'desc'].includes(value.__order)))
+          throw new Error('fake-db: unknown ordering')
+        order = values
         return q
       },
-      limit() {
+      limit(value: number) {
+        limit = value
         return q
       },
       then(

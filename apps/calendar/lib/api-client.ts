@@ -54,6 +54,12 @@ export type EventData = {
   meeting?: { id: string; url: string } | null
 }
 
+/** Compact rows shared by keyword and semantic search. */
+export type EventSearchHit = Pick<
+  EventData,
+  'id' | 'title' | 'startDate' | 'endDate' | 'isAllDay' | 'location' | 'color'
+>
+
 export type CategoryData = {
   id: string
   userId: string

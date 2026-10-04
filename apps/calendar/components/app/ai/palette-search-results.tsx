@@ -21,6 +21,7 @@ export function PaletteSearchResults({
   formatWhen,
   onMore,
   loadingMore = false,
+  totalIsPartial = false,
 }: {
   t: Translation
   hits: PaletteSearchHit[]
@@ -32,6 +33,7 @@ export function PaletteSearchResults({
   formatWhen: (hit: PaletteSearchHit) => string
   onMore?: () => void
   loadingMore?: boolean
+  totalIsPartial?: boolean
 }) {
   return (
     <CommandList className="min-h-48 max-h-[min(24rem,calc(100dvh-13rem))]">
@@ -64,7 +66,9 @@ export function PaletteSearchResults({
         </p>
       )}
       {status === 'ready' && hits.length > 0 && (
-        <CommandGroup heading={`${total} ${t.events}`}>
+        <CommandGroup
+          heading={`${total}${totalIsPartial ? '+' : ''} ${t.events}`}
+        >
           {hits.map((hit) => (
             <CommandItem
               key={hit.id}
