@@ -273,7 +273,6 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     deleteEvent,
     refreshEvents,
     setEventsRange,
-    eventsLoading,
     eventsError,
   } = useEvents()
   const { bookmarks, createBookmark, deleteBookmarkByEvent } = useBookmarks()
@@ -1717,18 +1716,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             className="relative flex-1 overflow-auto pr-14 max-md:pr-0"
             ref={calendarRef}
           >
-            {(eventsLoading || eventsError) && (
+            {eventsError && (
               <div
                 className="sticky top-0 z-30 bg-background/95 p-2 text-center text-sm"
-                role={eventsError ? 'alert' : 'status'}
+                role="alert"
               >
-                {eventsError ? (
-                  <Button variant="ghost" onClick={() => void refreshEvents()}>
-                    {t.aiSearchRetry}
-                  </Button>
-                ) : (
-                  t.loadingCalendar
-                )}
+                <Button variant="ghost" onClick={() => void refreshEvents()}>
+                  {t.aiSearchRetry}
+                </Button>
               </div>
             )}
             {view === 'day' && (
