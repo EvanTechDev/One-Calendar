@@ -91,7 +91,7 @@ describe('MeetShell', () => {
   it('offers the primary action in the sidebar', () => {
     const { onNewMeeting } = renderShell()
     const button = screen.getByRole('button', { name: /New meeting/ })
-    expect(button).toHaveAttribute('data-size', 'default')
+    expect(button.className).toContain('h-10')
     expect(button.className).toContain('w-full')
     fireEvent.click(button)
     expect(onNewMeeting).toHaveBeenCalledOnce()
