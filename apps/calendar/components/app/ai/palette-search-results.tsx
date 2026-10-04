@@ -2,7 +2,7 @@
 
 import { CommandGroup, CommandItem, CommandList } from '@zntr/ui/command'
 import { Skeleton } from '@zntr/ui/skeleton'
-import { ChevronDown, LoaderCircle, RotateCcw } from 'lucide-react'
+import { LoaderCircle, RotateCcw } from 'lucide-react'
 import { getEventAccentColor } from '@/lib/event-colors'
 import type { translations } from '@zntr/i18n/calendar'
 import type { PaletteSearchHit } from './ai-command-palette'
@@ -15,8 +15,6 @@ export function PaletteSearchResults({
   hits,
   total,
   status,
-  hint,
-  scope = [],
   error,
   onRetry,
   onSelect,
@@ -28,8 +26,6 @@ export function PaletteSearchResults({
   hits: PaletteSearchHit[]
   total: number
   status: 'idle' | 'loading' | 'ready' | 'error'
-  hint: string
-  scope?: string[]
   error?: string
   onRetry?: () => void
   onSelect: (hit: PaletteSearchHit) => void
@@ -39,19 +35,6 @@ export function PaletteSearchResults({
 }) {
   return (
     <CommandList className="min-h-48 max-h-[min(24rem,calc(100dvh-13rem))]">
-      <div className="px-3 py-2 text-xs text-muted-foreground">
-        {scope.length > 0 ? (
-          <details className="group" onKeyDown={(e) => e.stopPropagation()}>
-            <summary className="flex cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
-              {t.aiSearchScope}
-              <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
-            </summary>
-            <p className="pt-2 leading-relaxed">{scope.join(' · ')}</p>
-          </details>
-        ) : (
-          hint
-        )}
-      </div>
       {status === 'idle' && (
         <p className="px-6 py-12 text-center text-sm text-muted-foreground">
           {t.commandPaletteSearchPlaceholder}

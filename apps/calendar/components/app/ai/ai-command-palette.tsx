@@ -3,10 +3,9 @@
 /**
  * The command palette (Cmd/Ctrl+K).
  *
- * Four explicit modes share a draft: app commands, local keyword search,
- * semantic search and the write-capable AI assistant. Selecting a mode never
- * submits the draft. Search results open on Enter; semantic refinements use
- * the submit button or Cmd/Ctrl+Enter. Chat only sends in its own mode.
+ * Commands, search and the AI assistant share a draft. Search matches locally
+ * while typing; Enter submits to semantic search. Arrow keys select a result
+ * to open with Enter. Selecting a mode never submits the draft.
  *
  * Heights are dvh-based: on mobile the browser's URL bar eats real viewport,
  * and a vh-sized dialog put its bottom out of reach.
@@ -31,7 +30,6 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '@zntr/ui/command'
-import { ScrollArea } from '@zntr/ui/scroll-area'
 import { Kbd } from '@zntr/ui/kbd'
 import { Button } from '@zntr/ui/button'
 import {
@@ -40,7 +38,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuShortcut,
 } from '@zntr/ui/dropdown-menu'
 import { Textarea } from '@zntr/ui/textarea'
 import type { CalendarEvent } from '@/lib/calendar-types'
@@ -50,7 +47,6 @@ import {
   CalendarDays,
   CalendarPlus,
   CalendarRange,
-  CalendarSearch,
   ChartNoAxesColumn,
   ChevronDown,
   Columns4,
@@ -133,13 +129,7 @@ export interface PaletteActions {
   goToEvent: (hit: PaletteSearchHit) => void
 }
 
-type Mode = 'palette' | 'search' | 'chat' | 'results'
-
-/** The resolved instants the endpoint actually searched, for the scope line. */
-interface SearchScope {
-  start?: string
-  end?: string
-}
+type Mode = 'palette' | 'search' | 'chat'
 
 type SearchState =
   | { status: 'idle' }
@@ -152,14 +142,6 @@ type SearchState =
       page: number
       total: number
       hasMore: boolean
-      /** The question that produced this, kept for the retry row. */
-      text: string
-      /**
-       * What was actually searched, shown above the rows. A search that cannot
-       * say what it looked for cannot be told apart from one that ignored the
-       * question, and every wrong answer reads as the AI making things up.
-       */
-      scope: SearchScope
     }
   | { status: 'error'; kind: 'rate' | 'unavailable' | 'failed' | 'timeout' }
 
@@ -171,7 +153,6 @@ interface SearchResponseBody {
   total: number
   totalPages: number
   hasMore: boolean
-  range?: SearchScope
 }
 
 interface AiCommandPaletteProps {
@@ -228,6 +209,7 @@ export function AiCommandPalette({
       )
   }, [events, input, mode])
   const [localLimit, setLocalLimit] = React.useState(30)
+  const [navigatingResults, setNavigatingResults] = React.useState(false)
 
   const chat = useChat({
     transport: new DefaultChatTransport({ api: '/api/agent/chat' }),
@@ -264,6 +246,7 @@ export function AiCommandPalette({
     cancelSearch()
     setSearch({ status: 'idle' })
     setLoadingMore(false)
+    setNavigatingResults(false)
   }, [cancelSearch])
   const stopChat = chat.stop
   const setMessages = chat.setMessages
@@ -294,7 +277,8 @@ export function AiCommandPalette({
       cancelSearch()
       const controller = new AbortController()
       inFlight.current = controller
-      setMode('results')
+      setMode('search')
+      setNavigatingResults(false)
       if (page > 1) setLoadingMore(true)
       else setSearch({ status: 'loading' })
 
@@ -351,10 +335,6 @@ export function AiCommandPalette({
                 page: body.page,
                 total: body.total,
                 hasMore: body.hasMore,
-                text: prev.text,
-                // Paging replays the same query, so the scope cannot change;
-                // keeping the first page's values avoids a flash of blanks.
-                scope: body.range ?? prev.scope,
               }
             : {
                 status: 'ready',
@@ -364,8 +344,6 @@ export function AiCommandPalette({
                 page: body.page,
                 total: body.total,
                 hasMore: body.hasMore,
-                text,
-                scope: body.range ?? {},
               },
         )
       } catch {
@@ -450,59 +428,17 @@ export function AiCommandPalette({
     [language, t],
   )
 
-  const placeholder =
-    mode === 'chat'
-      ? t.aiAssistantPlaceholder
-      : mode === 'results' && search.status === 'ready'
-        ? t.aiSearchRefinePlaceholder
-        : t.aiSearchPlaceholder
-
-  /**
-   * What the endpoint actually searched, as chips. This is not decoration: the
-   * endpoint has to guess "去年" and "和 Alex" into a date range and a name
-   * filter, and without the resolved answer on screen a wrong guess is
-   * indistinguishable from the AI ignoring the question. The keyword and names
-   * come from the query that RAN — which, after a relaxation, is not the one the
-   * model first wrote.
-   */
-  const scopeChips = React.useMemo(() => {
-    if (search.status !== 'ready') return []
-    const day = (iso: string) =>
-      new Date(iso).toLocaleDateString(language, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    const chips: string[] = []
-    const { start, end } = search.scope
-    if (start && end) chips.push(`${day(start)} – ${day(end)}`)
-    else if (start) chips.push(`${t.aiSearchFrom} ${day(start)}`)
-    else if (end) chips.push(`${t.aiSearchUntil} ${day(end)}`)
-    if (search.query.concepts.length) {
-      chips.push(
-        `${t.aiSearchWords}: ${search.query.concepts.map((group) => `(${group.join(' / ')})`).join(' + ')}`,
-      )
-    }
-    if (search.query.names?.length) {
-      chips.push(`${t.aiSearchWith} ${search.query.names.join(', ')}`)
-    }
-    return chips
-  }, [search, language, t])
-
   const searching = search.status === 'loading' || loadingMore
   const switchMode = (next: Mode) => {
     if (next === mode) return
-    if (searching) resetSearch()
+    resetSearch()
     setMode(next)
   }
   const modes = [
     { value: 'palette', label: t.commandPaletteCommands, icon: Terminal },
     { value: 'search', label: t.commandPaletteSearch, icon: Search },
     ...(AI_ENABLED
-      ? [
-          { value: 'results', label: t.aiSemanticSearch, icon: CalendarSearch },
-          { value: 'chat', label: t.aiAssistantAsk, icon: Sparkles },
-        ]
+      ? [{ value: 'chat', label: t.aiAssistantAsk, icon: Sparkles }]
       : []),
   ] as const
   const activeMode = modes.find((item) => item.value === mode) ?? modes[0]
@@ -517,7 +453,7 @@ export function AiCommandPalette({
       // top-1/3 from the ui component collides with short dynamic
       // viewports (mobile URL bar): pin to a dvh-safe band instead so the
       // dialog never extends past what is actually visible.
-      className="top-[max(1rem,min(20dvh,8rem))] max-h-[calc(100dvh-2rem)] sm:max-w-2xl"
+      className="top-[max(1rem,min(20dvh,8rem))] flex max-h-[calc(100dvh-max(1rem,min(20dvh,8rem))-1rem)] flex-col sm:max-w-2xl"
     >
       {/* The new CommandDialog renders children bare (no implicit Command
           root), so cmdk's context is established here explicitly.
@@ -526,23 +462,29 @@ export function AiCommandPalette({
           every row the moment the question text stopped matching a title. */}
       <Command
         label={t.commandPaletteTitle}
-        className="rounded-xl! p-2"
+        className="min-h-0 h-auto rounded-xl! p-2"
         shouldFilter={mode === 'palette'}
         filter={filterCommand}
         onKeyDownCapture={(e) => {
-          if ((e.ctrlKey || e.metaKey) && /^[1-4]$/.test(e.key)) {
-            const target = modes[Number(e.key) - 1]
-            if (target) {
-              e.preventDefault()
-              e.stopPropagation()
-              switchMode(target.value as Mode)
-              focusInput()
-            }
+          if (
+            e.altKey &&
+            !e.ctrlKey &&
+            !e.metaKey &&
+            !e.shiftKey &&
+            (e.key === 'ArrowUp' || e.key === 'ArrowDown')
+          ) {
+            e.preventDefault()
+            e.stopPropagation()
+            const index = modes.findIndex((item) => item.value === mode)
+            const step = e.key === 'ArrowDown' ? 1 : -1
+            switchMode(
+              modes[(index + step + modes.length) % modes.length].value as Mode,
+            )
           }
         }}
       >
         <div
-          className="flex items-center gap-1 border-b pb-2"
+          className="flex shrink-0 items-center gap-1 border-b pb-2"
           onKeyDown={(e) => {
             // Header buttons own Enter; it must not also run cmdk's selected row.
             if (e.target instanceof Element && e.target.closest('button'))
@@ -556,6 +498,8 @@ export function AiCommandPalette({
                 size="sm"
                 className="shrink-0 gap-1.5 px-2"
                 aria-label={`${t.commandPaletteMode}: ${activeMode.label}`}
+                title="Alt + ↑ / ↓"
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
               >
                 <ModeIcon className="size-4" />
                 <span className="hidden sm:inline">{activeMode.label}</span>
@@ -574,7 +518,7 @@ export function AiCommandPalette({
                 value={mode}
                 onValueChange={(value) => switchMode(value as Mode)}
               >
-                {modes.map(({ value, label, icon: Icon }, index) => (
+                {modes.map(({ value, label, icon: Icon }) => (
                   <DropdownMenuRadioItem
                     key={value}
                     value={value}
@@ -582,9 +526,6 @@ export function AiCommandPalette({
                   >
                     <Icon />
                     {label}
-                    <DropdownMenuShortcut>
-                      ⌘ / Ctrl {index + 1}
-                    </DropdownMenuShortcut>
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
@@ -598,29 +539,39 @@ export function AiCommandPalette({
                 placeholder={
                   mode === 'palette'
                     ? t.commandPalettePlaceholder
-                    : mode === 'search'
-                      ? t.commandPaletteSearchPlaceholder
-                      : placeholder
+                    : t.commandPaletteSearchPlaceholder
                 }
                 value={input}
                 onValueChange={(value) => {
                   setInput(value)
                   setLocalLimit(30)
+                  resetSearch()
                 }}
-                className={mode === 'results' ? 'pr-9' : undefined}
+                className={mode === 'search' && AI_ENABLED ? 'pr-9' : undefined}
                 onKeyDown={(e) => {
-                  if (e.nativeEvent.isComposing || e.key !== 'Enter') return
+                  if (e.nativeEvent.isComposing) return
                   if (
-                    mode === 'results' &&
-                    (e.metaKey || e.ctrlKey || search.status !== 'ready')
+                    mode === 'search' &&
+                    (e.key === 'ArrowDown' || e.key === 'ArrowUp')
                   ) {
+                    setNavigatingResults(
+                      search.status === 'idle'
+                        ? localResults.length > 0
+                        : search.status === 'ready'
+                          ? search.results.length > 0
+                          : search.status === 'error' &&
+                            search.kind !== 'unavailable',
+                    )
+                  }
+                  if (e.key !== 'Enter') return
+                  if (mode === 'search' && AI_ENABLED && !navigatingResults) {
                     e.preventDefault()
                     e.stopPropagation()
                     if (!searching) void runSearch(1)
                   }
                 }}
               />
-              {mode === 'results' && (
+              {mode === 'search' && AI_ENABLED && (
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -660,8 +611,8 @@ export function AiCommandPalette({
             <X />
           </Button>
         </div>
-        <div>
-          {mode === 'search' ? (
+        <div className="min-h-0 overflow-y-auto overscroll-contain">
+          {mode === 'search' && search.status === 'idle' ? (
             <PaletteSearchResults
               t={t}
               status={input.trim() ? 'ready' : 'idle'}
@@ -673,7 +624,6 @@ export function AiCommandPalette({
                 color: event.color ?? null,
               }))}
               total={localResults.length}
-              hint={t.commandPaletteSearchHint}
               onSelect={goToEvent}
               formatWhen={formatWhen}
               onMore={
@@ -682,14 +632,12 @@ export function AiCommandPalette({
                   : undefined
               }
             />
-          ) : mode === 'results' ? (
+          ) : mode === 'search' ? (
             <PaletteSearchResults
               t={t}
               status={search.status}
               hits={search.status === 'ready' ? search.results : []}
               total={search.status === 'ready' ? search.total : 0}
-              hint={t.aiSemanticSearchHint}
-              scope={scopeChips}
               onSelect={goToEvent}
               formatWhen={formatWhen}
               loadingMore={loadingMore}
@@ -758,139 +706,123 @@ export function AiCommandPalette({
               </div>
             </>
           ) : (
-            /* ScrollArea owns overflow so long command lists scroll inside
-             the dvh-capped dialog instead of pushing past it. */
-            <ScrollArea className="max-h-[min(18rem,calc(100dvh-12rem))]">
-              <CommandList className="max-h-none">
-                <CommandEmpty>{t.noMatchingEvents}</CommandEmpty>
-                {/* Date navigation precedes general commands on equal scores. */}
-                {typedDate && (
-                  <CommandGroup heading={t.aiGoToDate}>
+            <CommandList className="max-h-[min(24rem,calc(100dvh-13rem))] overscroll-contain">
+              <CommandEmpty>{t.noMatchingEvents}</CommandEmpty>
+              {/* Date navigation precedes general commands on equal scores. */}
+              {typedDate && (
+                <CommandGroup heading={t.aiGoToDate}>
+                  <CommandItem
+                    value={DATE_ACTION}
+                    onSelect={() => goToDate(typedDate)}
+                  >
+                    <LocateFixed />
+                    <span className="truncate">
+                      {t.aiGoToDate}: {typedDate.toLocaleDateString(language)}
+                    </span>
+                    <CommandShortcut>↵</CommandShortcut>
+                  </CommandItem>
+                </CommandGroup>
+              )}
+              {actions && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading={t.calendar}>
                     <CommandItem
-                      value={DATE_ACTION}
-                      onSelect={() => goToDate(typedDate)}
+                      onSelect={() => runAction(actions.createEvent)}
                     >
-                      <LocateFixed />
-                      <span className="truncate">
-                        {t.aiGoToDate}: {typedDate.toLocaleDateString(language)}
-                      </span>
-                      <CommandShortcut>↵</CommandShortcut>
+                      <CalendarPlus />
+                      {t.createEvent}
+                      <CommandShortcut>N</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runAction(actions.goToToday)}>
+                      <Sun />
+                      {t.today}
+                      <CommandShortcut>T</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                      onSelect={() => runAction(actions.previousPeriod)}
+                    >
+                      <ArrowLeft />
+                      {t.previousPeriod}
+                      <CommandShortcut>←</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem onSelect={() => runAction(actions.nextPeriod)}>
+                      <ArrowRight />
+                      {t.nextPeriod}
+                      <CommandShortcut>→</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                      onSelect={() => {
+                        setInput('')
+                        switchMode('search')
+                      }}
+                    >
+                      <Search />
+                      {t.searchEvents}
+                      <CommandShortcut>/</CommandShortcut>
                     </CommandItem>
                   </CommandGroup>
-                )}
-                {actions && (
-                  <>
-                    <CommandSeparator />
-                    <CommandGroup heading={t.calendar}>
-                      <CommandItem
-                        onSelect={() => runAction(actions.createEvent)}
-                      >
-                        <CalendarPlus />
-                        {t.createEvent}
-                        <CommandShortcut>N</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => runAction(actions.goToToday)}
-                      >
-                        <Sun />
-                        {t.today}
-                        <CommandShortcut>T</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => runAction(actions.previousPeriod)}
-                      >
-                        <ArrowLeft />
-                        {t.previousPeriod}
-                        <CommandShortcut>←</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => runAction(actions.nextPeriod)}
-                      >
-                        <ArrowRight />
-                        {t.nextPeriod}
-                        <CommandShortcut>→</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setInput('')
-                          switchMode('search')
-                        }}
-                      >
-                        <Search />
-                        {t.searchEvents}
-                        <CommandShortcut>/</CommandShortcut>
-                      </CommandItem>
-                    </CommandGroup>
-                    <CommandSeparator />
-                    <CommandGroup heading={t.aiView}>
-                      <CommandItem
-                        onSelect={() => runAction(() => actions.setView('day'))}
-                      >
-                        <CalendarDays />
-                        {t.day}
-                        <CommandShortcut>1</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() =>
-                          runAction(() => actions.setView('week'))
-                        }
-                      >
-                        <Rows3 />
-                        {t.week}
-                        <CommandShortcut>2</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() =>
-                          runAction(() => actions.setView('month'))
-                        }
-                      >
-                        <Grid3x3 />
-                        {t.month}
-                        <CommandShortcut>3</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() =>
-                          runAction(() => actions.setView('year'))
-                        }
-                      >
-                        <CalendarRange />
-                        {t.year}
-                        <CommandShortcut>4</CommandShortcut>
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() =>
-                          runAction(() => actions.setView('four-day'))
-                        }
-                      >
-                        <Columns4 />
-                        {t.fourDay}
-                        <CommandShortcut>5</CommandShortcut>
-                      </CommandItem>
-                    </CommandGroup>
-                    <CommandSeparator />
-                    <CommandGroup heading={t.settings}>
-                      <CommandItem
-                        onSelect={() => runAction(actions.openAnalytics)}
-                      >
-                        <ChartNoAxesColumn />
-                        {t.analytics}
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => runAction(actions.openSettings)}
-                      >
-                        <Settings />
-                        {t.settings}
-                      </CommandItem>
-                    </CommandGroup>
-                  </>
-                )}
-              </CommandList>
-            </ScrollArea>
+                  <CommandSeparator />
+                  <CommandGroup heading={t.aiView}>
+                    <CommandItem
+                      onSelect={() => runAction(() => actions.setView('day'))}
+                    >
+                      <CalendarDays />
+                      {t.day}
+                      <CommandShortcut>1</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                      onSelect={() => runAction(() => actions.setView('week'))}
+                    >
+                      <Rows3 />
+                      {t.week}
+                      <CommandShortcut>2</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                      onSelect={() => runAction(() => actions.setView('month'))}
+                    >
+                      <Grid3x3 />
+                      {t.month}
+                      <CommandShortcut>3</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                      onSelect={() => runAction(() => actions.setView('year'))}
+                    >
+                      <CalendarRange />
+                      {t.year}
+                      <CommandShortcut>4</CommandShortcut>
+                    </CommandItem>
+                    <CommandItem
+                      onSelect={() =>
+                        runAction(() => actions.setView('four-day'))
+                      }
+                    >
+                      <Columns4 />
+                      {t.fourDay}
+                      <CommandShortcut>5</CommandShortcut>
+                    </CommandItem>
+                  </CommandGroup>
+                  <CommandSeparator />
+                  <CommandGroup heading={t.settings}>
+                    <CommandItem
+                      onSelect={() => runAction(actions.openAnalytics)}
+                    >
+                      <ChartNoAxesColumn />
+                      {t.analytics}
+                    </CommandItem>
+                    <CommandItem
+                      onSelect={() => runAction(actions.openSettings)}
+                    >
+                      <Settings />
+                      {t.settings}
+                    </CommandItem>
+                  </CommandGroup>
+                </>
+              )}
+            </CommandList>
           )}
         </div>
-        {/* Footer: each mode states what its keys do, because they differ —
-            results open on Enter and search on ⌘↵, chat sends on Enter. */}
-        <div className="flex items-center justify-between border-t px-3 py-1.5 text-xs text-muted-foreground">
+        <div className="flex shrink-0 items-center justify-between border-t px-3 py-1.5 text-xs text-muted-foreground">
           {mode === 'chat' ? (
             <span className="flex items-center gap-1">
               <Kbd>↵</Kbd>
@@ -899,25 +831,17 @@ export function AiCommandPalette({
                 Shift ↵ · {t.aiAssistantNewLine}
               </span>
             </span>
-          ) : mode === 'results' ? (
-            <span className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                <Kbd>↵</Kbd>
-                {t.aiSearchOpen}
-              </span>
-              <span className="flex items-center gap-1">
-                <Kbd>⌘↵</Kbd>
-                {t.aiSearchAgain}
-              </span>
-            </span>
           ) : (
             <span className="flex items-center gap-1">
               <Kbd>↑ ↓</Kbd>
               <Kbd>↵</Kbd>
-              {mode === 'search' ? t.aiSearchOpen : t.commandPaletteRun}
+              {mode === 'search'
+                ? AI_ENABLED && !navigatingResults
+                  ? t.aiSemanticSearch
+                  : t.aiSearchOpen
+                : t.commandPaletteRun}
             </span>
           )}
-          <span className="hidden sm:inline">Ctrl / ⌘ 1–{modes.length}</span>
           <span className="flex items-center gap-1">
             <Kbd>esc</Kbd>
             {t.close}

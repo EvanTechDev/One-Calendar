@@ -224,7 +224,7 @@
   "aiToolDeleteEvent": "删除日程",
   "commandPaletteDescription": "执行命令、搜索日程或与 AI 助手协作",
   "commandPaletteCommands": "命令",
-  "commandPaletteSearch": "普通搜索",
+  "commandPaletteSearch": "搜索",
   "commandPalettePlaceholder": "搜索命令或输入日期…",
   "commandPaletteSearchPlaceholder": "搜索标题、地点或描述…",
   "commandPaletteSearchHint": "搜索已加载的日程，遵循当前日历筛选条件",

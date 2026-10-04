@@ -81,9 +81,9 @@ it('external close cancels work and reopens on a clean command menu', async () =
     <AiCommandPalette open onOpenChange={onOpenChange} />,
   )
   const input = await typeQuestion('find my trip')
-  fireEvent.keyDown(input, { key: '3', ctrlKey: true })
+  fireEvent.keyDown(input, { key: 'ArrowDown', altKey: true })
   expect(
-    screen.getByRole('button', { name: 'Mode: Semantic search' }),
+    screen.getByRole('button', { name: 'Mode: Search' }),
   ).toBeInTheDocument()
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
   fireEvent.keyDown(input, { key: 'Enter' })
@@ -99,7 +99,7 @@ it('external close cancels work and reopens on a clean command menu', async () =
 
 it('a stalled request stops loading and offers retry after the deadline', async () => {
   render(<AiCommandPalette open onOpenChange={vi.fn()} />)
-  selectMode('Semantic search')
+  selectMode('Search')
   const input = await typeQuestion('找出所有遛狗的日程')
   vi.useFakeTimers()
   fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true })
@@ -120,7 +120,7 @@ it('a stalled request stops loading and offers retry after the deadline', async 
 it('a pasted question can be clicked and a configuration failure is visible', async () => {
   fetchSearch.mockResolvedValue({ ok: false, status: 503 })
   render(<AiCommandPalette open onOpenChange={vi.fn()} />)
-  selectMode('Semantic search')
+  selectMode('Search')
   await typeQuestion('  找出所有遛狗的日程  ')
   fireEvent.click(screen.getByRole('button', { name: 'Semantic search' }))
   expect(
@@ -164,7 +164,7 @@ it.each(['找出所有遛狗的日程', 'find my trip', '找出所有遛狗的�
   'typing %s then Enter sends one search request and shows loading',
   async (question) => {
     render(<AiCommandPalette open onOpenChange={vi.fn()} />)
-    selectMode('Semantic search')
+    selectMode('Search')
     const input = screen.getByRole('combobox')
     for (let i = 1; i <= question.length; i++) {
       fireEvent.change(input, { target: { value: question.slice(0, i) } })
@@ -210,6 +210,7 @@ it('searches local event descriptions without calling AI and opens the chosen ev
   expect(
     screen.getByRole('option', { name: /Team planning/ }),
   ).toBeInTheDocument()
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
   expect(goToEvent).toHaveBeenCalledWith(
     expect.objectContaining({ id: 'event-1' }),
@@ -219,7 +220,7 @@ it('searches local event descriptions without calling AI and opens the chosen ev
 
 it('switching modes preserves the draft and aborts a pending semantic search', async () => {
   render(<AiCommandPalette open onOpenChange={vi.fn()} />)
-  selectMode('Semantic search')
+  selectMode('Search')
   const input = await typeQuestion('find my trip')
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
   const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
@@ -255,7 +256,10 @@ it('renders the same event row in keyword and semantic search, with paging and E
   }
   const second = { ...hit, id: 'e2', title: 'Next planning' }
   const goToEvent = vi.fn()
-  const query = { concepts: [['planning']], names: [] }
+  const query = {
+    concepts: [['private-compiled-token']],
+    names: ['Private Name'],
+  }
   fetchSearch
     .mockResolvedValueOnce({
       ok: true,
@@ -299,19 +303,24 @@ it('renders the same event row in keyword and semantic search, with paging and E
   const localRow = screen.getByRole('option', { name: /Team planning/ })
   const content = localRow.innerHTML
   const classes = localRow.className
-  selectMode('Semantic search')
+  expect(fetchSearch).not.toHaveBeenCalled()
   fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' })
+  expect(goToEvent).not.toHaveBeenCalled()
   const semanticRow = await screen.findByRole('option', {
     name: /Team planning/,
   })
   expect(semanticRow.innerHTML).toBe(content)
   expect(semanticRow.className).toBe(classes)
+  expect(
+    screen.queryByText(/private-compiled-token|Private Name|Searched:/),
+  ).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('option', { name: 'Load more' }))
   await screen.findByRole('option', { name: /Next planning/ })
   expect(JSON.parse(fetchSearch.mock.calls[1][1].body)).toEqual({
     page: 2,
     searchToken: 'sealed',
   })
+  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowUp' })
   fireEvent.pointerMove(semanticRow)
   fireEvent.keyDown(screen.getByRole('combobox'), {
     key: 'Enter',
@@ -319,4 +328,79 @@ it('renders the same event row in keyword and semantic search, with paging and E
     keyCode: 13,
   })
   expect(goToEvent).toHaveBeenCalledExactlyOnceWith(hit)
+})
+
+it('typing a new query cancels AI and restores instant local results', async () => {
+  let resolveSearch!: (value: unknown) => void
+  fetchSearch.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        resolveSearch = resolve
+      }),
+  )
+  render(
+    <AiCommandPalette
+      open
+      onOpenChange={vi.fn()}
+      events={[
+        {
+          id: 'e1',
+          title: 'Workshop',
+          startDate: new Date('2026-10-05T09:00:00Z'),
+          endDate: new Date('2026-10-05T10:00:00Z'),
+          isAllDay: false,
+        },
+      ]}
+    />,
+  )
+  selectMode('Search')
+  const input = await typeQuestion('trip')
+  fireEvent.keyDown(input, { key: 'Enter' })
+  const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
+  await typeQuestion('workshop')
+  expect(signal.aborted).toBe(true)
+  expect(screen.getByRole('option', { name: /Workshop/ })).toBeInTheDocument()
+  await act(async () =>
+    resolveSearch({ ok: true, json: async () => ({ results: [], total: 0 }) }),
+  )
+  expect(screen.getByRole('option', { name: /Workshop/ })).toBeInTheDocument()
+  expect(fetchSearch).toHaveBeenCalledTimes(1)
+})
+
+it('cycles all three modes with Alt arrows without submitting or showing number shortcuts', async () => {
+  render(<AiCommandPalette open onOpenChange={vi.fn()} />)
+  const input = await typeQuestion('draft')
+  fireEvent.keyDown(input, { key: 'ArrowUp', altKey: true })
+  const composer = screen.getByRole('textbox', { name: 'Ask AI' })
+  expect(composer).toHaveValue('draft')
+  fireEvent.keyDown(composer, { key: 'ArrowUp', altKey: true })
+  expect(
+    screen.getByRole('button', { name: 'Mode: Search' }),
+  ).toBeInTheDocument()
+  fireEvent.keyDown(screen.getByRole('combobox'), {
+    key: 'ArrowUp',
+    altKey: true,
+  })
+  expect(
+    screen.getByRole('button', { name: 'Mode: Commands' }),
+  ).toBeInTheDocument()
+  expect(screen.queryByText(/Ctrl.*1/)).not.toBeInTheDocument()
+  fireEvent.keyDown(screen.getByRole('button', { name: /^Mode:/ }), {
+    key: 'Enter',
+  })
+  expect(screen.getAllByRole('menuitemradio')).toHaveLength(3)
+  expect(
+    screen.queryByRole('menuitemradio', { name: /Semantic/ }),
+  ).not.toBeInTheDocument()
+  expect(fetchSearch).not.toHaveBeenCalled()
+  expect(sendMessage).not.toHaveBeenCalled()
+})
+
+it('Enter still searches after arrow navigation in an empty result list', async () => {
+  render(<AiCommandPalette open onOpenChange={vi.fn()} />)
+  selectMode('Search')
+  const input = await typeQuestion('nothing local')
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(fetchSearch).toHaveBeenCalledTimes(1)
 })
