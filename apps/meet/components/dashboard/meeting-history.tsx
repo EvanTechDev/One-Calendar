@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Clock,
-  Copy,
   History,
   MessageSquare,
   Search,
@@ -18,7 +17,7 @@ import { Input } from '@zntr/ui/input'
 import { Badge } from '@zntr/ui/badge'
 import { Spinner } from '@zntr/ui/spinner'
 import { toast } from 'sonner'
-import { cn } from '@zntr/utils'
+import { CopyMeetingLink } from '@/components/dashboard/copy-meeting-link'
 import {
   SEARCH_DEBOUNCE_MS,
   describeMatches,
@@ -118,11 +117,6 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
     return () => clearTimeout(timer)
   }, [query])
 
-  const copyLink = async (id: string) => {
-    await navigator.clipboard.writeText(`${window.location.origin}/${id}`)
-    toast.success('Meeting link copied')
-  }
-
   const remove = async (id: string) => {
     try {
       const response = await fetch(`/api/meetings/${id}`, { method: 'DELETE' })
@@ -200,7 +194,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
       </p>
 
       {failed ? (
-        <div className="rounded-2xl border bg-card px-6 py-12 text-center text-sm">
+        <div className="rounded-lg border bg-card px-6 py-8 text-center text-sm dark:border-transparent">
           <p className="text-muted-foreground">Search could not run.</p>
           <Button
             size="sm"
@@ -212,10 +206,8 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
           </Button>
         </div>
       ) : visible.length === 0 ? (
-        <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
-          <span className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-meet-tint text-meet-accent">
-            <History className="size-6" />
-          </span>
+        <div className="flex min-h-52 flex-col items-center justify-center rounded-lg border bg-card px-6 py-8 text-center text-sm text-muted-foreground dark:border-transparent">
+          <History className="mb-3 size-6" />
           {isSearch ? (
             <>
               <p>
@@ -238,11 +230,11 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
           )}
         </div>
       ) : (
-        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+        <ul className="divide-y overflow-hidden rounded-lg border bg-card dark:border-transparent">
           {visible.map((row) => (
             <li
               key={row.id}
-              className="flex flex-wrap items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30 sm:p-5"
+              className="flex flex-wrap items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30"
             >
               <div className="min-w-0 flex-1 basis-48 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -274,19 +266,11 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
                 <MatchContext matches={row.matches} term={resultTerm} />
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className={cn('size-10 rounded-xl')}
-                  onClick={() => copyLink(row.id)}
-                  aria-label={`Copy link for ${row.id}`}
-                >
-                  <Copy className="size-3.5" />
-                </Button>
+                <CopyMeetingLink roomId={row.id} />
                 <Button
                   size="icon"
                   variant="secondary"
-                  className="size-10 rounded-xl"
+                  className="size-11 sm:size-10"
                   asChild
                 >
                   <a href={`/${row.id}`} aria-label={`Rejoin ${row.id}`}>
@@ -296,7 +280,7 @@ export function MeetingHistory({ rows }: { rows: MeetingRow[] }) {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="size-10 rounded-xl"
+                  className="size-11 sm:size-10"
                   onClick={() => remove(row.id)}
                   aria-label={`Delete ${row.id}`}
                 >

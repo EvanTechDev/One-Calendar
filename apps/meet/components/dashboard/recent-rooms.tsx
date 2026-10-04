@@ -1,9 +1,9 @@
 'use client'
 
-import { ArrowUpRight, Copy, History, Video } from 'lucide-react'
+import { ArrowUpRight, History, Video } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Badge } from '@zntr/ui/badge'
-import { toast } from 'sonner'
+import { CopyMeetingLink } from '@/components/dashboard/copy-meeting-link'
 import type { MeetingRow } from '@/components/dashboard/meeting-history'
 
 /**
@@ -18,21 +18,14 @@ import type { MeetingRow } from '@/components/dashboard/meeting-history'
 export function RecentRooms({ rows }: { rows: MeetingRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="flex min-h-44 flex-col items-center justify-center rounded-xl bg-muted/40 px-5 py-6 text-center">
-        <span className="mb-3 flex size-11 items-center justify-center rounded-2xl border bg-background text-meet-accent">
-          <History className="size-5" />
-        </span>
-        <p className="text-sm font-medium">Pick up where you left off</p>
+      <div className="flex min-h-40 flex-col items-center justify-center px-4 py-5 text-center">
+        <History className="mb-3 size-6 text-muted-foreground" />
+        <p className="text-sm font-medium">No recent rooms</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           Meetings you start will appear here.
         </p>
       </div>
     )
-  }
-
-  const copyLink = async (id: string) => {
-    await navigator.clipboard.writeText(`${window.location.origin}/${id}`)
-    toast.success('Meeting link copied')
   }
 
   return (
@@ -42,7 +35,7 @@ export function RecentRooms({ rows }: { rows: MeetingRow[] }) {
           key={row.id}
           className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
         >
-          <span className="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-meet-tint text-meet-accent min-[400px]:flex">
+          <span className="hidden size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground xl:flex">
             <Video className="size-4" />
           </span>
           <div className="min-w-0 flex-1 space-y-1">
@@ -57,22 +50,18 @@ export function RecentRooms({ rows }: { rows: MeetingRow[] }) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="size-10 rounded-xl"
-              onClick={() => copyLink(row.id)}
-              aria-label={`Copy link for ${row.id}`}
-            >
-              <Copy className="size-3.5" />
-            </Button>
+            <CopyMeetingLink roomId={row.id} />
             <Button
               size="icon"
               variant="secondary"
-              className="size-10 rounded-xl"
+              className="size-11 sm:size-10"
               asChild
             >
-              <a href={`/${row.id}`} aria-label={`Rejoin ${row.id}`}>
+              <a
+                href={`/${row.id}`}
+                aria-label={`Rejoin ${row.id}`}
+                title="Rejoin meeting"
+              >
                 <ArrowUpRight className="size-4" />
               </a>
             </Button>

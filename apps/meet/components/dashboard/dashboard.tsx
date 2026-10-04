@@ -48,13 +48,13 @@ export function Dashboard({
         </Suspense>
       }
       history={
-        <section className="mx-auto max-w-7xl space-y-7 p-4 sm:p-6 lg:p-10">
+        <section className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
           <div className="space-y-1.5">
-            <h2 className="font-heading text-2xl font-semibold tracking-tight lg:text-3xl">
+            <h2 className="font-heading text-xl font-semibold tracking-tight sm:text-2xl">
               Your meetings
             </h2>
             <p className="text-sm text-muted-foreground">
-              Find a conversation and pick up where you left off.
+              Search past meetings by code, people, or saved chat.
             </p>
           </div>
           <Suspense fallback={<HistorySkeleton />}>
@@ -119,14 +119,18 @@ function RowsSkeleton({
 }) {
   return (
     <ul
-      className={compact ? 'divide-y' : 'divide-y rounded-2xl border'}
+      className={
+        compact
+          ? 'divide-y'
+          : 'divide-y rounded-lg border bg-card dark:border-transparent'
+      }
       aria-busy="true"
     >
       {Array.from({ length: rows }, (_, key) => (
         <li
           key={key}
           className={
-            compact ? 'space-y-2 py-3 first:pt-0 last:pb-0' : 'space-y-2 p-5'
+            compact ? 'space-y-2 py-3 first:pt-0 last:pb-0' : 'space-y-2 p-4'
           }
         >
           <div className="h-4 w-44 max-w-full animate-pulse rounded bg-muted motion-reduce:animate-none" />

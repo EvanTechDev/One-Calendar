@@ -33,6 +33,25 @@ export interface DatedRow {
   endDate: string
 }
 
+/** Relative scheduled time, not a claim that anyone is connected to the room. */
+export function meetingTiming(row: DatedRow, now: Date): string {
+  const start = Date.parse(row.startDate)
+  const end = Date.parse(row.endDate)
+  const current = now.getTime()
+  if (current >= end) return 'Scheduled time ended'
+  if (current >= start) return 'Scheduled now'
+
+  const minutes = Math.ceil((start - current) / 60_000)
+  if (minutes < 60) return `Starts in ${minutes} min`
+  if (minutes < 1440) {
+    const hours = Math.floor(minutes / 60)
+    const remainder = minutes % 60
+    return `Starts in ${hours} hr${remainder ? ` ${remainder} min` : ''}`
+  }
+  const days = Math.ceil(minutes / 1440)
+  return `Starts in ${days} ${days === 1 ? 'day' : 'days'}`
+}
+
 /**
  * The one meeting worth putting on home: the earliest that has not finished
  * yet. A meeting already under way outranks one starting later — that is the

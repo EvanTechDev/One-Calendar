@@ -1,23 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Video, Keyboard, Lock } from 'lucide-react'
+import { Video, Lock } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
-import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
 import { Switch } from '@zntr/ui/switch'
+import { JoinMeetingForm } from '@/components/join-meeting-form'
 import { useStartMeeting } from '@/hooks/use-start-meeting'
-import { invitePartsFrom, parseRoomInput } from '@/lib/room-code'
 
 /**
  * Start-an-instant-meeting, the E2EE choice, and join-by-code.
  *
  * One implementation, two hosts: the guest page renders it inline (a guest has
  * no sidebar, so there is nowhere else to put it) and the signed-in shell
- * renders it inside the New meeting dialog. A second copy would inevitably
- * lose the Creator Token store or the invite-hash forwarding in one of them,
- * and both are authority/encryption-critical (ADR 0016, and the E2EE
+ * renders it inside the New meeting dialog. The join form is also shared with
+ * the dashboard, so invite-hash forwarding has a single owner (the E2EE
  * passphrase lives in the URL hash).
  */
 export function HomeActions({
@@ -29,19 +26,9 @@ export function HomeActions({
   /** Distinguishes the switch's label target when two copies are mounted. */
   idPrefix?: string
 } = {}) {
-  const router = useRouter()
-  const [joinCode, setJoinCode] = useState('')
   const [e2ee, setE2ee] = useState(false)
   const { start, starting } = useStartMeeting()
   const e2eeId = `${idPrefix}-e2ee-switch`
-
-  const joinMeeting = () => {
-    const roomId = parseRoomInput(joinCode)
-    if (!roomId) return
-    const { search, hash } = invitePartsFrom(joinCode)
-    router.push(`/${roomId}${search}${hash}`)
-    onNavigate?.()
-  }
 
   const startMeeting = async () => {
     await start({ e2ee })
@@ -85,31 +72,7 @@ export function HomeActions({
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <form
-        className="flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault()
-          joinMeeting()
-        }}
-      >
-        <div className="relative flex-1">
-          <Keyboard className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={joinCode}
-            onChange={(event) => setJoinCode(event.target.value)}
-            placeholder="Enter a code or link"
-            className="pl-9"
-            aria-label="Meeting code or link"
-          />
-        </div>
-        <Button
-          type="submit"
-          variant="secondary"
-          disabled={!parseRoomInput(joinCode)}
-        >
-          Join
-        </Button>
-      </form>
+      <JoinMeetingForm onNavigate={onNavigate} />
     </div>
   )
 }

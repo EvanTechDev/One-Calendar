@@ -10,7 +10,7 @@ import {
 /**
  * The New meeting dialog's start and join behaviour.
  *
- * The dialog is the only way a signed-in user reaches these actions now, so the
+ * The dialog owns creation; its join form is also used on home. The
  * two things that must not regress are: a guest Organiser's Creator Token is
  * stored BEFORE navigating (ADR 0016 — the token is the sole credential for
  * their authority), and a pasted invite link's hash reaches the room (it carries

@@ -1,7 +1,46 @@
 import { describe, it, expect } from 'vitest'
-import { firstName, greetingFor, nextUpcoming } from '@/lib/home-summary'
+import {
+  firstName,
+  greetingFor,
+  meetingTiming,
+  nextUpcoming,
+} from '@/lib/home-summary'
 
 const at = (iso: string) => new Date(iso)
+
+describe('meetingTiming', () => {
+  const meeting = {
+    startDate: '2026-10-04T10:00:00Z',
+    endDate: '2026-10-04T11:00:00Z',
+  }
+
+  it('rounds up sub-minute waits so a future meeting never reads as started', () => {
+    expect(meetingTiming(meeting, at('2026-10-04T09:59:59Z'))).toBe(
+      'Starts in 1 min',
+    )
+    expect(meetingTiming(meeting, at('2026-10-04T10:00:00Z'))).toBe(
+      'Scheduled now',
+    )
+    expect(meetingTiming(meeting, at('2026-10-04T11:00:00Z'))).toBe(
+      'Scheduled time ended',
+    )
+  })
+
+  it('uses readable hours and days for longer waits', () => {
+    expect(meetingTiming(meeting, at('2026-10-04T08:30:00Z'))).toBe(
+      'Starts in 1 hr 30 min',
+    )
+    expect(meetingTiming(meeting, at('2026-10-04T09:00:00Z'))).toBe(
+      'Starts in 1 hr',
+    )
+    expect(meetingTiming(meeting, at('2026-10-03T10:00:00Z'))).toBe(
+      'Starts in 1 day',
+    )
+    expect(meetingTiming(meeting, at('2026-10-02T10:00:00Z'))).toBe(
+      'Starts in 2 days',
+    )
+  })
+})
 
 describe('greetingFor', () => {
   it('bands the day the way the calendar does', () => {

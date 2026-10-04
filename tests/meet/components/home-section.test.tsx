@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, cleanup, screen, fireEvent } from '@testing-library/react'
+import {
+  act,
+  render,
+  cleanup,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react'
 import { HomeSection } from '@/components/dashboard/home-section'
 import type { UpcomingRow } from '@/hooks/use-upcoming-meetings'
+
+const { push } = vi.hoisted(() => ({ push: vi.fn() }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 
 /**
  * Home after the redesign. The behaviours worth pinning are that it is not an
@@ -44,7 +54,12 @@ function renderHome(overrides?: {
   return { onNewMeeting, onSectionChange }
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+  vi.clearAllMocks()
+})
 
 describe('HomeSection', () => {
   it('greets the user by first name', () => {
@@ -68,12 +83,78 @@ describe('HomeSection', () => {
     expect(onNewMeeting).toHaveBeenCalledOnce()
   })
 
-  it('does not host start/join — those moved into the dialog', () => {
+  it('joins from home without opening the creation dialog and preserves the invite key', () => {
+    const { onNewMeeting } = renderHome()
+    fireEvent.change(screen.getByLabelText('Meeting code or link'), {
+      target: {
+        value: 'https://meet.example.com/ab3k-x9q2?hq=true#pass-phrase',
+      },
+    })
+    fireEvent.submit(screen.getByRole('form', { name: 'Join a meeting' }))
+    expect(push).toHaveBeenCalledWith('/ab3k-x9q2?hq=true#pass-phrase')
+    expect(onNewMeeting).not.toHaveBeenCalled()
+  })
+
+  it('keeps meeting creation and its encryption choice in the dialog', () => {
     renderHome()
-    expect(screen.queryByLabelText('Meeting code or link')).toBeNull()
     expect(
       screen.queryByRole('button', { name: /Start an instant meeting/ }),
     ).toBeNull()
+  })
+
+  it('pastes an invite for review before joining, without losing its hash', async () => {
+    const readText = vi
+      .fn()
+      .mockResolvedValue('https://meet.example.com/ab3k-x9q2#secret')
+    vi.stubGlobal(
+      'navigator',
+      Object.create(navigator, {
+        clipboard: { value: { readText } },
+      }),
+    )
+    renderHome()
+    expect(readText).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Paste meeting link' }))
+    await waitFor(() =>
+      expect(screen.getByLabelText('Meeting code or link')).toHaveValue(
+        'https://meet.example.com/ab3k-x9q2#secret',
+      ),
+    )
+    expect(push).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Meeting code or link')).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Join' }))
+    expect(push).toHaveBeenCalledWith('/ab3k-x9q2#secret')
+  })
+
+  it('keeps manual entry usable when clipboard access is denied', async () => {
+    vi.stubGlobal(
+      'navigator',
+      Object.create(navigator, {
+        clipboard: {
+          value: { readText: vi.fn().mockRejectedValue(new Error('denied')) },
+        },
+      }),
+    )
+    renderHome()
+    fireEvent.click(screen.getByRole('button', { name: 'Paste meeting link' }))
+    await screen.findByText(/Clipboard unavailable/)
+    const input = screen.getByLabelText('Meeting code or link')
+    expect(input).toHaveFocus()
+    fireEvent.change(input, { target: { value: 'ab3k-x9q2' } })
+    fireEvent.submit(screen.getByRole('form', { name: 'Join a meeting' }))
+    expect(push).toHaveBeenCalledWith('/ab3k-x9q2')
+  })
+
+  it('explains invalid input and never navigates to it', () => {
+    renderHome()
+    const input = screen.getByLabelText('Meeting code or link')
+    fireEvent.change(input, { target: { value: 'not-a-room' } })
+    fireEvent.blur(input)
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText(/Use a meeting code like/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Join' })).toBeDisabled()
+    fireEvent.submit(screen.getByRole('form', { name: 'Join a meeting' }))
+    expect(push).not.toHaveBeenCalled()
   })
 
   it('surfaces exactly one next meeting, with a join link', () => {
@@ -113,5 +194,52 @@ describe('HomeSection', () => {
     expect(onSectionChange).toHaveBeenCalledWith('upcoming')
     fireEvent.click(historyLink!)
     expect(onSectionChange).toHaveBeenCalledWith('history')
+  })
+
+  it('updates the scheduled countdown and advances when a meeting ends', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-04T09:00:00Z'))
+    renderHome({
+      rows: [
+        row({
+          startDate: '2026-10-04T09:01:00Z',
+          endDate: '2026-10-04T09:02:00Z',
+        }),
+        row({
+          meetingId: 'zz11-zz22',
+          title: 'Design review',
+          startDate: '2026-10-04T09:10:00Z',
+          endDate: '2026-10-04T10:00:00Z',
+        }),
+      ],
+    })
+    expect(screen.getByText('Starts in 1 min')).toBeTruthy()
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.getByText('Scheduled now')).toBeTruthy()
+    act(() => vi.advanceTimersByTime(60_000))
+    expect(screen.queryByText('Weekly standup')).toBeNull()
+    expect(screen.getByText('Design review')).toBeTruthy()
+    expect(screen.getByText('Starts in 8 min')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute(
+      'href',
+      '/zz11-zz22',
+    )
+  })
+
+  it('refreshes immediately on tab return after timers have been throttled', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-04T09:00:00Z'))
+    renderHome({
+      rows: [
+        row({
+          startDate: '2026-10-04T09:01:00Z',
+          endDate: '2026-10-04T09:02:00Z',
+        }),
+      ],
+    })
+    vi.setSystemTime(new Date('2026-10-04T09:03:00Z'))
+    fireEvent(document, new Event('visibilitychange'))
+    expect(screen.queryByText('Weekly standup')).toBeNull()
+    expect(screen.getByText(/Nothing on your calendar/)).toBeTruthy()
   })
 })

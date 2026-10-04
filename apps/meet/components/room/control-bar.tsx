@@ -173,7 +173,7 @@ export function ControlBar({
             <Button
               size="icon"
               variant={handRaised ? 'default' : 'secondary'}
-              className="size-12 h-16 flex-col gap-1.5 rounded-2xl sm:size-8 sm:rounded-full"
+              className="size-12 h-16 flex-col gap-1.5 rounded-lg sm:size-8 sm:rounded-full"
               onClick={onToggleHand}
               aria-label={handRaised ? 'Lower hand' : 'Raise hand'}
               aria-pressed={handRaised}
@@ -204,7 +204,7 @@ export function ControlBar({
             </div>
 
             <MoreSheet
-              className="size-12 h-16 flex-col gap-1.5 rounded-2xl sm:hidden"
+              className="size-12 h-16 flex-col gap-1.5 rounded-lg sm:hidden"
               roomName={roomName}
               eventContext={eventContext}
               onCopyInvite={copyInvite}
@@ -229,7 +229,7 @@ export function ControlBar({
             <Button
               size="icon"
               variant="destructive"
-              className="ml-4 size-12 h-16 flex-col gap-1.5 rounded-2xl bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive dark:text-background dark:hover:bg-destructive/90 sm:ml-0 sm:size-8 sm:rounded-full"
+              className="ml-4 size-12 h-16 flex-col gap-1.5 rounded-lg bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive dark:text-background dark:hover:bg-destructive/90 sm:ml-0 sm:size-8 sm:rounded-full"
               onClick={() => {
                 onLeaveIntent()
                 room.disconnect()
@@ -301,7 +301,7 @@ function ControlButton({
     <Button
       size="icon"
       variant={active ? 'secondary' : 'destructive'}
-      className="size-12 h-16 flex-col gap-1.5 rounded-2xl sm:size-8 sm:rounded-full"
+      className="size-12 h-16 flex-col gap-1.5 rounded-lg sm:size-8 sm:rounded-full"
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
@@ -491,7 +491,7 @@ function MoreSheet({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] gap-0 overflow-y-auto rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] motion-reduce:animate-none [&>*]:shrink-0 [&_[data-slot=sheet-close]]:size-11"
+        className="max-h-[85dvh] gap-0 overflow-y-auto rounded-t-lg pb-[max(1.25rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] motion-reduce:animate-none [&>*]:shrink-0 [&_[data-slot=sheet-close]]:size-11"
       >
         <SheetHeader className="gap-1 border-b px-0 pb-4 pr-10 pt-5">
           <SheetTitle className="text-lg font-semibold">
@@ -501,7 +501,7 @@ function MoreSheet({
             People, messages, and room settings.
           </SheetDescription>
         </SheetHeader>
-        <div className="mt-4 flex items-center gap-3 rounded-xl border bg-muted/40 p-3">
+        <div className="mt-4 flex items-center gap-3 rounded-lg bg-muted/50 p-3">
           <MeetingIdentity
             roomName={roomName}
             eventContext={eventContext}
@@ -555,7 +555,7 @@ function MoreSheet({
           <span className="text-xs font-medium text-muted-foreground">
             Send a reaction
           </span>
-          <div className="mt-3 grid grid-cols-3 gap-1 rounded-2xl bg-muted/50 p-1.5 min-[360px]:grid-cols-6">
+          <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-muted/50 p-1.5 min-[360px]:grid-cols-6">
             {REACTIONS.map((emoji) => (
               <button
                 key={emoji}
@@ -563,7 +563,7 @@ function MoreSheet({
                 // Reactions stay open: sending several in a row is the normal
                 // way they are used, and closing after one would fight that.
                 onClick={() => onReaction(emoji)}
-                className="flex min-h-11 min-w-0 items-center justify-center rounded-xl text-2xl transition-transform hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring motion-safe:hover:scale-110"
+                className="flex min-h-11 min-w-0 items-center justify-center rounded-md text-2xl transition-transform hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring motion-safe:hover:scale-110"
                 aria-label={`React with ${emoji}`}
               >
                 {emoji}
@@ -575,7 +575,7 @@ function MoreSheet({
           <div className="mt-5 border-t pt-4">
             <Button
               variant="destructive"
-              className="h-12 w-full justify-start gap-3 rounded-xl px-4"
+              className="h-12 w-full justify-start gap-3 px-4"
               onClick={closeThen(onEndForAll)}
               disabled={ending}
               aria-label="End meeting for all"
@@ -616,10 +616,10 @@ function SheetAction({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'flex min-h-20 min-w-0 flex-col items-center gap-2 rounded-2xl border px-1 py-3 transition-colors focus-visible:outline-2 focus-visible:outline-ring',
+        'flex min-h-20 min-w-0 flex-col items-center gap-2 rounded-lg px-1 py-3 transition-colors focus-visible:outline-2 focus-visible:outline-ring',
         active
-          ? 'border-meet-accent/30 bg-meet-tint text-meet-accent'
-          : 'border-transparent bg-muted/50 hover:bg-muted',
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-muted/50 hover:bg-muted',
       )}
     >
       <span className="relative flex size-8 items-center justify-center">

@@ -1,6 +1,9 @@
 'use client'
 
 import { CalendarClock, Video } from 'lucide-react'
+import { buttonVariants } from '@zntr/ui/button'
+import { cn } from '@zntr/utils'
+import { CopyMeetingLink } from '@/components/dashboard/copy-meeting-link'
 import type { UpcomingRow, UpcomingState } from '@/hooks/use-upcoming-meetings'
 
 export type { UpcomingRow } from '@/hooks/use-upcoming-meetings'
@@ -16,7 +19,10 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
     // heading of its own.
     <div className="space-y-3">
       {rows === null ? (
-        <ul className="divide-y rounded-2xl border bg-card" aria-busy="true">
+        <ul
+          className="divide-y rounded-lg border bg-card dark:border-transparent"
+          aria-busy="true"
+        >
           {[0, 1].map((key) => (
             <li key={key} className="flex items-center gap-3 p-5">
               <div className="min-w-0 flex-1 space-y-2">
@@ -27,14 +33,10 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
           ))}
         </ul>
       ) : rows.length === 0 ? (
-        <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-card px-6 py-10 text-center">
-          <span className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-meet-tint text-meet-accent">
-            <CalendarClock className="size-6" />
-          </span>
-          <p className="font-heading text-lg font-semibold">
-            {failed
-              ? 'Calendar unavailable'
-              : 'Your next conversation starts here'}
+        <div className="flex min-h-52 flex-col items-center justify-center rounded-lg border bg-card px-6 py-8 text-center dark:border-transparent">
+          <CalendarClock className="mb-3 size-6 text-muted-foreground" />
+          <p className="text-sm font-semibold">
+            {failed ? 'Calendar unavailable' : 'No upcoming meetings'}
           </p>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
             {failed
@@ -43,17 +45,17 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
           </p>
         </div>
       ) : (
-        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
+        <ul className="divide-y overflow-hidden rounded-lg border bg-card dark:border-transparent">
           {rows.map((item) => (
             <li
               key={`${item.meetingId}-${item.startDate}`}
-              className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 sm:p-5"
+              className="flex flex-wrap items-center gap-3 p-4 transition-colors hover:bg-muted/30"
             >
               <div
-                className="hidden w-14 shrink-0 overflow-hidden rounded-xl border text-center sm:block"
+                className="hidden w-12 shrink-0 overflow-hidden rounded-md border text-center sm:block"
                 aria-hidden="true"
               >
-                <div className="bg-meet-tint py-1 text-[10px] font-semibold uppercase tracking-wide text-meet-accent">
+                <div className="bg-muted py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                   {new Intl.DateTimeFormat(undefined, {
                     month: 'short',
                   }).format(new Date(item.startDate))}
@@ -62,7 +64,7 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
                   {new Date(item.startDate).getDate()}
                 </div>
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-48">
                 <p className="truncate font-heading text-sm font-semibold sm:text-base">
                   {item.title}
                 </p>
@@ -70,7 +72,10 @@ export function UpcomingMeetings({ rows, failed }: UpcomingState) {
                   {formatWhen(item.startDate, item.endDate)}
                 </p>
               </div>
-              <JoinLink row={item} />
+              <div className="ml-auto flex items-center gap-1">
+                <CopyMeetingLink roomId={item.meetingId} />
+                <JoinLink row={item} />
+              </div>
             </li>
           ))}
         </ul>
@@ -89,10 +94,7 @@ export function JoinLink({
   return (
     <a
       href={`/${row.meetingId}`}
-      className={
-        className ??
-        'inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl bg-meet-accent px-4 text-xs font-medium text-white transition-colors hover:bg-meet-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-background'
-      }
+      className={cn(buttonVariants(), 'h-11 px-4 text-xs sm:h-10', className)}
     >
       <Video className="size-3.5" />
       Join
