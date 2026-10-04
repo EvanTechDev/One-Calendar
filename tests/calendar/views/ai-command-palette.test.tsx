@@ -9,16 +9,17 @@ import {
   waitFor,
 } from '@testing-library/react'
 
-vi.hoisted(() => {
+const { sendMessage, stop, setMessages } = vi.hoisted(() => {
   process.env.NEXT_PUBLIC_AI_ENABLED = '1'
+  return { sendMessage: vi.fn(), stop: vi.fn(), setMessages: vi.fn() }
 })
 vi.mock('@ai-sdk/react', () => ({
   useChat: () => ({
     status: 'ready',
     messages: [],
-    stop: vi.fn(),
-    setMessages: vi.fn(),
-    sendMessage: vi.fn(),
+    stop,
+    setMessages,
+    sendMessage,
     addToolApprovalResponse: vi.fn(),
   }),
 }))
@@ -37,6 +38,7 @@ import {
 
 const fetchSearch = vi.fn()
 beforeEach(() => {
+  sendMessage.mockClear()
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -64,8 +66,39 @@ async function typeQuestion(question: string) {
   return input
 }
 
+function selectMode(name: string) {
+  fireEvent.mouseDown(screen.getByRole('tab', { name, exact: true }), {
+    button: 0,
+    ctrlKey: false,
+  })
+}
+
+it('external close cancels work and reopens on a clean command menu', async () => {
+  const onOpenChange = vi.fn()
+  const { rerender } = render(
+    <AiCommandPalette open onOpenChange={onOpenChange} />,
+  )
+  const input = await typeQuestion('find my trip')
+  fireEvent.keyDown(input, { key: '3', ctrlKey: true })
+  expect(screen.getByRole('tab', { name: 'Semantic search' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  fireEvent.keyDown(input, { key: 'Enter' })
+  const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
+  rerender(<AiCommandPalette open={false} onOpenChange={onOpenChange} />)
+  expect(signal.aborted).toBe(true)
+  rerender(<AiCommandPalette open onOpenChange={onOpenChange} />)
+  expect(screen.getByRole('tab', { name: 'Commands' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  expect(screen.getByRole('combobox')).toHaveValue('')
+})
+
 it('a stalled request stops loading and offers retry after the deadline', async () => {
   render(<AiCommandPalette open onOpenChange={vi.fn()} />)
+  selectMode('Semantic search')
   const input = await typeQuestion('找出所有遛狗的日程')
   vi.useFakeTimers()
   fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true })
@@ -86,8 +119,9 @@ it('a stalled request stops loading and offers retry after the deadline', async 
 it('a pasted question can be clicked and a configuration failure is visible', async () => {
   fetchSearch.mockResolvedValue({ ok: false, status: 503 })
   render(<AiCommandPalette open onOpenChange={vi.fn()} />)
+  selectMode('Semantic search')
   await typeQuestion('  找出所有遛狗的日程  ')
-  fireEvent.click(screen.getByRole('option', { name: /Semantic search:/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Semantic search' }))
   expect(
     await screen.findByText('Search is not configured on this deployment'),
   ).toBeInTheDocument()
@@ -129,6 +163,7 @@ it.each(['找出所有遛狗的日程', 'find my trip', '找出所有遛狗的�
   'typing %s then Enter sends one search request and shows loading',
   async (question) => {
     render(<AiCommandPalette open onOpenChange={vi.fn()} />)
+    selectMode('Semantic search')
     const input = screen.getByRole('combobox')
     for (let i = 1; i <= question.length; i++) {
       fireEvent.change(input, { target: { value: question.slice(0, i) } })
@@ -136,7 +171,6 @@ it.each(['找出所有遛狗的日程', 'find my trip', '找出所有遛狗的�
         await new Promise((resolve) => setTimeout(resolve, 5))
       })
     }
-    await screen.findByRole('option', { name: /Semantic search:/ })
     // Let cmdk finish updating its selected item just as it would between keystrokes.
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 30))
@@ -150,3 +184,53 @@ it.each(['找出所有遛狗的日程', 'find my trip', '找出所有遛狗的�
     expect(screen.getByText('Searching your calendar…')).toBeInTheDocument()
   },
 )
+
+it('searches local event descriptions without calling AI and opens the chosen event', async () => {
+  const goToEvent = vi.fn()
+  render(
+    <AiCommandPalette
+      open
+      onOpenChange={vi.fn()}
+      actions={{ goToEvent } as unknown as PaletteActions}
+      events={[
+        {
+          id: 'event-1',
+          title: 'Team planning',
+          description: 'Roadmap workshop',
+          startDate: new Date('2026-10-05T09:00:00Z'),
+          endDate: new Date('2026-10-05T10:00:00Z'),
+          isAllDay: false,
+        },
+      ]}
+    />,
+  )
+  selectMode('Search')
+  const input = await typeQuestion('workshop')
+  expect(
+    screen.getByRole('option', { name: /Team planning/ }),
+  ).toBeInTheDocument()
+  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+  expect(goToEvent).toHaveBeenCalledWith(
+    expect.objectContaining({ id: 'event-1' }),
+  )
+  expect(fetchSearch).not.toHaveBeenCalled()
+})
+
+it('switching modes preserves the draft and aborts a pending semantic search', async () => {
+  render(<AiCommandPalette open onOpenChange={vi.fn()} />)
+  selectMode('Semantic search')
+  const input = await typeQuestion('find my trip')
+  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+  const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
+  selectMode('Ask AI')
+  expect(signal.aborted).toBe(true)
+  expect(screen.getByRole('combobox')).toHaveValue('find my trip')
+  expect(fetchSearch).toHaveBeenCalledTimes(1)
+  expect(sendMessage).not.toHaveBeenCalled()
+  fireEvent.keyDown(screen.getByRole('combobox'), {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+  })
+  expect(sendMessage).toHaveBeenCalledExactlyOnceWith({ text: 'find my trip' })
+})

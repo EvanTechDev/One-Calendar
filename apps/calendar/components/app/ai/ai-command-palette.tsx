@@ -3,22 +3,10 @@
 /**
  * The command palette (Cmd/Ctrl+K).
  *
- * Three modes, one input:
- *  - Palette: cmdk filters a list of app commands. Typing a date offers a
- *    "go to date" row; typing anything else offers the semantic-search row.
- *    Enter on free text runs the search.
- *  - Results: the search's answer, as a LIST of events — not a conversation.
- *    The model never writes here; it only turns the question into a query
- *    (`POST /api/agent/search`) and the rows are the database's own. Nothing
- *    about how the answer was found is shown, because there is nothing to
- *    show: there is no tool loop and no prose. Plain Enter opens the
- *    highlighted event, so a follow-up question has to be ⌘/Ctrl+Enter.
- *  - Chat: the full assistant, entered by picking "Ask AI" explicitly. It can
- *    create, change and delete, and destructive tools pause for confirmation.
- *
- * Why search is not reachable from the chat's Enter: the chat is an agent with
- * write tools. "delete that one" typed at a search box must never be a write,
- * so the write-capable surface is one deliberate click away instead.
+ * Four explicit modes share a draft: app commands, local keyword search,
+ * semantic search and the write-capable AI assistant. Selecting a mode never
+ * submits the draft. Search results open on Enter; semantic refinements use
+ * the submit button or Cmd/Ctrl+Enter. Chat only sends in its own mode.
  *
  * Heights are dvh-based: on mobile the browser's URL bar eats real viewport,
  * and a vh-sized dialog put its bottom out of reach.
@@ -45,6 +33,10 @@ import {
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import { Skeleton } from '@zntr/ui/skeleton'
 import { Kbd } from '@zntr/ui/kbd'
+import { Button } from '@zntr/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@zntr/ui/tabs'
+import type { CalendarEvent } from '@/lib/calendar-types'
+import { getEventAccentColor } from '@/lib/event-colors'
 import {
   ArrowLeft,
   ArrowRight,
@@ -63,6 +55,9 @@ import {
   Settings,
   Sparkles,
   Sun,
+  Terminal,
+  X,
+  Square,
 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 // Type-only, so the client bundle never pulls in the agent's tool schemas.
@@ -79,15 +74,12 @@ export const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === '1'
 // These are actions, not text matches. Stable identities keep cmdk's selection
 // attached while typing; its normal item trimming otherwise hides a search
 // action as soon as the question ends with whitespace.
-const SEARCH_ACTION = 'action:semantic-search'
 const DATE_ACTION = 'action:go-to-date'
-const CHAT_ACTION = 'action:ask-ai'
 // Allow the server's 270s deadline to report first, but do not leave a stalled
 // network request spinning forever if that response never reaches the browser.
 const SEARCH_TIMEOUT_MS = 285_000
 function filterCommand(value: string, search: string, keywords?: string[]) {
-  if (value === SEARCH_ACTION || value === DATE_ACTION) return 1
-  if (value === CHAT_ACTION) return 0.5
+  if (value === DATE_ACTION) return 1
   return commandFilter(value, search.trim(), keywords)
 }
 
@@ -133,7 +125,7 @@ export interface PaletteActions {
   goToEvent: (hit: PaletteSearchHit) => void
 }
 
-type Mode = 'palette' | 'chat' | 'results'
+type Mode = 'palette' | 'search' | 'chat' | 'results'
 
 /** The resolved instants the endpoint actually searched, for the scope line. */
 interface SearchScope {
@@ -184,6 +176,7 @@ interface AiCommandPaletteProps {
   onEventsMutated?: () => void
   /** App commands surfaced as palette items alongside the AI. */
   actions?: PaletteActions
+  events?: CalendarEvent[]
 }
 
 /**
@@ -208,6 +201,7 @@ export function AiCommandPalette({
   onOpenChange,
   onEventsMutated,
   actions,
+  events = [],
 }: AiCommandPaletteProps) {
   const [language] = useLanguage()
   const t = translations[language]
@@ -217,6 +211,28 @@ export function AiCommandPalette({
   // The next page's fetch, as distinct from a new search: the rows already on
   // screen must stay on screen while page 2 loads.
   const [loadingMore, setLoadingMore] = React.useState(false)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const panelId = React.useId()
+  React.useEffect(() => {
+    if (!open) return
+    const frame = requestAnimationFrame(() => inputRef.current?.focus())
+    return () => cancelAnimationFrame(frame)
+  }, [open])
+  const localResults = React.useMemo(() => {
+    const keyword = input.trim().toLowerCase()
+    if (mode !== 'search' || !keyword) return []
+    return events
+      .filter((event) =>
+        [event.title, event.description, event.location].some((value) =>
+          value?.toLowerCase().includes(keyword),
+        ),
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      )
+  }, [events, input, mode])
+  const [localLimit, setLocalLimit] = React.useState(30)
 
   const chat = useChat({
     transport: new DefaultChatTransport({ api: '/api/agent/chat' }),
@@ -229,7 +245,6 @@ export function AiCommandPalette({
   // Refresh the calendar after a completed turn that wrote something.
   const lastNotified = React.useRef<string | null>(null)
   React.useEffect(() => {
-    if (mode !== 'chat') return
     if (chat.status !== 'ready') return
     const last = chat.messages[chat.messages.length - 1]
     if (!last || last.role !== 'assistant' || last.id === lastNotified.current)
@@ -239,7 +254,7 @@ export function AiCommandPalette({
       lastNotified.current = last.id
       onEventsMutated?.()
     }
-  }, [mode, chat.status, chat.messages, onEventsMutated])
+  }, [chat.status, chat.messages, onEventsMutated])
 
   // A search in flight belongs to the dialog that started it: closing must not
   // leave a response to arrive into a palette the user has moved on from.
@@ -255,6 +270,18 @@ export function AiCommandPalette({
     setSearch({ status: 'idle' })
     setLoadingMore(false)
   }, [cancelSearch])
+  const stopChat = chat.stop
+  const setMessages = chat.setMessages
+  React.useEffect(() => {
+    if (!open) {
+      resetSearch()
+      void stopChat()
+      setMessages([])
+      setMode('palette')
+      setInput('')
+      lastNotified.current = null
+    }
+  }, [open, resetSearch, stopChat, setMessages])
 
   /**
    * Page 1 asks the model to judge candidates; later pages replay sealed
@@ -389,19 +416,9 @@ export function AiCommandPalette({
   const reset = React.useCallback(
     (nextOpen: boolean) => {
       onOpenChange(nextOpen)
-      if (!nextOpen) {
-        void chat.stop()
-        chat.setMessages([])
-        resetSearch()
-        setMode('palette')
-        setInput('')
-        lastNotified.current = null
-      }
     },
-    [chat, onOpenChange, resetSearch],
+    [onOpenChange],
   )
-
-  const inConversation = mode !== 'palette'
 
   /** "The date the user typed, if the input IS one. */
   const typedDate = React.useMemo(
@@ -479,17 +496,32 @@ export function AiCommandPalette({
   }, [search, language, t])
 
   const searching = search.status === 'loading' || loadingMore
+  const switchMode = (next: Mode) => {
+    if (next === mode) return
+    if (searching) resetSearch()
+    setMode(next)
+  }
+  const modes = [
+    { value: 'palette', label: t.commandPaletteCommands, icon: Terminal },
+    { value: 'search', label: t.commandPaletteSearch, icon: Search },
+    ...(AI_ENABLED
+      ? [
+          { value: 'results', label: t.aiSemanticSearch, icon: CalendarSearch },
+          { value: 'chat', label: t.aiAssistantAsk, icon: Sparkles },
+        ]
+      : []),
+  ] as const
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={reset}
-      title={t.aiAssistant}
-      description={t.aiAssistantHint}
+      title={t.commandPaletteTitle}
+      description={t.commandPaletteDescription}
       // top-1/3 from the ui component collides with short dynamic
       // viewports (mobile URL bar): pin to a dvh-safe band instead so the
       // dialog never extends past what is actually visible.
-      className="top-[max(1rem,min(33dvh,10rem))] max-h-[calc(100dvh-2rem)] sm:max-w-xl"
+      className="top-[max(1rem,min(20dvh,8rem))] max-h-[calc(100dvh-2rem)] sm:max-w-2xl"
     >
       {/* The new CommandDialog renders children bare (no implicit Command
           root), so cmdk's context is established here explicitly.
@@ -497,340 +529,469 @@ export function AiCommandPalette({
           and the follow-up, not a filter, and cmdk's own matching would hide
           every row the moment the question text stopped matching a title. */}
       <Command
-        className="rounded-xl!"
-        shouldFilter={mode !== 'results'}
+        label={t.commandPaletteTitle}
+        className="rounded-xl! p-2"
+        shouldFilter={mode === 'palette'}
         filter={filterCommand}
+        onKeyDownCapture={(e) => {
+          if ((e.ctrlKey || e.metaKey) && /^[1-4]$/.test(e.key)) {
+            const target = modes[Number(e.key) - 1]
+            if (target) {
+              e.preventDefault()
+              e.stopPropagation()
+              switchMode(target.value as Mode)
+              inputRef.current?.focus()
+            }
+          }
+        }}
       >
-        <div className="relative">
-          <CommandInput
-            placeholder={placeholder}
-            value={input}
-            onValueChange={setInput}
-            className="pr-8"
-            onKeyDown={(e) => {
-              if (e.nativeEvent.isComposing) return
-              const modifier = e.metaKey || e.ctrlKey
-              if (e.key === 'Enter') {
-                // ⌘/Ctrl+Enter re-searches from anywhere, and in the result
-                // view it is the ONLY way to narrow: plain Enter belongs to
-                // cmdk there, which opens the highlighted event.
-                if (modifier) {
-                  e.preventDefault()
-                  void runSearch(1)
+        <div
+          className="flex items-center gap-2 px-1 pb-2"
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <Tabs
+            value={mode}
+            onValueChange={(value) => switchMode(value as Mode)}
+            className="min-w-0 flex-1"
+          >
+            <TabsList aria-label={t.commandPaletteTitle} className="w-full">
+              {modes.map(({ value, label, icon: Icon }) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  onClick={() => inputRef.current?.focus()}
+                  id={`${panelId}-${value}`}
+                  aria-controls={`${panelId}-panel`}
+                  className="gap-1.5 px-2 text-xs sm:text-sm"
+                >
+                  <Icon className="hidden size-3.5 sm:block" />
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t.close}
+            onClick={() => reset(false)}
+          >
+            <X />
+          </Button>
+        </div>
+        <div
+          role="tabpanel"
+          id={`${panelId}-panel`}
+          aria-labelledby={`${panelId}-${mode}`}
+        >
+          <div className="relative">
+            <CommandInput
+              ref={inputRef}
+              aria-label={modes.find((item) => item.value === mode)?.label}
+              placeholder={
+                mode === 'palette'
+                  ? t.commandPalettePlaceholder
+                  : mode === 'search'
+                    ? t.commandPaletteSearchPlaceholder
+                    : placeholder
+              }
+              value={input}
+              onValueChange={(value) => {
+                setInput(value)
+                setLocalLimit(30)
+              }}
+              className="pr-20"
+              onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return
+                const modifier = e.metaKey || e.ctrlKey
+                if (e.key === 'Enter') {
+                  // ⌘/Ctrl+Enter re-searches from anywhere, and in the result
+                  // view it is the ONLY way to narrow: plain Enter belongs to
+                  // cmdk there, which opens the highlighted event.
+                  if (modifier && mode === 'results' && AI_ENABLED) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    void runSearch(1)
+                    return
+                  }
+                  if (mode === 'results' && search.status !== 'ready') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (!searching) void runSearch(1)
+                    return
+                  }
+                  // Palette mode also belongs to cmdk — its Enter is what picks
+                  // the highlighted command, including the search row.
+                  if (mode === 'chat' && input.trim()) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    sendToChat()
+                  }
                   return
                 }
-                // Palette mode also belongs to cmdk — its Enter is what picks
-                // the highlighted command, including the search row.
-                if (mode === 'chat' && input.trim()) {
-                  e.preventDefault()
-                  sendToChat()
-                }
-                return
-              }
-              // Backspace on an empty input leaves the conversation, mirroring
-              // cmdk's page convention.
-              if (e.key === 'Backspace' && input === '' && inConversation) {
-                backToCommands()
-              }
-            }}
-          />
-          {/* The one piece of feedback search gets: it is working. */}
-          {searching && (
-            <LoaderCircle
-              className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
-              aria-hidden
+              }}
             />
-          )}
-        </div>
-
-        {mode === 'results' && scopeChips.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 border-b px-3 py-1.5 text-xs text-muted-foreground">
-            <span>{t.aiSearchScope}</span>
-            {scopeChips.map((chip) => (
-              <span key={chip} className="rounded bg-muted px-1.5 py-0.5">
-                {chip}
-              </span>
-            ))}
+            {(mode === 'chat' || mode === 'results') && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                aria-label={
+                  mode === 'chat'
+                    ? chatBusy
+                      ? t.commandPaletteStop
+                      : t.send
+                    : t.aiSemanticSearch
+                }
+                disabled={
+                  mode === 'results'
+                    ? searching || !input.trim()
+                    : !chatBusy && !input.trim()
+                }
+                onClick={() =>
+                  mode === 'chat'
+                    ? chatBusy
+                      ? void chat.stop()
+                      : sendToChat()
+                    : void runSearch(1)
+                }
+              >
+                {mode === 'chat' && chatBusy ? <Square /> : <ArrowRight />}
+              </Button>
+            )}
+            {/* The one piece of feedback search gets: it is working. */}
+            {searching && (
+              <LoaderCircle
+                className="pointer-events-none absolute right-12 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
+                aria-hidden
+              />
+            )}
           </div>
-        )}
 
-        {mode === 'results' ? (
-          <ScrollArea className="max-h-[min(20rem,calc(100dvh-12rem))]">
-            <CommandList className="max-h-none">
-              {/* First row, so one keystroke is always the way back out. */}
-              <CommandItem value="back-to-commands" onSelect={backToCommands}>
-                <ArrowLeft />
-                {t.aiSearchBack}
-              </CommandItem>
-              {search.status === 'loading' && (
-                <div className="space-y-2 px-2 py-1" aria-live="polite">
-                  <span className="text-xs text-muted-foreground">
-                    {t.aiSearchLoading}
-                  </span>
-                  {[0, 1, 2].map((row) => (
-                    <div key={row} className="flex items-center gap-3">
-                      <Skeleton className="size-2.5 rounded-full" />
-                      <div className="flex-1 space-y-1.5">
-                        <Skeleton className="h-3 w-24" />
-                        <Skeleton className="h-3.5 w-3/4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {search.status === 'ready' &&
-                search.results.map((hit) => (
-                  <CommandItem
-                    key={hit.id}
-                    value={`hit:${hit.id}`}
-                    onSelect={() => goToEvent(hit)}
-                  >
-                    <span
-                      className={`size-2.5 shrink-0 rounded-full border-2 ${swatch(hit.color)}`}
-                      style={swatchStyle(hit.color)}
-                      aria-hidden
-                    />
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-xs text-muted-foreground">
-                        {formatWhen(hit)}
-                      </span>
-                      <span className="truncate font-medium">{hit.title}</span>
-                      {hit.location && (
-                        <span className="truncate text-xs text-muted-foreground">
-                          {hit.location}
-                        </span>
-                      )}
-                    </span>
-                  </CommandItem>
-                ))}
-              {search.status === 'ready' && search.results.length === 0 && (
-                <>
-                  <CommandItem value="empty" disabled>
-                    {t.noMatchingEvents}
-                  </CommandItem>
-                  <CommandItem
-                    value="empty-hint"
-                    disabled
-                    className="text-xs text-muted-foreground"
-                  >
-                    {t.aiSearchNoResultsHint}
-                  </CommandItem>
-                </>
-              )}
-              {search.status === 'ready' && search.hasMore && (
-                <CommandItem
-                  value="load-more"
-                  onSelect={() => void runSearch(search.page + 1)}
-                  disabled={loadingMore}
-                >
-                  <LoaderCircle
-                    className={loadingMore ? 'animate-spin' : undefined}
-                  />
-                  {t.aiSearchMore}
-                </CommandItem>
-              )}
-              {search.status === 'error' && (
-                <>
-                  <CommandItem
-                    value="search-error"
-                    disabled
-                    className="text-destructive"
-                  >
-                    {search.kind === 'rate'
-                      ? t.aiSearchRateLimited
-                      : search.kind === 'timeout'
-                        ? t.aiSearchTimedOut
-                        : search.kind === 'unavailable'
-                          ? t.aiSearchUnavailable
-                          : t.aiSearchFailed}
-                  </CommandItem>
-                  {/* A missing key is not something a retry can fix, so that
-                      one state gets no retry row. */}
-                  {search.kind !== 'unavailable' && (
+          {mode === 'results' && scopeChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 border-b px-3 py-1.5 text-xs text-muted-foreground">
+              <span>{t.aiSearchScope}</span>
+              {scopeChips.map((chip) => (
+                <span key={chip} className="rounded bg-muted px-1.5 py-0.5">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {mode === 'search' ? (
+            <CommandList className="min-h-48 max-h-[min(24rem,calc(100dvh-15rem))]">
+              <div className="px-3 py-2 text-xs text-muted-foreground">
+                {t.commandPaletteSearchHint}
+              </div>
+              {!input.trim() ? (
+                <p className="px-6 py-12 text-center text-sm text-muted-foreground">
+                  {t.commandPaletteSearchPlaceholder}
+                </p>
+              ) : localResults.length === 0 ? (
+                <p className="px-6 py-12 text-center text-sm text-muted-foreground">
+                  {t.noMatchingEvents}
+                </p>
+              ) : (
+                <CommandGroup heading={`${localResults.length} ${t.events}`}>
+                  {localResults.slice(0, localLimit).map((event) => (
                     <CommandItem
-                      value="search-retry"
-                      onSelect={() => void runSearch(1)}
+                      key={event.id}
+                      value={`local:${event.id}`}
+                      className="gap-3 py-2.5"
+                      onSelect={() =>
+                        goToEvent({
+                          ...event,
+                          startDate: new Date(event.startDate).toISOString(),
+                          endDate: new Date(event.endDate).toISOString(),
+                          location: event.location ?? null,
+                          color: event.color ?? null,
+                        })
+                      }
                     >
-                      <RotateCcw />
-                      {t.aiSearchRetry}
+                      <span
+                        className="h-7 w-1 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: getEventAccentColor(event.color),
+                        }}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">
+                          {event.title || t.unnamedEvent}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {formatWhen({
+                            ...event,
+                            startDate: new Date(event.startDate).toISOString(),
+                            endDate: new Date(event.endDate).toISOString(),
+                            location: event.location ?? null,
+                            color: event.color ?? null,
+                          })}
+                          {event.location ? ` · ${event.location}` : ''}
+                        </span>
+                      </span>
+                    </CommandItem>
+                  ))}
+                  {localResults.length > localLimit && (
+                    <CommandItem
+                      value="local:more"
+                      onSelect={() => setLocalLimit((value) => value + 30)}
+                    >
+                      {t.aiSearchMore}
                     </CommandItem>
                   )}
-                </>
+                </CommandGroup>
               )}
             </CommandList>
-          </ScrollArea>
-        ) : mode === 'chat' ? (
-          <ChatTranscript
-            t={t}
-            messages={chat.messages}
-            busy={chatBusy}
-            error={chat.error ?? null}
-            onApproval={chat.addToolApprovalResponse}
-          />
-        ) : (
-          /* ScrollArea owns overflow so long command lists scroll inside
+          ) : mode === 'results' ? (
+            <ScrollArea className="max-h-[min(20rem,calc(100dvh-12rem))]">
+              <CommandList className="max-h-none">
+                {search.status === 'idle' && (
+                  <p className="px-6 py-12 text-center text-sm text-muted-foreground">
+                    {t.aiSemanticSearchHint}
+                  </p>
+                )}
+                {search.status === 'loading' && (
+                  <div className="space-y-2 px-2 py-1" aria-live="polite">
+                    <span className="text-xs text-muted-foreground">
+                      {t.aiSearchLoading}
+                    </span>
+                    {[0, 1, 2].map((row) => (
+                      <div key={row} className="flex items-center gap-3">
+                        <Skeleton className="size-2.5 rounded-full" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-3 w-24" />
+                          <Skeleton className="h-3.5 w-3/4" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {search.status === 'ready' &&
+                  search.results.map((hit) => (
+                    <CommandItem
+                      key={hit.id}
+                      value={`hit:${hit.id}`}
+                      onSelect={() => goToEvent(hit)}
+                    >
+                      <span
+                        className={`size-2.5 shrink-0 rounded-full border-2 ${swatch(hit.color)}`}
+                        style={swatchStyle(hit.color)}
+                        aria-hidden
+                      />
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-xs text-muted-foreground">
+                          {formatWhen(hit)}
+                        </span>
+                        <span className="truncate font-medium">
+                          {hit.title}
+                        </span>
+                        {hit.location && (
+                          <span className="truncate text-xs text-muted-foreground">
+                            {hit.location}
+                          </span>
+                        )}
+                      </span>
+                    </CommandItem>
+                  ))}
+                {search.status === 'ready' && search.results.length === 0 && (
+                  <>
+                    <CommandItem value="empty" disabled>
+                      {t.noMatchingEvents}
+                    </CommandItem>
+                    <CommandItem
+                      value="empty-hint"
+                      disabled
+                      className="text-xs text-muted-foreground"
+                    >
+                      {t.aiSearchNoResultsHint}
+                    </CommandItem>
+                  </>
+                )}
+                {search.status === 'ready' && search.hasMore && (
+                  <CommandItem
+                    value="load-more"
+                    onSelect={() => void runSearch(search.page + 1)}
+                    disabled={loadingMore}
+                  >
+                    <LoaderCircle
+                      className={loadingMore ? 'animate-spin' : undefined}
+                    />
+                    {t.aiSearchMore}
+                  </CommandItem>
+                )}
+                {search.status === 'error' && (
+                  <>
+                    <CommandItem
+                      value="search-error"
+                      disabled
+                      className="text-destructive"
+                    >
+                      {search.kind === 'rate'
+                        ? t.aiSearchRateLimited
+                        : search.kind === 'timeout'
+                          ? t.aiSearchTimedOut
+                          : search.kind === 'unavailable'
+                            ? t.aiSearchUnavailable
+                            : t.aiSearchFailed}
+                    </CommandItem>
+                    {/* A missing key is not something a retry can fix, so that
+                      one state gets no retry row. */}
+                    {search.kind !== 'unavailable' && (
+                      <CommandItem
+                        value="search-retry"
+                        onSelect={() => void runSearch(1)}
+                      >
+                        <RotateCcw />
+                        {t.aiSearchRetry}
+                      </CommandItem>
+                    )}
+                  </>
+                )}
+              </CommandList>
+            </ScrollArea>
+          ) : mode === 'chat' ? (
+            <ChatTranscript
+              t={t}
+              messages={chat.messages}
+              busy={chatBusy}
+              error={chat.error ?? null}
+              onApproval={chat.addToolApprovalResponse}
+            />
+          ) : (
+            /* ScrollArea owns overflow so long command lists scroll inside
              the dvh-capped dialog instead of pushing past it. */
-          <ScrollArea className="max-h-[min(18rem,calc(100dvh-12rem))]">
-            <CommandList className="max-h-none">
-              <CommandEmpty>{t.noMatchingEvents}</CommandEmpty>
-              {/* Above the AI rows on purpose: for an input like "10/5" both
+            <ScrollArea className="max-h-[min(18rem,calc(100dvh-12rem))]">
+              <CommandList className="max-h-none">
+                <CommandEmpty>{t.noMatchingEvents}</CommandEmpty>
+                {/* Above the AI rows on purpose: for an input like "10/5" both
                   this and the search row match, and cmdk keeps DOM order for
                   equal scores — so the more specific reading of the same
                   keystrokes is the one Enter takes. */}
-              {typedDate && (
-                <CommandGroup heading={t.aiGoToDate}>
-                  <CommandItem
-                    value={DATE_ACTION}
-                    onSelect={() => goToDate(typedDate)}
-                  >
-                    <LocateFixed />
-                    <span className="truncate">
-                      {t.aiGoToDate}: {typedDate.toLocaleDateString(language)}
-                    </span>
-                    <CommandShortcut>↵</CommandShortcut>
-                  </CommandItem>
-                </CommandGroup>
-              )}
-              {AI_ENABLED && (
-                <CommandGroup heading={t.aiSearch}>
-                  {/* Free-text row: Enter on anything that is not a command
-                      and not a date runs a semantic search over the user's
-                       history. The filter keeps this action visible for any
-                       question, including pasted text ending in whitespace. */}
-                  <CommandItem
-                    value={SEARCH_ACTION}
-                    onSelect={() => void runSearch(1)}
-                    disabled={searching || input.trim().length === 0}
-                  >
-                    <CalendarSearch />
-                    <span className="truncate">
-                      {input.trim().length > 0
-                        ? `${t.aiSemanticSearch}: ${input}`
-                        : t.aiSemanticSearchHint}
-                    </span>
-                    <CommandShortcut>↵</CommandShortcut>
-                  </CommandItem>
-                </CommandGroup>
-              )}
-              {AI_ENABLED && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading={t.aiAssistant}>
-                    {/* The full assistant, with its write tools. Picked
-                        explicitly — Enter on free text searches instead, so
-                        "delete that" can never be a stray keystroke here. */}
+                {typedDate && (
+                  <CommandGroup heading={t.aiGoToDate}>
                     <CommandItem
-                      value={CHAT_ACTION}
-                      onSelect={sendToChat}
-                      disabled={chatBusy || input.trim().length === 0}
+                      value={DATE_ACTION}
+                      onSelect={() => goToDate(typedDate)}
                     >
-                      <Sparkles />
+                      <LocateFixed />
                       <span className="truncate">
-                        {input.trim().length > 0
-                          ? `${t.aiAssistantAsk}: ${input}`
-                          : t.aiAssistantEnterToAsk}
+                        {t.aiGoToDate}: {typedDate.toLocaleDateString(language)}
                       </span>
+                      <CommandShortcut>↵</CommandShortcut>
                     </CommandItem>
                   </CommandGroup>
-                </>
-              )}
-              {actions && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup heading={t.calendar}>
-                    <CommandItem
-                      onSelect={() => runAction(actions.createEvent)}
-                    >
-                      <CalendarPlus />
-                      {t.createEvent}
-                      <CommandShortcut>N</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runAction(actions.goToToday)}>
-                      <Sun />
-                      {t.today}
-                      <CommandShortcut>T</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem
-                      onSelect={() => runAction(actions.previousPeriod)}
-                    >
-                      <ArrowLeft />
-                      {t.previousPeriod}
-                      <CommandShortcut>←</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem onSelect={() => runAction(actions.nextPeriod)}>
-                      <ArrowRight />
-                      {t.nextPeriod}
-                      <CommandShortcut>→</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem
-                      onSelect={() => runAction(actions.focusSearch)}
-                    >
-                      <Search />
-                      {t.searchEvents}
-                      <CommandShortcut>/</CommandShortcut>
-                    </CommandItem>
-                  </CommandGroup>
-                  <CommandSeparator />
-                  <CommandGroup heading={t.aiView}>
-                    <CommandItem
-                      onSelect={() => runAction(() => actions.setView('day'))}
-                    >
-                      <CalendarDays />
-                      {t.day}
-                      <CommandShortcut>1</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem
-                      onSelect={() => runAction(() => actions.setView('week'))}
-                    >
-                      <Rows3 />
-                      {t.week}
-                      <CommandShortcut>2</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem
-                      onSelect={() => runAction(() => actions.setView('month'))}
-                    >
-                      <Grid3x3 />
-                      {t.month}
-                      <CommandShortcut>3</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem
-                      onSelect={() => runAction(() => actions.setView('year'))}
-                    >
-                      <CalendarRange />
-                      {t.year}
-                      <CommandShortcut>4</CommandShortcut>
-                    </CommandItem>
-                    <CommandItem
-                      onSelect={() =>
-                        runAction(() => actions.setView('four-day'))
-                      }
-                    >
-                      <Columns4 />
-                      {t.fourDay}
-                      <CommandShortcut>5</CommandShortcut>
-                    </CommandItem>
-                  </CommandGroup>
-                  <CommandSeparator />
-                  <CommandGroup heading={t.settings}>
-                    <CommandItem
-                      onSelect={() => runAction(actions.openAnalytics)}
-                    >
-                      <ChartNoAxesColumn />
-                      {t.analytics}
-                    </CommandItem>
-                    <CommandItem
-                      onSelect={() => runAction(actions.openSettings)}
-                    >
-                      <Settings />
-                      {t.settings}
-                    </CommandItem>
-                  </CommandGroup>
-                </>
-              )}
-            </CommandList>
-          </ScrollArea>
-        )}
-
+                )}
+                {actions && (
+                  <>
+                    <CommandSeparator />
+                    <CommandGroup heading={t.calendar}>
+                      <CommandItem
+                        onSelect={() => runAction(actions.createEvent)}
+                      >
+                        <CalendarPlus />
+                        {t.createEvent}
+                        <CommandShortcut>N</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() => runAction(actions.goToToday)}
+                      >
+                        <Sun />
+                        {t.today}
+                        <CommandShortcut>T</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() => runAction(actions.previousPeriod)}
+                      >
+                        <ArrowLeft />
+                        {t.previousPeriod}
+                        <CommandShortcut>←</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() => runAction(actions.nextPeriod)}
+                      >
+                        <ArrowRight />
+                        {t.nextPeriod}
+                        <CommandShortcut>→</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() => {
+                          setInput('')
+                          switchMode('search')
+                        }}
+                      >
+                        <Search />
+                        {t.searchEvents}
+                        <CommandShortcut>/</CommandShortcut>
+                      </CommandItem>
+                    </CommandGroup>
+                    <CommandSeparator />
+                    <CommandGroup heading={t.aiView}>
+                      <CommandItem
+                        onSelect={() => runAction(() => actions.setView('day'))}
+                      >
+                        <CalendarDays />
+                        {t.day}
+                        <CommandShortcut>1</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() =>
+                          runAction(() => actions.setView('week'))
+                        }
+                      >
+                        <Rows3 />
+                        {t.week}
+                        <CommandShortcut>2</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() =>
+                          runAction(() => actions.setView('month'))
+                        }
+                      >
+                        <Grid3x3 />
+                        {t.month}
+                        <CommandShortcut>3</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() =>
+                          runAction(() => actions.setView('year'))
+                        }
+                      >
+                        <CalendarRange />
+                        {t.year}
+                        <CommandShortcut>4</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() =>
+                          runAction(() => actions.setView('four-day'))
+                        }
+                      >
+                        <Columns4 />
+                        {t.fourDay}
+                        <CommandShortcut>5</CommandShortcut>
+                      </CommandItem>
+                    </CommandGroup>
+                    <CommandSeparator />
+                    <CommandGroup heading={t.settings}>
+                      <CommandItem
+                        onSelect={() => runAction(actions.openAnalytics)}
+                      >
+                        <ChartNoAxesColumn />
+                        {t.analytics}
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() => runAction(actions.openSettings)}
+                      >
+                        <Settings />
+                        {t.settings}
+                      </CommandItem>
+                    </CommandGroup>
+                  </>
+                )}
+              </CommandList>
+            </ScrollArea>
+          )}
+        </div>
         {/* Footer: each mode states what its keys do, because they differ —
             results open on Enter and search on ⌘↵, chat sends on Enter. */}
         <div className="flex items-center justify-between border-t px-3 py-1.5 text-xs text-muted-foreground">
@@ -856,14 +1017,12 @@ export function AiCommandPalette({
             </span>
           ) : (
             <span className="flex items-center gap-1">
-              {AI_ENABLED && (
-                <>
-                  <Kbd>↵</Kbd>
-                  {t.aiSemanticSearch}
-                </>
-              )}
+              <Kbd>↑ ↓</Kbd>
+              <Kbd>↵</Kbd>
+              {mode === 'search' ? t.aiSearchOpen : t.commandPaletteRun}
             </span>
           )}
+          <span className="hidden sm:inline">Ctrl / ⌘ 1–{modes.length}</span>
           <span className="flex items-center gap-1">
             <Kbd>esc</Kbd>
             {t.close}

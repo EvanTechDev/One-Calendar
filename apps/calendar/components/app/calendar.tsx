@@ -17,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Sparkles,
+  Command as CommandIcon,
   PanelLeft,
   CircleHelp,
   ShieldCheck,
@@ -226,11 +226,6 @@ export const CALENDAR_VIEW_CHUNKS: Record<
   month: loadMonthView,
   year: loadYearView,
 }
-
-// Build-time presence flag (next.config.ts): deployments without a Groq
-// key get no AI affordances at all — no trigger, no shortcut — instead of
-// an entry point that 503s on use.
-const AI_ENABLED = process.env.NEXT_PUBLIC_AI_ENABLED === '1'
 
 interface CalendarProps {
   className?: string
@@ -668,8 +663,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   //
   // Not gated on AI_ENABLED: the palette is how this app is driven without a
   // mouse (views, periods, go-to-date, create), and that has to work on a
-  // deployment with no model configured. The palette hides its own AI rows
-  // there; only the sparkle button in the header stays AI-only.
+  // deployment with no model configured. The palette hides its AI modes there.
   useEffect(() => {
     const handlePaletteKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
@@ -687,6 +681,13 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
+        e.defaultPrevented ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
+        document.activeElement?.closest(
+          '[role="dialog"], [role="alertdialog"]',
+        ) ||
         document.activeElement instanceof HTMLInputElement ||
         document.activeElement instanceof HTMLTextAreaElement ||
         document.activeElement?.getAttribute('contenteditable') === 'true'
@@ -1758,25 +1759,23 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                       document.body,
                     )}
                 </div>
-                {/* AI palette trigger: one affordance on every form factor.
-                  Desktop users also reach it via Cmd/Ctrl+K. Hidden when
-                  the deployment has no Groq key. */}
-                {AI_ENABLED && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full h-8 w-8"
-                        aria-label={t.aiAssistant}
-                        onClick={openAiPalette}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t.aiAssistant}</TooltipContent>
-                  </Tooltip>
-                )}
+                {/* Unified command menu, also available via Cmd/Ctrl+K. */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full h-8 w-8"
+                      aria-label={t.commandPaletteTitle}
+                      onClick={openAiPalette}
+                    >
+                      <CommandIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {t.commandPaletteTitle} · Ctrl / ⌘ K
+                  </TooltipContent>
+                </Tooltip>
                 {/* Mobile Form: search collapses to an icon that opens the
                   full-screen overlay rendered after the header. */}
                 <Button
@@ -2342,6 +2341,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         {aiPaletteMounted && (
           <AiCommandPalette
             open={aiPaletteOpen}
+            events={eventsByCategory}
             onOpenChange={setAiPaletteOpen}
             onEventsMutated={() => void refreshEvents()}
             actions={{
