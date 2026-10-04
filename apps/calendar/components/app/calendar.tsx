@@ -477,6 +477,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [createDraftRange, setCreateDraftRange] = useState<{
     start: Date
     end: Date
+    isAllDay?: boolean
   } | null>(null)
 
   const [defaultView, setDefaultView] = useState<CalendarViewTypeValue>(
@@ -882,12 +883,17 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     navigationPreview,
     calendarRef,
     openNavigationPreview,
+    timezone,
   )
 
   const handleNavigateAndPreview = (event: CalendarEvent) => {
     const eventId = (event as any).eventId ?? event.id
     const realEvent = events.find((e) => e.id === eventId) ?? event
-    setDate(new Date(realEvent.startDate))
+    setDate(
+      realEvent.isAllDay
+        ? new Date(realEvent.startDate)
+        : toCalendarDate(new Date(realEvent.startDate), timezone),
+    )
     setView(defaultView as ViewType)
     setPreviewOpen(false)
     setPreviewAnchorEl(null)
@@ -1188,7 +1194,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     // the editor popover anchors to (CORE-191). The default 30-minute range
     // is clamped to the start's own day — creating at 23:40 must not spill
     // into a day that may not even be on screen.
-    setQuickCreateEndTime(endTime ?? defaultCreateRange(startTime).end)
+    setQuickCreateEndTime(
+      endTime ?? defaultCreateRange(startTime, timezone).end,
+    )
 
     // Creating from the sidebar or the N shortcut while viewing another
     // week/month left the blue box (and the editor's anchor) outside the
@@ -1197,7 +1205,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     // definition already in view — and in the four-day view, whose window
     // starts at `date`, navigating on drag would shift the window under
     // the user's cursor.
-    if (endTime === undefined) setDate(startTime)
+    if (endTime === undefined) setDate(toCalendarDate(startTime, timezone))
 
     // Those same entry points also exist on non-calendar screens (analytics,
     // settings), where the editor would open over a page with no grid to
@@ -1390,14 +1398,19 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     // The editor's draft (live date/time fields) wins over the committed
     // quick-create range, so the box follows the user's edits.
     if (createDraftRange) {
-      const { start, end } = createDraftRange
+      const { start, end, isAllDay } = createDraftRange
       // Tolerate inverted input while the user is mid-edit.
-      return start <= end ? { start, end } : { start: end, end: start }
+      return start <= end
+        ? { start, end, isAllDay }
+        : { start: end, end: start, isAllDay }
     }
     if (!quickCreateStartTime) return null
     return {
       start: quickCreateStartTime,
-      end: quickCreateEndTime ?? defaultCreateRange(quickCreateStartTime).end,
+      end:
+        quickCreateEndTime ??
+        defaultCreateRange(quickCreateStartTime, timezone).end,
+      isAllDay: quickCreateAllDay,
     }
   }, [
     eventEditorOpen,
@@ -1405,6 +1418,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     quickCreateStartTime,
     quickCreateEndTime,
     createDraftRange,
+    quickCreateAllDay,
+    timezone,
   ])
 
   useNotifications(events)

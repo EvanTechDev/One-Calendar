@@ -1,5 +1,7 @@
 'use client'
 
+import { toCalendarDate } from '@/lib/zoned-date'
+
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -43,7 +45,7 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { format } from 'date-fns'
-import type { CalendarEvent } from '../calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
 import type { Language } from '@zntr/i18n/calendar'
 import { translations } from '@zntr/i18n/calendar'
 import { dateLocale } from '@/lib/date-locale'
@@ -229,8 +231,14 @@ export default function EventPreview({
   }
 
   const formatDateRange = () => {
-    const startDate = new Date(event.startDate)
-    const endDate = new Date(event.endDate)
+    const startDate =
+      event.isAllDay || !_timezone
+        ? new Date(event.startDate)
+        : toCalendarDate(new Date(event.startDate), _timezone)
+    const endDate =
+      event.isAllDay || !_timezone
+        ? new Date(event.endDate)
+        : toCalendarDate(new Date(event.endDate), _timezone)
     const dateFormat = 'yyyy-MM-dd HH:mm'
     const startFormatted = format(startDate, dateFormat, { locale })
     const endFormatted = format(endDate, dateFormat, { locale })

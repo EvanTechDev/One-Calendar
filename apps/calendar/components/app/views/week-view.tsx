@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  selectionInTimeZone,
+  type CalendarSelection,
+} from '@/components/app/views/selection-range'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import {
@@ -69,7 +74,7 @@ interface WeekViewProps {
    * as a live drag — it is the editor popover's anchor (CORE-191) — and
    * disappears when the editor closes and the range is cleared.
    */
-  selection?: { start: Date; end: Date } | null
+  selection?: CalendarSelection | null
 }
 
 /** Loop-invariant: the hour rows a day column renders. */
@@ -133,12 +138,7 @@ export default function WeekView({
 
   const [currentTime, setCurrentTime] = useState(new Date())
   const today = toCalendarDate(currentTime, config.timezone)
-  const calendarSelection = selection
-    ? {
-        start: toCalendarDate(selection.start, config.timezone),
-        end: toCalendarDate(selection.end, config.timezone),
-      }
-    : null
+  const calendarSelection = selectionInTimeZone(selection, config.timezone)
   const scrolledTimezoneRef = useRef<string | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 

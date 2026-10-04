@@ -1,3 +1,26 @@
+import { fromCalendarDate, toCalendarDate } from '@/lib/zoned-date'
+
+export type CalendarSelection = { start: Date; end: Date; isAllDay?: boolean }
+
+/** Timed drafts contain instants; all-day drafts contain date-only values. */
+export function selectionInTimeZone(
+  range: CalendarSelection | null,
+  timeZone: string,
+): CalendarSelection | null {
+  if (
+    !range ||
+    range.isAllDay ||
+    isNaN(range.start.getTime()) ||
+    isNaN(range.end.getTime())
+  )
+    return range
+  return {
+    ...range,
+    start: toCalendarDate(range.start, timeZone),
+    end: toCalendarDate(range.end, timeZone),
+  }
+}
+
 export function formatSelectionRange(
   startMinute: number,
   endMinute: number,
@@ -19,12 +42,20 @@ export function formatSelectionRange(
  * the last visible day of the period the spill-over day does not exist on
  * screen at all.
  */
-export function defaultCreateRange(start: Date): { start: Date; end: Date } {
+export function defaultCreateRange(
+  start: Date,
+  timeZone?: string,
+): { start: Date; end: Date } {
   const end = new Date(start.getTime() + 30 * 60000)
-  if (end.getDate() !== start.getDate()) {
-    const clamped = new Date(start)
+  const wallStart = timeZone ? toCalendarDate(start, timeZone) : start
+  const wallEnd = timeZone ? toCalendarDate(end, timeZone) : end
+  if (wallEnd.getDate() !== wallStart.getDate()) {
+    const clamped = new Date(wallStart)
     clamped.setHours(23, 59, 0, 0)
-    return { start, end: clamped }
+    return {
+      start,
+      end: timeZone ? fromCalendarDate(clamped, timeZone) : clamped,
+    }
   }
   return { start, end }
 }

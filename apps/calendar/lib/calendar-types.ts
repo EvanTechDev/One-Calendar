@@ -364,6 +364,7 @@ export interface CalendarEvent {
   /** True when this occurrence has its own stored single-instance edit. */
   isOverride?: boolean
   isFirstInstance?: boolean
+  seriesStartDate?: Date | null
   location?: string
   participants: string[]
   /**

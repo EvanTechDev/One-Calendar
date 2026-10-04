@@ -33,6 +33,7 @@ export type EventData = {
   recurrenceId?: string | null
   isOverride?: boolean
   isFirstInstance?: boolean
+  seriesStartDate?: string | null
   /** Human-readable recurrence for a shared event; never the rrule (ADR-0006). */
   recurrenceSummary?: string | null
   createdAt: string

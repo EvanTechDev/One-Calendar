@@ -48,7 +48,8 @@ import { isEmail } from '@/lib/email'
 import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 import { uuid } from '@/lib/uuid'
-import type { CalendarEvent } from '@/components/app/calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
+import { fromCalendarDate, toCalendarDate } from '@/lib/zoned-date'
 import {
   EVENT_COLOR_OPTIONS,
   CALENDAR_COLOR_TO_EVENT_COLOR,
@@ -129,7 +130,9 @@ interface EventEditorProps {
    * (CORE-191) in sync with what the user is typing. Not fired when editing
    * an existing event.
    */
-  onDraftRangeChange?: (range: { start: Date; end: Date } | null) => void
+  onDraftRangeChange?: (
+    range: { start: Date; end: Date; isAllDay?: boolean } | null,
+  ) => void
   /**
    * True when the editor is replacing the preview popover at the same
    * anchor. The preview unmounts instantly (no exit animation), so playing
@@ -401,6 +404,32 @@ export default function EventEditor({
 
   const getFullStartDate = () => combineDateTime(startDate, startTime)
   const getFullEndDate = () => combineDateTime(endDate, endTime)
+  const draftTimezone = useRef(config.timezone)
+  // Keep an unchanged endpoint's precise instant (including the later side of
+  // a DST fold). A wall clock alone cannot distinguish the two 01:30s.
+  const readTimedInstant = (
+    wall: Date,
+    original?: Date | null,
+    timeZone = draftTimezone.current,
+  ) => {
+    if (
+      original &&
+      format(toCalendarDate(original, timeZone), 'yyyy-MM-dd HH:mm') ===
+        format(wall, 'yyyy-MM-dd HH:mm')
+    )
+      return new Date(original)
+    return fromCalendarDate(wall, timeZone)
+  }
+  const startInstant = () =>
+    readTimedInstant(
+      getFullStartDate(),
+      event?.isAllDay ? null : (event?.startDate ?? initialDate),
+    )
+  const endInstant = () =>
+    readTimedInstant(
+      getFullEndDate(),
+      event?.isAllDay ? null : (event?.endDate ?? initialEndDate),
+    )
 
   // Keep the views' selection box in sync with the editor's draft range
   // while creating (CORE-191). All-day drafts span whole days; timed drafts
@@ -408,6 +437,7 @@ export default function EventEditor({
   // through — the views clamp per day and simply skip days they don't show.
   useEffect(() => {
     if (!onDraftRangeChange) return
+    if (draftTimezone.current !== config.timezone) return
     if (!open || event) {
       onDraftRangeChange(null)
       return
@@ -428,13 +458,25 @@ export default function EventEditor({
         seconds: 0,
         milliseconds: 0,
       })
+    } else {
+      start = startInstant()
+      end = endInstant()
     }
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return
 
-    onDraftRangeChange({ start, end })
+    onDraftRangeChange({ start, end, isAllDay })
     // combineDateTime is stable in behavior; deps below cover its inputs.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, event, startDate, endDate, startTime, endTime, isAllDay])
+  }, [
+    open,
+    event,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    isAllDay,
+    config.timezone,
+  ])
 
   const validateTimeFormat = (input: string): boolean => {
     if (!input) return false
@@ -565,11 +607,16 @@ export default function EventEditor({
   const applyParsedEvent = (parsed: ParsedEventDraft) => {
     if (parsed.title) setTitle(parsed.title)
 
+    const parsedIsAllDay = parsed.isAllDay ?? isAllDay
+    const displayDate = (date: Date) =>
+      parsedIsAllDay ? date : toCalendarDate(date, draftTimezone.current)
     const parsedStart = parsed.start ? new Date(parsed.start) : null
     if (parsedStart && !isNaN(parsedStart.getTime())) {
-      const duration = getFullEndDate().getTime() - getFullStartDate().getTime()
-      setStartDate(parsedStart)
-      setStartTime(extractTimeFromDate(parsedStart))
+      const duration = isAllDay
+        ? getFullEndDate().getTime() - getFullStartDate().getTime()
+        : endInstant().getTime() - startInstant().getTime()
+      setStartDate(displayDate(parsedStart))
+      setStartTime(extractTimeFromDate(displayDate(parsedStart)))
       const parsedEnd = parsed.end ? new Date(parsed.end) : null
       const shiftedEnd =
         parsedEnd && !isNaN(parsedEnd.getTime())
@@ -578,14 +625,14 @@ export default function EventEditor({
             ? new Date(parsedStart.getTime() + duration)
             : null
       if (shiftedEnd) {
-        setEndDate(shiftedEnd)
-        setEndTime(extractTimeFromDate(shiftedEnd))
+        setEndDate(displayDate(shiftedEnd))
+        setEndTime(extractTimeFromDate(displayDate(shiftedEnd)))
       }
     } else if (parsed.end) {
       const parsedEnd = new Date(parsed.end)
       if (!isNaN(parsedEnd.getTime())) {
-        setEndDate(parsedEnd)
-        setEndTime(extractTimeFromDate(parsedEnd))
+        setEndDate(displayDate(parsedEnd))
+        setEndTime(extractTimeFromDate(displayDate(parsedEnd)))
       }
     }
     setStartTimeError(false)
@@ -653,7 +700,9 @@ export default function EventEditor({
         setRecMonthlyWeek(setPos ?? 1)
         setRecMonthlyWeekday(firstWeekday?.day ?? 'MO')
         const anchor =
-          parsedStart && !isNaN(parsedStart.getTime()) ? parsedStart : startDate
+          parsedStart && !isNaN(parsedStart.getTime())
+            ? displayDate(parsedStart)
+            : startDate
         setRecMonthlyDay(parts.bymonthday?.[0] ?? anchor.getDate())
         setRecYearlyDay(parts.bymonthday?.[0] ?? anchor.getDate())
         setRecYearlyMonth(parts.bymonth?.[0] ?? anchor.getMonth() + 1)
@@ -747,12 +796,19 @@ export default function EventEditor({
 
   useEffect(() => {
     if (open) {
+      draftTimezone.current = config.timezone
       if (event) {
         setTitle(event.title)
         setIsAllDay(event.isAllDay)
 
-        const startDateObj = new Date(event.startDate)
-        const endDateObj = new Date(event.endDate)
+        const startDateObj = event.isAllDay
+          ? new Date(event.startDate)
+          : toCalendarDate(new Date(event.startDate), config.timezone)
+        const endDateObj = event.isAllDay
+          ? new Date(
+              Math.max(event.startDate.getTime(), event.endDate.getTime() - 1),
+            )
+          : toCalendarDate(new Date(event.endDate), config.timezone)
 
         setStartDate(startDateObj)
         setEndDate(endDateObj)
@@ -825,7 +881,7 @@ export default function EventEditor({
           )
           setRecMonthlyWeek(setPos ?? 1)
           setRecMonthlyWeekday(firstWeekday?.day ?? 'MO')
-          const start = new Date(event.startDate)
+          const start = startDateObj
           setRecMonthlyDay(parts.bymonthday?.[0] ?? start.getDate())
           setRecYearlyDay(parts.bymonthday?.[0] ?? start.getDate())
           setRecYearlyMonth(parts.bymonth?.[0] ?? start.getMonth() + 1)
@@ -839,7 +895,7 @@ export default function EventEditor({
             setRecEndMode('never')
           }
         } else {
-          const start = new Date(event.startDate)
+          const start = startDateObj
           setRecMonthlyDay(start.getDate())
           setRecYearlyDay(start.getDate())
           setRecYearlyMonth(start.getMonth() + 1)
@@ -870,11 +926,13 @@ export default function EventEditor({
             isCustomInput: false,
           })
         } else if (initialDate) {
-          const dialogStartDate = new Date(initialDate)
-          const dialogEndDate =
+          const dialogStartDate = toCalendarDate(initialDate, config.timezone)
+          const dialogEndDate = toCalendarDate(
             initialEndDate && initialEndDate > initialDate
               ? new Date(initialEndDate)
-              : new Date(initialDate.getTime() + 30 * 60000)
+              : new Date(initialDate.getTime() + 30 * 60000),
+            config.timezone,
+          )
 
           setStartDate(dialogStartDate)
           if (calendars.length > 0) {
@@ -903,6 +961,23 @@ export default function EventEditor({
     }
   }, [event, calendars, initialDate, initialEndDate, initialIsAllDay, open])
 
+  // Reproject the live draft without reinitializing its title, recurrence or
+  // other unsaved fields. Date-only events keep their calendar dates.
+  useEffect(() => {
+    if (draftTimezone.current === config.timezone) return
+    if (open && !isAllDay) {
+      const start = toCalendarDate(startInstant(), config.timezone)
+      const end = toCalendarDate(endInstant(), config.timezone)
+      setStartDate(start)
+      setEndDate(end)
+      setStartTime(extractTimeFromDate(start))
+      setEndTime(extractTimeFromDate(end))
+    }
+    draftTimezone.current = config.timezone
+    // This effect only changes the coordinate system, not the draft itself.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.timezone, open, isAllDay])
+
   /**
    * A fresh id for each draft session, minted on CLOSE rather than on open.
    *
@@ -917,13 +992,17 @@ export default function EventEditor({
   }, [open])
 
   const resetForm = () => {
-    const now = new Date()
-    const thirtyMinutesLater = new Date(now.getTime() + 30 * 60000)
+    const instant = new Date()
+    const now = toCalendarDate(instant, config.timezone)
+    const thirtyMinutesLater = toCalendarDate(
+      new Date(instant.getTime() + 30 * 60000),
+      config.timezone,
+    )
 
     setTitle('')
     setIsAllDay(false)
     setStartDate(now)
-    setEndDate(now)
+    setEndDate(thirtyMinutesLater)
     setStartTime(extractTimeFromDate(now))
     setEndTime(extractTimeFromDate(thirtyMinutesLater))
     setLocation('')
@@ -1016,8 +1095,8 @@ export default function EventEditor({
       return false
     }
 
-    const fullStartDate = getFullStartDate()
-    const fullEndDate = getFullEndDate()
+    const fullStartDate = isAllDay ? getFullStartDate() : startInstant()
+    const fullEndDate = isAllDay ? getFullEndDate() : endInstant()
 
     if (fullEndDate < fullStartDate) {
       setEndTimeError(true)
@@ -1160,8 +1239,6 @@ export default function EventEditor({
       notificationMinutes = Number.isFinite(parsed) ? parsed : null
     }
 
-    const fullStartDate = getFullStartDate()
-    const fullEndDate = getFullEndDate()
     const normalizedStartDate = isAllDay
       ? set(new Date(startDate), {
           hours: 0,
@@ -1169,7 +1246,7 @@ export default function EventEditor({
           seconds: 0,
           milliseconds: 0,
         })
-      : fullStartDate
+      : startInstant()
     const normalizedEndDate = isAllDay
       ? set(addDays(new Date(endDate), 1), {
           hours: 0,
@@ -1177,7 +1254,7 @@ export default function EventEditor({
           seconds: 0,
           milliseconds: 0,
         })
-      : fullEndDate
+      : endInstant()
 
     const recurring = isRecurringEvent
     let rule: string | null = null
@@ -1207,6 +1284,7 @@ export default function EventEditor({
           : (event.rrule ?? null)
         : rule,
       seriesId: event?.seriesId ?? null,
+      seriesStartDate: event?.seriesStartDate ?? null,
       recurrenceId: event?.recurrenceId ?? null,
       location,
       participants: participantEmails,

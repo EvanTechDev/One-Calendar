@@ -4,12 +4,15 @@ import {
   optimisticFollowingSplit,
   reanchor,
   remainingSeriesCount,
+  type SeriesViewInput,
 } from '@/lib/recurrence/engine'
 import { planInstanceChange, type EventRow } from '@/lib/event-service'
 
 const day = (d: number, hour = 9) => new Date(Date.UTC(2026, 7, d, hour, 0, 0))
 
-function masterRow(overrides: Partial<EventRow> = {}): EventRow {
+function masterRow(
+  overrides: Partial<EventRow> = {},
+): EventRow & Record<string, unknown> {
   return {
     id: 'master-1',
     userId: 'user-1',
@@ -24,6 +27,7 @@ function masterRow(overrides: Partial<EventRow> = {}): EventRow {
     categoryId: null,
     participants: [],
     notificationMinutes: null,
+    emailReminder: false,
     createdAt: day(1, 0),
     updatedAt: day(1, 0),
     rrule: 'FREQ=DAILY;COUNT=10',
@@ -134,11 +138,169 @@ describe('planInstanceChange split bounds', () => {
 })
 
 describe('optimisticFollowingSplit override re-parenting', () => {
+  it.each([1, 2])(
+    'does not add a fourth day when saving unchanged occurrence %i',
+    (index) => {
+      const master = masterRow({ rrule: 'FREQ=DAILY;COUNT=3' })
+      const before = expandSeriesView(
+        [master],
+        [],
+        day(1, 0),
+        day(15),
+        1000,
+        'UTC',
+      )
+      const target = before[index]
+      const after = optimisticFollowingSplit(
+        before,
+        target,
+        {
+          ...target,
+          id: 'split',
+          seriesId: null,
+          recurrenceId: null,
+        },
+        day(1, 0),
+        day(15),
+        1000,
+        'UTC',
+      )
+      expect(
+        after?.map((event) => new Date(event.startDate).toISOString()).sort(),
+      ).toEqual(
+        before.map((event) => new Date(event.startDate).toISOString()).sort(),
+      )
+    },
+  )
+
   const daily = 'RRULE:FREQ=DAILY'
+
+  it('counts hidden and out-of-window slots from the original anchor, not the cached rows', () => {
+    const master = masterRow({
+      rrule: 'FREQ=DAILY;COUNT=10',
+      exdate: ['20260804T090000Z', '20260808T090000Z'],
+    })
+    const before = expandSeriesView(
+      [master],
+      [],
+      day(7, 0),
+      day(15),
+      1000,
+      'UTC',
+    )
+    const target = before[0]
+    const after = optimisticFollowingSplit(
+      before,
+      target,
+      { ...target, id: 'tail', seriesId: null, recurrenceId: null },
+      day(7, 0),
+      day(15),
+      1000,
+      'UTC',
+    )!
+    expect(after.map((row) => new Date(row.startDate).toISOString())).toEqual(
+      before.map((row) => new Date(row.startDate).toISOString()),
+    )
+    expect(after[0].rrule).toContain('COUNT=6')
+    expect(after.at(-1)?.startDate).toEqual(day(12))
+  })
+
+  it('defers optimistic expansion for old caches without the real COUNT anchor', () => {
+    const master = masterRow({ rrule: 'FREQ=DAILY;COUNT=3' })
+    const before = expandSeriesView(
+      [master],
+      [],
+      day(4, 0),
+      day(15),
+      1000,
+      'UTC',
+    ).map((row) => ({ ...row, seriesStartDate: undefined }))
+    expect(
+      optimisticFollowingSplit(
+        before,
+        before[0],
+        { ...before[0], id: 'tail', seriesId: null, recurrenceId: null },
+        day(4, 0),
+        day(15),
+        1000,
+        'UTC',
+      ),
+    ).toBeNull()
+  })
+
+  it('uses an explicitly changed count rather than shrinking the new rule', () => {
+    const master = masterRow({ rrule: 'FREQ=DAILY;COUNT=3' })
+    const before = expandSeriesView(
+      [master],
+      [],
+      day(1, 0),
+      day(15),
+      1000,
+      'UTC',
+    )
+    const after = optimisticFollowingSplit(
+      before,
+      before[1],
+      {
+        ...before[1],
+        id: 'tail',
+        seriesId: null,
+        recurrenceId: null,
+        rrule: 'FREQ=DAILY;COUNT=4',
+      },
+      day(1, 0),
+      day(15),
+      1000,
+      'UTC',
+    )!
+    expect(after).toHaveLength(5)
+    expect(after.at(-1)?.startDate).toEqual(day(7))
+  })
+
+  it('matches persisted split bounds for an unchanged all-day series', () => {
+    const master = masterRow({
+      startDate: day(3, 0),
+      endDate: day(4, 0),
+      isAllDay: true,
+      rrule: 'FREQ=DAILY;COUNT=3',
+    })
+    const before = expandSeriesView(
+      [master],
+      [],
+      day(1, 0),
+      day(15),
+      1000,
+      'UTC',
+    )
+    const target = before[1]
+    const plan = planInstanceChange({
+      master,
+      override: null,
+      overrides: [],
+      recurrenceId: target.recurrenceId!,
+      applyTo: 'following',
+      fields: { rrule: master.rrule },
+      now: day(1),
+      timeZone: 'UTC',
+    })
+    const after = optimisticFollowingSplit(
+      before,
+      target,
+      { ...target, id: 'tail', seriesId: null, recurrenceId: null },
+      day(1, 0),
+      day(15),
+      1000,
+      'UTC',
+    )!
+    expect(after.map((row) => row.startDate)).toEqual(
+      before.map((row) => row.startDate),
+    )
+    expect(after[1].rrule).toBe(plan.split?.newSeries.rrule)
+  })
   const windowStart = day(1, 0)
   const windowEnd = new Date(Date.UTC(2026, 8, 1, 0, 0, 0))
 
-  const plainInstance = (stamp: string, start: Date) => ({
+  const plainInstance = (stamp: string, start: Date): SeriesViewInput => ({
     id: `master-1_${stamp}`,
     title: 'Daily sync',
     startDate: start,

@@ -11,7 +11,8 @@ import {
   addDays,
 } from 'date-fns'
 import { translations } from '@zntr/i18n/calendar'
-import type { CalendarEvent } from '../calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
+import { toCalendarDate } from '@/lib/zoned-date'
 import { cn } from '@zntr/utils'
 import {
   EVENT_BG_TO_ACCENT,
@@ -28,7 +29,11 @@ import {
   layoutAllDaySegments,
   barLanesByColumn,
 } from '@/components/app/views/event-layout-engine'
-import { selectionCoversDay } from '@/components/app/views/selection-range'
+import {
+  selectionCoversDay,
+  selectionInTimeZone,
+  type CalendarSelection,
+} from '@/components/app/views/selection-range'
 import { eventsOnDay, useEventsByDay } from '@/hooks/use-events-by-day'
 import { useScrollLock } from '@/hooks/use-scroll-lock'
 import { useCallback, useRef, useState } from 'react'
@@ -40,7 +45,6 @@ import { RemoveScroll } from 'react-remove-scroll'
 interface RemainingPopoverState {
   key: string
   anchorRect: DOMRect
-  remainingEvents: CalendarEvent[]
 }
 
 interface MonthViewProps {
@@ -52,7 +56,7 @@ interface MonthViewProps {
    * month grid has no time axis, so the whole day cell plays the role the
    * blue range box plays in day/week views (CORE-191).
    */
-  selection?: { start: Date; end: Date } | null
+  selection?: CalendarSelection | null
   onEventClick: (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
@@ -171,7 +175,7 @@ export default function MonthView({
   onCellClick,
   scrollContainerRef,
   config,
-  selection = null,
+  selection: instantSelection = null,
 }: MonthViewProps) {
   const language = config.language
   const firstDayOfWeek = config.firstDayOfWeek
@@ -179,7 +183,8 @@ export default function MonthView({
   const monthStart = startOfMonth(date)
   const monthEnd = endOfMonth(date)
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
-  const today = new Date()
+  const today = toCalendarDate(new Date(), config.timezone)
+  const selection = selectionInTimeZone(instantSelection, config.timezone)
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark')
@@ -205,7 +210,9 @@ export default function MonthView({
     weeks.push(totalDays.slice(i, i + 7))
   }
 
-  const allDayCandidates = events.filter((event) => isBannerEvent(event))
+  const allDayCandidates = events.filter((event) =>
+    isBannerEvent(event, config.timezone),
+  )
 
   // First visible day the draft selection touches — the editor's anchor cell.
   const selectionAnchorDay = selection
@@ -218,11 +225,7 @@ export default function MonthView({
   useScrollLock(scrollContainerRef, remainingPopover !== null)
 
   const handleRemainingClick = useCallback(
-    (
-      e: React.MouseEvent<HTMLButtonElement>,
-      day: Date,
-      remainingEvents: CalendarEvent[],
-    ) => {
+    (e: React.MouseEvent<HTMLButtonElement>, day: Date) => {
       // The cell itself opens the create-event popover. Without this the click
       // bubbles up and both popovers open on top of each other.
       e.stopPropagation()
@@ -236,7 +239,6 @@ export default function MonthView({
       setRemainingPopover({
         key,
         anchorRect: rect,
-        remainingEvents,
       })
     },
     [],
@@ -252,20 +254,22 @@ export default function MonthView({
   // the tap target only exists below the md breakpoint.
   const [daySheet, setDaySheet] = useState<{
     day: Date
-    events: readonly CalendarEvent[]
   } | null>(null)
 
   // One index of events by day for the whole grid, instead of a full scan of
   // the event list per day cell — and this view asks three times per cell, so
   // it was making ~84 passes over the event list on every render.
-  const eventsByDay = useEventsByDay(events)
+  const eventsByDay = useEventsByDay(events, config.timezone)
+  const remainingEvents = remainingPopover
+    ? (eventsByDay.get(remainingPopover.key) ?? [])
+        .filter((event) => !isBannerEvent(event, config.timezone))
+        .slice(3)
+    : []
+  const sheetEvents = daySheet ? eventsOnDay(eventsByDay, daySheet.day) : []
 
-  const openDaySheet = useCallback(
-    (day: Date) => {
-      setDaySheet({ day, events: eventsOnDay(eventsByDay, day) })
-    },
-    [eventsByDay],
-  )
+  const openDaySheet = useCallback((day: Date) => {
+    setDaySheet({ day })
+  }, [])
 
   const orderedDays = [
     ...t.weekdays.slice(firstDayOfWeek.value),
@@ -288,7 +292,11 @@ export default function MonthView({
         </div>
 
         {weeks.map((week) => {
-          const segments = layoutAllDaySegments(allDayCandidates, week)
+          const segments = layoutAllDaySegments(
+            allDayCandidates,
+            week,
+            config.timezone,
+          )
           // Space each CELL reserves for the all-day bars over it — per day
           // column, not for the whole row. A day no bar covers owes only the
           // minimum gap; giving it the row's lane count is what opened the
@@ -302,7 +310,7 @@ export default function MonthView({
             >
               {week.map((day, dayIndex) => {
                 const timedEvents = eventsOnDay(eventsByDay, day).filter(
-                  (event) => !isBannerEvent(event),
+                  (event) => !isBannerEvent(event, config.timezone),
                 )
                 const visibleEvents = timedEvents.slice(0, 3)
                 const remainingCount = timedEvents.length - visibleEvents.length
@@ -319,7 +327,7 @@ export default function MonthView({
                   isSameDay(day, selectionAnchorDay)
 
                 const bannerEvents = eventsOnDay(eventsByDay, day).filter(
-                  (event) => isBannerEvent(event),
+                  (event) => isBannerEvent(event, config.timezone),
                 )
                 const dotEvents = [...bannerEvents, ...timedEvents]
 
@@ -499,9 +507,7 @@ export default function MonthView({
                           type="button"
                           data-event-reveal-date={format(day, 'yyyy-MM-dd')}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={(e) =>
-                            handleRemainingClick(e, day, timedEvents.slice(3))
-                          }
+                          onClick={(e) => handleRemainingClick(e, day)}
                         >
                           {(remainingCount === 1
                             ? t.moreEvents
@@ -629,12 +635,12 @@ export default function MonthView({
                 ✕
               </button>
             </div>
-            {remainingPopover.remainingEvents.length > 0 ? (
+            {remainingEvents.length > 0 ? (
               <div
                 ref={remainingPopoverListRef}
                 className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5"
               >
-                {remainingPopover.remainingEvents.map((event) => (
+                {remainingEvents.map((event) => (
                   <button
                     key={event.id}
                     data-event-id={event.id}
@@ -700,8 +706,8 @@ export default function MonthView({
             </SheetTitle>
           </SheetHeader>
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-4">
-            {daySheet && daySheet.events.length > 0 ? (
-              daySheet.events.map((event) => (
+            {daySheet && sheetEvents.length > 0 ? (
+              sheetEvents.map((event) => (
                 <button
                   key={event.id}
                   type="button"

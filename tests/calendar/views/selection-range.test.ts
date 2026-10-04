@@ -4,7 +4,26 @@ import {
   defaultCreateRange,
   clampRangeToDay,
   selectionCoversDay,
+  selectionInTimeZone,
 } from '@/components/app/views/selection-range'
+
+it('keeps all-day selections date-only while projecting timed drafts across midnight', () => {
+  const allDay = {
+    start: new Date(2026, 9, 6),
+    end: new Date(2026, 9, 6, 23, 59),
+    isAllDay: true,
+  }
+  expect(selectionInTimeZone(allDay, 'Etc/GMT+11')).toBe(allDay)
+  const timed = selectionInTimeZone(
+    {
+      start: new Date('2026-10-06T08:00Z'),
+      end: new Date('2026-10-06T09:00Z'),
+    },
+    'Etc/GMT+11',
+  )!
+  expect(selectionCoversDay(timed, new Date(2026, 9, 5))).toBe(true)
+  expect(selectionCoversDay(timed, new Date(2026, 9, 6))).toBe(false)
+})
 
 describe('formatSelectionRange', () => {
   const formatHourMinute = (hour: number, minute: number) =>
@@ -47,6 +66,21 @@ describe('formatSelectionRange', () => {
 })
 
 describe('defaultCreateRange', () => {
+  it.each([
+    ['2026-10-06T15:40:00Z', '2026-10-06T16:10:00.000Z'],
+    ['2026-10-07T03:40:00Z', '2026-10-07T03:59:00.000Z'],
+  ])(
+    'clamps to calendar midnight rather than system midnight: %s',
+    (start, end) => {
+      expect(
+        defaultCreateRange(
+          new Date(start),
+          'America/New_York',
+        ).end.toISOString(),
+      ).toBe(end)
+    },
+  )
+
   it('spans 30 minutes from the start', () => {
     const start = new Date('2026-08-23T10:00:00')
     const { end } = defaultCreateRange(start)

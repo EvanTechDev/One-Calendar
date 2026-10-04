@@ -9,12 +9,17 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { translations } from '@zntr/i18n/calendar'
-import type { CalendarEvent } from '../calendar'
+import type { CalendarEvent } from '@/lib/calendar-types'
+import { toCalendarDate } from '@/lib/zoned-date'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { cn } from '@zntr/utils'
 import type { ViewConfig } from '@/lib/calendar-types'
-import { selectionCoversDay } from '@/components/app/views/selection-range'
+import {
+  selectionCoversDay,
+  selectionInTimeZone,
+  type CalendarSelection,
+} from '@/components/app/views/selection-range'
 import { useEventsByDay } from '@/hooks/use-events-by-day'
 import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
@@ -37,7 +42,7 @@ interface YearViewProps {
    * to it (CORE-191) — the year grid's day dot plays the role of the blue
    * range box.
    */
-  selection?: { start: Date; end: Date } | null
+  selection?: CalendarSelection | null
   onEventClick: (
     event: CalendarEvent,
     anchorEl?: HTMLElement | null,
@@ -67,7 +72,6 @@ interface PopoverState {
   key: string
   anchorRect: DOMRect
   day: Date
-  dayEvents: CalendarEvent[]
 }
 
 export default function YearView({
@@ -77,11 +81,12 @@ export default function YearView({
   onDayHeaderClick,
   scrollContainerRef,
   config,
-  selection = null,
+  selection: instantSelection = null,
 }: YearViewProps) {
   const t = translations[config.language.code as keyof typeof translations]
   const currentYear = date.getFullYear()
-  const today = useMemo(() => new Date(), [])
+  const today = toCalendarDate(new Date(), config.timezone)
+  const selection = selectionInTimeZone(instantSelection, config.timezone)
   const containerRef = useRef<HTMLDivElement>(null)
   const [popover, setPopover] = useState<PopoverState | null>(null)
 
@@ -99,7 +104,7 @@ export default function YearView({
     [config.firstDayOfWeek.value, t.weekdays],
   )
 
-  const eventsByDayKey = useEventsByDay(events)
+  const eventsByDayKey = useEventsByDay(events, config.timezone)
 
   const months = useMemo(
     () =>
@@ -138,26 +143,30 @@ export default function YearView({
   // like the month view — the anchored popover is a desktop surface.
   const [daySheet, setDaySheet] = useState<{
     day: Date
-    dayEvents: CalendarEvent[]
   } | null>(null)
 
   const handleDayClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, day: Date, dayKey: string) => {
       const rect = e.currentTarget.getBoundingClientRect()
-      const dayEvents = eventsByDayKey.get(dayKey) ?? []
       if (isMobileViewport()) {
-        setDaySheet({ day, dayEvents })
+        setDaySheet({ day })
         return
       }
       const key = `${day.getMonth()}-${dayKey}`
-      setPopover({ key, anchorRect: rect, day, dayEvents })
+      setPopover({ key, anchorRect: rect, day })
     },
-    [eventsByDayKey],
+    [],
   )
 
   const closePopover = useCallback(() => setPopover(null), [])
 
   const popoverListRef = useRef<HTMLDivElement>(null)
+  const popoverEvents = popover
+    ? (eventsByDayKey.get(format(popover.day, 'yyyy-MM-dd')) ?? [])
+    : []
+  const sheetEvents = daySheet
+    ? (eventsByDayKey.get(format(daySheet.day, 'yyyy-MM-dd')) ?? [])
+    : []
 
   return (
     <RemoveScroll enabled={!!popover} shards={[popoverListRef]}>
@@ -318,12 +327,12 @@ export default function YearView({
                 </button>
               </div>
 
-              {popover.dayEvents.length > 0 ? (
+              {popoverEvents.length > 0 ? (
                 <div
                   ref={popoverListRef}
                   className="min-h-0 max-h-[260px] overflow-y-auto space-y-1.5"
                 >
-                  {popover.dayEvents.map((event) => (
+                  {popoverEvents.map((event) => (
                     <button
                       key={event.id}
                       data-event-id={event.id}
@@ -402,8 +411,8 @@ export default function YearView({
               </SheetTitle>
             </SheetHeader>
             <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-4">
-              {daySheet && daySheet.dayEvents.length > 0 ? (
-                daySheet.dayEvents.map((event) => (
+              {daySheet && sheetEvents.length > 0 ? (
+                sheetEvents.map((event) => (
                   <button
                     key={event.id}
                     type="button"

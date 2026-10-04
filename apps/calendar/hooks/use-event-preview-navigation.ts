@@ -3,12 +3,14 @@
 import { useEffect, type RefObject } from 'react'
 import { format } from 'date-fns'
 import { isMobileViewport } from '@/lib/mobile-viewport'
+import { toCalendarDate } from '@/lib/zoned-date'
 
 /** Wait for the destination view AND its overflow portal before anchoring. */
 export function useEventPreviewNavigation(
-  target: { id: string; startDate: Date } | null,
+  target: { id: string; startDate: Date; isAllDay?: boolean } | null,
   containerRef: RefObject<HTMLElement | null>,
   onReady: (anchor: HTMLElement | null) => void,
+  timeZone?: string,
 ) {
   useEffect(() => {
     if (!target) return
@@ -57,7 +59,11 @@ export function useEventPreviewNavigation(
         })
         return
       }
-      const day = format(target!.startDate, 'yyyy-MM-dd')
+      const eventDay =
+        timeZone && !target!.isAllDay
+          ? toCalendarDate(target!.startDate, timeZone)
+          : target!.startDate
+      const day = format(eventDay, 'yyyy-MM-dd')
       const trigger = containerRef.current?.querySelector<HTMLElement>(
         `[data-event-reveal-date="${day}"]`,
       )
@@ -86,5 +92,5 @@ export function useEventPreviewNavigation(
       window.clearTimeout(timeout)
       cancelAnimationFrame(frame)
     }
-  }, [target, containerRef, onReady])
+  }, [target, containerRef, onReady, timeZone])
 }

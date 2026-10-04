@@ -8,10 +8,7 @@ import {
   parseRfcStamp,
   partsInLocal,
   partsInTz,
-  reanchor,
-  remainingSeriesCount,
-  rruleFromParts,
-  rruleToParts,
+  reanchorFollowingRule,
   shiftExdates,
   snapToPatternDay,
   toRfcStamp,
@@ -350,10 +347,6 @@ export function planInstanceChange(
   )
   const rule = master.rrule ?? ''
   const requestedRule = target.fields?.rrule
-  const ruleChanged =
-    !!requestedRule &&
-    rruleFromParts(rruleToParts(requestedRule)) !==
-      rruleFromParts(rruleToParts(rule))
   const existingExdate = master.exdate ?? []
   const splitExdate = existingExdate.filter((stamp) => stamp > recurrenceId)
   const masterExdate = existingExdate.filter((stamp) => stamp <= recurrenceId)
@@ -400,19 +393,15 @@ export function planInstanceChange(
         id: crypto.randomUUID(),
         // An explicit new rule supplies its own bounds. Otherwise UNTIL
         // carries over and COUNT is re-based to the remaining length.
-        rrule: reanchor(
-          ruleChanged ? requestedRule : rule,
-          startDate as Date,
+        rrule: reanchorFollowingRule({
+          originalRule: rule,
+          requestedRule,
+          seriesStart: master.startDate,
+          splitInstant: patternStart,
+          startDate: startDate as Date,
           isAllDay,
-          ruleChanged
-            ? rruleToParts(requestedRule).count
-            : remainingSeriesCount(
-                rule,
-                master.startDate,
-                patternStart,
-                target.timeZone,
-              ),
-        ),
+          timeZone: target.timeZone,
+        }),
         startDate: startDate as Date,
         endDate: endDate as Date,
         exdate: shiftedSplitExdate.length > 0 ? shiftedSplitExdate : null,

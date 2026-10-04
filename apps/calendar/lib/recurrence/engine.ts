@@ -573,6 +573,8 @@ function toRruleLine(rule: RRule): string {
 
 export interface SeriesViewInput extends RecurrenceEvent {
   seriesId: string | null
+  /** Original anchor, never inferred from the first row in a windowed cache. */
+  seriesStartDate?: Date | string | null
   recurrenceId?: string | null
   [key: string]: unknown
 }
@@ -646,6 +648,7 @@ export function expandSeriesView<T extends SeriesViewInput>(
           startDate: instance.startDate,
           endDate: instance.endDate,
           seriesId: master.id,
+          seriesStartDate: master.startDate,
           recurrenceId: instance.recurrenceId,
         } as T
         const merged = override ? mergeOverride(base, override) : base
@@ -692,6 +695,7 @@ export function expandSeriesView<T extends SeriesViewInput>(
           ...override,
           rrule: master.rrule,
           seriesId: master.id,
+          seriesStartDate: master.startDate,
           id: instanceId,
           instanceId,
           isOverride: true,
@@ -751,6 +755,28 @@ export function optimisticFollowingSplit<T>(
   ) {
     return null
   }
+  const source = current.find(
+    (row) => (row as SeriesViewInput).id === targetSeriesId,
+  ) as SeriesViewInput | undefined
+  const seriesStart = targetRow.seriesStartDate ?? source?.startDate
+  // Older caches have no anchor. Guessing from their first visible occurrence
+  // restarts COUNT and briefly invents events beyond the real series end.
+  if (
+    !seriesStart &&
+    targetRow.rrule &&
+    rruleToParts(targetRow.rrule).count !== null
+  )
+    return null
+  const splitInstant = parseRfcStamp(recurrenceId).date
+  const nextRule = reanchorFollowingRule({
+    originalRule: targetRow.rrule ?? master.rrule!,
+    requestedRule: master.rrule,
+    seriesStart: seriesStart ? new Date(seriesStart) : splitInstant,
+    splitInstant,
+    startDate: new Date(master.startDate),
+    isAllDay: master.isAllDay,
+    timeZone,
+  })
   // Stamp the surviving tail of the old series with the truncated rule and
   // the split-boundary exdate (mirroring the server's withUntil/masterExdate).
   // Until the response lands, these rows are the source of truth for any
@@ -782,7 +808,7 @@ export function optimisticFollowingSplit<T>(
   // into its own clock space (mirroring the server's shiftedSplitExdate) —
   // carrying the old series' full exdate list would leave stale stamps that
   // no longer match the regenerated occurrences.
-  let masterWithExdates: SeriesViewInput = master
+  let masterWithExdates: SeriesViewInput = { ...master, rrule: nextRule }
   try {
     const splitDeltaMs =
       clockSource.getTime() - parseRfcStamp(recurrenceId).date.getTime()
@@ -790,7 +816,7 @@ export function optimisticFollowingSplit<T>(
       .filter((stamp) => stamp > recurrenceId)
       .map((stamp) => shiftStamp(stamp, splitDeltaMs))
     masterWithExdates = {
-      ...master,
+      ...masterWithExdates,
       exdate: movedExdates.length > 0 ? movedExdates : null,
     }
   } catch {
@@ -847,6 +873,39 @@ export function reanchor(
     count: remainingCount ?? null,
   }
   return toRruleLine(new RRule(parts))
+}
+
+/** One bound policy for both the server write and the optimistic split. */
+export function reanchorFollowingRule(input: {
+  originalRule: string
+  requestedRule?: string | null
+  seriesStart: Date
+  splitInstant: Date
+  startDate: Date
+  isAllDay: boolean
+  timeZone?: string
+}): string {
+  const {
+    originalRule,
+    requestedRule,
+    seriesStart,
+    splitInstant,
+    startDate,
+    isAllDay,
+    timeZone,
+  } = input
+  const ruleChanged =
+    !!requestedRule &&
+    rruleFromParts(rruleToParts(requestedRule)) !==
+      rruleFromParts(rruleToParts(originalRule))
+  return reanchor(
+    ruleChanged ? requestedRule : originalRule,
+    startDate,
+    isAllDay,
+    ruleChanged
+      ? rruleToParts(requestedRule).count
+      : remainingSeriesCount(originalRule, seriesStart, splitInstant, timeZone),
+  )
 }
 
 /**

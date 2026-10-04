@@ -33,6 +33,7 @@ function eventDataToCalendarEvent(e: EventData): CalendarEvent {
     recurrenceId: e.recurrenceId ?? null,
     isOverride: e.isOverride === true,
     isFirstInstance: e.isFirstInstance === true,
+    seriesStartDate: e.seriesStartDate ? new Date(e.seriesStartDate) : null,
     location: e.location ?? undefined,
     participants: e.participants?.map((p) => p.email ?? p.name) ?? [],
     notification: e.notificationMinutes ?? null,
