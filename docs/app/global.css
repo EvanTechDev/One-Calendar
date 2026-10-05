@@ -565,7 +565,7 @@ aside p.inline-flex {
     --fd-toc-width: 208px;
   }
   #nd-toc {
-    translate: -24px 0;
+    translate: -48px 0;
     padding-right: 20px;
   }
 }
