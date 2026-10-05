@@ -1,0 +1,38 @@
+---
+title: Meeting privacy
+description: Understand chat retention, encryption keys, and browser requirements before sharing a meeting.
+icon: ShieldCheck
+meta:
+  contentType: Conceptual
+  category: Meet
+  plan: /CONTENT-PLAN.md
+---
+
+You can choose end-to-end encryption when starting an instant meeting. This choice also changes chat retention: regular meetings retain chat for the organizer to review, while encrypted meetings do not save chat history.
+
+## Choose what to retain
+
+Consider whether you need chat after the call and whether participants' browsers support encryption.
+
+| Mode                         | Required to join                                        | Chat history                                                      |
+| ---------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
+| Regular meeting              | A valid meeting link                                    | Saved chat is available in the organizer's history and search.    |
+| End-to-end encrypted meeting | The complete link with its key, and a supported browser | Chat is not saved and cannot be recovered through history search. |
+
+An encrypted meeting is not a meeting without records. The meeting itself, organizer information, and attendance records remain part of meeting management. No saved chat does not mean no retained metadata.
+
+## Keep the key in the link
+
+The encryption key is in the URL fragment, after `#`. Copying only the domain and meeting code removes the key, so participants cannot decrypt the call as intended.
+
+Share the complete invitation link without shortening it by hand or deleting its fragment. Anyone with that full link also has the key, so handle it as a meeting access credential.
+
+## Resolve an encryption error
+
+If the link is malformed or its key cannot be read, ask the organizer to resend the complete link. If the browser lacks the required encryption support, use a supported browser before joining.
+
+Removing the key does not bypass an encryption error. If the group decides to use a regular meeting, the organizer should create a new one and make its chat retention clear to participants.
+
+## Distinguish calendar protection from meeting encryption
+
+Protection of stored Calendar event fields and Meet's end-to-end encryption are separate mechanisms. Adding a meeting link to an event does not establish that the meeting is end-to-end encrypted. Check the meeting mode shown when creating or joining it.

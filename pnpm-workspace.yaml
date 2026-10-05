@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'docs'
 supportedArchitectures:
   os:
     - current

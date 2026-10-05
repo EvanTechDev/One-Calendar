@@ -1,0 +1,54 @@
+---
+title: Schedule with AI
+description: Turn natural language into an event draft or use a conversation to act on your calendar.
+icon: Sparkles
+meta:
+  contentType: How-to
+  category: Calendar
+  plan: /CONTENT-PLAN.md
+---
+
+Calendar has two AI workflows: filling a new event form from a sentence, and executing calendar actions through a conversation. These features are available when AI is enabled for your deployment.
+
+## Fill an event draft
+
+Natural-language filling is available when creating an event, not editing an existing one. It prepares a draft for review rather than saving it for you.
+
+<Steps>
+<Step>
+### Describe the event in its title
+
+For example: `Project review next Wednesday from 3 to 4 pm in Room A, with a reminder 10 minutes before`. Include the date, time zone, or participants when they matter.
+
+</Step>
+<Step>
+### Press Enter to parse
+
+Keep the editor open while the draft is filled. Fields you did not mention retain their current values. If you specify a new start without an end, the current duration is preserved.
+
+</Step>
+<Step>
+### Review and save
+
+Check dates, time zone, end time, and recurrence before saving. The success notification includes an undo action to restore the form to its state before parsing.
+
+</Step>
+</Steps>
+
+Closing the editor cancels a parse that is still running. If parsing fails, your text remains available so you can finish the form manually.
+
+## Act through a conversation
+
+In the command palette's Ask AI mode, describe the goal, time range, and constraints. For example: `Find next week's project reviews and move Thursday's review 30 minutes later. Leave the others unchanged.`
+
+The assistant uses tools to read or change calendar data. Destructive tools require confirmation; creating or updating events can execute directly. Review the events and tool results after an action completes.
+
+## Recover from an interrupted reply
+
+Closing the palette stops the current response but does not undo completed actions. The conversation remains when you reopen it until you start a new conversation.
+
+After a network interruption, check whether an event was already created or changed before sending the request again. Read execution results alongside the assistant's summary; a failed operation is not a saved change.
+
+## Connect an external assistant
+
+The built-in assistant and external clients have separate access controls. To let another client use Calendar tools, follow [Connect with MCP](/docs/integrations/mcp), grant permissions for the task, and review its activity.

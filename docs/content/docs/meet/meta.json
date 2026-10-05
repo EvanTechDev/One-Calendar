@@ -1,0 +1,5 @@
+{
+  "title": "Meet",
+  "defaultOpen": false,
+  "pages": ["index", "access", "privacy", "presenting", "history"]
+}

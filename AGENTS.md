@@ -17,6 +17,7 @@ packages/
   ui/              @zntr/ui — shadcn/ui components (radix-nova style)
   utils/           @zntr/utils — cn() (re-exported from the `cn` package), formatDate
   i18n/            @zntr/i18n — i18n generation from locale files
+docs/              @zntr/docs — Next.js + Fumadocs user documentation, port 3002
 ```
 
 Apps never import each other. Code shared between calendar and meet lives in
@@ -38,6 +39,11 @@ development servers use `--parallel`. Workspaces without a script are skipped.
 The calendar's own build script generates i18n and MDX before `next build`.
 
 Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter zentra-calendar dev`.
+
+Docs: `pnpm --filter @zntr/docs type-check` generates MDX and route types before
+checking TypeScript; `lint:check` uses the shared oxlint config. User-facing
+content lives in `docs/content/docs/`; keep behavior claims aligned with the
+source map in `docs/CONTENT-PLAN.md`.
 
 Focused verification: `pnpm lint:check` (no-fix mode) or `pnpm build:check` (build + type-check for one app).
 

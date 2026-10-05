@@ -1,0 +1,19 @@
+{
+  "name": "Zentra Docs",
+  "short_name": "Zentra Docs",
+  "description": "User guides for Zentra Calendar and Zentra Meet",
+  "lang": "en",
+  "start_url": "/docs",
+  "scope": "/",
+  "display": "browser",
+  "theme_color": "#171717",
+  "background_color": "#fafafa",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

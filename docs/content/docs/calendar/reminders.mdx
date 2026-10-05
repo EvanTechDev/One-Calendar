@@ -1,0 +1,38 @@
+---
+title: Reminders
+description: Choose browser or email reminders and understand when the daily email limit applies.
+icon: Bell
+meta:
+  contentType: Reference
+  category: Calendar
+  plan: /CONTENT-PLAN.md
+---
+
+Reminders are scheduled relative to an event's start time. Choose how far in advance to be notified, then enable email for that event if needed. Email reminders require a reminder time.
+
+## Choose a channel
+
+The channels have different requirements, especially when Calendar is closed.
+
+| Channel | Use it for                         | Requirements                                                                                          |
+| ------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Browser | Notifications while using Calendar | Allow browser notifications. Do not rely on delivery when the page is closed or the device is asleep. |
+| Email   | A reminder in your inbox           | Enable email on the event. Daily sending limits apply.                                                |
+
+## Account for the sending date
+
+Each user can schedule up to five reminder emails per day. The limit is counted on the date the reminder is due, in the user's time zone, rather than the event's date.
+
+For a Tuesday event at 00:30, a reminder one hour before uses Monday's allowance. If that date is full, change the reminder time or disable email for an event, then confirm the save succeeds.
+
+## Understand reminders after rescheduling
+
+Changing an event's time or recurrence scope, or deleting it, updates the related reminders. An email already delivered does not disappear after rescheduling. Use the current event in Calendar as the source of truth.
+
+Recurring events receive reminders for individual occurrences. Enabling reminders does not mean every future email in an unlimited series is queued immediately.
+
+## Check a missing reminder
+
+For browser notifications, check site permissions, system notification settings, and whether the page is still running. For email, confirm that email is enabled on the event, the reminder time has passed, and the message is not in spam.
+
+If saving reports a daily limit, resolve the conflict for that sending date. Invitation emails to participants serve a different purpose from your event reminders.

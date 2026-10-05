@@ -1,0 +1,38 @@
+{
+  "name": "@zntr/docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm mdx && next build",
+    "dev": "next dev --port 3002",
+    "start": "next start --port 3002",
+    "mdx": "fumadocs-mdx",
+    "type-check": "pnpm mdx && next typegen && tsc --noEmit",
+    "lint": "oxlint --fix --config ../config/oxlint.json app components lib mdx-components.tsx source.config.ts next.config.mjs postcss.config.mjs",
+    "lint:check": "oxlint --config ../config/oxlint.json app components lib mdx-components.tsx source.config.ts next.config.mjs postcss.config.mjs"
+  },
+  "dependencies": {
+    "@radix-ui/react-tabs": "^1.1.21",
+    "class-variance-authority": "^0.7.1",
+    "fumadocs-core": "16.10.5",
+    "fumadocs-mdx": "15.0.12",
+    "fumadocs-ui": "16.10.5",
+    "lucide-react": "1.48.0",
+    "next": "16.3.8",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "shiki": "^4.4.3",
+    "tailwind-merge": "^3.7.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/mdx": "^2.0.14",
+    "@types/node": "25.6.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "^19.2.3",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
+    "typescript": "6.0.3"
+  }
+}

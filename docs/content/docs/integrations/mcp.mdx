@@ -1,0 +1,59 @@
+---
+title: Connect with MCP
+description: Authorize an external AI client, inspect its calendar activity, and revoke access when it is no longer needed.
+icon: Plug
+meta:
+  contentType: How-to
+  category: Integrations
+  plan: /CONTENT-PLAN.md
+---
+
+The Model Context Protocol (MCP) lets AI clients use external tools. A client connected to Zentra Calendar can read or change data within the permissions you grant. Its authorization is separate from Calendar's built-in AI conversation.
+
+## Choose an authorization method
+
+Use the method your client supports.
+
+| Method  | Use it when                                             | Manage it in                             |
+| ------- | ------------------------------------------------------- | ---------------------------------------- |
+| OAuth   | The client can open Calendar to request authorization.  | Authorized applications in MCP settings. |
+| API key | The client requires credentials to be entered manually. | API keys in MCP settings.                |
+
+For a client that only needs to read events, grant read access. Creating, updating, and deleting require the corresponding write permissions. A failed query is not a reason to grant every permission.
+
+## Connect a client
+
+Copy the address from your Calendar instance before configuring the client.
+
+<Steps>
+<Step>
+### Enable MCP and copy the endpoint
+
+Enable MCP in Calendar settings and copy the server address shown there. The endpoint is `/api/mcp` on your Calendar site, not on the documentation site or Meet.
+
+</Step>
+<Step>
+### Authorize the client
+
+An OAuth client opens an authorization page. For an API key, enter the credential as directed by the client. Check that the requested permissions match the task you intend to perform.
+
+</Step>
+<Step>
+### Start with a read
+
+Ask for events in an explicit date range and confirm the client is connected to the intended account. Then try a change with a clearly defined scope.
+
+</Step>
+</Steps>
+
+## Inspect actual execution
+
+External clients can call tools that modify data. Their confirmation behavior depends on the client; do not assume it matches the built-in assistant's deletion approval.
+
+Review requests, tool calls, and failures in the MCP activity log. After a timeout or interruption, check the actual calendar before repeating a request that could create or change events.
+
+## Revoke access
+
+When you stop using a client, revoke its authorized application or delete its API key. Disable the MCP master switch to stop external MCP access altogether.
+
+Revoking access blocks future calls. It does not undo completed changes. Locate affected events before deciding how to restore them.

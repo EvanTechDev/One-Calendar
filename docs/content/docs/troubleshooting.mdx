@@ -1,0 +1,47 @@
+---
+title: Troubleshooting
+description: Narrow down unexpected behavior by checking dates, identity, permissions, and service state.
+icon: CircleQuestionMark
+meta:
+  contentType: Troubleshooting
+  category: Zentra
+  plan: /CONTENT-PLAN.md
+---
+
+First identify whether the problem affects Calendar events and invitations or Meet calls and links. The products use different permissions and retention rules, so repeating an action may not address its cause.
+
+## An event is missing from the expected date
+
+Check category filters and time zone, then search for a keyword from the title. Distant dates may still be loading. If a loading error appears, use the retry control.
+
+For recurring events, also check the end condition, whether that occurrence was deleted, or whether it moved to another date. See [Recurring events](/docs/calendar/recurring-events) and [Time zones](/docs/calendar/time-zones).
+
+## An event is visible but cannot be edited
+
+Check whether you were invited to it. Participants can respond and choose their own categories, while the organizer maintains event details. Contact the organizer to reschedule; changing your category does not grant edit access.
+
+## An invitation link has expired
+
+Sign in to Calendar with the invited email address and check for the event. Expiration of the email link does not automatically revoke established access. If the organizer removed the invitation, contact them for a new one.
+
+## A meeting link does not allow joining
+
+Check the full meeting code, then confirm that the meeting has not ended, been deleted, or expired. An organizer can reopen an ended meeting. A deleted meeting requires a new link.
+
+Encrypted meetings also need the key after `#`. If it cannot be read, ask the organizer to resend the complete link. See [Meeting privacy](/docs/meet/privacy).
+
+## A meeting creator has no management controls
+
+A meeting created while signed in must be managed by that account. A guest meeting requires the credential stored in the browser where it was created. Changing devices, clearing storage, or signing in later does not transfer that credential.
+
+## An AI request fails or is interrupted
+
+If AI is unavailable, ask the site maintainer to check its configuration. If a request limit is reached, wait before retrying. For a request that creates or changes events, check whether any actions already completed before repeating it.
+
+Use [keyword search](/docs/calendar/search) when you only need to find an event. If title parsing fails, the text remains so you can finish the form manually.
+
+## Share a reproducible report
+
+When [reporting an issue](https://github.com/EvanTechDev/One-Calendar/issues), include the product, date and time zone, browser version, actions taken, and error message. State whether it happens only with recurring events, invited events, or encrypted meetings.
+
+Do not include API keys, invitation tokens, or complete encrypted meeting links in a public report. Redact event details and participant email addresses from screenshots while preserving the dates and interface state needed to explain the problem.

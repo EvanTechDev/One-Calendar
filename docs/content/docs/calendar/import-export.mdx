@@ -1,0 +1,54 @@
+---
+title: Import and export
+description: Choose a file format, check the date range, and preserve the recurring events you need.
+icon: Download
+meta:
+  contentType: How-to
+  category: Calendar
+  plan: /CONTENT-PLAN.md
+---
+
+Import and export move existing events or save a file copy. Importing from a link is a one-time read, not a continuing two-way sync with the source calendar.
+
+## Choose a format
+
+Choose based on the destination and whether you need Zentra-specific organization data.
+
+| Format | Best suited to                                    | Limits to check                                                                                               |
+| ------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| ICS    | Exchanging events with another calendar           | Review time zones, all-day dates, and recurrence rules.                                                       |
+| JSON   | Moving events and organization data within Zentra | Includes categories, bookmarks, countdowns, and settings; it is not a full account or meeting-history backup. |
+| CSV    | Reviewing or organizing events in a spreadsheet   | Do not rely on a spreadsheet to preserve complex recurrence relationships.                                    |
+
+JSON exports preserve recurring series as rules and individual changes as exceptions, rather than flattening every occurrence into a separate event. Export files do not back up Meet chat, attendance history, or meeting management credentials.
+
+## Check the export range
+
+**Exports use the events currently loaded by Calendar.** “All” in the export panel means all of that loaded collection, not every date in your account history.
+
+On first opening, Calendar preloads roughly two years before and after the current month. Navigating to a more distant date changes the loaded range. Before moving older or later events, confirm they are loaded and inspect the earliest and latest dates in the export. A downloaded file alone does not establish that the migration is complete.
+
+## Verify an import
+
+Start with a small set of representative events to check how the file's dates and format are interpreted.
+
+<Steps>
+<Step>
+### Choose a destination category
+
+Use a recognizable category for the import so you can review its source and identify duplicate records.
+
+</Step>
+<Step>
+### Check unusual schedules
+
+Review an all-day event, an event from another time zone, and a recurring series with a rescheduled occurrence. Confirm that exceptions have not become unrelated events.
+
+</Step>
+<Step>
+### Verify before changing the source
+
+Check titles, dates, recurrence, and categories. Reimporting the same file is not an automatic incremental sync. Before retrying, check whether the previous import succeeded.
+
+</Step>
+</Steps>

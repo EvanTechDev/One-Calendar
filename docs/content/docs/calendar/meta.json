@@ -1,0 +1,14 @@
+{
+  "title": "Calendar",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "recurring-events",
+    "time-zones",
+    "invitations",
+    "reminders",
+    "search",
+    "ai",
+    "import-export"
+  ]
+}
