@@ -420,7 +420,12 @@ aside p.inline-flex {
 #nd-page {
   padding: 48px 28px 72px;
   gap: 0;
+  min-width: 0;
   max-width: 900px;
+}
+#nd-page > .prose {
+  min-width: 0;
+  max-width: 100%;
 }
 #nd-page.docs-home {
   max-width: none;
@@ -478,8 +483,9 @@ aside p.inline-flex {
 #nd-toc {
   top: var(--fd-header-height);
   height: calc(100dvh - var(--fd-header-height));
+  min-width: 0;
   padding-top: 48px;
-  padding-right: 28px;
+  padding-inline: 0 12px;
 }
 #nd-toc a {
   font-size: 14px;
@@ -562,11 +568,8 @@ aside p.inline-flex {
     --fd-sidebar-width: 248px;
   }
   #nd-docs-layout.zentra-docs:has(#nd-toc) {
-    --fd-toc-width: 208px;
-  }
-  #nd-toc {
-    translate: -48px 0;
-    padding-right: 20px;
+    /* Reserve the leftward shift in the grid so the article cannot overlap. */
+    --fd-toc-width: 268px;
   }
 }
 @media (min-width: 1280px) {
@@ -574,10 +577,7 @@ aside p.inline-flex {
     --fd-sidebar-width: 280px;
   }
   #nd-docs-layout.zentra-docs:has(#nd-toc) {
-    --fd-toc-width: 250px;
-  }
-  #nd-toc {
-    padding-right: 28px;
+    --fd-toc-width: 310px;
   }
 }
 @media (min-width: 1600px) {

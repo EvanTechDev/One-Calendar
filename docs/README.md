@@ -16,6 +16,8 @@ Use the layout from commit `1cc1b28` with a compact type scale: a fixed navigati
 
 The toolbar and sidebar header share a 56px height. Sidebar groups and document links share a 14px font, with 12px between groups and 4px before their document lists. Article text is 15px. The right-hand table of contents appears from 1100px wide, including 1200×720 screens; narrower screens use the top popover. Between 1100px and 1279px, the navigation and TOC columns narrow to leave room for the article. Keep this breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile.
 
+The TOC reserves its full width in the grid: 268px below 1280px and 310px on larger desktop screens, with 12px of trailing padding. Adjust its grid width rather than translating it over the article. The article and its body can shrink within their column, keeping text separate from the TOC.
+
 `lib/layout.shared.tsx` configures Zentra's brand, navigation search, and resource links. `components/docs-toolbar.tsx` places breadcrumbs and page controls above the article. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live in `app/global.css`.
 
 The sidebar omits the home page from its document list; the top Docs wordmark links to `/docs`. A soft mask fades scrolling labels at the list's edges, blending into the fixed header and resource links. The list's padding keeps its first and last rows clear when scrolled to either end.
