@@ -44,7 +44,7 @@ export default async function Page({ params }: Props) {
         }}
         full={home || page.data.full}
         breadcrumb={{ enabled: false }}
-        footer={{ enabled: !home }}
+        footer={{ enabled: !home, className: 'docs-pagination' }}
         tableOfContentPopover={{ enabled: !home }}
         className={home ? 'docs-home' : 'docs-article'}
         tableOfContent={{

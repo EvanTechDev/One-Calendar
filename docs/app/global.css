@@ -172,7 +172,7 @@ aside p.inline-flex {
 
 /* Layout and type scale from 1cc1b28, with the current component styling. */
 #nd-docs-layout.zentra-docs {
-  --fd-header-height: 68px;
+  --fd-header-height: 56px;
 }
 
 .docs-toolbar {
@@ -220,14 +220,16 @@ aside p.inline-flex {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
-  padding: 0 15px;
+  padding: 6px 10px;
   border: 1px solid var(--color-fd-border);
-  border-radius: 999px;
-  box-shadow: 0 1px 2px #00000008;
+  border-radius: 6px;
   white-space: nowrap;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 20px;
+}
+.docs-open-app:hover {
+  color: var(--color-fd-accent-foreground);
 }
 
 .docs-search,
@@ -285,32 +287,100 @@ aside p.inline-flex {
   font-size: 14px;
 }
 #nd-sidebar > div:first-child {
-  height: 68px;
-  padding: 0 24px;
+  height: var(--fd-header-height);
+  padding: 0 16px 0 24px;
   flex-shrink: 0;
   justify-content: center;
   border-bottom: 1px solid var(--color-fd-border);
 }
 #nd-sidebar > div:first-child > div {
   align-items: center;
-}
-#nd-sidebar [data-radix-scroll-area-viewport] > div {
-  padding: 20px 16px;
+  gap: 12px;
 }
 #nd-sidebar a,
 #nd-sidebar button {
   line-height: 1.5;
 }
-#nd-sidebar a[data-active='true'] {
+
+/* Flat navigation groups, aligned icons, and quiet selection states. */
+:is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] {
+  padding: 24px;
+}
+:is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
+  padding: 0;
+}
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  > div
+  > *
+  + * {
+  /* Add to the library's 2px row gap without overriding its utility layer. */
+  margin-top: 22px;
+}
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  :is(a, button[aria-expanded]) {
+  /* Override the library's inline depth offsets for this single-level menu. */
+  padding-inline: 0 !important;
+  padding-block: 7px;
+  min-height: 36px;
+  gap: 12px;
+  border-radius: 0;
+  background: transparent;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-fd-muted-foreground);
+}
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  button[aria-expanded] {
+  font-size: 14px;
+  font-weight: 500;
+}
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  :is(
+    a:hover,
+    button:hover,
+    button[aria-expanded='true'],
+    a[data-active='true']
+  ) {
   background: transparent;
   color: var(--color-fd-foreground);
+}
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  a[data-active='true'] {
   font-weight: 550;
 }
-#nd-sidebar a[data-active='true']::before {
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  :is([data-state], a[data-active='true'])::before {
   display: none;
 }
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  div[id][data-state]
+  > div {
+  padding-top: 12px;
+  gap: 0;
+}
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  :is(a, button)
+  > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+:is(#nd-sidebar, #nd-sidebar-mobile)
+  [data-radix-scroll-area-viewport]
+  svg[data-icon] {
+  width: 14px;
+  height: 14px;
+}
 #nd-sidebar > div:last-child {
-  padding: 16px 24px 24px;
+  padding: 20px 24px;
   border-top: 1px solid var(--color-fd-border);
 }
 .docs-resources {
@@ -320,9 +390,10 @@ aside p.inline-flex {
 .docs-resources a {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 9px 0;
-  font-size: 14px;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 15px;
+  line-height: 22px;
   color: var(--color-fd-muted-foreground);
 }
 .docs-resources a:first-child {
@@ -332,8 +403,9 @@ aside p.inline-flex {
   color: var(--color-fd-foreground);
 }
 .docs-resources svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 #nd-page {
@@ -343,6 +415,9 @@ aside p.inline-flex {
 }
 #nd-page.docs-home {
   max-width: none;
+}
+#nd-page > .docs-pagination {
+  margin-top: 48px;
 }
 #nd-page > h1 {
   margin: 0 0 24px;
@@ -388,8 +463,8 @@ aside p.inline-flex {
   text-underline-offset: 4px;
 }
 #nd-toc {
-  top: 68px;
-  height: calc(100dvh - 68px);
+  top: var(--fd-header-height);
+  height: calc(100dvh - var(--fd-header-height));
   padding-top: 48px;
   padding-right: 28px;
 }
@@ -492,9 +567,6 @@ aside p.inline-flex {
 }
 
 @media (max-width: 767px) {
-  #nd-docs-layout.zentra-docs {
-    --fd-header-height: 60px;
-  }
   .docs-toolbar {
     padding: 0 16px;
     gap: 10px;
@@ -524,6 +596,9 @@ aside p.inline-flex {
   }
   #nd-page {
     padding: 32px 20px 48px;
+  }
+  #nd-page > .docs-pagination {
+    margin-top: 32px;
   }
   #nd-page > h1 {
     font-size: 30px;

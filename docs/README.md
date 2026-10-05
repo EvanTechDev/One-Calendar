@@ -14,6 +14,8 @@ For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Mark
 
 Use the layout and type scale from commit `1cc1b28`: a fixed navigation column, a top toolbar, a spacious article column, and a right-hand table of contents. Keep the current neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
 
+The toolbar and sidebar header share a 56px height. Sidebar groups use aligned, unindented rows without tree guide lines. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile. These refinements live in `app/global.css`.
+
 `lib/layout.shared.tsx` configures Zentra's brand, navigation search, and resource links. `components/docs-toolbar.tsx` places breadcrumbs and page controls above the article. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live in `app/global.css`.
 
 `components/toc.tsx` and `components/toc-slots.tsx` preserve the straight-line table of contents from the template's Fumadocs UI 16.8.1, including its mobile popover. The current library's default TOC uses a different animated track, so use these local slots rather than switching back to that default. Their upstream MIT notice is in `components/toc.LICENSE`.

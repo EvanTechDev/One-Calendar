@@ -17,7 +17,9 @@ export function baseOptions(): BaseLayoutProps {
             alt=""
             className="hidden size-7 dark:block"
           />
-          <span className="docs-wordmark">Zentra Docs</span>
+          <span className="docs-wordmark">
+            <span className="sr-only">Zentra </span>Docs
+          </span>
         </>
       ),
       children: <DocsSearch />,
