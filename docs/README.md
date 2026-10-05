@@ -12,9 +12,11 @@ For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Mark
 
 ## Layout
 
-Preserve the original supplied template's components and styling: Inter and JetBrains Mono, its purple-accented light/dark palette, article title and description layout, callouts, code blocks, tabs, and page actions. This is the supplied template's design, not the unmodified Fumadocs default theme. Adapt branding and documentation content without replacing those components.
+Use the layout and type scale from commit `1cc1b28`: a fixed navigation column, a top toolbar, a spacious article column, and a right-hand table of contents. Keep the current neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
 
-`lib/layout.shared.tsx` configures Zentra's brand and repository link. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live after the original theme in `app/global.css`.
+`lib/layout.shared.tsx` configures Zentra's brand, navigation search, and resource links. `components/docs-toolbar.tsx` places breadcrumbs and page controls above the article. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live in `app/global.css`.
+
+`components/toc.tsx` and `components/toc-slots.tsx` preserve the straight-line table of contents from the template's Fumadocs UI 16.8.1, including its mobile popover. The current library's default TOC uses a different animated track, so use these local slots rather than switching back to that default. Their upstream MIT notice is in `components/toc.LICENSE`.
 
 ## Workspace commands
 

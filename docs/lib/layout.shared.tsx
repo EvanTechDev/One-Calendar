@@ -1,9 +1,13 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { site } from './site'
+import Link from 'next/link'
+import { BookOpen, Calendar, CodeXml, MessageCircle } from 'lucide-react'
+import { DocsSearch } from '@/components/docs-toolbar'
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
+      enabled: false,
       url: '/docs',
       title: (
         <>
@@ -13,10 +17,35 @@ export function baseOptions(): BaseLayoutProps {
             alt=""
             className="hidden size-7 dark:block"
           />
-          <span>Zentra Docs</span>
+          <span className="docs-wordmark">Zentra Docs</span>
         </>
       ),
+      children: <DocsSearch />,
     },
-    githubUrl: site.repository,
+    searchToggle: { enabled: false },
+    themeSwitch: { enabled: false },
   }
+}
+
+export function SidebarResources() {
+  return (
+    <nav className="docs-resources" aria-label="Resources">
+      <Link href="/docs">
+        <BookOpen aria-hidden />
+        Docs
+      </Link>
+      <a href={site.repository}>
+        <CodeXml aria-hidden />
+        GitHub
+      </a>
+      <a href={site.calendarUrl}>
+        <Calendar aria-hidden />
+        Open Calendar
+      </a>
+      <a href={`${site.repository}/issues`}>
+        <MessageCircle aria-hidden />
+        Report an issue
+      </a>
+    </nav>
+  )
 }

@@ -132,7 +132,9 @@ export function PageActions({
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer rounded-l-[5px] hover:bg-fd-accent hover:text-fd-accent-foreground"
         >
           {checked ? <Check /> : <Copy />}
-          {checked ? 'Copied!' : 'Copy page'}
+          <span className="page-copy-label">
+            {checked ? 'Copied!' : 'Copy page'}
+          </span>
         </button>
         <span className="w-px self-stretch bg-fd-border" />
         <PopoverTrigger

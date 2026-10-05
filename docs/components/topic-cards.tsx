@@ -1,27 +1,27 @@
 import Link from 'next/link'
 import {
-  CalendarDays,
+  Calendar,
   Repeat2,
   Video,
   Download,
   Clock3,
   Users,
-  Sparkles,
   ShieldCheck,
   Search,
   Plug,
   Bell,
   Monitor,
 } from 'lucide-react'
+import { AssistantIcon } from './assistant-icon'
 
 const icons = {
-  calendar: CalendarDays,
+  calendar: Calendar,
   repeat: Repeat2,
   video: Video,
   download: Download,
   clock: Clock3,
   users: Users,
-  ai: Sparkles,
+  ai: AssistantIcon,
   privacy: ShieldCheck,
   search: Search,
   plug: Plug,
@@ -48,7 +48,12 @@ export function TopicCard({
   return (
     <Link href={href} className="topic-card">
       <div className="topic-card-art">
-        <Icon size={23} strokeWidth={1.8} aria-hidden />
+        <Icon
+          width={23}
+          height={23}
+          strokeWidth={icon === 'ai' ? 1.6 : 1.8}
+          aria-hidden
+        />
       </div>
       <div className="topic-card-copy">
         <h3>{title}</h3>
