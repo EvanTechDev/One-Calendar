@@ -2,12 +2,48 @@ name: TypeScript Check
 
 on:
   workflow_dispatch:
+    inputs:
+      calendar_test_file:
+        description: Optional repository-relative calendar test for a focused run
+        required: false
+        type: string
+      focused_only:
+        description: Run only the selected calendar test during a red-green cycle
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
+  calendar-test:
+    if: ${{ inputs.calendar_test_file != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Run selected calendar test
+        env:
+          TEST_FILE: ${{ inputs.calendar_test_file }}
+        run: |
+          case "$TEST_FILE" in
+            tests/calendar/*.test.ts|tests/calendar/*.test.tsx) ;;
+            *) echo "Select a test under tests/calendar"; exit 1 ;;
+          esac
+          case "$TEST_FILE" in
+            *..*) echo "Parent traversal is not allowed"; exit 1 ;;
+          esac
+          pnpm --filter zentra-calendar exec vitest run "../../$TEST_FILE"
   typecheck:
+    if: ${{ !inputs.focused_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
