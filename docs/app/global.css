@@ -305,6 +305,16 @@ aside p.inline-flex {
 /* Flat navigation groups, aligned icons, and quiet selection states. */
 :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] {
   padding: 24px;
+  /* Fade scrolling labels into the fixed header and resource area. Padding
+     keeps the first and last rows readable at either end of the list. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 18px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+  scroll-padding-block: 24px;
 }
 :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
   padding: 0;
@@ -378,9 +388,9 @@ aside p.inline-flex {
   width: 14px;
   height: 14px;
 }
-#nd-sidebar > div:last-child {
+:is(#nd-sidebar, #nd-sidebar-mobile) > div:last-child {
   padding: 20px 24px;
-  border-top: 1px solid var(--color-fd-border);
+  border-top: 0;
 }
 .docs-resources {
   display: grid;
@@ -472,11 +482,11 @@ aside p.inline-flex {
   padding-right: 28px;
 }
 #nd-toc a {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
-#toc-title {
-  font-size: 13px;
+#nd-toc #toc-title {
+  font-size: 14px;
 }
 
 /* Home page cards. */

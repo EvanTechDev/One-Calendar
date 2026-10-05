@@ -18,6 +18,8 @@ The toolbar and sidebar header share a 56px height. Sidebar groups and document 
 
 `lib/layout.shared.tsx` configures Zentra's brand, navigation search, and resource links. `components/docs-toolbar.tsx` places breadcrumbs and page controls above the article. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live in `app/global.css`.
 
+The sidebar omits the home page from its document list; the top Docs wordmark links to `/docs`. A soft mask fades scrolling labels at the list's edges, blending into the fixed header and resource links. The list's padding keeps its first and last rows clear when scrolled to either end.
+
 `components/toc.tsx` and `components/toc-slots.tsx` preserve the straight-line table of contents from the template's Fumadocs UI 16.8.1, including its mobile popover. The current library's default TOC uses a different animated track, so use these local slots rather than switching back to that default. Their upstream MIT notice is in `components/toc.LICENSE`.
 
 ## Workspace commands
