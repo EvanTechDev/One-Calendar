@@ -559,30 +559,30 @@ aside p.inline-flex {
 
 @media (min-width: 768px) {
   #nd-docs-layout.zentra-docs {
-    --fd-sidebar-width: 280px;
+    --fd-sidebar-width: 304px;
   }
 }
 /* Match the desktop/popover breakpoint in components/toc-slots.tsx. */
 @media (min-width: 1100px) {
   #nd-docs-layout.zentra-docs {
-    --fd-sidebar-width: 248px;
+    --fd-sidebar-width: 272px;
   }
   #nd-docs-layout.zentra-docs:has(#nd-toc) {
     /* Reserve the leftward shift in the grid so the article cannot overlap. */
-    --fd-toc-width: 268px;
+    --fd-toc-width: 292px;
   }
 }
 @media (min-width: 1280px) {
   #nd-docs-layout.zentra-docs {
-    --fd-sidebar-width: 280px;
+    --fd-sidebar-width: 304px;
   }
   #nd-docs-layout.zentra-docs:has(#nd-toc) {
-    --fd-toc-width: 310px;
+    --fd-toc-width: 334px;
   }
 }
 @media (min-width: 1600px) {
   #nd-docs-layout.zentra-docs {
-    --fd-sidebar-width: 300px;
+    --fd-sidebar-width: 324px;
   }
   .docs-toolbar {
     padding-inline: 36px;
