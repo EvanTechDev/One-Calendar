@@ -30,7 +30,7 @@ Better Auth 1.7.3 起以 `(providerId, accountId)` 识别账号，注册和关�
 
 迁移已加入 Drizzle journal。旧的 0014–0021 SQL 不全部在现有 journal 中；本次没有重排历史记录。部署数据库须已经具备这些历史迁移要求的表结构，不能把当前 journal 当作完整的新库初始化脚本。
 
-此代码变更不代表生产数据库已执行迁移。
+2026-10-05 03:02:24 UTC，经用户授权，已通过 Supabase MCP 在 `POSTGRES_URL` 对应的 Calendar 项目（`qtwyollrylfqnsxiaxbo`）执行该迁移。Supabase 迁移记录为 `20261005030224_relax_legacy_account_issuer`。执行后确认 `issuer` 可为 NULL、旧 issuer 索引已移除、provider/account 唯一索引有效，原有 RLS 仍启用。
 
 来源：[Better Auth 1.7 升级指南](https://better-auth.com/docs/guides/1-7-upgrade-guide#account-identity-keeps-the-provider-key)。
 
@@ -46,7 +46,7 @@ Zod 4.5 起带时区的 datetime 默认要求秒。日程写入和已签发搜�
 
 - 18 个定向测试文件、198 项测试通过，覆盖 AI 工具／搜索／流式内容、真实 MCP SDK 调用、OAuth 注册／PKCE／刷新令牌、邮件渲染和 Meet 令牌／偏好设置。
 - 全 workspace `lint:check`、新增／修改测试文件 lint、离线 frozen-lockfile 安装检查通过。
-- 迁移测试在隔离的 `auth_test` schema 中用真实 PostgreSQL 执行两次 0022，验证幂等性、旧密码哈希保留、新账号无需 issuer、provider/account 唯一性。生产表未执行迁移。
+- 迁移测试在隔离的 `auth_test` schema 中用真实 PostgreSQL 执行两次 0022，验证幂等性、旧密码哈希保留、新账号无需 issuer、provider/account 唯一性。随后已按上方记录迁移生产表，并回读元数据验证。
 - Meet 和全部六个 packages 类型检查通过。Calendar 仍有升级前已有的 `app/api/events/route.ts:948` 的 `seriesStartDate` 类型错误，本次未引入新的类型错误。
 - `pnpm peers check` 的两项旧告警仍存在：CLI 间接依赖的 Zod 3.24.1 不满足 zod-to-json-schema 的 peer；根／其他 app 的 React DOM 19.2.8 与 React 19.2.7 不匹配。已与升级前 lockfile 对照，Calendar／Meet 的 React 和 React DOM 均为 19.2.7。
 - 未运行 build、dev 或全量测试。Node 命令使用 1024 MiB 堆限制，测试单 worker 串行执行。
