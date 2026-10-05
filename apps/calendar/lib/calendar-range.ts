@@ -1,4 +1,7 @@
-import { fromCalendarDate } from './zoned-date'
+import { fromCalendarDate, toCalendarDate } from './zoned-date'
+
+// Two years on either side, including the anchor month and timezone padding.
+export const MAX_CALENDAR_RANGE_MS = 1500 * 86400000
 
 export interface CalendarLoadRange {
   startDate: string
@@ -18,6 +21,40 @@ export function calendarLoadRange(
     view === 'year' ? new Date(year, -1, 1) : new Date(year, month - 1, 1)
   const end =
     view === 'year' ? new Date(year + 1, 1, 1) : new Date(year, month + 2, 1)
+  return civilRange(start, end, timezone)
+}
+
+/** A stable, four-year preload window centered on the requested view. */
+export function calendarPreloadRange(
+  visible: CalendarLoadRange,
+): CalendarLoadRange {
+  const middle = toCalendarDate(
+    new Date((Date.parse(visible.startDate) + Date.parse(visible.endDate)) / 2),
+    visible.timezone,
+  )
+  return civilRange(
+    new Date(middle.getFullYear() - 2, middle.getMonth(), 1),
+    new Date(middle.getFullYear() + 2, middle.getMonth() + 1, 1),
+    visible.timezone,
+  )
+}
+
+export function containsCalendarRange(
+  loaded: CalendarLoadRange,
+  visible: CalendarLoadRange,
+) {
+  return (
+    loaded.timezone === visible.timezone &&
+    Date.parse(loaded.startDate) <= Date.parse(visible.startDate) &&
+    Date.parse(loaded.endDate) >= Date.parse(visible.endDate)
+  )
+}
+
+function civilRange(
+  start: Date,
+  end: Date,
+  timezone: string,
+): CalendarLoadRange {
   // Include date-only all-day values whose storage uses the browser's civil day.
   const startMs = Math.min(
     start.getTime(),

@@ -22,6 +22,8 @@ import {
 import { toast } from 'sonner'
 import {
   calendarLoadRange,
+  calendarPreloadRange,
+  containsCalendarRange,
   eventRangeKey,
   isEventRangeKey,
   type CalendarLoadRange,
@@ -143,13 +145,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const tRef = useRef(translations[language])
   tRef.current = translations[language]
 
-  const [eventsRange, setEventsRange] = useState(() =>
-    calendarLoadRange(
-      new Date(),
-      'month',
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
-    ),
-  )
+  const [eventWindows, setEventWindows] = useState(() => {
+    const active = calendarPreloadRange(
+      calendarLoadRange(
+        new Date(),
+        'month',
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ),
+    )
+    return { active, visited: [active] }
+  })
+  const setEventsRange = useCallback((visible: CalendarLoadRange) => {
+    setEventWindows((current) => {
+      // Reuse coverage even while its request is in flight. Flipping months
+      // must not abandon the initial response and start another overlapping GET.
+      if (containsCalendarRange(current.active, visible)) return current
+      const known = current.visited.find((range) =>
+        containsCalendarRange(range, visible),
+      )
+      const active = known ?? calendarPreloadRange(visible)
+      return {
+        active,
+        visited: known ? current.visited : [...current.visited, active],
+      }
+    })
+  }, [])
+  const eventsRange = eventWindows.active
   const eventsKey = eventRangeKey(eventsRange)
   const eventsKeyRef = useRef(eventsKey)
   eventsKeyRef.current = eventsKey
@@ -751,6 +772,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       categoriesLoaded,
       eventsReq.isLoading,
       eventsReq.error,
+      setEventsRange,
       refresh,
       refreshEvents,
       refreshCategories,

@@ -36,10 +36,9 @@ import {
 } from '@/lib/event-service'
 import {
   DEFAULT_EXPANSION_WINDOW_MS,
-  MAX_EXPANSION,
   adaptRuleToStart,
   defaultExpansionWindow,
-  expandSeriesView,
+  expandSeriesViewInRange,
   firstVisibleStampOfSeries,
   isInstanceId,
   isSeriesEvent,
@@ -85,6 +84,7 @@ import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 import { isValidTimezone } from '@/lib/timezone'
+import { MAX_CALENDAR_RANGE_MS } from '@/lib/calendar-range'
 
 export const runtime = 'nodejs'
 
@@ -680,12 +680,11 @@ async function getSharedEvents(
     const exceptions = occurrencesByInvite.get(invite.id) ?? []
     const baseline = baselineOf(invite)
     const overrides = overridesBySeries.get(row.id) ?? []
-    const instances = expandSeriesView(
+    const instances = expandSeriesViewInRange(
       [decrypted as unknown as SeriesViewInput],
       overrides.map(decryptEvent) as unknown as SeriesViewInput[],
       window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
       window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
-      MAX_EXPANSION,
       // The organiser's timezone, so the participant sees the occurrences the
       // organiser actually scheduled rather than a UTC-shifted set.
       organiserTimeZones.get(row.userId),
@@ -773,12 +772,11 @@ async function loadMergedView(
     window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS)
   const windowEnd =
     window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
-  const expanded = expandSeriesView(
+  const expanded = expandSeriesViewInRange(
     all.filter((e) => e.seriesId === null) as SeriesViewInput[],
     all.filter((e) => e.seriesId !== null) as SeriesViewInput[],
     windowStart,
     windowEnd,
-    MAX_EXPANSION,
     timeZone,
   ) as MergedViewEvent[]
   const withShared = [
@@ -814,12 +812,11 @@ async function loadSeriesView(
     .filter((r) => r.seriesId !== null)
     .map(decryptEvent) as unknown as SeriesViewInput[]
   const window = defaultExpansionWindow()
-  const expanded = expandSeriesView(
+  const expanded = expandSeriesViewInRange(
     masters,
     overrides,
     window.windowStart,
     window.windowEnd,
-    MAX_EXPANSION,
     timeZone,
   ) as MergedViewEvent[]
   return enrichEventsWithInvites(expanded, user.id, user.email)
@@ -865,7 +862,7 @@ export const GET = async function GET(request: NextRequest) {
       (!Number.isFinite(Date.parse(startDate)) ||
         !Number.isFinite(Date.parse(endDate)) ||
         Date.parse(startDate) >= Date.parse(endDate) ||
-        Date.parse(endDate) - Date.parse(startDate) > 550 * 86400000))
+        Date.parse(endDate) - Date.parse(startDate) > MAX_CALENDAR_RANGE_MS))
   ) {
     return NextResponse.json({ error: 'Invalid date range' }, { status: 400 })
   }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   expandSeriesView,
+  expandSeriesViewInRange,
   optimisticFollowingSplit,
   type SeriesViewInput,
 } from '@/lib/recurrence/engine'
@@ -80,6 +81,57 @@ describe('expandSeriesView', () => {
     const master = makeSeries({ exdate: ['20240108T090000Z'] })
     const out = expandSeriesView([master], [], day(2024, 1, 1), day(2024, 2, 1))
     expect(out.some((e) => e.recurrenceId === '20240108T090000Z')).toBe(false)
+  })
+})
+
+describe('complete multi-year series views', () => {
+  it('preserves COUNT, exclusions, moved overrides and first-instance metadata across slices', () => {
+    const master = makeSeries({
+      rrule: 'FREQ=DAILY;COUNT=1200',
+      exdate: ['20240102T090000Z'],
+    })
+    const moved = {
+      ...master,
+      id: 'override',
+      seriesId: master.id,
+      recurrenceId: '20240101T090000Z',
+      startDate: day(2026, 1, 1, 11),
+      endDate: day(2026, 1, 1, 12),
+      title: 'Moved first occurrence',
+    }
+    const plain = makeSeries({ id: 'plain', rrule: null })
+    const events = expandSeriesViewInRange(
+      [master, plain],
+      [moved],
+      day(2024, 1, 1),
+      day(2028, 1, 1),
+      'UTC',
+    )
+    expect(events).toHaveLength(1200)
+    expect(new Set(events.map((event) => event.id)).size).toBe(1200)
+    expect(
+      events.find((event) => event.id === 'm1_20240101T090000Z'),
+    ).toMatchObject({
+      title: 'Moved first occurrence',
+      startDate: day(2026, 1, 1, 11),
+      isFirstInstance: true,
+      isOverride: true,
+      seriesStartDate: master.startDate,
+    })
+    expect(events.some((event) => event.id === 'm1_20240102T090000Z')).toBe(
+      false,
+    )
+    const last = new Date(day(2024, 1, 1, 9).getTime() + 1199 * 86400000)
+    expect(
+      events.some(
+        (event) => (event.startDate as Date).getTime() === last.getTime(),
+      ),
+    ).toBe(true)
+    expect(
+      events.every(
+        (event) => (event.startDate as Date).getTime() <= last.getTime(),
+      ),
+    ).toBe(true)
   })
 })
 

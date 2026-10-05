@@ -724,6 +724,44 @@ export function expandSeriesView<T extends SeriesViewInput>(
 }
 
 /**
+ * Complete calendar windows can exceed the low-level 1000-instance cap (a
+ * four-year daily series already does). Expand in bounded one-year slices:
+ * supported rules produce at most one anchor-clock occurrence per day, so no
+ * slice can hit that cap. The scan/work budgets in expandSeries still apply.
+ * Deduplicate pass-through rows and overrides moved across slice boundaries.
+ */
+export function expandSeriesViewInRange<T extends SeriesViewInput>(
+  rows: T[],
+  overrides: T[],
+  windowStart: Date,
+  windowEnd: Date,
+  timeZone?: string,
+): T[] {
+  const end = windowEnd.getTime()
+  const result = new Map<string, T>()
+  for (let start = windowStart.getTime(); start <= end; ) {
+    const sliceEnd = Math.min(start + 365 * DAY_MS, end)
+    const slice = expandSeriesView(
+      rows,
+      overrides,
+      new Date(start),
+      new Date(sliceEnd),
+      MAX_EXPANSION,
+      timeZone,
+    )
+    for (const event of slice) {
+      const previous = result.get(event.id)
+      result.set(
+        event.id,
+        previous?.isFirstInstance ? { ...event, isFirstInstance: true } : event,
+      )
+    }
+    start = sliceEnd + 1
+  }
+  return [...result.values()]
+}
+
+/**
  * Optimistically applies a "this and following" series edit on the client:
  * instances before the target stay untouched, the edited event becomes the
  * new series master, and the rule regenerates every instance from the

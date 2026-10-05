@@ -69,14 +69,69 @@ describe('complete calendar date ranges', () => {
       (await response.json()).events.map((e: { id: string }) => e.id),
     ).toContain('spanning')
   })
-  it('loads more than 1000 events in a distant visible month', async () => {
-    for (let i = 0; i < 1105; i++)
-      seed(`event-${i}`, '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z')
-    const response = await GET(
-      request('startDate=2035-02-01&endDate=2035-03-01'),
-    )
-    expect((await response.json()).events).toHaveLength(1105)
+  it.each(['2035-03-01', '2039-03-01'])(
+    'loads more than 1000 events in a range ending %s',
+    async (end) => {
+      for (let i = 0; i < 1105; i++)
+        seed(`event-${i}`, '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z')
+      const response = await GET(request(`startDate=2035-02-01&endDate=${end}`))
+      expect(response.status).toBe(200)
+      expect((await response.json()).events).toHaveLength(1105)
+    },
+  )
+  it.each([
+    'startDate=2035-01-01',
+    'startDate=invalid&endDate=2039-01-01',
+    'startDate=2039-01-01&endDate=2035-01-01',
+    'startDate=2035-01-01&endDate=2040-01-01',
+  ])('still rejects invalid or excessive date ranges: %s', async (query) => {
+    expect((await GET(request(query))).status).toBe(400)
   })
+  it.each(['own', 'shared'])(
+    'loads every daily occurrence over four years for an %s series',
+    async (kind) => {
+      seed('daily', '2035-01-01T09:00:00Z', '2035-01-01T10:00:00Z', {
+        userId: kind === 'own' ? 'owner' : 'other',
+        rrule: 'FREQ=DAILY',
+      })
+      if (kind === 'shared')
+        fake.seed(
+          {
+            id: 'grant',
+            eventId: 'daily',
+            email: 'owner@example.com',
+            addedToCalendar: true,
+            baselineKind: 'all',
+            fromStamp: null,
+            untilStamp: null,
+            inviteToken: 'synthetic-test-token',
+          },
+          'event_invites',
+        )
+      const response = await GET(
+        request('startDate=2035-01-01&endDate=2039-01-01'),
+      )
+      expect(response.status).toBe(200)
+      const { events } = await response.json()
+      expect(events).toHaveLength(1461)
+      expect(
+        new Set(events.map((event: { id: string }) => event.id)).size,
+      ).toBe(1461)
+      expect(events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'daily_20350101T090000Z' }),
+          expect.objectContaining({ id: 'daily_20381231T090000Z' }),
+        ]),
+      )
+      if (kind === 'shared')
+        expect(
+          events.every(
+            (event: { rrule: unknown; viewOnly: boolean }) =>
+              event.rrule === null && event.viewOnly,
+          ),
+        ).toBe(true)
+    },
+  )
   it('expands shared recurring events inside the requested distant range', async () => {
     seed('shared-series', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {
       userId: 'other',
