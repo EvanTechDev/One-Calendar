@@ -8,6 +8,8 @@ Pages live in `content/docs/`; each folder's `meta.json` controls navigation. Be
 
 Markdown exports, `/llms.txt`, and `/llms-full.txt` use the same MDX as the website. Search uses Fumadocs' English index.
 
+For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Markdown emphasis markers. This avoids the current Fumadocs serializer's recursion on bold and italic Markdown when an installation resolves `mdast-util-to-markdown` 2.1.3.
+
 ## Layout
 
 The desktop layout has a fixed navigation rail, a top breadcrumb and action bar, and an article with a right-hand table of contents. The home page uses four-column topic cards. On smaller screens, navigation becomes a drawer and cards reflow to two or one column.
@@ -28,7 +30,7 @@ pnpm --filter @zntr/docs build
 
 The development port is 3002. `type-check` generates MDX and Next.js route types, then checks TypeScript without starting a server. `lint` runs oxlint with fixes; `lint:check` checks without fixing. Both use `../config/oxlint.json`. Formatting follows the repository's Prettier configuration.
 
-`test:mdx` compiles all documentation pages through Fumadocs' production MDX loader and checks bold and italic Markdown exports without running a Next.js build. The workspace pins `mdast-util-to-markdown` to 2.1.2 because 2.1.3 causes recursive serialization with the current Fumadocs version ([upstream issue](https://github.com/fuma-nama/fumadocs/issues/3604)).
+`test:mdx` compiles all documentation pages through Fumadocs' production MDX loader and checks that explicit emphasis elements survive Markdown export without running a Next.js build. The workspace also pins `mdast-util-to-markdown` to 2.1.2 as a dependency-level precaution ([upstream issue](https://github.com/fuma-nama/fumadocs/issues/3604)).
 
 ## Deploy
 

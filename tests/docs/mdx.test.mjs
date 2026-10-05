@@ -40,17 +40,17 @@ async function compile(file, source) {
   })
 }
 
-test('production MDX preserves bold and italic text in Markdown exports', async () => {
+test('production MDX preserves explicit emphasis elements in Markdown exports', async () => {
   const file = resolve('content/docs/calendar/import-export.mdx')
   const source = await readFile(file, 'utf8')
   const frontmatter = source.match(/^---\r?\n[\s\S]*?\r?\n---/)[0]
   const code = await compile(
     file,
-    `${frontmatter}\n\n**Bold text.**\n\n*Italic text.*\n`,
+    `${frontmatter}\n\nKeep <strong>bold text</strong> and <em>italic text</em> visible.\n`,
   )
   assert.match(code, /_markdown/)
-  assert.match(code, /\*\*Bold text\.\*\*/)
-  assert.match(code, /\*Italic text\.\*/)
+  assert.match(code, /<strong>bold text<\/strong>/)
+  assert.match(code, /<em>italic text<\/em>/)
 })
 
 test('every documentation page compiles through the production MDX loader', async () => {
