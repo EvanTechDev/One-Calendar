@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       calendar_test_file:
-        description: Optional repository-relative calendar test for a focused run
+        description: Calendar test path, or tests/calendar for the calendar suite
         required: false
         type: string
       focused_only:
@@ -12,6 +12,10 @@ on:
         required: false
         default: false
         type: boolean
+      checkout_ref:
+        description: Optional revision to compare against the work branch
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -22,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
       - uses: pnpm/action-setup@v4
         with:
           version: 11.5.2
@@ -35,7 +41,7 @@ jobs:
           TEST_FILE: ${{ inputs.calendar_test_file }}
         run: |
           case "$TEST_FILE" in
-            tests/calendar/*.test.ts|tests/calendar/*.test.tsx) ;;
+            tests/calendar|tests/calendar/*.test.ts|tests/calendar/*.test.tsx) ;;
             *) echo "Select a test under tests/calendar"; exit 1 ;;
           esac
           case "$TEST_FILE" in
@@ -47,6 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
       - uses: pnpm/action-setup@v4
         with:
           version: 11.5.2
