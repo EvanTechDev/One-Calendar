@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 
 const { sendMessage, stop, setMessages, chatState } = vi.hoisted(() => {
@@ -82,6 +83,163 @@ function selectMode(name: string) {
     screen.getByRole('menuitemradio', { name: new RegExp(`^${name}`) }),
   )
 }
+
+it.each(['Commands', 'Search', 'Ask AI'])(
+  'keeps the %s view and draft throughout the close animation',
+  async (mode) => {
+    // Radix reads a live computed style to retain the closing dialog. jsdom
+    // returns a snapshot, so supply only the live animation-name property.
+    const getComputedStyle = window.getComputedStyle
+    const styles = vi.spyOn(window, 'getComputedStyle').mockImplementation(
+      (element, pseudo) =>
+        new Proxy(getComputedStyle(element, pseudo), {
+          get(target, property, receiver) {
+            if (
+              property === 'animationName' &&
+              element.getAttribute('data-slot') === 'dialog-content'
+            ) {
+              return element.getAttribute('data-state') === 'open'
+                ? 'palette-enter'
+                : 'palette-exit'
+            }
+            return Reflect.get(target, property, receiver)
+          },
+        }),
+    )
+    try {
+      const onOpenChange = vi.fn()
+      const { rerender } = render(
+        <AiCommandPalette open onOpenChange={onOpenChange} />,
+      )
+      fetchSearch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          results: [
+            {
+              id: 'trip',
+              title: 'Trip to Paris',
+              startDate: '2026-10-05T09:00:00Z',
+              endDate: '2026-10-05T10:00:00Z',
+              isAllDay: false,
+            },
+          ],
+          cursor: null,
+        }),
+      })
+      await typeQuestion('find my trip')
+      selectMode(mode)
+      if (mode === 'Search')
+        await screen.findByRole('option', { name: /Trip to Paris/ })
+      const dialog = screen.getByRole('dialog')
+      rerender(<AiCommandPalette open={false} onOpenChange={onOpenChange} />)
+      expect(dialog).toBeInTheDocument()
+      expect(dialog).toHaveAttribute('data-state', 'closed')
+      expect(
+        within(dialog).getByRole('button', { name: `Mode: ${mode}` }),
+      ).toBeInTheDocument()
+      expect(
+        within(dialog).getByRole(mode === 'Ask AI' ? 'textbox' : 'combobox'),
+      ).toHaveValue('find my trip')
+      if (mode === 'Search')
+        expect(
+          within(dialog).getByRole('option', { name: /Trip to Paris/ }),
+        ).toBeInTheDocument()
+      rerender(<AiCommandPalette open onOpenChange={onOpenChange} />)
+      expect(screen.getByRole('combobox')).toHaveValue('')
+      expect(
+        screen.getByRole('button', { name: 'Mode: Commands' }),
+      ).toBeInTheDocument()
+    } finally {
+      styles.mockRestore()
+    }
+  },
+)
+
+it.each(['keyword', 'semantic'])(
+  'Enter opens a pointer-selected %s result without submitting another search',
+  async (kind) => {
+    const hit = {
+      id: 'event-pointer',
+      title: 'Team planning',
+      startDate: '2026-10-05T09:00:00Z',
+      endDate: '2026-10-05T10:00:00Z',
+      isAllDay: false,
+      color: null,
+      location: null,
+    }
+    fetchSearch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [hit],
+        cursor: null,
+        total: 1,
+        page: 1,
+        hasMore: false,
+        searchToken: 'sealed',
+        query: {},
+      }),
+    })
+    const goToEvent = vi.fn()
+    render(
+      <AiCommandPalette
+        open
+        initialMode="search"
+        onOpenChange={vi.fn()}
+        actions={{ goToEvent } as unknown as PaletteActions}
+      />,
+    )
+    const input = await typeQuestion('planning')
+    if (kind === 'semantic') fireEvent.keyDown(input, { key: 'Enter' })
+    const row = await screen.findByRole('option', { name: /Team planning/ })
+    fireEvent.pointerMove(within(row).getByText('Team planning'))
+    expect(row).toHaveAttribute('data-selected', 'true')
+    const requests = fetchSearch.mock.calls.length
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+    })
+    expect(goToEvent).toHaveBeenCalledExactlyOnceWith(hit)
+    expect(fetchSearch).toHaveBeenCalledTimes(requests)
+  },
+)
+
+it('clicking back into the input restores Enter for semantic search after result navigation', async () => {
+  fetchSearch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      results: [
+        {
+          id: 'event-1',
+          title: 'Team planning',
+          startDate: '2026-10-05T09:00:00Z',
+          endDate: '2026-10-05T10:00:00Z',
+          isAllDay: false,
+        },
+      ],
+      cursor: null,
+    }),
+  })
+  const goToEvent = vi.fn()
+  render(
+    <AiCommandPalette
+      open
+      initialMode="search"
+      onOpenChange={vi.fn()}
+      actions={{ goToEvent } as unknown as PaletteActions}
+    />,
+  )
+  const input = await typeQuestion('planning')
+  await screen.findByRole('option', { name: /Team planning/ })
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.pointerDown(input)
+  await act(async () => {
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+  })
+  expect(goToEvent).not.toHaveBeenCalled()
+  expect(fetchSearch).toHaveBeenCalledWith(
+    '/api/agent/search',
+    expect.anything(),
+  )
+})
 
 it('external close cancels work and reopens on a clean command menu', async () => {
   const onOpenChange = vi.fn()
@@ -221,45 +379,48 @@ it.each(['找出所有遛狗的日程', 'find my trip', '找出所有遛狗的�
   },
 )
 
-it('searches server event descriptions without calling AI and opens an unloaded event', async () => {
-  const goToEvent = vi.fn()
-  fetchSearch.mockResolvedValue({
-    ok: true,
-    json: async () => ({
-      results: [
-        {
-          id: 'event-1',
-          title: 'Team planning',
-          startDate: '2026-10-05T09:00:00Z',
-          endDate: '2026-10-05T10:00:00Z',
-          isAllDay: false,
-          location: null,
-          color: null,
-        },
-      ],
-      cursor: null,
-    }),
-  })
-  render(
-    <AiCommandPalette
-      open
-      onOpenChange={vi.fn()}
-      actions={{ goToEvent } as unknown as PaletteActions}
-    />,
-  )
-  selectMode('Search')
-  const input = await typeQuestion('workshop')
-  expect(
-    await screen.findByRole('option', { name: /Team planning/ }),
-  ).toBeInTheDocument()
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
-  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
-  expect(goToEvent).toHaveBeenCalledWith(
-    expect.objectContaining({ id: 'event-1' }),
-  )
-  expect(fetchSearch).toHaveBeenCalledTimes(1)
-  expect(fetchSearch.mock.calls[0][0]).toBe('/api/events/search?q=workshop')
-})
+it.each([{ key: 'ArrowDown' }, { key: 'End' }, { key: 'n', ctrlKey: true }])(
+  'opens an unloaded keyword result after navigating with $key',
+  async (key) => {
+    const goToEvent = vi.fn()
+    fetchSearch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            id: 'event-1',
+            title: 'Team planning',
+            startDate: '2026-10-05T09:00:00Z',
+            endDate: '2026-10-05T10:00:00Z',
+            isAllDay: false,
+            location: null,
+            color: null,
+          },
+        ],
+        cursor: null,
+      }),
+    })
+    render(
+      <AiCommandPalette
+        open
+        onOpenChange={vi.fn()}
+        actions={{ goToEvent } as unknown as PaletteActions}
+      />,
+    )
+    selectMode('Search')
+    const input = await typeQuestion('workshop')
+    expect(
+      await screen.findByRole('option', { name: /Team planning/ }),
+    ).toBeInTheDocument()
+    fireEvent.keyDown(input, key)
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
+    expect(goToEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'event-1' }),
+    )
+    expect(fetchSearch).toHaveBeenCalledTimes(1)
+    expect(fetchSearch.mock.calls[0][0]).toBe('/api/events/search?q=workshop')
+  },
+)
 
 it('switching modes preserves the draft and aborts a pending semantic search', async () => {
   render(<AiCommandPalette open onOpenChange={vi.fn()} />)

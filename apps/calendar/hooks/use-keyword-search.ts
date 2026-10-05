@@ -80,8 +80,11 @@ export function useKeywordSearch(
   )
   useEffect(() => {
     active.current?.abort()
-    setState(query.trim() && enabled ? { ...empty, status: 'loading' } : empty)
-    if (!enabled || !query.trim()) return
+    // Disabling cancels work but keeps the visible rows for the dialog's exit
+    // animation. A new enabled query resets them before starting its request.
+    if (!enabled) return
+    setState(query.trim() ? { ...empty, status: 'loading' } : empty)
+    if (!query.trim()) return
     const timer = setTimeout(() => void read(null, false), 250)
     return () => {
       clearTimeout(timer)

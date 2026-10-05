@@ -901,7 +901,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   )
 
   const handleNavigateAndPreview = (event: CalendarEvent) => {
-    const eventId = (event as any).eventId ?? event.id
+    const eventId = event.id
     const realEvent = events.find((e) => e.id === eventId) ?? event
     setDate(
       realEvent.isAllDay

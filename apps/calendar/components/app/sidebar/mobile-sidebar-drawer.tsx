@@ -9,7 +9,7 @@ import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { SidebarBody } from './sidebar'
 import { BookmarkPanelBody } from './bookmark-panel'
 import { CountdownBody } from './countdown'
-import type { ViewType } from '@/lib/calendar-types'
+import type { CalendarEvent, ViewType } from '@/lib/calendar-types'
 import type { Language } from '@zntr/i18n/calendar'
 
 interface MobileSidebarDrawerProps {
@@ -18,7 +18,7 @@ interface MobileSidebarDrawerProps {
   onCreateEvent: () => void
   onDateSelect: (date: Date) => void
   onViewChange?: (view: ViewType) => void
-  onEventClick: (event: any) => void
+  onEventClick: (event: CalendarEvent) => void
   language?: Language
   selectedDate?: Date
   selectedCategoryFilters?: string[]

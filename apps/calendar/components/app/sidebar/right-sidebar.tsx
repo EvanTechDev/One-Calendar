@@ -13,11 +13,11 @@ import { useState } from 'react'
 import { cn } from '@zntr/utils'
 
 import { translations, useLanguage } from '@zntr/i18n/calendar'
-import type { ViewType } from '@/lib/calendar-types'
+import type { CalendarEvent, ViewType } from '@/lib/calendar-types'
 
 interface RightSidebarProps {
   onViewChange?: (view: ViewType) => void
-  onEventClick: (event: any) => void
+  onEventClick: (event: CalendarEvent) => void
 }
 
 export default function RightSidebar({

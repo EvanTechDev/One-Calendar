@@ -4,8 +4,9 @@
  * The command palette (Cmd/Ctrl+K).
  *
  * Commands, search and the AI assistant share a draft. Typing searches bounded
- * server pages; Enter submits to semantic search. Arrow keys select a result
- * to open with Enter. Selecting a mode never submits the draft.
+ * server pages; Enter in the input submits to semantic search. Arrow keys or
+ * pointer movement select a result to open with Enter. Selecting a mode never
+ * submits the draft.
  *
  * Heights are dvh-based: on mobile the browser's URL bar eats real viewport,
  * and a vh-sized dialog put its bottom out of reach.
@@ -174,9 +175,6 @@ export function AiCommandPalette({
   const t = translations[language]
   const [input, setInput] = React.useState('')
   const [mode, setMode] = React.useState<Mode>(initialMode)
-  React.useEffect(() => {
-    if (open) setMode(initialMode)
-  }, [open, initialMode])
   const [search, setSearch] = React.useState<SearchState>({ status: 'idle' })
   // The next page's fetch, as distinct from a new search: the rows already on
   // screen must stay on screen while page 2 loads.
@@ -251,16 +249,22 @@ export function AiCommandPalette({
     setLoadingMore(false)
     setNavigatingResults(false)
   }, [cancelSearch])
+  // Keep the current view intact while Radix plays the exit animation. Reset
+  // on opening, before paint, so even a rapid reopen starts on a clean entry.
+  React.useLayoutEffect(() => {
+    if (!open) return
+    resetSearch()
+    setMode(initialMode)
+    setInput('')
+  }, [open, initialMode, resetSearch])
   const stopChat = chat.stop
   React.useEffect(() => {
     if (!open) {
-      resetSearch()
+      cancelSearch()
       void stopChat()
-      setMode('palette')
-      setInput('')
       lastNotified.current = null
     }
-  }, [open, resetSearch, stopChat])
+  }, [open, cancelSearch, stopChat])
 
   /**
    * Page 1 asks the model to judge candidates; later pages replay sealed
@@ -547,19 +551,25 @@ export function AiCommandPalette({
                   resetSearch()
                 }}
                 className={mode === 'search' && AI_ENABLED ? 'pr-9' : undefined}
+                onFocus={() => setNavigatingResults(false)}
+                onPointerDown={() => setNavigatingResults(false)}
                 onKeyDown={(e) => {
                   if (e.nativeEvent.isComposing) return
                   if (
                     mode === 'search' &&
-                    (e.key === 'ArrowDown' || e.key === 'ArrowUp')
+                    (e.key === 'ArrowDown' ||
+                      e.key === 'ArrowUp' ||
+                      e.key === 'Home' ||
+                      e.key === 'End' ||
+                      (e.ctrlKey && ['n', 'j', 'p', 'k'].includes(e.key)))
                   ) {
+                    // Match cmdk's available rows, including retry/load-more.
                     setNavigatingResults(
-                      search.status === 'idle'
-                        ? localResults.length > 0
-                        : search.status === 'ready'
-                          ? search.results.length > 0
-                          : search.status === 'error' &&
-                            search.kind !== 'unavailable',
+                      !!e.currentTarget
+                        .closest('[cmdk-root]')
+                        ?.querySelector(
+                          '[cmdk-item]:not([aria-disabled="true"])',
+                        ),
                     )
                   }
                   if (e.key !== 'Enter') return
@@ -611,6 +621,18 @@ export function AiCommandPalette({
           </Button>
         </div>
         <div
+          onPointerMove={(e) => {
+            // cmdk keeps DOM focus on the input when a row is highlighted.
+            // Track pointer selection as well as keyboard navigation so Enter
+            // opens that row instead of submitting the input again.
+            if (
+              mode === 'search' &&
+              e.target instanceof Element &&
+              e.target.closest('[cmdk-item]:not([aria-disabled="true"])')
+            ) {
+              setNavigatingResults(true)
+            }
+          }}
           className={
             mode === 'chat'
               ? 'flex min-h-0 flex-1 flex-col overflow-hidden'

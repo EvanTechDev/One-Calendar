@@ -34,7 +34,11 @@ import {
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { dateLocale } from '@/lib/date-locale'
 import { useBookmarks } from '@/components/providers/data-provider'
-import { useCalendar } from '@/components/providers/calendar-context'
+import {
+  eventDataToCalendarEvent,
+  useCalendar,
+} from '@/components/providers/calendar-context'
+import type { CalendarEvent } from '@/lib/calendar-types'
 import { DEFAULT_ACCENT, EVENT_BG_TO_ACCENT } from '@/lib/event-colors'
 import {
   BOOKMARK_SORT_STORAGE_KEY,
@@ -46,16 +50,10 @@ import { useListSort, type ListSortOption } from './list-sort-menu'
 interface BookmarkPanelProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onEventClick: (event: any) => void
+  onEventClick: (event: CalendarEvent) => void
 }
 
-interface BookmarkedEvent {
-  id: string
-  title: string
-  startDate: string | Date
-  endDate: string | Date
-  color: string
-  description?: string
+interface BookmarkedEvent extends CalendarEvent {
   /** `bookmarked_events.created_at`, and the sort's only "when did this change". */
   bookmarkedAt: string
   eventId: string
@@ -108,7 +106,7 @@ export function BookmarkPanelBody({
   onEventClick,
   onRequestClose,
 }: {
-  onEventClick: (event: any) => void
+  onEventClick: (event: CalendarEvent) => void
   onRequestClose: () => void
 }) {
   const [language] = useLanguage()
@@ -131,15 +129,15 @@ export function BookmarkPanelBody({
     const byId = new Map(events.map((event) => [event.id, event]))
     setBookmarks(
       serverBookmarks.map((bm) => {
-        const live = byId.get(bm.eventId)
+        // Bookmarks outside the loaded calendar range still contain wire
+        // dates. Use the shared mapper and retain the complete event so both
+        // navigation and the preview receive the same shape as grid clicks.
+        const event = byId.get(bm.eventId) ?? eventDataToCalendarEvent(bm.event)
         return {
+          ...event,
           id: bm.id,
           eventId: bm.eventId,
-          title: live?.title ?? bm.event?.title ?? '',
-          startDate: live?.startDate ?? bm.event?.startDate ?? '',
-          endDate: live?.endDate ?? bm.event?.endDate ?? '',
-          color: live?.color ?? bm.event?.color ?? 'bg-[#E6F6FD]',
-          description: live?.description ?? bm.event?.description ?? undefined,
+          title: event.title ?? '',
           bookmarkedAt: bm.createdAt,
         }
       }),
