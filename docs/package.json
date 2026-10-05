@@ -7,6 +7,7 @@
     "dev": "next dev --port 3002",
     "start": "next start --port 3002",
     "mdx": "fumadocs-mdx",
+    "test:mdx": "pnpm mdx && node --test ../tests/docs/mdx.test.mjs",
     "type-check": "pnpm mdx && next typegen && tsc --noEmit",
     "lint": "oxlint --fix --config ../config/oxlint.json app components lib mdx-components.tsx source.config.ts next.config.mjs postcss.config.mjs",
     "lint:check": "oxlint --config ../config/oxlint.json app components lib mdx-components.tsx source.config.ts next.config.mjs postcss.config.mjs"

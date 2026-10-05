@@ -22,13 +22,16 @@ Run these from the repository root. Dependencies use the root pnpm lockfile.
 pnpm --filter @zntr/docs dev
 pnpm --filter @zntr/docs type-check
 pnpm --filter @zntr/docs lint:check
+pnpm --filter @zntr/docs test:mdx
 pnpm --filter @zntr/docs build
 ```
 
 The development port is 3002. `type-check` generates MDX and Next.js route types, then checks TypeScript without starting a server. `lint` runs oxlint with fixes; `lint:check` checks without fixing. Both use `../config/oxlint.json`. Formatting follows the repository's Prettier configuration.
 
+`test:mdx` compiles all documentation pages through Fumadocs' production MDX loader and checks bold and italic Markdown exports without running a Next.js build. The workspace pins `mdast-util-to-markdown` to 2.1.2 because 2.1.3 causes recursive serialization with the current Fumadocs version ([upstream issue](https://github.com/fuma-nama/fumadocs/issues/3604)).
+
 ## Deploy
 
-Set the application root to `docs` and install dependencies from the workspace. Set `BASE_URL` to the public documentation origin. Vercel's production and deployment host variables are also supported. This origin is used for canonical links and the Markdown index; it is not Calendar's MCP endpoint.
+Set the application root to `docs` and install dependencies from the workspace with `pnpm install --frozen-lockfile`. Use the repository's pnpm version and root lockfile so deployment applies the same dependency overrides. Set `BASE_URL` to the public documentation origin. Vercel's production and deployment host variables are also supported. This origin is used for canonical links and the Markdown index; it is not Calendar's MCP endpoint.
 
 Site metadata and repository links live in `lib/site.ts`. Icons use Zentra's existing brand assets. Next.js generates PNG social cards without remote fonts or image services.

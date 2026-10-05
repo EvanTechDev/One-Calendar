@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  mdast-util-to-markdown: 2.1.2
   sonner: 2.0.8
   '@types/react': 19.2.18
   jose@^6: 6.2.12

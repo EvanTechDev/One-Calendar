@@ -44,6 +44,10 @@ minimumReleaseAgeExclude:
 # 19.3.0 pulled in as a peer of @types/react-dom) meant three copies of
 # sonner's files and three toast stores. One version, one instance.
 overrides:
+  # Fumadocs 16 drops attention metadata required by 2.1.3, causing infinite
+  # recursion on bold/italic MDX. Remove after upgrading to a verified fix.
+  # https://github.com/fuma-nama/fumadocs/issues/3604
+  mdast-util-to-markdown: 2.1.2
   sonner: 2.0.8
   '@types/react': 19.2.18
   # Core and adapters share a module-local schema-check registry. Different
