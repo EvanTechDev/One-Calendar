@@ -60,10 +60,27 @@ beforeEach(() => {
 
 describe('Connected Apps consent model', () => {
   it('lists one logical authorization per consent', async () => {
+    getFakeDb().seed(
+      {
+        id: 'consent-earlier',
+        clientId: 'client-1',
+        userId: 'user-1',
+        scopes: ['events:read'],
+        resources: ['https://calendar.example/api/mcp'],
+        createdAt: new Date('2026-08-26T00:00:00Z'),
+      },
+      'oauthConsent',
+    )
     const response = await GET()
     const body = await response.json()
 
     expect(body.apps).toEqual([
+      expect.objectContaining({
+        id: 'consent-earlier',
+        clientId: 'client-1',
+        clientName: 'Calendar CLI',
+        scopes: ['events:read'],
+      }),
       expect.objectContaining({
         id: 'consent-1',
         clientId: 'client-1',

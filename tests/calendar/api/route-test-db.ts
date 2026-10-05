@@ -27,6 +27,32 @@ type Cond =
   | { __op: 'lt'; col: string; val: unknown }
 
 type DrizzleColumn = { name: string }
+type Ordering = { __order: 'asc' | 'desc'; col: string }
+
+function readOrdering(value: unknown): Ordering {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error('fake-db: unknown ordering')
+  }
+  if (
+    '__order' in value &&
+    (value.__order === 'asc' || value.__order === 'desc') &&
+    'col' in value &&
+    typeof value.col === 'string'
+  ) {
+    return { __order: value.__order, col: value.col }
+  }
+  // Drizzle also accepts a bare column: orderBy(table.column) means ascending.
+  // Recognise that exact supported shape, retaining the stop on arbitrary SQL.
+  if (
+    'table' in value &&
+    'getSQL' in value &&
+    typeof value.getSQL === 'function'
+  ) {
+    tableName(value.table)
+    return { __order: 'asc', col: colKey(value) }
+  }
+  throw new Error('fake-db: unknown ordering')
+}
 
 function camelize(snake: string): string {
   return snake.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
@@ -206,7 +232,7 @@ function makeFakeDb(): FakeDb {
     projection: Record<string, unknown> | undefined,
   ) {
     let cond: Cond | undefined
-    let order: { __order: 'asc' | 'desc'; col: string }[] = []
+    let order: Ordering[] = []
     let limit = Infinity
     const resolveRows = () =>
       [...tbl(name).values()]
@@ -227,10 +253,8 @@ function makeFakeDb(): FakeDb {
         cond = c
         return q
       },
-      orderBy(...values: typeof order) {
-        if (values.some((value) => !['asc', 'desc'].includes(value.__order)))
-          throw new Error('fake-db: unknown ordering')
-        order = values
+      orderBy(...values: unknown[]) {
+        order = values.map(readOrdering)
         return q
       },
       limit(value: number) {
