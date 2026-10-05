@@ -457,13 +457,15 @@ async function inviteUsersByEmail(
   )
 }
 
-async function enrichEventsWithInvites(
-  events: Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>,
+async function enrichEventsWithInvites<
+  T extends ReturnType<typeof decryptEvent> & { instanceId?: string },
+>(
+  events: T[],
   viewerId: string,
   viewerEmail?: string,
 ): Promise<
   Array<
-    ReturnType<typeof decryptEvent> & {
+    T & {
       invites: EnrichedInvite[]
       instanceId?: string
       meeting?: { id: string; url: string } | null

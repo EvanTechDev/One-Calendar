@@ -1,4 +1,4 @@
-name: TypeScript Check
+name: Workspace Checks
 
 on:
   workflow_dispatch:
@@ -56,3 +56,5 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm type-check
+      - run: pnpm lint:check
+      - run: pnpm test

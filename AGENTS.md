@@ -72,7 +72,14 @@ Focused verification: `pnpm lint:check` (no-fix mode) or `pnpm build:check` (bui
 
 TypeScript **6.0.3**. `ignoreBuildErrors: true` is set in `next.config.ts` — build does **not** type-check. Run `pnpm type-check` separately.
 
-**Nothing type-checks automatically.** `.github/workflows/tsc.yml` runs `pnpm install --frozen-lockfile && pnpm type-check`, but its trigger is `workflow_dispatch:` alone — no `push`, no `pull_request` — so it only runs when someone clicks Run in the Actions tab. Lint and tests have no workflow at all, and no tsconfig covers `tests/**`. Run `pnpm type-check`, `pnpm lint:check` and `pnpm test` before committing anything that could reach `main`.
+**Checks are manually triggered.** `.github/workflows/tsc.yml` installs with the
+frozen lockfile and runs `pnpm type-check`, `pnpm lint:check`, and `pnpm test`.
+Its only trigger is `workflow_dispatch` — no `push` or `pull_request`. An optional
+calendar test path and `focused_only` mode support remote red-green cycles.
+No tsconfig covers `tests/**`. Run `pnpm type-check`, `pnpm lint:check`, and
+`pnpm test` before committing anything that could reach `main`; a focused green
+run is not the full validation gate.
+The calendar's type-check command generates its MDX collections first.
 
 ## Testing
 
