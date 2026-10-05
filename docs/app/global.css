@@ -170,7 +170,7 @@ aside p.inline-flex {
   text-decoration-color: var(--color-fd-extra-muted-foreground) !important;
 }
 
-/* Layout and type scale from 1cc1b28, with the current component styling. */
+/* Reference layout with a compact type scale and the supplied components. */
 #nd-docs-layout.zentra-docs {
   --fd-header-height: 56px;
 }
@@ -315,26 +315,25 @@ aside p.inline-flex {
   > *
   + * {
   /* Add to the library's 2px row gap without overriding its utility layer. */
-  margin-top: 22px;
+  margin-top: 10px;
 }
 :is(#nd-sidebar, #nd-sidebar-mobile)
   [data-radix-scroll-area-viewport]
   :is(a, button[aria-expanded]) {
   /* Override the library's inline depth offsets for this single-level menu. */
   padding-inline: 0 !important;
-  padding-block: 7px;
-  min-height: 36px;
+  padding-block: 5px;
+  min-height: 32px;
   gap: 12px;
   border-radius: 0;
   background: transparent;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 22px;
   color: var(--color-fd-muted-foreground);
 }
 :is(#nd-sidebar, #nd-sidebar-mobile)
   [data-radix-scroll-area-viewport]
   button[aria-expanded] {
-  font-size: 14px;
   font-weight: 500;
 }
 :is(#nd-sidebar, #nd-sidebar-mobile)
@@ -362,7 +361,7 @@ aside p.inline-flex {
   [data-radix-scroll-area-viewport]
   div[id][data-state]
   > div {
-  padding-top: 12px;
+  padding-top: 4px;
   gap: 0;
 }
 :is(#nd-sidebar, #nd-sidebar-mobile)
@@ -391,8 +390,8 @@ aside p.inline-flex {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 0;
-  font-size: 15px;
+  padding: 6px 0;
+  font-size: 14px;
   line-height: 22px;
   color: var(--color-fd-muted-foreground);
 }
@@ -421,25 +420,25 @@ aside p.inline-flex {
 }
 #nd-page > h1 {
   margin: 0 0 24px;
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1.2;
 }
 #nd-page.docs-home > h1 {
-  font-size: 42px;
+  font-size: 40px;
   margin-bottom: 16px;
 }
 #nd-page > p {
   margin-bottom: 50px;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.65;
 }
 #nd-page.docs-article > p {
   color: var(--color-fd-foreground);
 }
 #nd-page .prose {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.7;
   overflow-wrap: anywhere;
   color: var(--color-fd-foreground);
@@ -447,7 +446,7 @@ aside p.inline-flex {
 #nd-page .prose h2 {
   margin-top: 48px;
   margin-bottom: 16px;
-  font-size: 25px;
+  font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1.3;
@@ -456,8 +455,12 @@ aside p.inline-flex {
   margin-top: 0;
 }
 #nd-page .prose h3 {
+  font-size: 18px;
   font-weight: 550;
   letter-spacing: -0.015em;
+}
+#nd-page .prose h4 {
+  font-size: 15px;
 }
 #nd-page .prose a:not(.topic-card) {
   text-underline-offset: 4px;
@@ -469,8 +472,11 @@ aside p.inline-flex {
   padding-right: 28px;
 }
 #nd-toc a {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.6;
+}
+#toc-title {
+  font-size: 13px;
 }
 
 /* Home page cards. */
@@ -517,7 +523,7 @@ aside p.inline-flex {
 
 #nd-page .topic-card h3 {
   margin: 0 0 7px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 550;
   line-height: 1.4;
   letter-spacing: -0.02em;
@@ -525,7 +531,7 @@ aside p.inline-flex {
 
 #nd-page .topic-card p {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--color-fd-muted-foreground);
 }
@@ -540,9 +546,27 @@ aside p.inline-flex {
     --fd-sidebar-width: 280px;
   }
 }
+/* Match the desktop/popover breakpoint in components/toc-slots.tsx. */
+@media (min-width: 1100px) {
+  #nd-docs-layout.zentra-docs {
+    --fd-sidebar-width: 248px;
+  }
+  #nd-docs-layout.zentra-docs:has(#nd-toc) {
+    --fd-toc-width: 208px;
+  }
+  #nd-toc {
+    padding-right: 20px;
+  }
+}
 @media (min-width: 1280px) {
+  #nd-docs-layout.zentra-docs {
+    --fd-sidebar-width: 280px;
+  }
   #nd-docs-layout.zentra-docs:has(#nd-toc) {
     --fd-toc-width: 250px;
+  }
+  #nd-toc {
+    padding-right: 28px;
   }
 }
 @media (min-width: 1600px) {
@@ -601,14 +625,14 @@ aside p.inline-flex {
     margin-top: 32px;
   }
   #nd-page > h1 {
-    font-size: 30px;
+    font-size: 28px;
   }
   #nd-page.docs-home > h1 {
-    font-size: 36px;
+    font-size: 34px;
   }
   #nd-page > p {
     margin-bottom: 36px;
-    font-size: 16px;
+    font-size: 15px;
   }
   .topic-grid {
     gap: 12px;

@@ -12,9 +12,9 @@ For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Mark
 
 ## Layout
 
-Use the layout and type scale from commit `1cc1b28`: a fixed navigation column, a top toolbar, a spacious article column, and a right-hand table of contents. Keep the current neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
+Use the layout from commit `1cc1b28` with a compact type scale: a fixed navigation column, a top toolbar, an article column, and a right-hand table of contents. Keep the current neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
 
-The toolbar and sidebar header share a 56px height. Sidebar groups use aligned, unindented rows without tree guide lines. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile. These refinements live in `app/global.css`.
+The toolbar and sidebar header share a 56px height. Sidebar groups and document links share a 14px font, with 12px between groups and 4px before their document lists. Article text is 15px. The right-hand table of contents appears from 1100px wide, including 1200×720 screens; narrower screens use the top popover. Between 1100px and 1279px, the navigation and TOC columns narrow to leave room for the article. Keep this breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile.
 
 `lib/layout.shared.tsx` configures Zentra's brand, navigation search, and resource links. `components/docs-toolbar.tsx` places breadcrumbs and page controls above the article. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live in `app/global.css`.
 
