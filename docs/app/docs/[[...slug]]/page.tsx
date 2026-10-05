@@ -7,7 +7,7 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/layouts/docs/page'
 import { createRelativeLink } from 'fumadocs-ui/mdx'
-import { DocsToolbar } from '@/components/docs-toolbar'
+import { PageActions } from '@/components/ai/page-actions'
 import { getPageImage, source } from '@/lib/source'
 import { site } from '@/lib/site'
 import { getMDXComponents } from '@/mdx-components'
@@ -19,42 +19,34 @@ export default async function Page({ params }: Props) {
   if (!page) notFound()
   const MDX = page.data.body
   const home = page.url === '/docs'
-  const category = page.data.meta.category
-  const sectionUrl =
-    category === 'Calendar'
-      ? '/docs/calendar'
-      : category === 'Meet'
-        ? '/docs/meet'
-        : '/docs'
 
   return (
-    <>
-      <DocsToolbar
-        title={page.data.title}
-        section={sectionUrl === '/docs' ? 'Docs' : category}
-        sectionUrl={sectionUrl}
-        pageUrl={page.url}
-        githubUrl={`${site.repository}/blob/${site.branch}/${site.contentPath}/${page.path}`}
-      />
-      <DocsPage
-        toc={page.data.toc}
-        full={home || page.data.full}
-        breadcrumb={{ enabled: false }}
-        footer={{ enabled: !home }}
-        tableOfContentPopover={{ enabled: !home }}
-        className={home ? 'docs-home' : 'docs-article'}
-      >
+    <DocsPage
+      toc={page.data.toc}
+      full={home || page.data.full}
+      breadcrumb={{ enabled: !home }}
+      footer={{ enabled: !home }}
+      tableOfContentPopover={{ enabled: !home }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <DocsTitle>{page.data.title}</DocsTitle>
-        <DocsDescription>{page.data.description}</DocsDescription>
-        <DocsBody>
-          <MDX
-            components={getMDXComponents({
-              a: createRelativeLink(source, page),
-            })}
+        {!home && (
+          <PageActions
+            key={page.url}
+            markdownUrl={`${page.url}.mdx`}
+            githubUrl={`${site.repository}/blob/${site.branch}/${site.contentPath}/${page.path}`}
           />
-        </DocsBody>
-      </DocsPage>
-    </>
+        )}
+      </div>
+      <DocsDescription>{page.data.description}</DocsDescription>
+      <DocsBody>
+        <MDX
+          components={getMDXComponents({
+            a: createRelativeLink(source, page),
+          })}
+        />
+      </DocsBody>
+    </DocsPage>
   )
 }
 

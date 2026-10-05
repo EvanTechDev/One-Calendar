@@ -12,9 +12,9 @@ For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Mark
 
 ## Layout
 
-The desktop layout has a fixed navigation rail, a top breadcrumb and action bar, and an article with a right-hand table of contents. The home page uses four-column topic cards. On smaller screens, navigation becomes a drawer and cards reflow to two or one column.
+The site uses Fumadocs' standard documentation layout and neutral light/dark theme, including its navigation, search, theme switch, breadcrumbs, and table of contents. The home page keeps grouped four-column topic cards, which reflow to two or one column on smaller screens.
 
-Layout tokens and responsive rules live in `app/global.css`. `components/docs-toolbar.tsx` owns page actions, search, and theme controls; `components/topic-cards.tsx` renders the home page cards. Navigation, search, and table-of-contents behavior remain provided by Fumadocs.
+`lib/layout.shared.tsx` configures the brand and navigation links. `components/ai/page-actions.tsx` provides copying and source links beside article titles. `components/topic-cards.tsx` renders the home page cards; their styles and responsive rules live in `app/global.css` and use the Fumadocs theme tokens.
 
 ## Workspace commands
 

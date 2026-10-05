@@ -2,28 +2,6 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
-:root {
-  --color-fd-background: #ffffff;
-  --color-fd-foreground: #292a2e;
-  --color-fd-muted-foreground: #74747c;
-  --color-fd-card: #ffffff;
-  --color-fd-border: #ebebed;
-  --color-fd-accent: #f5f5f6;
-  --color-fd-primary: #292a2e;
-  --docs-card: #fafafa;
-}
-
-.dark {
-  --color-fd-background: #141516;
-  --color-fd-foreground: #ededee;
-  --color-fd-muted-foreground: #a1a1a9;
-  --color-fd-card: #141516;
-  --color-fd-border: #2a2b2e;
-  --color-fd-accent: #222326;
-  --color-fd-primary: #ededee;
-  --docs-card: #1b1c1e;
-}
-
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -31,364 +9,70 @@ body {
   --default-mono-font-family: 'SFMono-Regular', Consolas, monospace;
 }
 
-/* Keep Fumadocs navigation and focus behavior; use the reference's three rails. */
-#nd-docs-layout.zentra-docs {
-  --fd-header-height: 68px;
-}
-
-.docs-toolbar {
-  grid-area: header;
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  height: var(--fd-header-height);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--color-fd-border);
-  background: var(--color-fd-background);
-}
-
-.docs-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  font-size: 14px;
-}
-
-.docs-breadcrumb > a,
-.docs-breadcrumb > span[aria-hidden] {
-  color: var(--color-fd-muted-foreground);
-}
-
-.docs-breadcrumb > [aria-current] {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.docs-toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.docs-open-app {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  padding: 0 15px;
-  border: 1px solid var(--color-fd-border);
-  border-radius: 999px;
-  box-shadow: 0 1px 2px #00000008;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.docs-search,
-.docs-theme,
-.docs-menu {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-  border: 1px solid var(--color-fd-border);
-  border-radius: 50%;
-  color: var(--color-fd-muted-foreground);
-}
-
-.docs-theme svg {
-  width: 17px;
-  height: 17px;
-  padding: 0;
-  background: none;
-}
-.docs-theme svg:first-child {
-  display: none;
-}
-.dark .docs-theme svg:first-child {
-  display: block;
-}
-.dark .docs-theme svg:last-child {
-  display: none;
-}
-.docs-menu,
-.docs-mobile-search {
-  display: none;
-}
-.docs-open-app:hover,
-.docs-theme:hover,
-.docs-search:hover {
-  background: var(--color-fd-accent);
-}
-
-.docs-wordmark {
-  border-left: 1px solid var(--color-fd-border);
-  margin-left: 3px;
-  padding-left: 14px;
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-}
-
-#nd-sidebar {
-  background: var(--color-fd-background);
-  font-size: 14px;
-}
-#nd-sidebar > div:first-child {
-  height: 68px;
-  padding: 0 24px;
-  flex-shrink: 0;
-  justify-content: center;
-  border-bottom: 1px solid var(--color-fd-border);
-}
-#nd-sidebar > div:first-child > div {
-  align-items: center;
-}
-#nd-sidebar [data-radix-scroll-area-viewport] > div {
-  padding: 20px 16px;
-}
-#nd-sidebar a,
-#nd-sidebar button {
-  line-height: 1.5;
-}
-#nd-sidebar a[data-active='true'] {
-  background: transparent;
-  color: var(--color-fd-foreground);
-  font-weight: 550;
-}
-#nd-sidebar a[data-active='true']::before {
-  display: none;
-}
-#nd-sidebar > div:last-child {
-  padding: 16px 24px 24px;
-  border-top: 1px solid var(--color-fd-border);
-}
-.docs-resources {
-  display: grid;
-  gap: 3px;
-}
-.docs-resources a {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 9px 0;
-  font-size: 14px;
-  color: var(--color-fd-muted-foreground);
-}
-.docs-resources a:first-child {
-  color: var(--color-fd-foreground);
-}
-.docs-resources a:hover {
-  color: var(--color-fd-foreground);
-}
-.docs-resources svg {
-  width: 17px;
-  height: 17px;
-}
-
-#nd-page {
-  padding: 48px 28px 72px;
-  gap: 0;
-  max-width: 900px;
-}
-#nd-page.docs-home {
-  max-width: none;
-}
-#nd-page > h1 {
-  margin: 0 0 24px;
-  font-size: 34px;
-  font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.2;
-}
-#nd-page.docs-home > h1 {
-  font-size: 42px;
-  margin-bottom: 16px;
-}
-#nd-page > p {
-  margin-bottom: 50px;
-  font-size: 17px;
-  line-height: 1.65;
-}
-#nd-page.docs-article > p {
-  color: var(--color-fd-foreground);
-}
-#nd-page .prose {
-  font-size: 16px;
-  line-height: 1.7;
-  overflow-wrap: anywhere;
-  color: var(--color-fd-foreground);
-}
-#nd-page .prose h2 {
-  margin-top: 48px;
-  margin-bottom: 16px;
-  font-size: 25px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.3;
-}
-#nd-page .prose h2:first-child {
-  margin-top: 0;
-}
-#nd-page .prose h3 {
-  font-weight: 550;
-  letter-spacing: -0.015em;
-}
-#nd-page .prose a:not(.topic-card) {
-  text-underline-offset: 4px;
-}
-#nd-toc {
-  top: 68px;
-  height: calc(100dvh - 68px);
-  padding-top: 48px;
-  padding-right: 28px;
-}
-#nd-toc > h3 {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-#nd-toc a {
-  font-size: 13px;
-  line-height: 1.6;
-}
-
+/* Keep the home page's topic cards within the standard Fumadocs theme. */
 .topic-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
   margin: 30px 0 48px;
 }
+
 .topic-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
   border: 1px solid var(--color-fd-border);
   border-radius: 9px;
-  background: var(--docs-card);
+  background: var(--color-fd-muted);
   overflow: hidden;
   transition:
     border-color 150ms ease,
     background-color 150ms ease;
 }
+
 .topic-card:hover {
   border-color: var(--color-fd-muted-foreground);
   background: var(--color-fd-accent);
 }
+
+.topic-card:focus-visible {
+  outline: 2px solid var(--color-fd-primary);
+  outline-offset: 4px;
+}
+
 .topic-card-art {
   min-height: 148px;
   padding: 26px 22px;
 }
+
 .topic-card-copy {
   border-top: 1px solid var(--color-fd-border);
   padding: 21px 22px 25px;
   flex: 1;
 }
-#nd-page .topic-card h3 {
+
+.topic-card h3 {
   margin: 0 0 7px;
   font-size: 16px;
   font-weight: 550;
   line-height: 1.4;
   letter-spacing: -0.02em;
 }
-#nd-page .topic-card p {
+
+.topic-card p {
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-fd-muted-foreground);
 }
 
-:where(a, button):focus-visible {
-  outline: 2px solid var(--color-fd-foreground);
-  outline-offset: 4px;
-}
-
-@media (min-width: 768px) {
-  #nd-docs-layout.zentra-docs {
-    --fd-sidebar-width: 280px;
-  }
-}
-@media (min-width: 1280px) {
-  #nd-docs-layout.zentra-docs:has(#nd-toc) {
-    --fd-toc-width: 250px;
-  }
-}
-@media (min-width: 1600px) {
-  #nd-docs-layout.zentra-docs {
-    --fd-sidebar-width: 300px;
-  }
-  .docs-toolbar {
-    padding-inline: 36px;
-  }
-  #nd-page {
-    padding-inline: 36px;
-  }
-}
 @media (max-width: 1100px) {
   .topic-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .docs-breadcrumb > a,
-  .docs-breadcrumb > span[aria-hidden] {
-    display: none;
-  }
 }
+
 @media (max-width: 767px) {
-  #nd-docs-layout.zentra-docs {
-    --fd-header-height: 60px;
-  }
-  .docs-toolbar {
-    padding: 0 16px;
-    gap: 10px;
-  }
-  .docs-menu,
-  .docs-mobile-search {
-    display: inline-flex;
-  }
-  .docs-toolbar .docs-open-app {
-    display: none;
-  }
-  .page-copy-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-  .docs-toolbar-actions {
-    gap: 6px;
-  }
-  .docs-open-app {
-    padding-inline: 10px;
-  }
-  .docs-breadcrumb {
-    font-size: 13px;
-  }
-  #nd-page {
-    padding: 32px 20px 48px;
-  }
-  #nd-page > h1 {
-    font-size: 30px;
-  }
-  #nd-page.docs-home > h1 {
-    font-size: 36px;
-  }
-  #nd-page > p {
-    margin-bottom: 36px;
-    font-size: 16px;
-  }
   .topic-grid {
     gap: 12px;
     margin-top: 22px;
@@ -401,6 +85,7 @@ body {
     padding: 16px;
   }
 }
+
 @media (max-width: 420px) {
   .topic-grid {
     grid-template-columns: 1fr;
@@ -418,12 +103,9 @@ body {
     border-left: 1px solid var(--color-fd-border);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0s !important;
-    animation-duration: 0s !important;
+  .topic-card {
+    transition: none;
   }
 }
