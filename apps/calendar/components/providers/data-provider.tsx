@@ -224,7 +224,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Supplying an explicit data argument starts another SWR mutation, even
     // when it is undefined. That would end an in-flight DELETE's protection
     // against stale GET responses. Omitting data requests revalidation only.
-    () => mutate(isEventRangeKey).then(() => undefined),
+    async () => {
+      // Keep refresh fire-and-forget: saving finishes when the write is
+      // durable, not after the follow-up GET. SWR exposes fetch errors through
+      // eventsReq.error; background refresh must not reject an unobserved promise.
+      void mutate(isEventRangeKey).catch(() => {})
+    },
     [mutate],
   )
   const refreshCategories = useCallback(
