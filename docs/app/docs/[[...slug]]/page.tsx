@@ -7,6 +7,7 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/layouts/docs/page'
 import { createRelativeLink } from 'fumadocs-ui/mdx'
+import { findNeighbour } from 'fumadocs-core/page-tree'
 import { DocsToolbar } from '@/components/docs-toolbar'
 import { TOC, TOCPopover, TOCProvider } from '@/components/toc-slots'
 import { getPageImage, source } from '@/lib/source'
@@ -20,6 +21,7 @@ export default async function Page({ params }: Props) {
   if (!page) notFound()
   const MDX = page.data.body
   const home = page.url === '/docs'
+  const { previous, next } = findNeighbour(source.getPageTree(), page.url)
   const category = page.data.meta.category
   const sectionUrl =
     category === 'Calendar'
@@ -44,7 +46,22 @@ export default async function Page({ params }: Props) {
         }}
         full={home || page.data.full}
         breadcrumb={{ enabled: false }}
-        footer={{ enabled: !home, className: 'docs-pagination' }}
+        footer={{
+          enabled: !home,
+          className: 'docs-pagination',
+          items: {
+            previous: previous
+              ? {
+                  url: previous.url,
+                  name: 'Previous',
+                  description: previous.name,
+                }
+              : undefined,
+            next: next
+              ? { url: next.url, name: 'Next', description: next.name }
+              : undefined,
+          },
+        }}
         tableOfContentPopover={{ enabled: !home }}
         className={home ? 'docs-home' : 'docs-article'}
         tableOfContent={{

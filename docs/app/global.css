@@ -247,9 +247,16 @@ aside p.inline-flex {
   color: var(--color-fd-muted-foreground);
 }
 
+.docs-search,
+.docs-theme {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+}
+.docs-search svg,
 .docs-theme svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   padding: 0;
   background: none;
 }
@@ -304,17 +311,17 @@ aside p.inline-flex {
 
 /* Flat navigation groups, aligned icons, and quiet selection states. */
 :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] {
-  padding: 24px;
+  padding: 32px 24px 48px;
   /* Fade scrolling labels into the fixed header and resource area. Padding
      keeps the first and last rows readable at either end of the list. */
   mask-image: linear-gradient(
     to bottom,
     transparent,
-    #000 18px,
-    #000 calc(100% - 24px),
+    #000 32px,
+    #000 calc(100% - 48px),
     transparent
   );
-  scroll-padding-block: 24px;
+  scroll-padding-block: 32px 48px;
 }
 :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] > div {
   padding: 0;
@@ -325,7 +332,7 @@ aside p.inline-flex {
   > *
   + * {
   /* Add to the library's 2px row gap without overriding its utility layer. */
-  margin-top: 10px;
+  margin-top: 6px;
 }
 :is(#nd-sidebar, #nd-sidebar-mobile)
   [data-radix-scroll-area-viewport]
@@ -433,6 +440,17 @@ aside p.inline-flex {
 #nd-page > .docs-pagination {
   margin-top: 48px;
 }
+.docs-pagination > a > div {
+  color: var(--color-fd-muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.docs-pagination > a > p {
+  color: var(--color-fd-foreground);
+  font-weight: 500;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 #nd-page > h1 {
   margin: 0 0 24px;
   font-size: 32px;
@@ -488,11 +506,11 @@ aside p.inline-flex {
   padding-inline: 0 12px;
 }
 #nd-toc a {
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.6;
 }
 #nd-toc #toc-title {
-  font-size: 14px;
+  font-size: 12px;
 }
 
 /* Home page cards. */
