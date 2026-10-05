@@ -1,6 +1,7 @@
 import { source } from '@/lib/source'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { baseOptions, SidebarResources } from '@/lib/layout.shared'
+import { MobileSidebarBrand } from '@/components/mobile-sidebar-brand'
 
 export default function Layout({ children }: LayoutProps<'/docs'>) {
   return (
@@ -8,7 +9,11 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
       tree={source.getPageTree()}
       {...baseOptions()}
       tabs={false}
-      sidebar={{ collapsible: false, footer: <SidebarResources /> }}
+      sidebar={{
+        collapsible: false,
+        banner: <MobileSidebarBrand />,
+        footer: <SidebarResources />,
+      }}
       containerProps={{
         className: 'zentra-docs',
         style: {

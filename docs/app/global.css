@@ -289,6 +289,10 @@ aside p.inline-flex {
   white-space: nowrap;
 }
 
+.docs-mobile-brand {
+  display: none;
+}
+
 #nd-sidebar {
   background: var(--color-fd-background);
   font-size: 14px;
@@ -681,16 +685,42 @@ aside p.inline-flex {
     font-size: 13px;
   }
   #nd-sidebar-mobile {
+    --fd-sidebar-drawer-offset: -100%;
+    inset-inline-start: 0;
+    inset-inline-end: auto;
     width: min(90vw, 360px);
     height: 100dvh;
+    border-inline-start-width: 0;
+    border-inline-end-width: 1px;
   }
   #nd-sidebar-mobile > div:first-child {
-    padding: max(6px, env(safe-area-inset-top)) 16px 6px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: max(6px, env(safe-area-inset-top)) 16px 6px
+      max(16px, env(safe-area-inset-left));
     border-bottom: 1px solid var(--color-fd-border);
+  }
+  #nd-sidebar-mobile .docs-mobile-brand {
+    display: inline-flex;
+    order: -1;
+    min-width: 0;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  #nd-sidebar-mobile .docs-wordmark {
+    padding-left: 11px;
+    font-size: 16px;
   }
   #nd-sidebar-mobile > div:first-child button {
     width: 44px;
     height: 44px;
+    flex-shrink: 0;
   }
   #nd-sidebar-mobile [data-radix-scroll-area-viewport] {
     padding: 24px 20px;
