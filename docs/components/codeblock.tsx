@@ -183,7 +183,7 @@ function CopyButton({
         }),
         className,
       )}
-      aria-label={checked ? 'Copied' : 'Copy content'}
+      aria-label={checked ? 'Copied Text' : 'Copy Text'}
       onClick={onClick}
       {...props}
     >

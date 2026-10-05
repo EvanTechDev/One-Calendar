@@ -18,15 +18,5 @@ export function baseOptions(): BaseLayoutProps {
       ),
     },
     githubUrl: site.repository,
-    links: [
-      { text: 'Calendar', url: '/docs/calendar' },
-      { text: 'Meet', url: '/docs/meet' },
-      {
-        type: 'button',
-        text: 'Open Calendar',
-        url: site.calendarUrl,
-        external: true,
-      },
-    ],
   }
 }

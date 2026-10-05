@@ -3,13 +3,179 @@
 @import 'fumadocs-ui/css/preset.css';
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-feature-settings: 'cv01', 'ss03';
+  font-variation-settings: 'opsz' auto;
+  letter-spacing: -0.008em;
   -webkit-font-smoothing: antialiased;
-  --default-mono-font-family: 'SFMono-Regular', Consolas, monospace;
+  -moz-osx-font-smoothing: grayscale;
+  --default-mono-font-family:
+    var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
-/* Keep the home page's topic cards within the standard Fumadocs theme. */
+a {
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 0.5px;
+}
+
+/* Original supplied template palette. */
+@theme {
+  --color-fd-background: #fdfcfd;
+  --color-fd-foreground: #1a1523;
+  --color-fd-muted: #1616180a;
+  --color-fd-muted-foreground: #57565d;
+  --color-fd-extra-muted-foreground: #d1d1d2;
+  --color-fd-popover: #fdfcfd;
+  --color-fd-popover-foreground: #1a1523;
+  --color-fd-card: #1616180a;
+  --color-fd-card-foreground: blue; /* ? */
+  --color-fd-border: #16161813;
+  --color-fd-primary: #6552ba;
+  --color-fd-primary-foreground: yellow; /* ? */
+  --color-fd-secondary: #faf9fa;
+  --color-fd-secondary-foreground: #5d4bad;
+  --color-fd-accent: #e8e7e9;
+  --color-fd-accent-foreground: #161618;
+  --color-fd-ring: #6651c2;
+
+  --code-snippet-highlight: #f3f0ff;
+
+  --lb-color-text-code: #46454a;
+  --lb-color-text-code-comment: #46454a80;
+  --lb-color-text-code-variable: #385bcc;
+  --lb-color-text-code-value: #7e7467;
+  --lb-color-text-code-punctuation: #a03bb0;
+  --lb-color-text-code-tag: #7058d0;
+  --lb-color-text-code-class: #0895b4;
+  --lb-color-text-code-constant: #e13378;
+  --lb-color-text-code-string: #30a66d;
+  --lb-color-background-scroll-thumb: #0000001a;
+  --lb-color-background-scroll-thumb-bolder: #0003;
+}
+
+.dark {
+  --color-fd-background: #161618;
+  --color-fd-foreground: #edecee;
+  --color-fd-muted: #fdfcfd08;
+  --color-fd-muted-foreground: #a1a0a7;
+  --color-fd-extra-muted-foreground: #505050;
+  --color-fd-popover: #1d1d20;
+  --color-fd-popover-foreground: #edecee;
+  --color-fd-card: #fdfcfd08;
+  --color-fd-card-foreground: blue; /* ? */
+  --color-fd-border: #fdfcfd12;
+  --color-fd-primary: #9e8df3;
+  --color-fd-primary-foreground: yellow; /* ? */
+  --color-fd-secondary: #1d1d20;
+  --color-fd-secondary-foreground: #9f8ef3;
+  --color-fd-accent: #2e2e33;
+  --color-fd-accent-foreground: #fdfcfd;
+  --color-fd-ring: #9f8dfc;
+
+  --code-snippet-highlight: #241d3f;
+
+  --lb-color-text-code: #edecee;
+  --lb-color-text-code-comment: #edecee66;
+  --lb-color-text-code-variable: #8099ff;
+  --lb-color-text-code-value: #ffc266;
+  --lb-color-text-code-punctuation: #bf7af0;
+  --lb-color-text-code-tag: #9f8dfc;
+  --lb-color-text-code-class: #00c1d6;
+  --lb-color-text-code-constant: #f76e99;
+  --lb-color-text-code-string: #70e1c8;
+  --lb-color-background-scroll-thumb: #ffffff1a;
+  --lb-color-background-scroll-thumb-bolder: #fff3;
+}
+
+/* Code highlight colours */
+.shiki {
+  pre {
+    code {
+      span.tk-variable {
+        color: var(--lb-color-text-code-variable);
+      }
+      span.tk-constant {
+        color: var(--lb-color-text-code-constant);
+      }
+      span.tk-string {
+        color: var(--lb-color-text-code-string);
+      }
+      span.tk-storage {
+        color: var(--lb-color-text-code-punctuation);
+      }
+      span.tk-keyword {
+        color: var(--lb-color-text-code-tag);
+      }
+      span.tk-comment {
+        color: var(--lb-color-text-code-comment);
+      }
+      span.tk-meta {
+        color: var(--lb-color-text-code);
+      }
+      span.tk-entity {
+        color: var(--lb-color-text-code-constant);
+      }
+      span.tk-support {
+        color: var(--lb-color-text-code-class);
+      }
+      span.tk-punctuation {
+        color: var(--lb-color-text-code-punctuation);
+      }
+      span.tk-tag {
+        color: var(--lb-color-text-code-tag);
+      }
+    }
+  }
+}
+
+/* Don't scroll code blocks vertically, show full height */
+.max-h-\[600px\] {
+  max-height: none;
+}
+
+/* Function signature style (h3-like but not in TOC) */
+.fn-sig,
+.fn-sig code {
+  font-size: 1.15em !important;
+  font-weight: 600;
+  color: var(--color-fd-foreground);
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+/* Sidebar separator labels (e.g. "Features") */
+aside p.inline-flex {
+  font-weight: 600;
+}
+
+/* Inline code snippets */
+.prose :where(code):not(:where([class~='not-prose'], [class~='not-prose'] *)) {
+  padding: 1px 3px !important;
+}
+
+/* Tables */
+.prose :where(table):not(:where([class~='not-prose'], [class~='not-prose'] *)) {
+  background: var(--color-fd-secondary);
+}
+
+/* Code snippet highlights */
+.shiki:not(.not-fumadocs-codeblock *) .highlighted {
+  background: var(--code-snippet-highlight);
+}
+
+/* Highlighted sidebar elements */
+#nd-sidebar a[data-active='true'] {
+  font-weight: 600;
+}
+
+/* Inline links */
+.prose
+  :where(a:not([data-card])):not(
+    :where([class~='not-prose'], [class~='not-prose'] *)
+  ) {
+  text-decoration-color: var(--color-fd-extra-muted-foreground) !important;
+}
+
+/* Home page cards are the only addition to the original template's theme. */
 .topic-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

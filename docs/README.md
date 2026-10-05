@@ -12,9 +12,9 @@ For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Mark
 
 ## Layout
 
-The site uses Fumadocs' standard documentation layout and neutral light/dark theme, including its navigation, search, theme switch, breadcrumbs, and table of contents. The home page keeps grouped four-column topic cards, which reflow to two or one column on smaller screens.
+Preserve the original supplied template's components and styling: Inter and JetBrains Mono, its purple-accented light/dark palette, article title and description layout, callouts, code blocks, tabs, and page actions. This is the supplied template's design, not the unmodified Fumadocs default theme. Adapt branding and documentation content without replacing those components.
 
-`lib/layout.shared.tsx` configures the brand and navigation links. `components/ai/page-actions.tsx` provides copying and source links beside article titles. `components/topic-cards.tsx` renders the home page cards; their styles and responsive rules live in `app/global.css` and use the Fumadocs theme tokens.
+`lib/layout.shared.tsx` configures Zentra's brand and repository link. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live after the original theme in `app/global.css`.
 
 ## Workspace commands
 

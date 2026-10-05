@@ -40,7 +40,7 @@ const typeConfig = {
     className: '[--callout-accent:#187b4f] dark:[--callout-accent:#25d0ab]',
   },
   warning: {
-    label: 'Note',
+    label: 'Warning',
     icon: (
       <svg
         width="16"
