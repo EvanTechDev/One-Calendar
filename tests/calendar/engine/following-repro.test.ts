@@ -7,6 +7,7 @@ import {
   parseRfcStamp,
   shiftExdates,
   shiftToAnchorClock,
+  toRfcStamp,
 } from '@/lib/recurrence/engine'
 import {
   planInstanceChange,
@@ -51,7 +52,7 @@ function buildStore(): StoreEvent[] {
   const instances: StoreEvent[] = []
   for (let i = 0; i < 8; i++) {
     const d = new Date(Date.UTC(2026, 7, 10 + i * 7, 9, 0, 0))
-    const stamp = d.toISOString()
+    const stamp = toRfcStamp(d, false)
     instances.push({
       id: `${masterId}_${stamp}`,
       title: 'Weekly sync',
@@ -77,8 +78,8 @@ describe('regression: this-and-following save', () => {
       ...target,
       title: 'Renamed',
     }
-    const windowStart = new Date(Date.now() - 2 * 365 * 24 * 3600 * 1000)
-    const windowEnd = new Date(Date.now() + 2 * 365 * 24 * 3600 * 1000)
+    const windowStart = new Date('2026-08-01T00:00:00Z')
+    const windowEnd = new Date('2027-01-01T00:00:00Z')
 
     const nextMaster: StoreEvent = {
       ...updatedEvent,

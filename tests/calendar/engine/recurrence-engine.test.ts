@@ -837,7 +837,7 @@ describe('describeRecurrence', () => {
         'FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=15;UNTIL=20271231',
         false,
       ),
-    ).toBe('Yearly · Jan 15 · until 20271231')
+    ).toBe('Yearly · Jan 15 · until Dec 31, 2027')
   })
 
   it('falls back to the raw rule when it cannot be parsed', () => {

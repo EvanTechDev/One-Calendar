@@ -1,18 +1,35 @@
 import { describe, it, expect } from 'vitest'
-import { expandSeries, toRfcStamp } from '@/lib/recurrence/engine'
+import { expandSeries } from '@/lib/recurrence/engine'
 import type { RecurrenceEvent } from '@/lib/recurrence'
 
 const WINDOW = new Date('2026-01-01T00:00:00Z')
 
-function local(y: number, m: number, d: number, h = 7): Date {
-  return new Date(y, m - 1, d, h)
+function shanghai(y: number, m: number, d: number, h = 7): Date {
+  // The fixture is a Shanghai wall clock, independently of the runner's TZ.
+  return new Date(Date.UTC(y, m - 1, d, h - 8))
+}
+
+function inShanghai(date: Date) {
+  return Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Shanghai',
+      weekday: 'short',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(date)
+      .map(({ type, value }) => [type, value]),
+  )
 }
 
 function makeSeries(overrides: Partial<RecurrenceEvent> = {}): RecurrenceEvent {
   return {
     id: 's',
-    startDate: local(2026, 7, 21, 7),
-    endDate: new Date(local(2026, 7, 21, 7).getTime() + 60 * 60 * 1000),
+    startDate: shanghai(2026, 7, 21, 7),
+    endDate: shanghai(2026, 7, 21, 8),
     isAllDay: false,
     rrule: 'FREQ=WEEKLY;BYDAY=TU',
     exdate: null,
@@ -30,8 +47,8 @@ describe('timezone-anchored expansion (server UTC, user +8)', () => {
       'Asia/Shanghai',
     )
     for (const it of items) {
-      expect(it.startDate.toString()).toMatch(/^Tue /)
-      expect(it.startDate.getHours()).toBe(7)
+      expect(inShanghai(it.startDate).weekday).toBe('Tue')
+      expect(inShanghai(it.startDate).hour).toBe('07')
     }
     expect(items[0].startDate.toISOString()).toBe('2026-07-20T23:00:00.000Z')
   })
@@ -66,7 +83,7 @@ describe('timezone-anchored expansion (server UTC, user +8)', () => {
     )
     expect(items.length).toBeGreaterThanOrEqual(3)
     for (const it of items) {
-      expect(it.startDate.getDate()).toBe(21)
+      expect(inShanghai(it.startDate).day).toBe('21')
     }
   })
 
@@ -80,23 +97,30 @@ describe('timezone-anchored expansion (server UTC, user +8)', () => {
     )
     expect(items.length).toBeGreaterThanOrEqual(3)
     for (const it of items) {
-      expect(it.startDate.getMonth()).toBe(6)
-      expect(it.startDate.getDate()).toBe(21)
+      expect(inShanghai(it.startDate).month).toBe('07')
+      expect(inShanghai(it.startDate).day).toBe('21')
     }
   })
 
   it('all-day weekly TU keeps Tuesday + tz-day recurrenceId in Asia/Shanghai', () => {
     const items = expandSeries(
-      makeSeries({ isAllDay: true, startDate: local(2026, 7, 21, 0) }),
+      makeSeries({
+        isAllDay: true,
+        startDate: shanghai(2026, 7, 21, 0),
+        endDate: shanghai(2026, 7, 22, 0),
+      }),
       WINDOW,
       new Date('2026-08-31T00:00:00Z'),
       10,
       'Asia/Shanghai',
     )
     for (const it of items) {
-      expect(it.recurrenceId).toBe(toRfcStamp(it.startDate, true))
-      expect(it.startDate.getHours()).toBe(0)
+      const parts = inShanghai(it.startDate)
+      expect(it.recurrenceId).toBe(`${parts.year}${parts.month}${parts.day}`)
+      expect(parts.hour).toBe('00')
     }
-    expect(items[0].startDate.toString()).toMatch(/^Tue /)
+    expect(items[0].recurrenceId).toBe('20260721')
+    expect(items[0].startDate.toISOString()).toBe('2026-07-20T16:00:00.000Z')
+    expect(inShanghai(items[0].startDate).weekday).toBe('Tue')
   })
 })
