@@ -5,14 +5,29 @@ icon: Users
 meta:
   contentType: How-to
   category: Calendar
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 An invitation lets a participant view an event and respond. The organizer maintains the event; participants manage their own responses and categories. You can include up to 20 email addresses when adding participants.
 
+## Understand what each person controls
+
+Sharing an event does not make every participant an editor. Keep ownership separate from personal organization.
+
+| Action                                        | Organizer                                | Invited participant                         |
+| --------------------------------------------- | ---------------------------------------- | ------------------------------------------- |
+| Change the title, time, or recurrence         | Can change the event                     | Asks the organizer to change it             |
+| Accept, decline, or mark attendance tentative | Reviews participant responses            | Controls their own response                 |
+| Choose a category                             | Organizes the event in their calendar    | Chooses a category in their own calendar    |
+| Manage an attached meeting                    | Uses the meeting's organizer permissions | Does not gain organizer access by accepting |
+
+Use the participant's actual sign-in address. A matching name, category, or meeting display name does not associate an invitation with a different account.
+
 ## Choose which dates to share
 
 A standalone event has one date. For a recurring event, decide whether the invitation covers one occurrence or part of the series. The scope used to edit the event does not automatically set the scope for new invitations.
+
+For example, invite a guest presenter to one weekly session while keeping regular participants on the ongoing schedule. If a new teammate joins permanently next week, start their invitation at the first date they should attend rather than sharing earlier meetings by accident.
 
 <Steps>
 <Step>
@@ -41,11 +56,25 @@ If you cannot attend a particular date, respond from that occurrence. An occurre
 
 Assigning an invited event to a category changes only your organization. It does not change the organizer's categories or another participant's view.
 
+An accepted response records an intention to attend, not an attendance record or a guarantee of availability after rescheduling. Use [Meet history](/docs/meet/history) for recorded call attendance, and confirm significant time changes with participants.
+
 ## Use an invitation after its email link expires
 
 Email invitation links expire, but an expired link does not revoke access that has already been established. Sign in with the invited email address to view and respond to an invitation that is still valid in your calendar.
 
 If the event is missing, check your sign-in address and category filters, then ask the organizer whether the invitation still exists. Another participant's invitation link does not grant you their invitation.
+
+## Resolve an invitation mismatch
+
+Use the symptom to choose the next check rather than repeatedly forwarding the same email.
+
+| Symptom                              | Check                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| The event is missing after sign-in   | The account email matches the invited address and its category is visible |
+| Only one recurring date is available | The invitation may cover one occurrence rather than the whole series      |
+| You can view but not edit details    | This is an invitation, not ownership of the event                         |
+| A response differs on one date       | That occurrence may have its own response instead of the series default   |
+| The email shows an older time        | Open the current event and confirm the organizer's change                 |
 
 ## Keep meeting access separate
 

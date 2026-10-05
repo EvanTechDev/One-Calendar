@@ -21,7 +21,7 @@ export const docs = defineDocs({
           'Landing',
         ]),
         category: z.enum(['Zentra', 'Calendar', 'Meet', 'Integrations']),
-        plan: z.literal('/CONTENT-PLAN.md'),
+        plan: z.literal('/README.md#content-guide'),
       }),
     }),
     postprocess: {

@@ -11,6 +11,10 @@ import {
   Plug,
   Bell,
   Monitor,
+  Folder,
+  Bookmark,
+  Timer,
+  LayoutGrid,
 } from 'lucide-react'
 import { AssistantIcon } from './assistant-icon'
 
@@ -27,6 +31,10 @@ const icons = {
   plug: Plug,
   bell: Bell,
   monitor: Monitor,
+  folder: Folder,
+  bookmark: Bookmark,
+  timer: Timer,
+  views: LayoutGrid,
 }
 
 export function TopicCards({ children }: { children: React.ReactNode }) {

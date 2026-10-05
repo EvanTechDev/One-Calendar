@@ -1,10 +1,10 @@
 # Zentra Docs
 
-English user documentation for Zentra Calendar and Zentra Meet. Pages focus on recurring schedules, time zones, invitations, AI, meeting access, and privacy boundaries.
+English user documentation for Zentra Calendar and Zentra Meet. The 24 pages cover planning and organizing a schedule, coordinating with others, automation, meeting preparation, live collaboration, and follow-up.
 
 ## Maintain content
 
-Pages live in `content/docs/`; each folder's `meta.json` controls navigation. Before changing a page, check its user goal and source files in the [content plan](./CONTENT-PLAN.md). Frontmatter requires a title, description, and content metadata.
+Pages live in `content/docs/`; each folder's `meta.json` controls navigation. Before changing a page, check its user goal and source files in the [content guide](#content-guide). Frontmatter requires a title, description, and content metadata.
 
 Markdown exports, `/llms.txt`, and `/llms-full.txt` use the same MDX as the website. Search uses Fumadocs' English index.
 
@@ -14,15 +14,43 @@ For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Mark
 
 Use the layout from commit `1cc1b28` with a compact type scale: a fixed navigation column, a top toolbar, an article column, and a right-hand table of contents. Keep the current neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
 
-The toolbar and sidebar header share a 56px height. Search and theme buttons are 32px with 15px icons. Sidebar groups and document links share a 14px font, with 8px between groups and 4px before their document lists. Article text is 15px; the right-hand table of contents uses 12px text. It appears from 1100px wide, including 1200×720 screens; narrower screens use the top popover. Between 1100px and 1279px, the navigation and TOC columns narrow to leave room for the article. Keep this breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile. Its cards show Previous or Next followed by the article title, using the template's existing footer component.
+The toolbar and sidebar header share a 56px height. Search and theme buttons are 32px with 15px icons. Sidebar groups and document links share a 14px font, with 4px between groups and 4px before their document lists. Article text is 15px; the right-hand table of contents uses 12px text. It appears from 1100px wide, including 1200×720 screens; narrower screens use the top popover. Between 1100px and 1279px, the navigation and TOC columns narrow to leave room for the article. Keep this breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile. Its cards show Previous or Next followed by the article title, using the template's existing footer component.
 
 The TOC reserves its full width in the grid: 292px below 1280px and 334px on larger desktop screens, with 12px of trailing padding. The sidebar is 304px wide, narrows to 272px between 1100px and 1279px, and grows to 324px from 1600px. Adjust grid widths rather than translating the TOC over the article. The article and its body can shrink within their column, keeping text separate from the TOC.
 
 `lib/layout.shared.tsx` configures Zentra's brand, navigation search, and resource links. `components/docs-toolbar.tsx` places breadcrumbs and page controls above the article. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live in `app/global.css`.
 
-The sidebar omits the home page from its document list; the top Docs wordmark links to `/docs`. A soft mask fades scrolling labels over 32px at the top and 48px at the bottom, blending into the fixed header and resource links. Matching vertical padding keeps the first and last rows clear when scrolled to either end.
+The sidebar omits the home page from its document list; the top Docs wordmark links to `/docs`. Its resource links are Docs, GitHub, and Report an issue; Open app remains in the toolbar. A soft mask fades scrolling labels over 32px at the top and 48px at the bottom, blending into the fixed header and resource links. Matching vertical padding keeps the first and last rows clear when scrolled to either end.
 
 `components/toc.tsx` and `components/toc-slots.tsx` preserve the straight-line table of contents from the template's Fumadocs UI 16.8.1, including its mobile popover. The current library's default TOC uses a different animated track, so use these local slots rather than switching back to that default. Their upstream MIT notice is in `components/toc.LICENSE`.
+
+## Content guide
+
+Write for people making scheduling and meeting decisions, not for developers learning our implementation. Start with the task and its effect on data, then explain choices, examples, permissions, lifecycle, and failure recovery where relevant. Avoid padding pages with instructions for obvious clicks.
+
+The organizational references are Linear's [Cycles](https://linear.app/docs/use-cycles), [Custom views](https://linear.app/docs/custom-views), and [Notifications](https://linear.app/docs/notifications), consulted through Context7. Their useful pattern is a focused overview followed by concrete behavior, interactions between settings, and exceptions. They are writing references, not evidence of Zentra features.
+
+Keep one primary purpose per page. Use tables to compare real choices, steps for a sequence, and links for details owned by another guide. Distinguish searching from acting, hiding from deleting, participant access from ownership, and live delivery from retained history. Every behavior claim must match the source below; do not fill gaps with assumptions about another calendar or meeting product.
+
+Paths in this table are relative to the repository root. Overview and troubleshooting pages synthesize these guides rather than defining separate behavior.
+
+| Pages                                                     | Reader's decision                                        | Source of behavior                                                                                                                                                                           |
+| --------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calendar/events`                                         | Set timing, participants, and save scope                 | `apps/calendar/components/app/event/event-editor.tsx`; `apps/calendar/lib/validation.ts`                                                                                                     |
+| `calendar/views`                                          | Choose a horizon and navigate                            | `apps/calendar/components/app/calendar.tsx`; `apps/calendar/components/app/settings/settings-dialog.tsx`; `apps/calendar/lib/calendar-range.ts`                                              |
+| `calendar/categories`                                     | Organize, filter, and retire categories                  | `apps/calendar/components/app/sidebar/sidebar.tsx`; `apps/calendar/app/api/categories/route.ts`; `apps/calendar/lib/drizzle/schema.ts`                                                       |
+| `calendar/recurring-events`, `calendar/time-zones`        | Change a schedule without changing unintended dates      | `apps/calendar/lib/recurrence/engine.ts`; `apps/calendar/lib/zoned-date.ts`; `apps/calendar/components/app/event/event-editor.tsx`                                                           |
+| `calendar/invitations`                                    | Share the right dates and respond with the right account | `apps/calendar/app/api/invites/self/route.ts`; `apps/calendar/components/app/event/event-editor.tsx`                                                                                         |
+| `calendar/reminders`                                      | Choose a delivery channel and lead time                  | `apps/calendar/lib/notifications.ts`; `apps/calendar/hooks/use-notifications.ts`; `apps/calendar/lib/reminders`                                                                              |
+| `calendar/search`, `calendar/ai`                          | Find records, fill a draft, or execute changes           | `apps/calendar/components/app/ai/ai-command-palette.tsx`; `apps/calendar/app/api/agent`; `packages/agent/src/tools.ts`                                                                       |
+| `calendar/bookmarks`, `calendar/countdowns`               | Keep references or track milestones                      | `apps/calendar/components/app/sidebar/bookmark-panel.tsx`; `apps/calendar/components/app/sidebar/countdown.tsx`; `apps/calendar/lib/countdown-sort.ts`; `apps/calendar/lib/bookmark-sort.ts` |
+| `calendar/import-export`                                  | Transfer records with verified coverage                  | `apps/calendar/components/app/analytics/import-export.tsx`                                                                                                                                   |
+| `meet/index`, `meet/access`, `meet/privacy`               | Choose ownership, retention, and link lifecycle          | `packages/meetings/src/operations.ts`; `apps/meet/app/api/meetings/route.ts`; `apps/meet/app/api/connection-details/route.ts`; `apps/calendar/components/app/event/event-meeting-field.tsx`  |
+| `meet/joining`, `meet/presenting`, `meet/troubleshooting` | Prepare devices and isolate call failures                | `apps/meet/components/room/pre-join-screen.tsx`; `apps/meet/lib/join-preferences.ts`; `apps/meet/components/room/meeting-room.tsx`; `apps/meet/lib/user-choices.ts`                          |
+| `meet/chat`, `meet/history`                               | Distinguish live participation from saved records        | `apps/meet/hooks/use-room-chat.ts`; `apps/meet/app/api/meetings/[id]/chat/route.ts`; `apps/meet/hooks/use-upcoming-meetings.ts`; `packages/meetings/src/operations.ts`                       |
+| `integrations/mcp`                                        | Authorize, inspect, and revoke an external client        | `apps/calendar/lib/mcp/types.ts`; `apps/calendar/lib/mcp/server.ts`; `apps/calendar/components/app/settings/mcp-settings.tsx`                                                                |
+
+When checking content, compile the real MDX, validate internal routes and heading links, and exercise English search using representative terms from new topics. A passing type check alone does not establish that instructions are accurate or pages are discoverable.
 
 ## Workspace commands
 

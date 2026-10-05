@@ -1,0 +1,48 @@
+---
+title: Countdowns
+description: Track date-based milestones, choose repeat behavior, and understand month-end and leap-year dates.
+icon: Timer
+meta:
+  contentType: Reference
+  category: Calendar
+  plan: /README.md#content-guide
+---
+
+A countdown shows the number of days to a target date. Use it for a launch, anniversary, renewal, or deadline that you want to keep visible. It is separate from a Calendar event and does not reserve time or send an event reminder.
+
+## Describe the milestone
+
+Give the countdown a name, target date, and optional description. Color and icon help distinguish entries in the list; they do not change the date calculation.
+
+Countdowns use dates rather than appointment times. The display compares the target with today's date in the browser's local calendar. If the exact hour matters, create a timed event and configure its reminder as well.
+
+## Choose how the date repeats
+
+Select a repeat mode according to the milestone's calendar pattern.
+
+| Repeat  | Next target                                     | Example                  |
+| ------- | ----------------------------------------------- | ------------------------ |
+| None    | The date you entered                            | A project launch         |
+| Weekly  | The next matching weekday, including today      | A weekly review day      |
+| Monthly | The selected day in the current or next month   | A recurring payment date |
+| Yearly  | The selected month and day in this or next year | An anniversary           |
+
+For repeating countdowns, the display advances to the next matching date. A target that falls today shows today rather than immediately skipping to the next interval. A non-repeating countdown can become a past milestone after its target date passes.
+
+## Understand short months and leap years
+
+Monthly and yearly countdowns use the last valid day when their target day does not exist in that month. A monthly target on the 31st uses April 30 in April. A yearly February 29 target uses February 28 in a non-leap year.
+
+This rule belongs to countdowns. Do not assume an imported recurring event uses the same month-end behavior; inspect that event's [recurrence rule](/docs/calendar/recurring-events).
+
+## Find and sort milestones
+
+Search the countdown list when you remember a name or description. Sort by name, target date, or creation time, in either direction. The browser remembers your selected sort.
+
+Target-date sorting uses each countdown's stored date, not the next date calculated for its repeat pattern. A yearly anniversary created with an older year can appear before a newer one even if its next anniversary is farther away. Read the remaining-days display when comparing repeating milestones.
+
+## Keep milestones and appointments in sync
+
+Editing or deleting a countdown changes that countdown only. It does not reschedule a similarly named event or update its participants.
+
+For a launch that also has a scheduled meeting, use the countdown to track the milestone and the event to hold the meeting's time, invitations, and reminders. Update both if the launch date changes.

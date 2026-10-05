@@ -5,7 +5,7 @@ icon: RotateCcw
 meta:
   contentType: How-to
   category: Meet
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 Meeting history lets signed-in users review meetings they organized. Attending someone else's meeting does not make it part of your managed history. Guest-created meetings do not move into an account when you sign in later.
@@ -16,14 +16,42 @@ Search by meeting code, attendee name, or saved chat content. Use a distinctive 
 
 History text search does not include unsaved chat from encrypted meetings or the titles of associated calendar events. Find event titles through [Calendar search](/docs/calendar/search).
 
+Choose the search based on the information you remember:
+
+| What you remember         | Where to search                    | Example                               |
+| ------------------------- | ---------------------------------- | ------------------------------------- |
+| A room code               | Meet history                       | The code from a previous meeting link |
+| A participant's name      | Meet history                       | A recognizable attendee display name  |
+| A written decision        | Meet history, if chat was retained | A distinctive phrase someone sent     |
+| A scheduled event title   | Calendar search                    | `Quarterly planning`                  |
+| Something said only aloud | Your own notes                     | Chat history is not a transcript      |
+
+Names are useful search terms, but a display name is not independent proof of identity. Compare the meeting and attendance context when reviewing similar names.
+
 ## Understand repeated use of a link
 
 A meeting link can be used for several calls, with separate sessions and attendance records. Reopening a meeting keeps its code and does not clear the earlier history.
 
 Meeting history and saved chat are not audio or video recordings. Write down decisions somewhere appropriate rather than expecting chat history to recover a discussion that was never sent as messages.
 
+## Distinguish upcoming events from past sessions
+
+Meet's upcoming section reads Calendar meetings for the next seven days. Recurring meetings appear by their upcoming occurrence dates rather than only the original series date.
+
+The upcoming list displays times in the browser's time zone. A Calendar display zone chosen explicitly in settings can differ. “Calendar unavailable” indicates a loading failure, not confirmation that there are no future meetings.
+
+History answers a different question: which rooms you organized and what was retained from their use. A scheduled event without an attended call is not the same as a recorded meeting session.
+
 ## Check missing history
 
 Confirm that you are signed in to the account that created the meeting, then check whether it was created as a guest or deleted. Deleting a meeting removes associated history. Expired guest meetings are also cleaned up.
 
 For encrypted meetings, missing chat is the retention policy, not a problem with your search terms. See [Meeting privacy](/docs/meet/privacy).
+
+For regular meetings, a message can be delivered live without its history copy being saved. If only some messages are missing, consider [retention failures](/docs/meet/chat#distinguish-delivery-from-retention) rather than assuming that the search omitted an entire meeting.
+
+## Delete records intentionally
+
+Deleting a meeting also removes its sessions, attendance, and retained chat. Reopening an ended meeting preserves its existing history; creating a replacement produces a different meeting with a different code.
+
+Calendar exports do not contain this history. If you need notes from a meeting later, record the relevant decisions before deleting the room rather than relying on an event export to restore them.

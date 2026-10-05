@@ -1,0 +1,80 @@
+---
+title: Troubleshoot a meeting
+description: Identify whether a meeting problem comes from its link, lifecycle, device permissions, media settings, or connection.
+icon: CircleQuestionMark
+meta:
+  contentType: Troubleshooting
+  category: Meet
+  plan: /README.md#content-guide
+---
+
+Start with the point where the meeting stops working: opening the link, preparing devices, connecting, or using media after joining. The fix for a denied microphone differs from the fix for an ended meeting.
+
+## The link opens a meeting-unavailable screen
+
+Confirm the code against the organizer's current link. Then distinguish an ended meeting from one that was deleted or expired.
+
+| State                                      | What to do                                                                           |
+| ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Ended                                      | Ask the organizer to reopen it, or use their replacement link                        |
+| Deleted                                    | Request a new meeting link; retrying the old code cannot restore it                  |
+| Expired guest meeting                      | Create a new meeting; guest meetings expire after seven days                         |
+| Link copied from an unsaved Calendar draft | Ask whether the event was saved; canceling the draft can remove its provisional room |
+| Missing encrypted-link key                 | Request the complete link, including everything after `#`                            |
+
+The organizer's [end, reopen, and delete actions](/docs/meet/access#choose-how-to-finish) have different effects. Signing in does not override a deleted or expired meeting.
+
+## The camera preview is unavailable
+
+Read the device notice before changing settings. Permission denied, no camera found, and failure to start a camera require different checks.
+
+<Steps>
+<Step>
+### Check both permission layers
+
+Allow camera access for the meeting site in the browser, and allow the browser to use the camera in system settings. Reload the pre-join screen after changing permissions if the device list has not refreshed.
+
+</Step>
+<Step>
+### Check the selected device
+
+Reconnect the camera if needed and select an available device. A remembered camera identifier may refer to hardware that is no longer connected.
+
+</Step>
+<Step>
+### Isolate the media problem
+
+Try joining with video disabled. If audio works, investigate the camera or video effects rather than replacing the meeting link. Turn background effects off when comparing camera behavior.
+
+</Step>
+</Steps>
+
+## Others cannot hear you
+
+Confirm that your microphone is unmuted and that the selected input is the microphone you are speaking into. Check browser and system microphone permissions separately from camera permissions.
+
+If the problem began after connecting a headset, recheck the selected input. If noise cancellation is enabled, compare with it disabled. An unsupported effect may be skipped, but choosing the wrong physical microphone still prevents the intended audio from reaching the call.
+
+## You see the wrong screen share
+
+Check whether you pinned a participant or an older presentation. An explicit pin takes priority over a newly started share. Remove or change the pin to follow the content you need.
+
+If other people see the wrong content from you, check the browser's sharing indicator and selected tab, window, or screen. A local pin does not change what your browser broadcasts.
+
+## Video slows down or the device gets hot
+
+Turn off blur or virtual backgrounds and compare the result. These effects depend on browser and device capabilities and require media processing while the camera is active.
+
+If the call remains unstable without effects, compare your connection and device load. Do not interpret an effect failing to appear as proof that the meeting failed to connect.
+
+## Rejoin after a disconnection
+
+Use Rejoin when the failure screen offers it. Check the network and whether the organizer has ended the meeting before repeatedly retrying.
+
+A new connection cannot recover a deleted room. It also does not guarantee recovery of unsaved live chat. For missing records, check [chat retention](/docs/meet/chat#distinguish-delivery-from-retention) and [meeting ownership](/docs/meet/history#check-missing-history).
+
+## Report enough detail to reproduce the problem
+
+Include the browser, device, meeting mode, and stage of failure. Say whether audio, camera video, screen sharing, or all media failed, and whether turning effects off changed the result.
+
+Do not post the complete encrypted meeting link or browser management credentials in a public issue. Use the [general reporting guidance](/docs/troubleshooting#share-a-reproducible-report) to preserve useful context without exposing access credentials.

@@ -5,10 +5,22 @@ icon: Assistant
 meta:
   contentType: How-to
   category: Calendar
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 Calendar has two AI workflows: filling a new event form from a sentence, and executing calendar actions through a conversation. These features are available when AI is enabled for your deployment.
+
+## Choose the right AI workflow
+
+Start with the outcome you want. Drafting, searching, and executing an action have different effects on saved data.
+
+| Goal                                            | Use                                          | What happens before you review the result          |
+| ----------------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
+| Turn a sentence into one new event              | Natural-language filling in the event editor | The form changes, but the event is not saved       |
+| Find events by subject or constraints           | Semantic search                              | Matching events are returned without changing them |
+| Read and update a schedule through conversation | Ask AI                                       | Tool calls can create or change saved data         |
+
+Use [semantic search](/docs/calendar/search) when you only need to find something. An instruction such as “move the meeting” belongs in Ask AI, where the assistant can act on the result.
 
 ## Fill an event draft
 
@@ -37,17 +49,54 @@ Check dates, time zone, end time, and recurrence before saving. The success noti
 
 Closing the editor cancels a parse that is still running. If parsing fails, your text remains available so you can finish the form manually.
 
+### Control what the draft replaces
+
+Mention the details you want to change. A short title such as `Lunch` can still produce a valid draft without inventing a location, participant list, or recurrence rule.
+
+If your current draft lasts one hour, describing a new start without an end keeps that hour-long duration. If you want a different duration, include an end time or duration explicitly, then inspect both fields before saving.
+
+The undo action restores the form's pre-parse values. It is not an undo for a later saved event or for actions executed by Ask AI.
+
 ## Act through a conversation
 
 In the command palette's Ask AI mode, describe the goal, time range, and constraints. For example: `Find next week's project reviews and move Thursday's review 30 minutes later. Leave the others unchanged.`
 
 The assistant uses tools to read or change calendar data. Destructive tools require confirmation; creating or updating events can execute directly. Review the events and tool results after an action completes.
 
+### State boundaries before asking for a change
+
+Give the assistant enough detail to distinguish the target from similarly named events. Include the date range, category or participant when useful, and whether a recurring change applies once or from a particular date onward.
+
+These examples make the intended scope explicit:
+
+| Intent                    | Example request                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Inspect before changing   | `List next week's client reviews with their dates and durations. Do not change them.`                              |
+| Move one occurrence       | `Move the October 14 project review from 10:00 to 11:00. Keep its duration and leave other occurrences unchanged.` |
+| Create a bounded schedule | `Create a 30-minute reading session every Monday at 18:00 for six occurrences, starting October 12.`               |
+| Find a gap                | `Find a 45-minute gap in my calendar next Tuesday between 09:00 and 17:00. Do not create an event yet.`            |
+
+Use a year or time zone when the date could be ambiguous. A free-time search uses calendar records available to your account; it does not establish the availability of every person you might invite.
+
+### Read execution results alongside the answer
+
+A conversation can contain several tool calls. Some can succeed while a later operation fails. Treat the returned events and operation results as evidence of what changed, rather than interpreting a fluent summary as proof that every action completed.
+
+Confirm the affected date, recurrence scope, and participants in Calendar after a multi-event change. If the assistant selected the wrong target, stop issuing further edits until you have identified the saved state.
+
 ## Recover from an interrupted reply
 
 Closing the palette stops the current response but does not undo completed actions. The conversation remains when you reopen it until you start a new conversation.
 
 After a network interruption, check whether an event was already created or changed before sending the request again. Read execution results alongside the assistant's summary; a failed operation is not a saved change.
+
+Starting a new conversation clears the conversation context, not the calendar actions already performed. Closing and reopening the palette also does not roll those actions back.
+
+## Work when AI is unavailable
+
+The event editor, ordinary keyword search, and command palette's non-AI actions remain separate workflows. If AI reports a configuration or service error, finish the event manually or use keywords to find it.
+
+If you reach a request limit, wait before retrying. Repeatedly resubmitting a change after a timeout can create ambiguity about which attempts completed; inspect the calendar first.
 
 ## Connect an external assistant
 

@@ -332,7 +332,7 @@ aside p.inline-flex {
   > *
   + * {
   /* Add to the library's 2px row gap without overriding its utility layer. */
-  margin-top: 6px;
+  margin-top: 2px;
 }
 :is(#nd-sidebar, #nd-sidebar-mobile)
   [data-radix-scroll-area-viewport]

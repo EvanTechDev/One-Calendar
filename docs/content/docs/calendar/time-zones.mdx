@@ -5,7 +5,7 @@ icon: Globe
 meta:
   contentType: Conceptual
   category: Calendar
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 Calendar displays events in the time zone selected in your settings. The same timed event can appear at a different hour, or on a different date, for someone in another zone. It is still the same event.
@@ -27,6 +27,22 @@ For multi-day events, check the ending date too. After importing a calendar, rev
 Recurring events follow the calendar's time zone. Across a daylight saving transition, the same local hour can correspond to a different UTC time. Participants in another zone may see the meeting shift by an hour.
 
 Choose a consistent scheduling time zone for a recurring cross-region meeting, and check dates around each region's daylight saving transitions. An invited series follows the organizer's time zone; your display settings do not redefine its schedule.
+
+Regions do not all switch daylight saving time on the same date, and some never switch. A weekly meeting can therefore change its relative hour for only part of the year. Check an actual occurrence on each side of a transition rather than extending today's offset across every future date.
+
+## Travel without unintentionally rescheduling
+
+Changing the display zone helps you read timed events in another location. It does not mean you want every appointment to occur at its old clock reading in the new zone.
+
+If your intention is “join the same call from another city,” compare the displayed local time of the existing event. If your intention is “move the call to 09:00 in the destination city,” edit the event and review its recurrence scope.
+
+For a recurring schedule you organize, verify upcoming occurrences after changing your calendar time zone. The scheduling zone matters to recurrence, so do not treat it as only a cosmetic format preference.
+
+## Compare Calendar and Meet times
+
+Meet's upcoming-meetings list formats times in the visitor's browser time zone. Calendar uses the time zone selected in its settings. If you intentionally chose a different Calendar zone, the same meeting can display different local hours across the two products.
+
+Compare the full date and zone before changing the event to make the numbers match. [12-hour and 24-hour formatting](/docs/calendar/views#set-week-and-time-preferences) is a separate preference from the underlying zone.
 
 ## Check an event that appears a day off
 

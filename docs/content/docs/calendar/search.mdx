@@ -5,7 +5,7 @@ icon: Search
 meta:
   contentType: How-to
   category: Calendar
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 Calendar searches events beyond the month you are viewing. Typing starts a keyword search. When AI is enabled, you can also submit a description to run a semantic search.
@@ -22,6 +22,24 @@ Use keywords when you remember exact wording. Use semantic search when you remem
 
 Search uses your selected calendar categories. If nothing matches, broaden the filters or query. Semantic search cannot recover deleted events or events you cannot access.
 
+## Build a specific semantic query
+
+Combine a subject with the date, participant, or exclusion that matters to your search. Omit the date when you want to search across time.
+
+Compare these requests:
+
+- `Design reviews` searches for a subject without a date boundary
+- `Design reviews next month` adds a time constraint
+- `Design reviews next month excluding interviews` adds an exclusion
+
+A concept in natural language can correspond to several expressions in event text. Semantic search helps interpret that phrasing, but a narrow date or category constraint still limits which events can match. Broaden the constraint deliberately instead of expecting the search to ignore it.
+
+## Review more than the first result
+
+Results can span dates outside the current calendar view. Use the result's date and details to distinguish similarly named events, and load more results when the list offers that option.
+
+For a recurring meeting, choose the occurrence you intend to inspect. The first matching title is not necessarily the next occurrence or the date you need to change.
+
 ## Switch between typing and selecting
 
 Open the command palette and select search mode. When AI is enabled, Enter behaves differently depending on whether you are writing a query or selecting a result:
@@ -37,3 +55,38 @@ The first result being highlighted automatically does not mean you have selected
 Search returns matching events. Ask AI can use tools to create, update, or delete events. Stay in search mode when you only need to find something; use [AI conversations](/docs/calendar/ai) when you want to change data.
 
 Semantic search depends on service availability and request limits. If you reach a limit, wait before retrying or continue with keyword search.
+
+## Diagnose an empty result
+
+Change one part of the search at a time so you can tell which constraint excluded the event.
+
+<Steps>
+<Step>
+### Check category visibility
+
+Include the event's category or uncategorized events. The same title can appear in several categories.
+
+</Step>
+<Step>
+### Try a distinctive keyword
+
+Use wording you know appears in the title, description, or location. This separates a wording problem from an AI service problem.
+
+</Step>
+<Step>
+### Reconsider date boundaries
+
+Check whether the event crosses midnight in your time zone or belongs to another occurrence of a recurring series. Remove the date constraint if you are unsure.
+
+</Step>
+<Step>
+### Check access and deletion
+
+Confirm that an invited event belongs to the email address you are signed in with. A deleted event or revoked invitation cannot be recovered by changing the search terms.
+
+</Step>
+</Steps>
+
+## Search a shortlist instead
+
+The [bookmark panel](/docs/calendar/bookmarks) searches only your bookmarked events. Use it when you intentionally saved a small set of references; use Calendar search when the event might be anywhere in your accessible schedule.

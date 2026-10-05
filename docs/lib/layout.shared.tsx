@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { site } from './site'
 import Link from 'next/link'
-import { BookOpen, Calendar, CodeXml, MessageCircle } from 'lucide-react'
+import { BookOpen, CodeXml, MessageCircle } from 'lucide-react'
 import { DocsSearch } from '@/components/docs-toolbar'
 
 export function baseOptions(): BaseLayoutProps {
@@ -39,10 +39,6 @@ export function SidebarResources() {
       <a href={site.repository}>
         <CodeXml aria-hidden />
         GitHub
-      </a>
-      <a href={site.calendarUrl}>
-        <Calendar aria-hidden />
-        Open Calendar
       </a>
       <a href={`${site.repository}/issues`}>
         <MessageCircle aria-hidden />

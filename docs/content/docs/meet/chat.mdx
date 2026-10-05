@@ -1,0 +1,49 @@
+---
+title: Chat and reactions
+description: Use live chat during a call and distinguish message delivery, unread messages, and retained history.
+icon: MessageCircle
+meta:
+  contentType: Conceptual
+  category: Meet
+  plan: /README.md#content-guide
+---
+
+Use meeting chat for links, questions, and written details that support the conversation. Live message delivery and saved meeting history are separate: a message can reach participants without becoming a durable record.
+
+## Follow chat while focusing on the call
+
+You can close the chat panel to make room for video or a screen share. Meet continues receiving messages while the panel is closed and tracks unread messages during that room session.
+
+Reopening the panel shows messages received while it was hidden. This behavior applies while you remain in the call; it is not a promise to restore the live panel's messages after leaving or reloading.
+
+## Understand a send failure
+
+Meet clears your draft after the message is sent to the room. If delivery fails, it shows a failure notice and keeps the draft so you can try again.
+
+Before resending, check your connection and the visible conversation. Keep long notes in a separate document if you need an independently saved copy; the chat composer is not a document editor.
+
+## Distinguish delivery from retention
+
+Regular meetings attempt to save chat for the organizer's history. Saving is separate from delivery to people currently in the call. A successful live send does not guarantee that the history copy was saved.
+
+Keep messages within 4,000 characters if you need them saved to history. Meet allows 60 history-saving requests per minute from the same public network address. Several people on one shared network can contribute to that limit.
+
+| Situation                                           | During the call                            | After the call                                      |
+| --------------------------------------------------- | ------------------------------------------ | --------------------------------------------------- |
+| Regular meeting, message delivered and saved        | Connected participants receive the message | The organizer can find the saved message in history |
+| Regular meeting, delivery succeeds but saving fails | Participants can still receive the message | The message may be absent from history              |
+| End-to-end encrypted meeting                        | Participants exchange live chat            | Meet does not save chat for history search          |
+
+Use a separate shared document for decisions that need a durable record. [Meeting history](/docs/meet/history) contains retained chat and attendance, not an audio transcript of everything said.
+
+## Participate without interrupting
+
+Raise your hand to indicate that you want to speak, or use a reaction for a brief response. These signals support the live discussion; they are not a replacement for writing down an agreed action.
+
+If you need to focus on a participant or presentation, use a [local pin](/docs/meet/presenting#focus-on-shared-content). Pinning changes your view, not who can send messages or speak.
+
+## Know who can review messages later
+
+Managed meeting history belongs to the account that organized the meeting. Attending a call does not add that meeting to your own organizer history.
+
+For encrypted meetings, missing chat history is expected. Encryption does not remove all meeting metadata: meeting and attendance records still have separate purposes. See [Meeting privacy](/docs/meet/privacy).

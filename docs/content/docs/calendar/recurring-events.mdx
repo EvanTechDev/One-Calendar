@@ -5,10 +5,28 @@ icon: Repeat2
 meta:
   contentType: How-to
   category: Calendar
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 A recurring event generates occurrences from one rule. Repeat daily, weekly, monthly, or yearly, with an interval and an optional end date or occurrence count.
+
+## Define the repeating pattern
+
+Start with the event's first date and duration, then choose a frequency and interval. Every two weeks is a different schedule from twice a month: the former follows weeks, while the latter depends on dates within each month.
+
+Choose an ending condition that matches the commitment:
+
+- No end for an ongoing schedule you will manage later
+- An end date for a schedule that stops at a known boundary
+- An occurrence count for a fixed number of sessions
+
+A series rule describes future dates; an occurrence is one date produced by that rule. An exception changes or removes a particular occurrence without replacing the regular pattern.
+
+## Check month-end patterns
+
+An imported rule that specifies the 31st does not necessarily create an event in every month. A rule for February 29 can also produce dates only in leap years. Review generated occurrences instead of assuming that invalid dates move to the last day of the month.
+
+Countdowns use a different date-clamping rule for these cases. See [short months and leap years](/docs/calendar/countdowns#understand-short-months-and-leap-years) if you are tracking a milestone rather than a recurring appointment.
 
 ## Choose a change scope
 
@@ -51,8 +69,27 @@ Review the rescheduled date and the next meeting to confirm that a temporary cha
 
 Editing this and following events splits the schedule at the selected occurrence. Earlier dates remain in the original segment; later dates use the new settings. When you edit again, treat each segment as its own series with its own first occurrence.
 
+For example, a weekly review moves from 10:00 to 11:00 beginning next month. Open the first review that should use 11:00 and apply the change to this and following events. Do not start from an earlier date unless you intend to change those earlier meetings too.
+
+After saving, inspect the last occurrence before the boundary and the first occurrence after it. Also check any individually rescheduled dates near that boundary.
+
 The same scopes apply to deletion. Deleting one occurrence excludes that date from the rule. Deleting this and following events ends the remaining schedule.
 
 ## Confirm invitation scope separately
 
 An event change does not determine which dates a newly added participant is invited to. You can reschedule only this week's meeting while inviting a colleague to future meetings. Check the invitation confirmation before sending. See [Invitations](/docs/calendar/invitations).
+
+## Diagnose a missing occurrence
+
+Check the rule before recreating the event. A missing occurrence can have several explanations:
+
+| Check                            | What it can explain                                    |
+| -------------------------------- | ------------------------------------------------------ |
+| End date or occurrence count     | The series has already finished                        |
+| An individually deleted date     | The rule continues, but excludes that occurrence       |
+| A rescheduled exception          | The event is present on another date                   |
+| A following-events edit          | Later dates belong to a new series segment             |
+| Category selection and time zone | The occurrence exists but is outside your current view |
+| Month-end or leap-year rule      | The requested date does not exist in that period       |
+
+Search for the title and inspect dates around the expected occurrence. Creating a replacement before checking the series can leave a duplicate when the original becomes visible again.

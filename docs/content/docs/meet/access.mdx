@@ -5,7 +5,7 @@ icon: KeyRound
 meta:
   contentType: Reference
   category: Meet
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 A meeting link lets someone join Zentra Meet. Possessing the link does not grant management permissions, and a Calendar participant list is not a meeting admission list.
@@ -16,6 +16,20 @@ Participants can join a meeting that has not ended or expired, then use audio, v
 
 For meetings created while signed in, the account identifies the organizer. On another device, sign in to the same account. Using the same display name does not establish ownership.
 
+An invitation to a Calendar event and permission to manage its Meet room are separate. Accepting the invitation or appearing in the participant list does not make you the meeting's organizer.
+
+## Choose how to create a meeting
+
+Choose based on how long you need to manage the room and whether it belongs to a scheduled event.
+
+| Creation method       | Management identity                         | Use it for                                                 |
+| --------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| While signed in       | The organizer's account                     | Meetings you need to manage across devices or review later |
+| As a guest            | A credential stored in the creating browser | A temporary meeting without account-based history          |
+| From a Calendar event | The event meeting's organizer               | A call attached to a scheduled commitment                  |
+
+An unsaved event draft can contain a provisional room. Save the event before sharing the room link; canceling the draft can remove that room. Removing a meeting from an event deletes that meeting, and adding one again creates a new code.
+
 ## Keep guest management access
 
 When a guest creates a meeting, the browser stores a management credential. It is separate from the shareable meeting link and does not move to another device when you copy that link.
@@ -23,6 +37,8 @@ When a guest creates a meeting, the browser stores a management credential. It i
 Clearing browser data, changing browsers, or using private browsing can lose this access. Signing in later does not transfer a guest meeting to your account; the original browser credential remains the basis for management.
 
 Guest meetings expire seven days after creation. Create a meeting while signed in if you need longer-term management and history.
+
+Copying a guest link to another device transfers participant access, not the browser's organizer credential. If you lose the creating browser's stored credential, using the same name or signing in afterward does not recreate it.
 
 ## Choose how to finish
 
@@ -33,6 +49,10 @@ These actions have different effects on participants, links, and records.
 | Leave          | Only you leave.                                   | The link remains usable; other participants can continue.                       |
 | End meeting    | The organizer ends the call.                      | Further joining is blocked; the organizer can reopen the same meeting.          |
 | Delete meeting | The meeting is removed and the room disconnected. | The link stops working, and associated attendance and chat history are deleted. |
+
+Ending a meeting is useful when the call should stop but the room and its history still matter. Reopening lets people use the same code again. Deleting is for removing the meeting and its associated records, not merely leaving today's session.
+
+Before deleting a scheduled meeting, check whether participants still have its link in an event or message. A previously copied link cannot follow a replacement room's new code.
 
 ## Decide who receives the link
 

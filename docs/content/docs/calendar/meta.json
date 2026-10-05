@@ -3,12 +3,17 @@
   "defaultOpen": true,
   "pages": [
     "index",
+    "events",
+    "views",
+    "categories",
     "recurring-events",
     "time-zones",
     "invitations",
     "reminders",
     "search",
     "ai",
+    "bookmarks",
+    "countdowns",
     "import-export"
   ]
 }

@@ -43,7 +43,7 @@ Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter zentra-
 Docs: `pnpm --filter @zntr/docs type-check` generates MDX and route types before
 checking TypeScript; `lint:check` uses the shared oxlint config. User-facing
 content lives in `docs/content/docs/`; keep behavior claims aligned with the
-source map in `docs/CONTENT-PLAN.md`.
+source map in `docs/README.md` under Content guide.
 
 Focused verification: `pnpm lint:check` (no-fix mode) or `pnpm build:check` (build + type-check for one app).
 

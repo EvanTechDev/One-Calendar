@@ -5,7 +5,7 @@ icon: Plug
 meta:
   contentType: How-to
   category: Integrations
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 The Model Context Protocol (MCP) lets AI clients use external tools. A client connected to Zentra Calendar can read or change data within the permissions you grant. Its authorization is separate from Calendar's built-in AI conversation.
@@ -20,6 +20,21 @@ Use the method your client supports.
 | API key | The client requires credentials to be entered manually. | API keys in MCP settings.                |
 
 For a client that only needs to read events, grant read access. Creating, updating, and deleting require the corresponding write permissions. A failed query is not a reason to grant every permission.
+
+## Match permissions to a workflow
+
+Permissions are grouped by the data the client can use. Reading events and changing settings are separate capabilities.
+
+| Resource   | Read access                        | Write access                         |
+| ---------- | ---------------------------------- | ------------------------------------ |
+| Events     | Inspect events and recurrence      | Create, update, or delete events     |
+| Categories | Inspect calendar organization      | Change categories                    |
+| Countdowns | Read milestones                    | Create, change, or delete countdowns |
+| Bookmarks  | Read bookmarked events             | Add or remove bookmarks              |
+| Settings   | Read preferences such as time zone | Change preferences                   |
+| Profile    | Read account profile information   | No profile-write scope is offered    |
+
+A planning assistant may need events and categories, while a read-only agenda client does not need write access. Review an authorization request against its purpose, including any request for continuing access.
 
 ## Connect a client
 
@@ -46,6 +61,14 @@ Ask for events in an explicit date range and confirm the client is connected to 
 </Step>
 </Steps>
 
+## Give the client an unambiguous task
+
+Start with a request such as `List my events from October 12 through October 16, including their time zones. Do not change anything.` Confirm both the returned account context and the date interpretation before requesting a write.
+
+For a change, identify the event and recurrence scope explicitly. `Move the October 14 review by 30 minutes; leave later occurrences unchanged` is more precise than `Move my review`. The client still needs the corresponding write permission.
+
+Do not paste an API key into a conversation to authorize a client. Configure it through the client's credential field, and keep Calendar's endpoint distinct from the documentation website's URL.
+
 ## Inspect actual execution
 
 External clients can call tools that modify data. Their confirmation behavior depends on the client; do not assume it matches the built-in assistant's deletion approval.
@@ -57,3 +80,17 @@ Review requests, tool calls, and failures in the MCP activity log. After a timeo
 When you stop using a client, revoke its authorized application or delete its API key. Disable the MCP master switch to stop external MCP access altogether.
 
 Revoking access blocks future calls. It does not undo completed changes. Locate affected events before deciding how to restore them.
+
+## Resolve a connection or permission failure
+
+Check the layer that failed before replacing credentials or broadening permissions.
+
+| Symptom                                      | Check                                                                        |
+| -------------------------------------------- | ---------------------------------------------------------------------------- |
+| The client cannot find a server              | The endpoint belongs to Calendar and ends in `/api/mcp`                      |
+| Authorization succeeds but calls are refused | MCP remains enabled and the application's grant or key is still active       |
+| Reading works but an edit fails              | The credential includes write access for that resource                       |
+| One resource works but another does not      | Events, categories, countdowns, bookmarks, and settings have separate scopes |
+| The client reports a timeout after a write   | Inspect Calendar and the activity log before repeating the operation         |
+
+Client configuration screens differ. Use the server address and authorization method your client supports rather than copying configuration intended for a different application.

@@ -5,7 +5,7 @@ icon: Bell
 meta:
   contentType: Reference
   category: Calendar
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 Reminders are scheduled relative to an event's start time. Choose how far in advance to be notified, then enable email for that event if needed. Email reminders require a reminder time.
@@ -19,9 +19,17 @@ The channels have different requirements, especially when Calendar is closed.
 | Browser | Notifications while using Calendar | Allow browser notifications. Do not rely on delivery when the page is closed or the device is asleep. |
 | Email   | A reminder in your inbox           | Enable email on the event. Daily sending limits apply.                                                |
 
+Browser reminders check events while Calendar is running. Notification permission controls the system notification; it does not turn the closed web page into a background reminder service. A browser can also restrict reminder sound independently of the visible notification.
+
+## Choose a useful lead time
+
+Set the reminder relative to the event's start, not its end. A reminder at the start and no reminder are different choices. Email delivery also requires a reminder lead time; turning email on without choosing a reminder is not a complete setup.
+
+Allow enough time for the action you need to take. A five-minute reminder may suit joining a call, while travel to an appointment may require a longer lead. Check whether that lead moves the sending date into the previous day.
+
 ## Account for the sending date
 
-Each user can schedule up to five reminder emails per day. The limit is counted on the date the reminder is due, in the user's time zone, rather than the event's date.
+You can schedule up to five reminder emails per day. Calendar counts them on the date each reminder is due in your time zone, rather than the event's date.
 
 For a Tuesday event at 00:30, a reminder one hour before uses Monday's allowance. If that date is full, change the reminder time or disable email for an event, then confirm the save succeeds.
 
@@ -31,8 +39,18 @@ Changing an event's time or recurrence scope, or deleting it, updates the relate
 
 Recurring events receive reminders for individual occurrences. Enabling reminders does not mean every future email in an unlimited series is queued immediately.
 
+## Return after missing a browser reminder
+
+Calendar checks for due reminders when it opens and periodically while it remains running. A reminder missed while the page was closed can appear when you return if it is still within its delivery window.
+
+The window lasts until the event starts, with a minimum of five minutes from the reminder's due time. This also lets an at-start reminder appear shortly after its scheduled time. It is not an all-day backlog of every notification you missed.
+
+For example, returning at 09:55 can still show a 09:50 reminder for a 10:00 event. Returning hours later does not replay that same reminder. Use email when delivery while the Calendar page is closed matters.
+
 ## Check a missing reminder
 
 For browser notifications, check site permissions, system notification settings, and whether the page is still running. For email, confirm that email is enabled on the event, the reminder time has passed, and the message is not in spam.
 
 If saving reports a daily limit, resolve the conflict for that sending date. Invitation emails to participants serve a different purpose from your event reminders.
+
+The two messages also have different audiences: adding participants sends invitations, while the event's reminder setting controls your reminder. Do not assume that enabling email reminders enrolls every participant in the same notification preference.

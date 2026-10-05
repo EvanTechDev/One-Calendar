@@ -5,7 +5,7 @@ icon: Monitor
 meta:
   contentType: How-to
   category: Meet
-  plan: /CONTENT-PLAN.md
+  plan: /README.md#content-guide
 ---
 
 Meeting layout controls what you see; audio and video settings affect what you send. Check devices before joining and choose the intended content before sharing to avoid interrupting a discussion.
@@ -16,17 +16,37 @@ When screen sharing starts, the meeting prioritizes the shared content. If you p
 
 If several people share and you see the wrong content, check your pinned tile and choose the share you need. Check the browser's sharing indicator to confirm which window or tab you are sending.
 
+Without an explicit pin, a newly started screen share takes priority in the main view. With a pin, your choice remains the focus. This lets you keep one speaker or presentation visible while other content changes.
+
+Pinning is not a presenter control for the group. If everyone needs to look at the same document, identify the intended share in the conversation; your own pin does not force their layouts to match.
+
+## Choose the content to broadcast
+
+Select the tab, window, or screen in the browser's sharing picker. Check what the chosen surface contains before starting, especially if it includes notifications or unrelated windows.
+
+Stopping the share changes what you broadcast. Closing chat, changing the grid, or pinning a different tile only changes your local interface. Use the sharing control or browser indicator when you want the broadcast to stop.
+
 ## Select the devices you will use
 
 Choose the camera and microphone on the pre-join screen, where the browser requests device permissions. Recheck the selection and preview after connecting a headset, changing cameras, or revoking a permission.
 
 System permissions and browser site permissions are separate. If the preview is unavailable, check both. Repeatedly joining the room does not restore a denied permission.
 
+For a new device, use the [pre-join checks](/docs/meet/joining#prepare-audio-and-video) to establish a baseline before enabling optional effects. This makes it easier to tell a permission or device-selection problem from a processing problem.
+
 ## Use noise cancellation and backgrounds
 
 Noise cancellation, background blur, and virtual backgrounds depend on browser and device support. Saved preferences apply after the relevant media is enabled. A browser that cannot apply an effect can still join with unprocessed audio or video.
 
 If video stutters or the device gets hot, turn background effects off and compare the result. A background preference does not produce a separate stream while your camera is off.
+
+| Preference         | Applies to                 | Check when it does not appear                                |
+| ------------------ | -------------------------- | ------------------------------------------------------------ |
+| Noise cancellation | Published microphone audio | Microphone is enabled and the browser supports the processor |
+| Background blur    | Published camera video     | Camera is enabled and processing is supported                |
+| Virtual background | Published camera video     | The image is available and the device can process it         |
+
+Saved preferences are applied when the relevant live track is available. A missing effect does not necessarily mean a failed join: Meet can continue with unprocessed media when applying the effect fails.
 
 ## Recover from a disconnection
 

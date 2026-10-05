@@ -1,0 +1,65 @@
+---
+title: Views and navigation
+description: Choose a planning horizon, navigate without losing context, and understand what filters and display settings change.
+icon: LayoutGrid
+meta:
+  contentType: Reference
+  category: Calendar
+  plan: /README.md#content-guide
+---
+
+Calendar's views show the same events at different scales. Choose a view for the question you need to answer: available time today, a week's commitments, or dates across a year. Switching views does not create, move, or delete events.
+
+## Choose a planning horizon
+
+Use a detailed time view for duration and overlap, and a broader view for distribution across dates.
+
+| View      | Useful for                                             | Follow up with                                      |
+| --------- | ------------------------------------------------------ | --------------------------------------------------- |
+| Day       | Reviewing one day's appointments and gaps              | Open an event to inspect its details                |
+| Four days | Comparing a short sequence of days                     | Check the start date of the displayed period        |
+| Week      | Balancing regular commitments and overlapping meetings | Review recurring events and category filters        |
+| Month     | Comparing busy dates and multi-day plans               | Open a date or event for precise times              |
+| Year      | Finding a date across a longer horizon                 | Switch to a detailed view before adjusting duration |
+
+Set the view you want to return to in Calendar settings. Changing the default view is a display preference, not a change to any event.
+
+## Navigate to a date or event
+
+Previous and next move by the current view's period. Today returns to the current date. Use search when you remember an event's content rather than its date; opening a result navigates to its occurrence.
+
+Category filters stay relevant when navigating. An empty month may mean the selected categories have no events there. Broaden the [category selection](/docs/calendar/categories) before concluding that an event has disappeared.
+
+Calendar initially loads roughly two years before and after the current month. Traveling farther requires another date range to load. If that request fails, use the retry control; an empty or loading view is not proof that events were deleted.
+
+## Set week and time preferences
+
+Choose Sunday, Monday, or Saturday as the first day of the week. This changes how you read the calendar grid; it does not redefine the dates of your events.
+
+Choose 12-hour or 24-hour time based on how you read a schedule. Changing that format does not change an event's time zone. Use the separate [time zone setting](/docs/calendar/time-zones) when comparing events in another region.
+
+## Navigate with the keyboard
+
+The command palette opens with `Cmd+K` on macOS or `Ctrl+K` on other platforms. It remains available even when plain-key shortcuts are disabled or AI is unavailable.
+
+Enable the following shortcuts in Calendar settings. They apply when you are not typing in an input or interacting with a focused dialog.
+
+| Key                 | Action                  |
+| ------------------- | ----------------------- |
+| `N`                 | Start a new event       |
+| `/`                 | Open event search       |
+| `T`                 | Return to today         |
+| `1`                 | Day view                |
+| `2`                 | Week view               |
+| `3`                 | Month view              |
+| `4`                 | Year view               |
+| `5`                 | Four-day view           |
+| Left or right arrow | Previous or next period |
+
+If a shortcut types a character instead of navigating, check where focus is. Calendar leaves ordinary typing alone. Within search, Enter has its own [query and selection behavior](/docs/calendar/search#switch-between-typing-and-selecting).
+
+## Distinguish visibility from availability
+
+Hiding a category only changes which events you see. It does not cancel those commitments or make their participants available. Likewise, a gap in a filtered view is not a guarantee that no event exists in a hidden category.
+
+Before choosing a time with other people, inspect the relevant categories and invitations. Calendar search finds records you can access; it is not a separate availability poll for every participant.
