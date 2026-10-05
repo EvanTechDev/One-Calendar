@@ -1,5 +1,3 @@
-const inflight = new Map<string, Promise<unknown>>()
-
 /**
  * A non-2xx response from one of our own API routes.
  *
@@ -33,53 +31,56 @@ export function messageOr(error: unknown, fallback: string): string {
     : fallback
 }
 
-export async function fetchJson<T>(
-  url: string,
-  init?: RequestInit,
-): Promise<T> {
-  const method = (init?.method ?? 'GET').toUpperCase()
-  const key = `${method}:${url}:${init?.body ? String(init.body) : ''}`
+/** Each host owns its in-flight reads; requests never cross host boundaries. */
+export function createJsonFetcher(request: typeof fetch) {
+  const inflight = new Map<string, Promise<unknown>>()
 
-  if (method === 'GET' && inflight.has(key)) {
-    return inflight.get(key) as Promise<T>
-  }
+  return async function fetchJson<T>(
+    url: string,
+    init?: RequestInit,
+  ): Promise<T> {
+    const method = (init?.method ?? 'GET').toUpperCase()
+    const key = `${method}:${url}:${init?.body ? String(init.body) : ''}`
 
-  const request = fetch(url, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...init?.headers,
-    },
-  }).then(async (response) => {
-    if (!response.ok) {
-      let message = `Request failed: ${response.status}`
-      let hasServerMessage = false
-      try {
-        const body = (await response.json()) as { error?: unknown }
-        if (typeof body?.error === 'string' && body.error.trim().length > 0) {
-          message = body.error
-          hasServerMessage = true
-        }
-      } catch {
-        // Non-JSON body — keep the status-code message.
-      }
-      throw new ApiError(message, response.status, hasServerMessage)
+    if (method === 'GET' && inflight.has(key)) {
+      return inflight.get(key) as Promise<T>
     }
-    return (await response.json()) as T
-  })
 
-  if (method === 'GET') {
-    inflight.set(key, request)
-    // `request.finally(...)` would build a SECOND promise from this one, and a
-    // rejected `request` rejects that derived promise too — with nothing
-    // attached to handle it, so every failed GET raised an unhandled rejection
-    // in the console and, under Node's default policy, could take the process
-    // down. Handlers passed to `then` compose the cleanup onto the original
-    // chain instead; neither arm throws, so the promise `then` returns is
-    // always fulfilled.
-    const release = () => inflight.delete(key)
-    request.then(release, release)
+    const pending = request(url, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...init?.headers,
+      },
+    }).then(async (response) => {
+      if (!response.ok) {
+        let message = `Request failed: ${response.status}`
+        let hasServerMessage = false
+        try {
+          const body = (await response.json()) as { error?: unknown }
+          if (typeof body?.error === 'string' && body.error.trim().length > 0) {
+            message = body.error
+            hasServerMessage = true
+          }
+        } catch {
+          // Non-JSON body — keep the status-code message.
+        }
+        throw new ApiError(message, response.status, hasServerMessage)
+      }
+      return (await response.json()) as T
+    })
+
+    if (method === 'GET') {
+      inflight.set(key, pending)
+      // A discarded `finally` promise would reject without a handler. Both
+      // cleanup branches here fulfill, even when the original request fails.
+      const release = () => inflight.delete(key)
+      pending.then(release, release)
+    }
+
+    return pending
   }
-
-  return request
 }
+
+// Resolve fetch at call time, preserving the browser host and existing callers.
+export const fetchJson = createJsonFetcher((input, init) => fetch(input, init))

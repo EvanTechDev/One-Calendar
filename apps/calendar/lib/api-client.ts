@@ -1,4 +1,7 @@
-import { fetchJson } from '@/lib/fetch-json'
+import {
+  createJsonFetcher,
+  fetchJson as webFetchJson,
+} from '@/lib/fetch-json'
 import type { CalendarColor } from '@/lib/calendar-colors'
 
 type EventInviteData = {
@@ -100,7 +103,7 @@ export type SettingsData = {
   skipLanding?: boolean
 }
 
-export const api = {
+const bindCalendarApi = (fetchJson: typeof webFetchJson) => ({
   events: {
     list: (params?: {
       startDate?: string
@@ -244,4 +247,11 @@ export const api = {
         body: JSON.stringify({ eventId }),
       }),
   },
+})
+
+export function createCalendarApi(request: typeof fetch) {
+  return bindCalendarApi(createJsonFetcher(request))
 }
+
+/** Browser compatibility entry while consumers migrate to the host interface. */
+export const api = bindCalendarApi(webFetchJson)
