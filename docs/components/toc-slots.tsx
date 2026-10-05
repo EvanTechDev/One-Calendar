@@ -103,6 +103,7 @@ export function TOCPopover({
         <CollapsibleTrigger
           {...trigger}
           data-toc-popover-trigger=""
+          aria-label="On this page"
           className={cn(
             'flex w-full h-10 items-center text-sm text-fd-muted-foreground gap-2.5 px-4 py-2.5 text-start focus-visible:outline-none [&_svg]:size-4 md:px-6',
             trigger?.className,
@@ -115,7 +116,7 @@ export function TOCPopover({
             }
             className={cn('shrink-0', open && 'text-fd-primary')}
           />
-          <span className="grid flex-1 *:my-auto *:row-start-1 *:col-start-1">
+          <span className="grid min-w-0 flex-1 *:my-auto *:row-start-1 *:col-start-1">
             <span
               className={cn(
                 'truncate transition-[opacity,translate,color]',
@@ -142,7 +143,7 @@ export function TOCPopover({
           />
         </CollapsibleTrigger>
         <CollapsibleContent data-toc-popover-content="" {...content}>
-          <div className="flex flex-col px-4 max-h-[50vh] md:px-6">
+          <div className="docs-toc-popover-body flex flex-col px-4 max-h-[50vh] md:px-6">
             {header}
             <TOCScrollArea>
               <TOCItems {...list}>
@@ -176,6 +177,7 @@ function ProgressCircle({
   return (
     <svg
       role="progressbar"
+      aria-label="Reading progress"
       viewBox="0 0 18 18"
       aria-valuenow={progress}
       aria-valuemin={0}

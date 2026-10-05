@@ -620,9 +620,13 @@ aside p.inline-flex {
 }
 
 @media (max-width: 767px) {
+  #nd-docs-layout.zentra-docs:has([data-toc-popover]) {
+    --fd-toc-popover-height: 44px;
+  }
   .docs-toolbar {
-    padding: 0 16px;
-    gap: 10px;
+    padding-inline: max(12px, env(safe-area-inset-left))
+      max(12px, env(safe-area-inset-right));
+    gap: 8px;
   }
   .docs-menu,
   .docs-mobile-search {
@@ -631,37 +635,147 @@ aside p.inline-flex {
   .docs-toolbar .docs-open-app {
     display: none;
   }
-  .page-copy-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
+  .docs-menu,
+  .docs-search,
+  .docs-theme,
+  .page-actions-menu {
+    width: 44px;
+    height: 44px;
+    padding: 11px;
+  }
+  .docs-search svg,
+  .docs-theme svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* Copy stays available inside the supplied menu without a second trigger. */
+  .page-actions-copy,
+  .page-actions-divider {
+    display: none;
+  }
+  .page-actions {
+    border: 0;
+  }
+  .page-actions-menu {
+    justify-content: center;
+    border: 1px solid var(--color-fd-border);
+    border-radius: 6px;
+  }
+  .page-actions-popover {
+    max-width: calc(100vw - 24px);
+    max-height: min(
+      var(--radix-popover-content-available-height),
+      calc(100dvh - 80px)
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .page-actions-popover :is(a, button) {
+    min-height: 44px;
   }
   .docs-toolbar-actions {
-    gap: 6px;
-  }
-  .docs-open-app {
-    padding-inline: 10px;
+    gap: 4px;
   }
   .docs-breadcrumb {
+    flex: 1;
     font-size: 13px;
   }
+  #nd-sidebar-mobile {
+    width: min(90vw, 360px);
+    height: 100dvh;
+  }
+  #nd-sidebar-mobile > div:first-child {
+    padding: max(6px, env(safe-area-inset-top)) 16px 6px;
+    border-bottom: 1px solid var(--color-fd-border);
+  }
+  #nd-sidebar-mobile > div:first-child button {
+    width: 44px;
+    height: 44px;
+  }
+  #nd-sidebar-mobile [data-radix-scroll-area-viewport] {
+    padding: 24px 20px;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 24px,
+      #000 calc(100% - 24px),
+      transparent
+    );
+    scroll-padding-block: 24px;
+  }
+  #nd-sidebar-mobile
+    [data-radix-scroll-area-viewport]
+    :is(a, button[aria-expanded]) {
+    min-height: 44px;
+    padding-block: 11px;
+  }
+  #nd-sidebar-mobile > div:last-child {
+    padding: 12px 20px max(12px, env(safe-area-inset-bottom));
+  }
+  #nd-sidebar-mobile .docs-resources a {
+    min-height: 44px;
+    padding-block: 11px;
+  }
+  [data-toc-popover-trigger] {
+    height: 44px;
+    padding-inline: 20px;
+  }
+  [data-toc-popover-content] .docs-toc-popover-body {
+    padding-inline: 20px;
+    max-height: min(
+      60dvh,
+      calc(100dvh - var(--fd-header-height) - 44px - 16px)
+    );
+  }
+  [data-toc-popover-content] a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding-block: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
   #nd-page {
-    padding: 32px 20px 48px;
+    padding: 28px max(20px, env(safe-area-inset-right))
+      max(40px, env(safe-area-inset-bottom))
+      max(20px, env(safe-area-inset-left));
   }
   #nd-page > .docs-pagination {
     margin-top: 32px;
   }
   #nd-page > h1 {
     font-size: 28px;
+    margin-bottom: 16px;
   }
   #nd-page.docs-home > h1 {
     font-size: 34px;
   }
   #nd-page > p {
-    margin-bottom: 36px;
+    margin-bottom: 28px;
     font-size: 15px;
+  }
+  #nd-page .prose h2 {
+    margin-top: 36px;
+    font-size: 22px;
+  }
+  #nd-page .prose h2:first-child {
+    margin-top: 0;
+  }
+  /* The supplied MDX table wrapper owns scrolling, not the article column. */
+  #nd-page .prose div:has(> table) {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  #nd-page .prose table {
+    min-width: 480px;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: normal;
+  }
+  #nd-page .docs-pagination {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
   .topic-grid {
     gap: 12px;
@@ -676,7 +790,7 @@ aside p.inline-flex {
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 600px) {
   .topic-grid {
     grid-template-columns: 1fr;
   }
@@ -685,8 +799,13 @@ aside p.inline-flex {
   }
   .topic-card-art {
     min-height: 0;
-    width: 64px;
+    width: 60px;
+    padding: 18px;
     flex-shrink: 0;
+  }
+  .topic-card-art svg {
+    width: 22px;
+    height: 22px;
   }
   .topic-card-copy {
     border-top: 0;

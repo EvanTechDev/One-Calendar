@@ -125,26 +125,26 @@ export function PageActions({
 
   return (
     <Popover>
-      <div className="inline-flex items-center rounded-md border border-fd-border text-sm [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground">
+      <div className="page-actions inline-flex items-center rounded-md border border-fd-border text-sm [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground">
         <button
           disabled={isLoading}
           onClick={onCopy}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer rounded-l-[5px] hover:bg-fd-accent hover:text-fd-accent-foreground"
+          className="page-actions-copy inline-flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer rounded-l-[5px] hover:bg-fd-accent hover:text-fd-accent-foreground"
         >
           {checked ? <Check /> : <Copy />}
           <span className="page-copy-label">
             {checked ? 'Copied!' : 'Copy page'}
           </span>
         </button>
-        <span className="w-px self-stretch bg-fd-border" />
+        <span className="page-actions-divider w-px self-stretch bg-fd-border" />
         <PopoverTrigger
           aria-label="More page actions"
-          className="inline-flex items-center self-stretch px-1.5 cursor-pointer rounded-r-[5px] hover:bg-fd-accent hover:text-fd-accent-foreground"
+          className="page-actions-menu inline-flex items-center self-stretch px-1.5 cursor-pointer rounded-r-[5px] hover:bg-fd-accent hover:text-fd-accent-foreground"
         >
           <ChevronDown />
         </PopoverTrigger>
       </div>
-      <PopoverContent className="flex flex-col">
+      <PopoverContent className="page-actions-popover flex flex-col">
         <button
           disabled={isLoading}
           className="text-sm p-2 rounded-lg flex items-start gap-2 text-start hover:text-fd-accent-foreground hover:bg-fd-accent [&_svg]:size-4 [&_svg]:mt-0.5 [&_svg]:shrink-0"

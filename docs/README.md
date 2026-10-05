@@ -14,7 +14,7 @@ For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Mark
 
 Use the layout from commit `1cc1b28` with a compact type scale: a fixed navigation column, a top toolbar, an article column, and a right-hand table of contents. Keep the current neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
 
-The toolbar and sidebar header share a 56px height. Search and theme buttons are 32px with 15px icons. Sidebar groups and document links share a 14px font, with 4px between groups and 4px before their document lists. Article text is 15px; the right-hand table of contents uses 12px text. It appears from 1100px wide, including 1200×720 screens; narrower screens use the top popover. Between 1100px and 1279px, the navigation and TOC columns narrow to leave room for the article. Keep this breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile. Its cards show Previous or Next followed by the article title, using the template's existing footer component.
+The toolbar and sidebar header share a 56px height. Desktop search and theme buttons are 32px with 15px icons. Sidebar groups and document links share a 14px font, with 4px between groups and 4px before their document lists. Article text is 15px; the right-hand table of contents uses 12px text. It appears from 1100px wide, including 1200×720 screens; narrower screens use the top popover. Between 1100px and 1279px, the navigation and TOC columns narrow to leave room for the article. Keep this breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile. Its cards show Previous or Next followed by the article title, using the template's existing footer component.
 
 The TOC reserves its full width in the grid: 292px below 1280px and 334px on larger desktop screens, with 12px of trailing padding. The sidebar is 304px wide, narrows to 272px between 1100px and 1279px, and grows to 324px from 1600px. Adjust grid widths rather than translating the TOC over the article. The article and its body can shrink within their column, keeping text separate from the TOC.
 
@@ -23,6 +23,10 @@ The TOC reserves its full width in the grid: 292px below 1280px and 334px on lar
 The sidebar omits the home page from its document list; the top Docs wordmark links to `/docs`. Its resource links are Docs, GitHub, and Report an issue; Open app remains in the toolbar. A soft mask fades scrolling labels over 32px at the top and 48px at the bottom, blending into the fixed header and resource links. Matching vertical padding keeps the first and last rows clear when scrolled to either end.
 
 `components/toc.tsx` and `components/toc-slots.tsx` preserve the straight-line table of contents from the template's Fumadocs UI 16.8.1, including its mobile popover. The current library's default TOC uses a different animated track, so use these local slots rather than switching back to that default. Their upstream MIT notice is in `components/toc.LICENSE`.
+
+Below 768px, toolbar controls, navigation rows, and TOC links have 44px touch targets. Copy page remains in the existing page-actions menu; its separate toolbar button is hidden to leave space for the current title. The navigation drawer uses the dynamic viewport height, a shorter 24px edge fade, and safe-area padding. The mobile TOC row is 44px tall, with its open list constrained to the available screen height. Keep its reserved grid height and trigger height in sync.
+
+At 600px and below, home cards become single-column horizontal links. Mobile articles use tighter heading spacing, locally scrolling tables, and stacked previous/next cards. Keep wide content inside its own scroll container rather than hiding article overflow.
 
 ## Content guide
 
