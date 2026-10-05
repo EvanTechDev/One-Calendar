@@ -221,10 +221,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   bookmarksRef.current = bookmarks
 
   const refreshEvents = useCallback(
-    () =>
-      mutate(isEventRangeKey, undefined, { revalidate: true }).then(
-        () => undefined,
-      ),
+    // Supplying an explicit data argument starts another SWR mutation, even
+    // when it is undefined. That would end an in-flight DELETE's protection
+    // against stale GET responses. Omitting data requests revalidation only.
+    () => mutate(isEventRangeKey).then(() => undefined),
     [mutate],
   )
   const refreshCategories = useCallback(
