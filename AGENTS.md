@@ -2,7 +2,7 @@
 
 ## Monorepo structure
 
-pnpm workspace + Turborepo. Package manager: `pnpm@11.5.2`.
+pnpm workspace. Package manager: `pnpm@11.5.2`.
 
 ```
 apps/
@@ -24,13 +24,18 @@ Apps never import each other. Code shared between calendar and meet lives in
 
 ## Essential commands (run from root)
 
-| Command           | What it does                                  |
-| ----------------- | --------------------------------------------- |
-| `pnpm dev`        | Start all dev servers                         |
-| `pnpm build`      | Full build (i18n generate → mdx → next build) |
-| `pnpm lint`       | oxlint via turbo (runs per-package)           |
-| `pnpm type-check` | `tsc --noEmit` across all packages            |
-| `pnpm test`       | `vitest run` across all packages              |
+| Command           | What it does                                             |
+| ----------------- | -------------------------------------------------------- |
+| `pnpm dev`        | Start all dev servers in parallel                        |
+| `pnpm build`      | Generate i18n, then build workspaces in dependency order |
+| `pnpm lint`       | Run oxlint in each workspace                             |
+| `pnpm type-check` | Run each workspace's type check                          |
+| `pnpm test`       | Run tests in workspaces that define a test script        |
+
+Root scripts use `pnpm -r run`; the workspace root is excluded to avoid
+recursion. Builds and checks run one workspace at a time to bound resource use;
+development servers use `--parallel`. Workspaces without a script are skipped.
+The calendar's own build script generates i18n and MDX before `next build`.
 
 Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter zentra-calendar dev`.
 
@@ -76,7 +81,8 @@ silence.
 
 `packages/i18n/` — source locale JSON + Node scripts `src/gen-locales.mjs` / `src/cleanup-i18n.mjs`.  
 Generate: `pnpm generate:i18n` (must run before build).  
-Triggered automatically via turbo `build` task dependency.
+The root `build` script generates locales before building the workspaces. The
+calendar's build script also generates them when building that app directly.
 
 ## Database
 
@@ -105,6 +111,11 @@ in application code. The intra-package relations (`meeting_session`,
 
 Better Auth with drizzle adapter. Config at `apps/calendar/lib/auth.ts` + `lib/auth/`.  
 Env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Optional: `BETTER_AUTH_API_KEY`, Turnstile keys.
+
+Better Auth 1.7.3+ no longer writes `account.issuer`. Apply
+`apps/calendar/drizzle/0022_relax_legacy_account_issuer.sql` before deploying
+the 1.7.7 packages in either app. The legacy column stays nullable; account
+identity is enforced by the existing `(providerId, accountId)` unique index.
 
 Meet has no sign-in surface of its own: it reads the session the calendar
 established and links there to authenticate. That requires `AUTH_COOKIE_DOMAIN`

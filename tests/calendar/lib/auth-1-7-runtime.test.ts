@@ -76,9 +76,7 @@ describe.skipIf(!available)('Better Auth 1.7 against the real schema', () => {
     'reads a session for an anonymous request',
     { timeout: DB_TIMEOUT },
     async () => {
-      // The operation every page performs. On 1.7 it touches `account` through the
-      // adapter, so a missing or mistyped `issuer` column surfaces here rather
-      // than in production.
+      // The operation every page performs, using the real adapter/schema.
       const { auth } = await import('@/lib/auth/index')
       const result = await auth.api.getSession({ headers: new Headers() })
       expect(result).toBeNull()
@@ -86,21 +84,24 @@ describe.skipIf(!available)('Better Auth 1.7 against the real schema', () => {
   )
 
   it(
-    'lists accounts for a real user without erroring on the new identity',
+    'reads existing provider/account identities without relying on legacy issuer',
     { timeout: DB_TIMEOUT },
     async () => {
-      // Exercises the account table specifically. 1.7 resolves identity by
-      // (issuer, accountId); if the backfill were wrong this is where it shows.
+      // Since 1.7.3 the identity is (providerId, accountId). New rows omit
+      // issuer; existing values may remain after the compatibility migration.
       const { getDb } = await import('@/lib/drizzle/client')
       const db = getDb()
       const rows = await db.execute(
-        `select issuer, "accountId", "userId" from account limit 5`,
+        `select "providerId", "accountId", "userId" from account limit 5`,
       )
       const list = Array.isArray(rows) ? rows : ((rows as any).rows ?? [])
       expect(list.length).toBeGreaterThan(0)
       for (const row of list) {
-        expect(row.issuer).toBe('local:credential')
-        expect(row.accountId).toBe(row.userId)
+        expect(row.providerId).toEqual(expect.any(String))
+        expect(row.accountId).toEqual(expect.any(String))
+        if (row.providerId === 'credential') {
+          expect(row.accountId).toBe(row.userId)
+        }
       }
     },
   )

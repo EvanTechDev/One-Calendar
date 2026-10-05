@@ -23,11 +23,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai": "7.0.92",
-    "zod": "4.4.3"
+    "ai": "7.0.127",
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "@ai-sdk/groq": "4.0.37",
+    "@ai-sdk/groq": "4.0.54",
     "@types/node": "25.6.0",
     "vitest": "^4.1.10"
   }

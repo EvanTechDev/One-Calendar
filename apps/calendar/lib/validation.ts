@@ -21,10 +21,11 @@ const colorRegex = new RegExp(
   `^(?:${hexColor}|${paletteColor}|bg-\\[${hexColor}\\])$`,
 )
 
-const dateTimeString = z
-  .string()
-  .datetime({ offset: true })
-  .or(z.string().datetime())
+// Zod 4.5+ requires seconds by default; retain our minute-precision inputs.
+const dateTimeString = z.union([
+  z.iso.datetime({ offset: true }),
+  z.iso.datetime({ offset: true, precision: -1 }),
+])
 
 // Countdowns POST targetDate as "YYYY-MM-DD" (no time component).
 const dateOnlyString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)

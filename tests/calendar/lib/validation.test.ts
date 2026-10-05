@@ -32,6 +32,26 @@ describe('eventSchema', () => {
     expect(eventSchema.safeParse(validEvent()).success).toBe(true)
   })
 
+  it.each([
+    '2026-08-13T09:00Z',
+    '2026-08-13T09:00+08:00',
+    '2026-08-13T09:00:00Z',
+    '2026-08-13T09:00:00.123+08:00',
+  ])('preserves supported datetime precision: %s', (startDate) => {
+    expect(eventSchema.parse({ ...validEvent(), startDate }).startDate).toBe(
+      startDate,
+    )
+  })
+
+  it.each(['2026-08-13T09:00', '2026-02-30T09:00Z'])(
+    'rejects ambiguous or impossible datetimes: %s',
+    (startDate) => {
+      expect(
+        eventSchema.safeParse({ ...validEvent(), startDate }).success,
+      ).toBe(false)
+    },
+  )
+
   it('accepts the client color formats (tailwind class, arbitrary value, hex)', () => {
     for (const color of [
       'bg-blue-500',

@@ -28,6 +28,16 @@ const compile = (fields: Partial<RawSearchQuery>) =>
   sanitizeSearchQuery({ ...empty, ...fields }, context)
 
 describe('search compilation never silently removes a constraint', () => {
+  it.each([
+    '2026-08-13T09:00Z',
+    '2026-08-13T09:00+08:00',
+    '2026-08-13T09:00:00Z',
+    '2026-08-13T09:00:00.123+08:00',
+  ])('keeps existing search tokens valid with datetime %s', (start) => {
+    const query = { concepts: [], start, order: 'relevance', browse: false }
+    expect(resolvedSearchQuerySchema.parse(query)).toEqual(query)
+  })
+
   it('keeps the strict gateway contract with all keys required', () => {
     const schema = toJSONSchema(searchQuerySchema)
     expect(schema.additionalProperties).toBe(false)

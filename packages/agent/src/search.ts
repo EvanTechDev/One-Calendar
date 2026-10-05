@@ -63,7 +63,11 @@ const term = z.string().trim().min(1).max(80)
 const compiledConceptsSchema = z.array(z.array(term).min(1).max(12)).max(8)
 // The original twelve alternatives and twelve recovery expressions can coexist.
 export const searchConceptsSchema = z.array(z.array(term).min(1).max(24)).max(8)
-const instant = z.iso.datetime({ offset: true })
+// Accept existing sealed search plans with minute precision after Zod 4.5.
+const instant = z.union([
+  z.iso.datetime({ offset: true }),
+  z.iso.datetime({ offset: true, precision: -1 }),
+])
 export const resolvedSearchQuerySchema = z
   .object({
     concepts: searchConceptsSchema,

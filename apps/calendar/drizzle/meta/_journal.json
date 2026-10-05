@@ -43,6 +43,13 @@
       "when": 1789174800000,
       "tag": "0013_two_factor_lockout_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791158400000,
+      "tag": "0022_relax_legacy_account_issuer",
+      "breakpoints": true
     }
   ]
 }
