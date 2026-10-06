@@ -66,7 +66,6 @@ const mount = (
 
 beforeEach(() => {
   vi.clearAllMocks()
-  delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 })
 
 describe('the provider', () => {
@@ -159,13 +158,6 @@ describe('LoginForm', () => {
     )
     expect(hrefs).toContain('/join')
     expect(hrefs).toContain('/forgot')
-  })
-
-  it('omits the CAPTCHA widget when no site key is configured', () => {
-    // The server half fails open to match. A widget with no key is a challenge
-    // that can never be solved.
-    mount(<LoginForm />)
-    expect(document.querySelector('iframe')).toBeNull()
   })
 })
 

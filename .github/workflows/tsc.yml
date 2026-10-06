@@ -25,6 +25,14 @@ on:
         description: Build Next and verify its actual CSS against shared UI surfaces
         type: boolean
         default: false
+      auth_build:
+        description: Build both Next authentication hosts
+        type: boolean
+        default: false
+      botid_origin:
+        description: Optional Vercel origin for real BotID browser/API verification
+        type: string
+        required: false
       desktop_environment:
         description: Optionally build the four desktop installer targets
         required: false
@@ -48,6 +56,57 @@ permissions:
   contents: read
 
 jobs:
+  botid-live:
+    if: ${{ inputs.botid_origin != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
+      - run: node tests/auth/bot-id-browser.mjs
+        env:
+          BOTID_ORIGIN: ${{ inputs.botid_origin }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: botid-browser-${{ github.sha }}
+          path: artifacts/bot-id
+  auth-build:
+    if: ${{ inputs.auth_build }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [zentra-calendar, zentra-meet]
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_BASE_URL: https://calendar.example
+      BETTER_AUTH_URL: https://calendar.example
+      BETTER_AUTH_SECRET: isolated-build-only-not-a-deployment-secret
+      POSTGRES_URL: postgres://build:build@127.0.0.1:5432/build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter ${{ matrix.app }} build
   installed-update:
     if: ${{ inputs.updater_environment != 'none' && inputs.updater_environment != '' }}
     uses: ./.github/workflows/desktop-update-check.yml

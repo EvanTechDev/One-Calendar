@@ -41,7 +41,9 @@ vi.mock('@/lib/auth/client', () => ({
     }),
     updateUser: vi.fn(async () => ({ data: {}, error: null })),
     signOut: vi.fn(async () => ({ data: {}, error: null })),
-    $store: { atoms: { session: { get: () => ({ refetch: async () => {} }) } } },
+    $store: {
+      atoms: { session: { get: () => ({ refetch: async () => {} }) } },
+    },
   },
 }))
 
@@ -232,9 +234,8 @@ describe('dashboard SettingsDialog', () => {
 
   it('mounts the shared account panel rather than a link to the calendar', () => {
     // This used to assert the opposite — a card linking out, and NO form —
-    // because meet's auth route exposed no account mutation and every change had
-    // to happen where the CAPTCHA and audit logging lived. Both moved into
-    // @zntr/auth, so meet performs them itself now (ADR 0022).
+    // because Meet's auth route exposed no account mutations. The shared package
+    // now provides both account controls and API bot verification (ADR 0022).
     open()
     fireEvent.click(
       within(sectionNav()).getByRole('button', { name: 'Account' }),

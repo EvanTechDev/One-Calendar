@@ -1,6 +1,5 @@
 'use client'
 
-import { Turnstile } from '@marsidev/react-turnstile'
 import { useState } from 'react'
 import type React from 'react'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
@@ -35,67 +34,29 @@ export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
   const [notice, setNotice] = useState('')
-  const [turnstileToken, setTurnstileToken] = useState('')
-  const [captchaVersion, setCaptchaVersion] = useState(0)
-  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
-  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !isCaptchaCompleted)
-      return setError('Please complete the CAPTCHA verification.')
     setIsLoading(true)
     setError('')
     setNotice('')
     const requestBody = {
       email,
       redirectTo: routes.resetPassword,
-      ...(turnstileToken ? { turnstileToken } : {}),
     }
     const res = await authClient.requestPasswordReset(requestBody)
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
-      setTurnstileToken('')
-      setIsCaptchaCompleted(false)
-      setCaptchaVersion((value) => value + 1)
-    }
     if (!res.error) {
       setDone(true)
       setNotice('Reset email sent. Please check your inbox.')
       setIsLoading(false)
       return
     }
-    const fallbackBody = JSON.stringify(requestBody)
-    const fallbackEndpoints = [
-      '/api/auth/forget-password',
-      '/api/auth/forgot-password',
-      '/api/auth/request-password-reset',
-    ]
-    let fallbackSucceeded = false
-    for (const endpoint of fallbackEndpoints) {
-      try {
-        const fallback = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: fallbackBody,
-        })
-        if (fallback.ok) {
-          fallbackSucceeded = true
-          break
-        }
-      } catch {}
-    }
-    if (fallbackSucceeded) {
-      setDone(true)
-      setNotice('Reset email sent. Please check your inbox.')
-    } else setError(res.error.message || 'An error occurred. Please try again.')
+    setError(res.error.message || 'An error occurred. Please try again.')
     setIsLoading(false)
   }
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !isCaptchaCompleted)
-      return setError('Please complete the CAPTCHA verification.')
     if (password !== confirmPassword) return setError('Passwords do not match.')
     setIsLoading(true)
     setError('')
@@ -211,37 +172,11 @@ export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
             />
           </div>
         )}
-        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-          <Turnstile
-            key={captchaVersion}
-            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-            options={{ size: 'flexible' }}
-            onSuccess={(solvedToken) => {
-              setTurnstileToken(solvedToken)
-              setIsCaptchaCompleted(true)
-            }}
-            onExpire={() => {
-              setTurnstileToken('')
-              setIsCaptchaCompleted(false)
-              setError('CAPTCHA expired. Please complete it again.')
-            }}
-            onError={() => {
-              setTurnstileToken('')
-              setIsCaptchaCompleted(false)
-              setError('CAPTCHA initialization failed. Please try again.')
-            }}
-          />
-        )}
         {!isTokenFlow && notice ? (
           <div className="text-sm text-emerald-600">{notice}</div>
         ) : null}
         {error && <div className="text-sm text-red-500">{error}</div>}
-        <Button
-          type="submit"
-          size="lg"
-          disabled={isLoading || !isCaptchaCompleted}
-          className="mt-2"
-        >
+        <Button type="submit" size="lg" disabled={isLoading} className="mt-2">
           {isLoading
             ? isTokenFlow
               ? 'Updating...'

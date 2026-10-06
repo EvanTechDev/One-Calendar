@@ -18,6 +18,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "botid": "1.5.11",
     "@zntr/calendar-ui": "workspace:*",
     "@ai-sdk/groq": "4.0.54",
     "@ai-sdk/react": "4.0.130",

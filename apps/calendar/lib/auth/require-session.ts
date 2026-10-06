@@ -18,9 +18,7 @@ import type { AuthSession } from '@zntr/auth'
  * to someone who is not.
  *
  * Fails CLOSED: an error reading the session throws rather than continuing.
- * That is the opposite of the CAPTCHA check's posture, for the opposite reason —
- * there, failing open costs a bot defence; here, failing open costs access
- * control.
+ * A storage failure must never grant access to the application.
  */
 export async function requireAppSession(
   returnTo?: string,

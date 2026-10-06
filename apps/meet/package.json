@@ -15,6 +15,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "botid": "1.5.11",
     "@livekit/components-react": "2.9.24",
     "@livekit/krisp-noise-filter": "0.4.4",
     "@livekit/track-processors": "^0.8.1",

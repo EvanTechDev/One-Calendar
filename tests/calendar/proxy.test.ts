@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { describe, expect, it } from 'vitest'
 import { NextRequest } from 'next/server'
 import proxy, { getCsp, isCspExemptPath } from '@/proxy'
+import { BOT_ID_PROXY_PREFIX } from '@zntr/auth/bot-policy'
 
 // The contract under test: Next extracts the nonce from the request CSP header
 // with exactly this regex (see get-script-nonce-from-header.js).
@@ -34,6 +35,18 @@ describe('getCsp nonce format', () => {
 })
 
 describe('isCspExemptPath', () => {
+  it('lets BotID own its same-origin challenge framing policy', () => {
+    const path = `${BOT_ID_PROXY_PREFIX}challenge.v2.min.js`
+    expect(isCspExemptPath(path)).toBe(true)
+    expect(isCspExemptPath('/149e9513-01fa-4fb0-aad4-566afd725d1b/other')).toBe(
+      false,
+    )
+    expect(
+      proxy(new NextRequest(`https://calendar.example${path}`)).headers.get(
+        'Content-Security-Policy',
+      ),
+    ).toBeNull()
+  })
   it('exempts API routes and static assets', () => {
     expect(isCspExemptPath('/api/events')).toBe(true)
     expect(isCspExemptPath('/_next/static/chunk.js')).toBe(true)

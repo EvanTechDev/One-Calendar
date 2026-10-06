@@ -140,7 +140,13 @@ in application code. The intra-package relations (`meeting_session`,
 ## Auth
 
 Better Auth with drizzle adapter. Config at `apps/calendar/lib/auth.ts` + `lib/auth/`.  
-Env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Optional: `BETTER_AUTH_API_KEY`, Turnstile keys.
+Env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Optional: `BETTER_AUTH_API_KEY`.
+Browser credential and mail-sending routes use Vercel BotID Basic. Both apps
+initialize its client in `instrumentation-client.ts` and verify in the auth API
+through `@zntr/auth/bot-id`; shared routes live in `@zntr/auth/bot-policy`.
+Verification errors return 503 and detected bots return 403. Production requires
+Vercel's request/OIDC context; there is no missing-key bypass. OAuth token exchange
+and native desktop requests do not require browser BotID instrumentation.
 
 Better Auth 1.7.3+ no longer writes `account.issuer`. Apply
 `apps/calendar/drizzle/0022_relax_legacy_account_issuer.sql` before deploying

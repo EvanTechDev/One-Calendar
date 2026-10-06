@@ -1,6 +1,5 @@
 'use client'
 
-import { Turnstile } from '@marsidev/react-turnstile'
 import { useState } from 'react'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 
@@ -35,10 +34,6 @@ export function LoginForm({ returnTo }: LoginFormProps) {
   const [isVerifyingTotp, setIsVerifyingTotp] = useState(false)
   const [trustDevice, setTrustDevice] = useState(false)
   const [error, setError] = useState('')
-  const [isCaptchaCompleted, setIsCaptchaCompleted] = useState(
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? false : true,
-  )
-  const [turnstileToken, setTurnstileToken] = useState('')
 
   /**
    * `returnTo` may point at the sibling meet app, which the Next router
@@ -60,17 +55,13 @@ export function LoginForm({ returnTo }: LoginFormProps) {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !isCaptchaCompleted)
-      return setError('Please complete the CAPTCHA verification.')
     setIsLoading(true)
     setError('')
 
-    type SignInEmailInput = Parameters<typeof authClient.signIn.email>[0]
     const res = await authClient.signIn.email({
       email,
       password,
-      turnstileToken,
-    } as SignInEmailInput & { turnstileToken: string })
+    })
     if (res.error) {
       const message = res.error.message || ''
       if (
@@ -217,32 +208,8 @@ export function LoginForm({ returnTo }: LoginFormProps) {
               </button>
             </div>
           </div>
-          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-            <Turnstile
-              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-              options={{ size: 'flexible' }}
-              onSuccess={(token) => {
-                setTurnstileToken(token)
-                setIsCaptchaCompleted(true)
-              }}
-              onExpire={() => {
-                setTurnstileToken('')
-                setIsCaptchaCompleted(false)
-              }}
-              onError={() => {
-                setTurnstileToken('')
-                setIsCaptchaCompleted(false)
-                setError('CAPTCHA initialization failed. Please try again.')
-              }}
-            />
-          )}
           {error && <div className="text-sm text-red-500">{error}</div>}
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isLoading || !isCaptchaCompleted}
-            className="mt-2"
-          >
+          <Button type="submit" size="lg" disabled={isLoading} className="mt-2">
             {isLoading ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>

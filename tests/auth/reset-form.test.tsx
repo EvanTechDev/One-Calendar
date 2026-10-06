@@ -7,14 +7,6 @@ import {
   type AuthFormContextValue,
 } from '@zntr/auth/forms'
 
-vi.mock('@marsidev/react-turnstile', () => ({
-  Turnstile: (props: { onSuccess: (token: string) => void }) => (
-    <button type="button" onClick={() => props.onSuccess('solved-reset-token')}>
-      Solve CAPTCHA
-    </button>
-  ),
-}))
-
 const requestPasswordReset = vi.fn(async () => ({ data: {}, error: null }))
 const resetPassword = vi.fn(async () => ({ data: {}, error: null }))
 
@@ -37,15 +29,14 @@ const value = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = 'site-key'
 })
 
 afterEach(() => {
-  delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  vi.unstubAllGlobals()
 })
 
-describe('ResetPasswordForm CAPTCHA contract', () => {
-  it('forwards the solved token to password recovery', async () => {
+describe('ResetPasswordForm recovery requests', () => {
+  it('submits recovery through the instrumented auth client', async () => {
     render(
       <AuthFormProvider value={value}>
         <ResetPasswordForm />
@@ -54,21 +45,19 @@ describe('ResetPasswordForm CAPTCHA contract', () => {
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'ada@example.com' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Solve CAPTCHA' }))
     fireEvent.click(screen.getByRole('button', { name: /send reset email/i }))
 
     await waitFor(() => expect(requestPasswordReset).toHaveBeenCalledTimes(1))
     expect(requestPasswordReset).toHaveBeenCalledWith({
       email: 'ada@example.com',
       redirectTo: '/reset-password',
-      turnstileToken: 'solved-reset-token',
     })
   })
 
-  it('includes the token in compatible fallback requests', async () => {
+  it('does not retry a rejected request through alternate endpoints', async () => {
     requestPasswordReset.mockResolvedValueOnce({
       data: null,
-      error: { message: 'primary unavailable' },
+      error: { message: 'Bot verification failed', status: 403 },
     } as never)
     const fetchMock = vi.fn(async () => new Response(null, { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
@@ -80,16 +69,10 @@ describe('ResetPasswordForm CAPTCHA contract', () => {
     fireEvent.change(screen.getByLabelText(/email/i), {
       target: { value: 'ada@example.com' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Solve CAPTCHA' }))
     fireEvent.click(screen.getByRole('button', { name: /send reset email/i }))
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    const request = fetchMock.mock.calls[0]!
-    expect(
-      JSON.parse((request[1] as RequestInit).body as string),
-    ).toMatchObject({
-      turnstileToken: 'solved-reset-token',
-    })
-    vi.unstubAllGlobals()
+    await screen.findByText('Bot verification failed')
+    expect(requestPasswordReset).toHaveBeenCalledTimes(1)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

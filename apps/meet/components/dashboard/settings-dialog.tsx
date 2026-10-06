@@ -171,9 +171,7 @@ export function SettingsDialog({
                   <PreferencesSettings />
                 </div>
                 <div data-section="account" hidden={section !== 'account'}>
-                  {/* The same panel the calendar mounts. Meet used to show a card
-                      linking there, because every mutation needed the CAPTCHA and
-                      audit logging that only lived in that app (ADR 0022). */}
+                  {/* Shared account controls, backed by Meet's auth API (ADR 0022). */}
                   <AccountHost
                     initialUser={
                       user

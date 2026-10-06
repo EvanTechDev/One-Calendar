@@ -1,20 +1,11 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   AuthFormProvider,
   SignUpForm,
   type AuthFormContextValue,
 } from '@zntr/auth/forms'
-
-let solvedToken = 'initial-signup-token'
-vi.mock('@marsidev/react-turnstile', () => ({
-  Turnstile: (props: { onSuccess: (token: string) => void }) => (
-    <button type="button" onClick={() => props.onSuccess(solvedToken)}>
-      Solve CAPTCHA
-    </button>
-  ),
-}))
 
 const signUp = vi.fn(async () => ({ data: {}, error: null }))
 const sendVerificationOtp = vi.fn(async () => ({ data: {}, error: null }))
@@ -57,39 +48,32 @@ function fillSignUp() {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = 'site-key'
-  solvedToken = 'initial-signup-token'
 })
 
-afterEach(() => {
-  delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-})
-
-describe('SignUpForm CAPTCHA contract', () => {
-  it('forwards a fresh solved token when resending verification email', async () => {
+describe('SignUpForm verification requests', () => {
+  it('registers and resends through the instrumented auth client', async () => {
     render(
       <AuthFormProvider value={value}>
         <SignUpForm />
       </AuthFormProvider>,
     )
     fillSignUp()
-    fireEvent.click(screen.getByRole('button', { name: 'Solve CAPTCHA' }))
     fireEvent.click(screen.getByRole('button', { name: /sign up/i }))
     await screen.findByText(/verification code sent/i)
 
     expect(signUp).toHaveBeenCalledWith(
-      expect.objectContaining({ turnstileToken: 'initial-signup-token' }),
+      expect.objectContaining({
+        email: 'ada@example.com',
+        name: 'Ada Lovelace',
+      }),
     )
 
-    solvedToken = 'fresh-resend-token'
-    fireEvent.click(screen.getByRole('button', { name: 'Solve CAPTCHA' }))
     fireEvent.click(screen.getByRole('button', { name: /resend code/i }))
 
     await waitFor(() => expect(sendVerificationOtp).toHaveBeenCalledTimes(1))
     expect(sendVerificationOtp).toHaveBeenCalledWith({
       email: 'ada@example.com',
       type: 'email-verification',
-      turnstileToken: 'fresh-resend-token',
     })
   })
 })

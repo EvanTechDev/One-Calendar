@@ -30,7 +30,6 @@ export type AuthFormClient = {
       email: string
       password: string
       rememberMe?: boolean
-      turnstileToken?: string
     }>
   }
   signUp: {
@@ -39,13 +38,11 @@ export type AuthFormClient = {
       email: string
       password: string
       callbackURL?: string
-      turnstileToken?: string
     }>
   }
   requestPasswordReset: AuthCall<{
     email: string
     redirectTo?: string
-    turnstileToken?: string
   }>
   resetPassword: AuthCall<{ newPassword: string; token: string }>
   /**
@@ -60,7 +57,6 @@ export type AuthFormClient = {
     sendVerificationOtp: AuthCall<{
       email: string
       type: string
-      turnstileToken?: string
     }>
     verifyEmail: AuthCall<{ email: string; otp: string }>
     resetPassword?: AuthCall<{

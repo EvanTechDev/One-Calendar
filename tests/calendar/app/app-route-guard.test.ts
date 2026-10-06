@@ -56,9 +56,7 @@ describe('requireAppSession', () => {
   })
 
   it('fails closed without redirecting when the session store throws', async () => {
-    // A database outage must not open the door. Failing closed on an auth check is
-    // the opposite trade from the CAPTCHA check, and for the opposite reason:
-    // there the fallback is "no bot defence", here it is "no access control".
+    // A database outage must not grant access or masquerade as a signed-out user.
     getSession.mockRejectedValueOnce(new Error('connection refused'))
 
     await expect(requireAppSession()).rejects.toThrow(

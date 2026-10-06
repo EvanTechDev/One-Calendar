@@ -40,10 +40,8 @@ vi.mock('@/lib/evlog', () => ({
   useLogger: () => ({ audit: vi.fn() }),
 }))
 
-vi.mock('@/lib/turnstile', () => ({
-  captchaIsGuarded: () => false,
-  isTurnstileConfigured: () => false,
-  verifyTurnstile: vi.fn(),
+vi.mock('@zntr/auth/bot-id', () => ({
+  rejectBotRequest: async () => null,
 }))
 
 vi.mock('@/lib/rate-limit', () => ({

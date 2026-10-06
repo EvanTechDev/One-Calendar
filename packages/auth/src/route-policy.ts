@@ -3,9 +3,8 @@
  *
  * Meet used to allow exactly two — `get-session` and `sign-out` — on the grounds
  * that it had no sign-in surface and the calendar's route was the only one
- * carrying CAPTCHA and audit logging. Mounting the shared forms means widening
- * that, and the widening is only safe because the CAPTCHA check moved into this
- * package as well (ADR 0022).
+ * protecting credential requests. Shared forms use the same API bot-verification
+ * policy in both apps (ADR 0022).
  *
  * It stays an allowlist rather than becoming a pass-through. Better Auth mounts
  * routes for every plugin it loads, so a pass-through means an app silently
@@ -23,6 +22,7 @@ const EXPOSED_POST = new Set([
 
   // Recovery.
   'forget-password',
+  'request-password-reset',
   'reset-password',
 
   // Email OTP: sign-up verifies the address with one, and the account panel's

@@ -14,9 +14,8 @@ import { authClient } from '@/lib/auth/client'
  * This app's half of the shared account panel.
  *
  * Meet used to show a card linking to the calendar, because its auth route
- * exposed only session-read and sign-out — every mutation had to happen where the
- * CAPTCHA and audit logging were. Both moved into `@zntr/auth`, so this app can
- * now perform them itself (ADR 0022).
+ * exposed only session-read and sign-out. Shared account components and API bot
+ * verification now live in `@zntr/auth` (ADR 0022).
  *
  * English for now: meet has no language picker, and the shared copy falls back to
  * English for any key a locale has not reached, so this reads the same as it did.

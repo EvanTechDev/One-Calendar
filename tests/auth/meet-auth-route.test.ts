@@ -6,10 +6,8 @@ import { authRouteIsExposed } from '@zntr/auth/route-policy'
  * Which Better Auth routes an app exposes.
  *
  * Meet used to allow exactly two — `get-session` and `sign-out` — because it had
- * no sign-in surface and the calendar's route was the only one carrying CAPTCHA
- * and audit logging. Mounting the shared forms means widening this, and the
- * widening is only safe because the CAPTCHA check moved into the package too
- * (ADR 0022).
+ * no sign-in surface. Shared forms and API bot verification now protect both
+ * auth hosts (ADR 0022).
  *
  * It stays an allowlist rather than becoming a pass-through: Better Auth mounts
  * routes for every plugin, and an app should not silently acquire an endpoint

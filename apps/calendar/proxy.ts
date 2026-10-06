@@ -6,15 +6,13 @@ import { NextRequest, NextResponse } from 'next/server'
 // exists for the same reason, and also because `better-auth` is a dependency of
 // `@zntr/auth` rather than of this app, so it does not resolve from here.
 import { getSessionCookie } from '@zntr/auth/better-auth-cookies'
+import { BOT_ID_PROXY_PREFIX } from '@zntr/auth/bot-policy'
 
 export function getCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === 'development'
   return [
     "default-src 'self'",
-    "script-src 'self' 'nonce-" +
-      nonce +
-      "' https://challenges.cloudflare.com" +
-      (isDev ? " 'unsafe-eval'" : ''),
+    "script-src 'self' 'nonce-" + nonce + "'" + (isDev ? " 'unsafe-eval'" : ''),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
@@ -23,7 +21,7 @@ export function getCsp(nonce: string): string {
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
-    "frame-src 'self' https://challenges.cloudflare.com https://accounts.google.com https://appleid.apple.com https://github.com https://login.microsoftonline.com",
+    "frame-src 'self' https://accounts.google.com https://appleid.apple.com https://github.com https://login.microsoftonline.com",
     "form-action 'self'",
   ].join('; ')
 }
@@ -34,6 +32,7 @@ export function getCsp(nonce: string): string {
  */
 export function isCspExemptPath(pathname: string): boolean {
   return (
+    pathname.startsWith(BOT_ID_PROXY_PREFIX) ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/static/') ||
     pathname === '/favicon.ico' ||

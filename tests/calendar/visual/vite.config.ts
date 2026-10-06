@@ -44,7 +44,6 @@ export default defineConfig({
     'process.env.NEXT_PUBLIC_BUILD_TIME': JSON.stringify(
       '2026-10-05T00:00:00Z',
     ),
-    'process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY': JSON.stringify(''),
   },
   css: { postcss: { plugins: [tailwindcss()] } },
   server: { host: '127.0.0.1', port: 4173, strictPort: true },

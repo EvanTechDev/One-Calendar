@@ -5,14 +5,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  *
  * This used to allow exactly two endpoints and assert that sign-in and sign-up
  * were BLOCKED — correct while meet had no sign-in surface and the calendar's
- * route was the only one carrying CAPTCHA verification.
+ * route was the only one carrying bot verification.
  *
  * Meet mounts the shared forms now, so the surface is wider (ADR 0022). It is
  * still an allowlist, and these tests hold the boundary: Better Auth mounts a
  * route per plugin, and a pass-through would hand this app a public endpoint every
  * time a dependency grew one.
  */
-const handled = vi.fn(() => new Response('delegated', { status: 200 }))
+const { handled, checkBotId } = vi.hoisted(() => ({
+  handled: vi.fn(() => new Response('delegated', { status: 200 })),
+  checkBotId: vi.fn(async () => ({ isBot: false })),
+}))
+
+vi.mock('botid/server', () => ({ checkBotId }))
 
 vi.mock('@zntr/auth', () => ({
   toNextJsHandler: () => ({ GET: handled, POST: handled }),
@@ -40,7 +45,7 @@ function req(path: string, body?: unknown) {
 
 beforeEach(() => {
   handled.mockClear()
-  delete process.env.TURNSTILE_SECRET_KEY
+  checkBotId.mockReset().mockResolvedValue({ isBot: false })
 })
 
 describe('meet auth surface', () => {
@@ -53,7 +58,7 @@ describe('meet auth surface', () => {
   })
 
   it('allows sign-in, which it used to block', async () => {
-    // The reason it was blocked was the missing CAPTCHA check, which now lives in
+    // The reason it was blocked was the missing bot check, which now lives in
     // @zntr/auth and runs here too.
     expect((await POST(req('/api/auth/sign-in/email', {}))).status).toBe(200)
   })
@@ -64,6 +69,9 @@ describe('meet auth surface', () => {
 
   it('allows recovery', async () => {
     expect((await POST(req('/api/auth/forget-password', {}))).status).toBe(200)
+    expect(
+      (await POST(req('/api/auth/request-password-reset', {}))).status,
+    ).toBe(200)
     expect((await POST(req('/api/auth/reset-password', {}))).status).toBe(200)
   })
 
@@ -112,25 +120,33 @@ describe('meet auth surface', () => {
   })
 })
 
-describe('CAPTCHA enforcement', () => {
-  it('rejects a guarded request with no token when configured', async () => {
-    process.env.TURNSTILE_SECRET_KEY = 'a-secret'
+describe('BotID enforcement', () => {
+  it('rejects a request classified as a bot', async () => {
+    checkBotId.mockResolvedValue({ isBot: true })
     const response = await POST(req('/api/auth/sign-in/email', {}))
-    expect(response.status).toBe(400)
+    expect(response.status).toBe(403)
     expect(handled).not.toHaveBeenCalled()
   })
 
-  it('skips the check when Turnstile is not configured', async () => {
-    // Fails open to match the client, which omits the widget with no site key.
-    // Demanding a token nothing can produce would make sign-in impossible.
+  it('delegates a verified human request', async () => {
     const response = await POST(req('/api/auth/sign-in/email', {}))
     expect(response.status).toBe(200)
+    expect(checkBotId).toHaveBeenCalledTimes(1)
+  })
+
+  it('fails closed when verification is unavailable', async () => {
+    checkBotId.mockRejectedValue(new Error('provider unavailable'))
+    expect(
+      (await POST(req('/api/auth/request-password-reset', {}))).status,
+    ).toBe(503)
+    expect(handled).not.toHaveBeenCalled()
   })
 
   it('does not guard a session-authenticated mutation', async () => {
     // The session is already the barrier; a challenge adds friction without
     // adding anything an attacker has to cross.
-    process.env.TURNSTILE_SECRET_KEY = 'a-secret'
+    checkBotId.mockResolvedValue({ isBot: true })
     expect((await POST(req('/api/auth/change-password', {}))).status).toBe(200)
+    expect(checkBotId).not.toHaveBeenCalled()
   })
 })

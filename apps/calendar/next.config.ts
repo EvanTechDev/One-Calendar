@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { NextConfig } from 'next'
 import { createMDX } from 'fumadocs-mdx/next'
+import { withBotId } from 'botid/next/config'
 
 const withMDX = createMDX()
 
@@ -68,4 +69,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withMDX(nextConfig)
+export default withBotId(withMDX(nextConfig))

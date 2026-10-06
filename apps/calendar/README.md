@@ -112,9 +112,20 @@ REDIS_URL=redis://localhost:6379
 # Optional
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/calendar
 BETTER_AUTH_API_KEY=your_api_key_here
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_site_key_here
-TURNSTILE_SECRET_KEY=your_secret_key_here
 ```
+
+### Bot protection
+
+Calendar and Meet use Vercel BotID Basic on browser credential and mail-sending
+auth endpoints. `instrumentation-client.ts` instruments browser requests;
+`@zntr/auth/bot-id` verifies them in the API before Better Auth runs. No visible
+challenge or site/secret key is needed. Both sides share `bot-policy.ts`.
+
+Deploy on Vercel with its request/OIDC context. Production verification failures
+return 503; detected bots receive 403. Local `next dev` uses the SDK's development
+behavior. API rate limits still apply. OAuth token exchange and desktop IPC API
+requests are outside this browser-only check; desktop sign-in happens in the
+system browser. Deep Analysis is not enabled by this configuration.
 
 ### Database
 
