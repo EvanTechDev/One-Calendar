@@ -86,7 +86,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev xvfb openbox scrot wmctrl x11-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev xvfb openbox scrot wmctrl x11-utils desktop-file-utils xdg-utils
       - run: pnpm install --frozen-lockfile
       - name: Build signed updater and installer
         working-directory: apps/calendar-client
@@ -96,7 +96,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           node scripts/release-config.mjs
-          pnpm tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" --config src-tauri/tauri.release.conf.json
+          pnpm tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" --config src-tauri/tauri.release.conf.json -- --locked
           node scripts/collect-release.mjs
       - name: Installed Linux smoke
         if: runner.os == 'Linux'

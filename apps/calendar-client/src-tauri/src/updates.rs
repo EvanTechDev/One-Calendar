@@ -28,6 +28,8 @@ pub async fn desktop_check_update(app: AppHandle) -> Result<Option<UpdateInfo>, 
     let channel = if option_env!("ZENTRA_DESKTOP_ENV") == Some("dev") { "desktop-dev" } else { "desktop-stable" };
     let endpoint = format!("https://github.com/EvanTechDev/One-Calendar/releases/download/{channel}/latest.json")
         .parse().map_err(|_| "Invalid updater endpoint")?;
+    #[cfg(feature = "acceptance")]
+    let endpoint = crate::acceptance::endpoint(endpoint)?;
     let updater = app.updater_builder().pubkey(key).endpoints(vec![endpoint])
         .map_err(|error| error.to_string())?.build().map_err(|error| error.to_string())?;
     let update = updater.check().await.map_err(|error| format!("Could not check for updates: {error}"))?;

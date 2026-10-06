@@ -7,6 +7,8 @@ mod transport;
 mod integrations;
 mod updates;
 mod reminders;
+#[cfg(feature = "acceptance")]
+mod acceptance;
 
 pub fn show_main(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -69,6 +71,8 @@ fn desktop_config(
             })
         );
     }
+    #[cfg(feature = "acceptance")]
+    acceptance::start(window.app_handle().clone());
     Ok(config.inner().clone())
 }
 
@@ -171,7 +175,7 @@ fn local_navigation(url: &Url) -> bool {
 }
 
 fn bundled_page(url: &Url) -> bool {
-    local_navigation(url) && matches!(url.path(), "/" | "/index.html" | "/app" | "/app/")
+    local_navigation(url) && matches!(url.path(), "" | "/" | "/index.html" | "/app" | "/app/")
 }
 
 fn route_browser_link(app: tauri::AppHandle, mut url: Url) {
@@ -279,7 +283,9 @@ pub fn run() {
             setup_tray(app)?;
             reminders::start(app.handle().clone());
             #[cfg(any(target_os = "linux", all(debug_assertions, target_os = "windows")))]
-            app.deep_link().register_all()?;
+            app.deep_link().register_all().map_err(|error| {
+                std::io::Error::other(format!("Could not register desktop login links: {error}"))
+            })?;
             let handle = app.handle().clone();
             app.deep_link().on_open_url(move |event| {
                 for url in event.urls() {
@@ -377,6 +383,7 @@ mod tests {
 
     #[test]
     fn only_bundled_app_documents_stay_inside_the_webview() {
+        assert!(bundled_page(&Url::parse("tauri://localhost").unwrap()));
         assert!(bundled_page(&Url::parse("tauri://localhost/").unwrap()));
         assert!(bundled_page(&Url::parse("http://tauri.localhost/app?date=2026-10-06").unwrap()));
         for path in ["/account", "/home", "/sign-in", "/invite/example"] {

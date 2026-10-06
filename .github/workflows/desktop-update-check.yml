@@ -1,0 +1,87 @@
+name: Installed Desktop Update Check
+on:
+  workflow_call:
+    inputs:
+      desktop_environment:
+        type: string
+        default: dev
+      checkout_ref:
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      desktop_environment:
+        description: Isolated updater channel to rehearse (never publishes a release)
+        type: choice
+        options: [dev, production]
+        default: dev
+      checkout_ref:
+        description: Optional implementation ref
+        type: string
+permissions:
+  contents: read
+jobs:
+  update:
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundle: appimage
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundle: nsis
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            bundle: dmg
+          - os: macos-14
+            target: aarch64-apple-darwin
+            bundle: dmg
+    runs-on: ${{ matrix.os }}
+    env:
+      BUILD_TARGET: ${{ matrix.target }}
+      BUILD_BUNDLE: ${{ matrix.bundle }}
+      ZENTRA_DESKTOP_ENV: ${{ inputs.desktop_environment }}
+      ZENTRA_API_ORIGIN: ${{ inputs.desktop_environment == 'dev' && 'https://precal.xyehr.cn' || 'https://calendar.xyehr.cn' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/calendar-client/src-tauri -> target
+          key: ${{ matrix.target }}
+      - name: Linux system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev xvfb openbox scrot wmctrl x11-utils desktop-file-utils xdg-utils
+      - run: pnpm install --frozen-lockfile
+      - name: Build A and B with a disposable signing key
+        working-directory: apps/calendar-client
+        run: node scripts/build-update-acceptance.mjs
+      - name: Rehearse installed Linux update
+        if: runner.os == 'Linux'
+        working-directory: apps/calendar-client
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" bash -c 'openbox >/dev/null 2>&1 & node scripts/native-update-smoke.mjs'
+      - name: Rehearse installed desktop update
+        if: runner.os != 'Linux'
+        working-directory: apps/calendar-client
+        run: node scripts/native-update-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installed-update-${{ inputs.desktop_environment }}-${{ matrix.target }}
+          path: apps/calendar-client/update-acceptance-artifacts/*

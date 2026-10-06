@@ -30,11 +30,22 @@ on:
           - none
           - dev
           - production
+      updater_environment:
+        description: Rehearse a signed installed update with disposable keys
+        default: none
+        type: choice
+        options: [none, dev, production]
 
 permissions:
   contents: read
 
 jobs:
+  installed-update:
+    if: ${{ inputs.updater_environment != 'none' && inputs.updater_environment != '' }}
+    uses: ./.github/workflows/desktop-update-check.yml
+    with:
+      desktop_environment: ${{ inputs.updater_environment }}
+      checkout_ref: ${{ inputs.checkout_ref || github.sha }}
   calendar-build:
     if: ${{ !inputs.focused_only && inputs.desktop_environment != 'none' && inputs.desktop_environment != '' }}
     runs-on: ubuntu-latest
@@ -108,7 +119,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot wmctrl x11-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot wmctrl x11-utils desktop-file-utils xdg-utils
       - run: pnpm install --frozen-lockfile
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'

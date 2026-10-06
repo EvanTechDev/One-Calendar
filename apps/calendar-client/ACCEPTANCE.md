@@ -46,6 +46,16 @@ For Windows x64, Linux x64 and both macOS architectures:
 
 ## Signed two-version update
 
+The Installed Desktop Update Check (also available through Workspace Checks'
+`updater_environment` input) builds 0.0.1 and 0.0.2 with a disposable runner-local
+key. It installs A, serves a corrupt B first, checks signature rejection, retries
+the valid B, and verifies restart, unchanged installation path, preserved app
+data and no remaining update. Its Rust `acceptance` feature and loopback HTTP
+endpoint override are excluded from release builds. The workflow uploads only
+runtime reports; it publishes neither keys nor installers. Run it for each
+environment. This automated rehearsal does not establish persistence of a real
+signed-in session through an update.
+
 Provision separate updater keys in the `desktop-dev` and `desktop-production`
 GitHub environments as documented in README. Never place private keys in logs or
 artifacts. Use two increasing versions on the same channel.

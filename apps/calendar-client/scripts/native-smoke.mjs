@@ -9,7 +9,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const target = process.env.BUILD_TARGET
@@ -29,7 +29,7 @@ function singleFile(directory, suffix) {
   return join(directory, files[0])
 }
 
-function install() {
+export function install() {
   const destination = join(tmpdir(), `zentra-native-smoke-${environment}`)
   mkdirSync(destination, { recursive: true })
   if (process.platform === 'win32') {
@@ -270,21 +270,23 @@ async function launch(executable, label, extraEnvironment = {}) {
   }
 }
 
-const executable = install()
-const linuxEnvironment = {
+export const linuxEnvironment = {
   APPIMAGE_EXTRACT_AND_RUN: '1',
   WEBKIT_DISABLE_DMABUF_RENDERER: '1',
   LIBGL_ALWAYS_SOFTWARE: '1',
   GDK_BACKEND: 'x11',
 }
-await launch(
-  executable,
-  'default-display',
-  process.platform === 'linux' ? linuxEnvironment : {},
-)
-if (process.platform === 'linux') {
-  await launch(executable, 'scaled-display', {
-    ...linuxEnvironment,
-    GDK_SCALE: '2',
-  })
+if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const executable = install()
+  await launch(
+    executable,
+    'default-display',
+    process.platform === 'linux' ? linuxEnvironment : {},
+  )
+  if (process.platform === 'linux') {
+    await launch(executable, 'scaled-display', {
+      ...linuxEnvironment,
+      GDK_SCALE: '2',
+    })
+  }
 }
