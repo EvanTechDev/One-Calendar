@@ -20,7 +20,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '../host-render'
-import type { CalendarEvent } from '@/components/app/calendar'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
 
 const toasts = { error: vi.fn(), success: vi.fn(), warning: vi.fn() }
 vi.mock('sonner', () => ({
@@ -31,11 +31,11 @@ vi.mock('sonner', () => ({
   }),
 }))
 
-vi.mock('@/components/providers/calendar-context', () => ({
+vi.mock('@zntr/calendar-ui/components/providers/calendar-context', () => ({
   useCalendar: () => ({ calendars: [], events: [] }),
 }))
 
-vi.mock('@/components/providers/data-provider', () => ({
+vi.mock('@zntr/calendar-ui/components/providers/data-provider', () => ({
   useBookmarks: () => ({
     bookmarks: [],
     createBookmark: vi.fn(),
@@ -43,8 +43,9 @@ vi.mock('@/components/providers/data-provider', () => ({
   }),
 }))
 
-const EventPreview = (await import('@/components/app/event/event-preview'))
-  .default
+const EventPreview = (
+  await import('@zntr/calendar-ui/components/app/event/event-preview')
+).default
 
 const requests: string[] = []
 

@@ -3,7 +3,7 @@ import {
   expandSeriesView,
   withUntil,
   type SeriesViewInput,
-} from '@/lib/recurrence/engine'
+} from '@zntr/calendar-ui/lib/recurrence/engine'
 import { planInstanceChange } from '@/lib/event-service'
 
 /**

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, resolve, sep } from 'node:path'
 
 /**
@@ -27,10 +27,14 @@ interface Manifest {
 }
 
 const workspaces = new Map(
-  readdirSync(resolve(ROOT, 'packages'), { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => {
-      const directory = resolve(ROOT, 'packages', entry.name)
+  [
+    ...readdirSync(resolve(ROOT, 'packages'), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => resolve(ROOT, 'packages', entry.name)),
+    resolve(ROOT, 'packages/ui/calendar'),
+  ]
+    .filter((directory) => existsSync(resolve(directory, 'package.json')))
+    .map((directory) => {
       const manifest: Manifest = JSON.parse(
         readFileSync(resolve(directory, 'package.json'), 'utf8'),
       )

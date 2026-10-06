@@ -12,7 +12,7 @@
  * suite runs in jsdom, which masked the problem.
  */
 import { describe, it, expect } from 'vitest'
-import { describeRecurrence } from '@/lib/recurrence/engine'
+import { describeRecurrence } from '@zntr/calendar-ui/lib/recurrence/engine'
 
 describe('describeRecurrence in a server environment', () => {
   it('describes a daily rule', () => {

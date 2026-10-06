@@ -4,7 +4,7 @@ import {
   upsertBy,
   removeById,
   dedupeById,
-} from '@/lib/array-mutations'
+} from '@zntr/calendar-ui/lib/array-mutations'
 
 describe('upsertById', () => {
   it('replaces an item with a matching id in place', () => {

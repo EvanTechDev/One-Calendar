@@ -2,8 +2,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { SWRConfig } from 'swr'
 import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar-host'
-import { CalendarDataHost } from '@/components/providers/calendar-data-host'
-import { useData } from '@/components/providers/data-provider'
+import { CalendarDataHost } from '@zntr/calendar-ui/components/providers/calendar-data-host'
+import { useData } from '@zntr/calendar-ui/components/providers/data-provider'
 
 afterEach(() => {
   cleanup()

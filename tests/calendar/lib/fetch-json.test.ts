@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { ApiError, fetchJson, messageOr } from '@/lib/fetch-json'
+import {
+  ApiError,
+  fetchJson,
+  messageOr,
+} from '@zntr/calendar-ui/lib/fetch-json'
 
 /**
  * `fetchJson` is the wrapper every client mutation goes through, and it used

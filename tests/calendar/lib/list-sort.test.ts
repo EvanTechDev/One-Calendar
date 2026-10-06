@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { applyListSort, LIST_SORTS } from '@/lib/list-sort'
+import { applyListSort, LIST_SORTS } from '@zntr/calendar-ui/lib/list-sort'
 import {
   DEFAULT_BOOKMARK_SORT,
   sortBookmarks,
   type SortableBookmark,
-} from '@/lib/bookmark-sort'
+} from '@zntr/calendar-ui/lib/bookmark-sort'
 import {
   DEFAULT_COUNTDOWN_SORT,
   sortCountdowns,
   type SortableCountdown,
-} from '@/lib/countdown-sort'
+} from '@zntr/calendar-ui/lib/countdown-sort'
 
 const bookmark = (
   over: Partial<SortableBookmark> & { id: string },

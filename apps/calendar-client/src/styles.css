@@ -1,0 +1,8 @@
+@import '@zntr/calendar-ui/styles.css';
+
+@source './';
+@source '../../../packages/ui/src';
+@source '../../../packages/ui/calendar/src';
+@source '../../../packages/auth/src';
+@source '../../../packages/calendar-host/src';
+@source '../../../packages/ui/calendar/node_modules/streamdown/dist/*.js';

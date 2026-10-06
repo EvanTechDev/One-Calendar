@@ -6,7 +6,7 @@ import {
   isValidRrule,
   RecurrenceBudgetError,
   wallClockToInstant,
-} from '@/lib/recurrence/engine'
+} from '@zntr/calendar-ui/lib/recurrence/engine'
 
 const master = {
   id: 'series',

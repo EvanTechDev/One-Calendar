@@ -1,13 +1,13 @@
 import { fireEvent, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import WeekView from '@/components/app/views/week-view'
-import type { CalendarEvent } from '@/components/app/calendar'
+import WeekView from '@zntr/calendar-ui/components/app/views/week-view'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
 import {
   FirstDayOfWeek,
   Language,
   TimeFormat,
   ViewConfig,
-} from '@/lib/calendar-types'
+} from '@zntr/calendar-ui/lib/calendar-types'
 
 /**
  * The week grid's day headers navigate to the day view.

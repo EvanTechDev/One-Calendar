@@ -7,6 +7,9 @@ requires a connection; failed requests expose a retry action.
 
 ## Architecture
 
+- Shared calendar code lives in `packages/ui/calendar`, a nested workspace named
+  `@zntr/calendar-ui`. Web and desktop import it directly; Web retains only its
+  framework-specific adapters. Each app registers its own Tailwind source paths.
 - React requests use `CalendarHost.request`: Tauri IPC → Rust → Calendar API.
   Streaming responses and cancellation use the same port. Session cookies remain
   in Rust and the operating system credential store.

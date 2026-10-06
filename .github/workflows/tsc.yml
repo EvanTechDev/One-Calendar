@@ -74,6 +74,29 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter zentra-calendar build
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
+      - name: Start built Web app and isolated UI fixture
+        run: |
+          pnpm --filter zentra-calendar start >"$RUNNER_TEMP/zentra-next.log" 2>&1 &
+          ZENTRA_VISUAL_PRODUCTION_CSS=1 pnpm exec vite --config tests/calendar/visual/vite.config.ts >"$RUNNER_TEMP/zentra-ui-fixture.log" 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/sign-in >/dev/null && curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/zentra-next.log" "$RUNNER_TEMP/zentra-ui-fixture.log"
+          exit 1
+      - name: Verify production CSS and capture Web and desktop surfaces
+        run: node tests/calendar/visual/production-css.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-ui-production-${{ github.sha }}
+          path: |
+            artifacts/calendar-ui
+            ${{ runner.temp }}/zentra-next.log
+            ${{ runner.temp }}/zentra-ui-fixture.log
   desktop-build:
     if: ${{ inputs.desktop_environment != 'none' && inputs.desktop_environment != '' }}
     timeout-minutes: 45

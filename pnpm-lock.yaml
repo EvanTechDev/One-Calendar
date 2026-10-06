@@ -51,6 +51,9 @@ importers:
       oxlint:
         specifier: 1.71.0
         version: 1.71.0
+      playwright:
+        specifier: 1.63.0
+        version: 1.63.0
       postcss:
         specifier: 8.5.15
         version: 8.5.15
@@ -98,7 +101,7 @@ importers:
         version: link:../../packages/calendar-host
       '@zntr/calendar-ui':
         specifier: workspace:*
-        version: link:../../packages/calendar-ui
+        version: link:../../packages/ui/calendar
       '@zntr/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -234,10 +237,13 @@ importers:
         version: link:../../packages/calendar-host
       '@zntr/calendar-ui':
         specifier: workspace:*
-        version: link:../../packages/calendar-ui
+        version: link:../../packages/ui/calendar
       '@zntr/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      lucide-react:
+        specifier: 1.48.0
+        version: 1.48.0(react@19.2.7)
       next-themes:
         specifier: latest
         version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -584,88 +590,6 @@ importers:
         specifier: 19.2.7
         version: 19.2.7
 
-  packages/calendar-ui:
-    dependencies:
-      '@ai-sdk/react':
-        specifier: 4.0.130
-        version: 4.0.130(react@19.2.7)(zod@4.6.5)
-      '@zntr/agent':
-        specifier: workspace:*
-        version: link:../agent
-      '@zntr/auth':
-        specifier: workspace:*
-        version: link:../auth
-      '@zntr/calendar-host':
-        specifier: workspace:*
-        version: link:../calendar-host
-      '@zntr/i18n':
-        specifier: workspace:*
-        version: link:../i18n
-      '@zntr/ui':
-        specifier: workspace:*
-        version: link:../ui
-      '@zntr/utils':
-        specifier: workspace:*
-        version: link:../utils
-      ai:
-        specifier: 7.0.127
-        version: 7.0.127(zod@4.6.5)
-      date-fns:
-        specifier: 4.4.0
-        version: 4.4.0
-      lucide-react:
-        specifier: 1.48.0
-        version: 1.48.0(react@19.2.7)
-      next-themes:
-        specifier: latest
-        version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react:
-        specifier: 19.2.7
-        version: 19.2.7
-      react-dom:
-        specifier: 19.2.7
-        version: 19.2.7(react@19.2.7)
-      react-remove-scroll:
-        specifier: 2.7.2
-        version: 2.7.2(@types/react@19.2.18)(react@19.2.7)
-      rrule:
-        specifier: 2.8.1
-        version: 2.8.1
-      shadcn:
-        specifier: latest
-        version: 4.21.1(typescript@6.0.3)
-      sonner:
-        specifier: 2.0.8
-        version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      streamdown:
-        specifier: 2.7.0
-        version: 2.7.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      swr:
-        specifier: ^2.5.1
-        version: 2.5.1(react@19.2.7)
-      tailwindcss:
-        specifier: 4.3.3
-        version: 4.3.3
-      tw-animate-css:
-        specifier: ^1.4.0
-        version: 1.4.0
-      zustand:
-        specifier: 5.0.15
-        version: 5.0.15(@types/react@19.2.18)(immer@11.1.15)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
-    devDependencies:
-      '@types/node':
-        specifier: ^26.0.0
-        version: 26.6.2
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: ^19.2.0
-        version: 19.2.4(@types/react@19.2.18)
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-
   packages/i18n:
     dependencies:
       react:
@@ -737,6 +661,88 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@25.6.0)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
+
+  packages/ui/calendar:
+    dependencies:
+      '@ai-sdk/react':
+        specifier: 4.0.130
+        version: 4.0.130(react@19.2.7)(zod@4.6.5)
+      '@zntr/agent':
+        specifier: workspace:*
+        version: link:../../agent
+      '@zntr/auth':
+        specifier: workspace:*
+        version: link:../../auth
+      '@zntr/calendar-host':
+        specifier: workspace:*
+        version: link:../../calendar-host
+      '@zntr/i18n':
+        specifier: workspace:*
+        version: link:../../i18n
+      '@zntr/ui':
+        specifier: workspace:*
+        version: link:..
+      '@zntr/utils':
+        specifier: workspace:*
+        version: link:../../utils
+      ai:
+        specifier: 7.0.127
+        version: 7.0.127(zod@4.6.5)
+      date-fns:
+        specifier: 4.4.0
+        version: 4.4.0
+      lucide-react:
+        specifier: 1.48.0
+        version: 1.48.0(react@19.2.7)
+      next-themes:
+        specifier: latest
+        version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: 19.2.7
+        version: 19.2.7(react@19.2.7)
+      react-remove-scroll:
+        specifier: 2.7.2
+        version: 2.7.2(@types/react@19.2.18)(react@19.2.7)
+      rrule:
+        specifier: 2.8.1
+        version: 2.8.1
+      shadcn:
+        specifier: latest
+        version: 4.21.1(typescript@6.0.3)
+      sonner:
+        specifier: 2.0.8
+        version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      streamdown:
+        specifier: 2.7.0
+        version: 2.7.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      swr:
+        specifier: ^2.5.1
+        version: 2.5.1(react@19.2.7)
+      tailwindcss:
+        specifier: 4.3.3
+        version: 4.3.3
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
+      zustand:
+        specifier: 5.0.15
+        version: 5.0.15(@types/react@19.2.18)(immer@11.1.15)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
+    devDependencies:
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.6.2
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.0
+        version: 19.2.4(@types/react@19.2.18)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
 
   packages/utils:
     dependencies:
@@ -6669,6 +6675,16 @@ packages:
   pkg-up@3.1.0:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
+
+  playwright-core@1.63.0:
+    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.63.0:
+    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   postal-mime@2.7.4:
     resolution: {integrity: sha512-0WdnFQYUrPGGTFu1uOqD2s7omwua8xaeYGdO6rb88oD5yJ/4pPHDA4sdWqfD8wQVfCny563n/HQS7zTFft+f/g==}
@@ -14016,6 +14032,12 @@ snapshots:
   pkg-up@3.1.0:
     dependencies:
       find-up: 3.0.0
+
+  playwright-core@1.63.0: {}
+
+  playwright@1.63.0:
+    dependencies:
+      playwright-core: 1.63.0
 
   postal-mime@2.7.4: {}
 

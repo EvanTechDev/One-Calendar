@@ -7,7 +7,7 @@ const host = process.env.TAURI_DEV_HOST
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react()],
-  publicDir: '../../packages/calendar-ui/assets',
+  publicDir: '../../packages/ui/calendar/assets',
   resolve: { dedupe: ['react', 'react-dom'] },
   define: {
     'process.env.NEXT_PUBLIC_AI_ENABLED': JSON.stringify(

@@ -15,7 +15,7 @@ import {
   COUNTDOWN_ICON_ENUM,
   COUNTDOWN_ICON_GROUPS,
   COUNTDOWN_ICON_NAMES,
-} from '@/lib/countdown-icons'
+} from '@zntr/calendar-ui/lib/countdown-icons'
 import { clientErrorMessage, isClientError } from './errors'
 import { withToolAudit } from './tool-audit'
 

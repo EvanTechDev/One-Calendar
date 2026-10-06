@@ -13,9 +13,9 @@ import {
   snapToQuarterHour,
   formatTimeForDisplay,
   formatHourMinute,
-} from '@/components/app/views/event-layout-engine'
-import { TimeFormat } from '@/lib/calendar-types'
-import type { CalendarEvent } from '@/components/app/calendar'
+} from '@zntr/calendar-ui/components/app/views/event-layout-engine'
+import { TimeFormat } from '@zntr/calendar-ui/lib/calendar-types'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
 
 // Use UTC dates to avoid timezone issues in test environment
 function utcDate(

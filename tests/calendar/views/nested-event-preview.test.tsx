@@ -19,17 +19,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act, waitFor } from '../host-render'
 import { useState, useRef } from 'react'
-import MonthView from '@/components/app/views/month-view'
-import YearView from '@/components/app/views/year-view'
-import { useEventPreviewNavigation } from '@/hooks/use-event-preview-navigation'
-import EventPreview from '@/components/app/event/event-preview'
-import type { CalendarEvent } from '@/components/app/calendar'
+import MonthView from '@zntr/calendar-ui/components/app/views/month-view'
+import YearView from '@zntr/calendar-ui/components/app/views/year-view'
+import { useEventPreviewNavigation } from '@zntr/calendar-ui/hooks/use-event-preview-navigation'
+import EventPreview from '@zntr/calendar-ui/components/app/event/event-preview'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
 import {
   Language,
   FirstDayOfWeek,
   ViewConfig,
   TimeFormat,
-} from '@/lib/calendar-types'
+} from '@zntr/calendar-ui/lib/calendar-types'
 
 vi.mock('sonner', () => ({
   toast: Object.assign((...args: unknown[]) => void args, {
@@ -39,11 +39,11 @@ vi.mock('sonner', () => ({
   }),
 }))
 
-vi.mock('@/components/providers/calendar-context', () => ({
+vi.mock('@zntr/calendar-ui/components/providers/calendar-context', () => ({
   useCalendar: () => ({ calendars: [], events: [] }),
 }))
 
-vi.mock('@/components/providers/data-provider', () => ({
+vi.mock('@zntr/calendar-ui/components/providers/data-provider', () => ({
   useBookmarks: () => ({
     bookmarks: [],
     createBookmark: vi.fn(),

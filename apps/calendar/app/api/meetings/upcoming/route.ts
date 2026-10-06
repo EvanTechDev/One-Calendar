@@ -3,7 +3,10 @@ import { and, eq, gt, isNull, or } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents } from '@/lib/drizzle/schema'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
-import { expandSeries, isSeriesEvent } from '@/lib/recurrence/engine'
+import {
+  expandSeries,
+  isSeriesEvent,
+} from '@zntr/calendar-ui/lib/recurrence/engine'
 import { meeting } from '@zntr/meetings'
 import { meetingUrl } from '@/lib/meetings'
 

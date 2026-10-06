@@ -25,7 +25,7 @@ import {
 import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
 import { limitInviteSend } from '@/lib/invites/send-limit'
 import type { ApplyTo } from '@/lib/event-service'
-import { isEmail } from '@/lib/email'
+import { isEmail } from '@zntr/calendar-ui/lib/email'
 
 const PARTICIPANT_SCOPES: ApplyTo[] = ['single', 'following', 'all']
 

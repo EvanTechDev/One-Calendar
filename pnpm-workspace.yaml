@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'packages/ui/calendar'
   - 'docs'
 supportedArchitectures:
   os:

@@ -9,7 +9,7 @@ import { Button } from '@zntr/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@zntr/ui/card'
 import { Spinner } from '@zntr/ui/spinner'
 import { oauthAuthClient } from '@/lib/auth/oauth-client'
-import { groupMcpPermissions } from '@/lib/mcp/types'
+import { groupMcpPermissions } from '@zntr/calendar-ui/lib/mcp/types'
 
 type PublicClient = {
   client_id: string

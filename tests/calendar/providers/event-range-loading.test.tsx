@@ -1,11 +1,14 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SWRConfig } from 'swr'
-import { DataProvider, useData } from '@/components/providers/data-provider'
-import { calendarLoadRange } from '@/lib/calendar-range'
+import {
+  DataProvider,
+  useData,
+} from '@zntr/calendar-ui/components/providers/data-provider'
+import { calendarLoadRange } from '@zntr/calendar-ui/lib/calendar-range'
 
 const mock = vi.hoisted(() => ({ list: vi.fn(), delete: vi.fn() }))
-vi.mock('@/lib/api-client', () => ({
+vi.mock('@zntr/calendar-ui/lib/api-client', () => ({
   api: {
     events: { list: mock.list, delete: mock.delete },
     categories: { list: async () => ({ categories: [] }) },

@@ -6,10 +6,10 @@ import { cn } from '@zntr/utils'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
 import { Toaster } from '@zntr/ui/sonner'
-import { SwrProvider } from '@/components/providers/swr-provider'
+import { SwrProvider } from '@zntr/calendar-ui/components/providers/swr-provider'
 import type { Metadata } from 'next'
 import type React from 'react'
-import { AVAILABLE_THEMES } from '@/lib/theme'
+import { AVAILABLE_THEMES } from '@zntr/calendar-ui/lib/theme'
 import { APP_SUBTITLE, APP_TITLE } from '@/lib/metadata'
 
 const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })

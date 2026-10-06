@@ -5,7 +5,7 @@ import {
   clampRangeToDay,
   selectionCoversDay,
   selectionInTimeZone,
-} from '@/components/app/views/selection-range'
+} from '@zntr/calendar-ui/components/app/views/selection-range'
 
 it('keeps all-day selections date-only while projecting timed drafts across midnight', () => {
   const allDay = {

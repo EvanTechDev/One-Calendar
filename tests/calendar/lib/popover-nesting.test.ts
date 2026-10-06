@@ -3,7 +3,7 @@ import {
   CHILD_OVERLAY_ATTRIBUTE,
   childOverlayProps,
   isChildOverlayInteraction,
-} from '@/lib/popover-nesting'
+} from '@zntr/calendar-ui/lib/popover-nesting'
 
 describe('isChildOverlayInteraction', () => {
   function markup(html: string) {

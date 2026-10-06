@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { ArrowRight, CircleAlert, LoaderCircle } from 'lucide-react'
+import { buttonVariants } from '@zntr/ui/button'
 
 export default function DesktopContinue() {
   const started = useRef(false)
@@ -31,17 +33,69 @@ export default function DesktopContinue() {
       )
   }, [])
   return (
-    <main className="mx-auto max-w-lg space-y-4 p-8">
-      <h1 className="text-xl font-semibold">Zentra Calendar</h1>
-      {error ? (
-        <>
-          <p role="alert">{error}</p>
-          <p>Open this page again from the desktop app.</p>
-          <Link href="/app">Continue to calendar</Link>
-        </>
-      ) : (
-        <p role="status">Opening your page…</p>
-      )}
+    <main className="flex min-h-dvh flex-col bg-background px-6 py-8 sm:px-12">
+      <Link
+        href="/app"
+        className="flex w-fit items-center gap-3 text-sm font-medium"
+      >
+        <img src="/icon.svg" alt="" width={28} height={28} />
+        Zentra Calendar
+      </Link>
+      <section
+        className="m-auto w-full max-w-md py-16"
+        aria-labelledby="continue-title"
+      >
+        <div className="mb-8 flex size-12 items-center justify-center rounded-2xl border bg-muted/40">
+          {error ? (
+            <CircleAlert
+              className="size-5 text-muted-foreground"
+              aria-hidden="true"
+            />
+          ) : (
+            <LoaderCircle
+              className="size-5 animate-spin text-muted-foreground motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+          )}
+        </div>
+        <h1
+          id="continue-title"
+          className="text-3xl font-semibold tracking-tight"
+        >
+          {error ? 'Let’s open that page again' : 'A moment, and you’re there'}
+        </h1>
+        {error ? (
+          <div
+            role="alert"
+            className="mt-5 space-y-3 text-sm leading-relaxed text-muted-foreground"
+          >
+            <p>{error}</p>
+            <p>
+              Return to Zentra on your desktop and open the page again to get a
+              new link.
+            </p>
+          </div>
+        ) : (
+          <p
+            role="status"
+            className="mt-5 text-sm leading-relaxed text-muted-foreground"
+          >
+            Connecting your desktop session to this browser…
+          </p>
+        )}
+        {error ? (
+          <Link
+            href="/app"
+            className={`${buttonVariants({ variant: 'outline' })} mt-8`}
+          >
+            Go to calendar
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        ) : null}
+      </section>
+      <p className="text-xs text-muted-foreground">
+        Zentra for desktop · Continue in your browser
+      </p>
     </main>
   )
 }

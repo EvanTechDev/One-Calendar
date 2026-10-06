@@ -1,34 +1,39 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '../host-render'
-import EventEditor from '@/components/app/event/event-editor'
-import type { CalendarEvent } from '@/lib/calendar-types'
+import EventEditor from '@zntr/calendar-ui/components/app/event/event-editor'
+import type { CalendarEvent } from '@zntr/calendar-ui/lib/calendar-types'
 import {
   Language,
   FirstDayOfWeek,
   ViewConfig,
   TimeFormat,
-} from '@/lib/calendar-types'
+} from '@zntr/calendar-ui/lib/calendar-types'
 
 vi.hoisted(() => {
   process.env.NEXT_PUBLIC_AI_ENABLED = '1'
 })
 
-vi.mock('@/components/providers/calendar-context', () => {
+vi.mock('@zntr/calendar-ui/components/providers/calendar-context', () => {
   const state = { calendars: [], events: [] }
   return { useCalendar: () => state }
 })
-vi.mock('@/hooks/use-event-meeting-draft', () => ({
+vi.mock('@zntr/calendar-ui/hooks/use-event-meeting-draft', () => ({
   useEventMeetingDraft: () => ({ meeting: null, keep: vi.fn() }),
 }))
-vi.mock('@/components/app/event/event-meeting-field', () => ({
+vi.mock('@zntr/calendar-ui/components/app/event/event-meeting-field', () => ({
   EventMeetingField: () => null,
 }))
 // jsdom has no layout. Keep the real form and scope dialogs, but freeze the
 // live positioning hook so Radix's layout effects cannot chase zero rects.
-vi.mock('@/hooks/use-anchored-popover', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/hooks/use-anchored-popover')>()),
-  useLiveAnchorRect: () => null,
-}))
+vi.mock(
+  '@zntr/calendar-ui/hooks/use-anchored-popover',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@zntr/calendar-ui/hooks/use-anchored-popover')
+    >()),
+    useLiveAnchorRect: () => null,
+  }),
+)
 
 const start = new Date('2026-10-05T09:00:00Z')
 const config = ViewConfig.create({

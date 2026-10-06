@@ -54,7 +54,7 @@ import {
   wallClockDayDelta,
   withUntil,
   type SeriesViewInput,
-} from '@/lib/recurrence/engine'
+} from '@zntr/calendar-ui/lib/recurrence/engine'
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
@@ -82,9 +82,9 @@ import {
 } from '@zntr/meetings'
 import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
-import { dedupeById } from '@/lib/array-mutations'
-import { isValidTimezone } from '@/lib/timezone'
-import { MAX_CALENDAR_RANGE_MS } from '@/lib/calendar-range'
+import { dedupeById } from '@zntr/calendar-ui/lib/array-mutations'
+import { isValidTimezone } from '@zntr/calendar-ui/lib/timezone'
+import { MAX_CALENDAR_RANGE_MS } from '@zntr/calendar-ui/lib/calendar-range'
 import {
   CATCH_UP_FLOOR_MS,
   getReminderTime,

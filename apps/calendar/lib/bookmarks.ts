@@ -1,7 +1,10 @@
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, eventInvites } from '@/lib/drizzle/schema'
 import { eq, and, inArray } from 'drizzle-orm'
-import { parseInstanceId, isSeriesEvent } from '@/lib/recurrence/engine'
+import {
+  parseInstanceId,
+  isSeriesEvent,
+} from '@zntr/calendar-ui/lib/recurrence/engine'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
 import { baselineOf, getInviteOccurrences } from '@/lib/invites/invite-service'
 

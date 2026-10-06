@@ -7,7 +7,7 @@ import {
   resolveMasterEditStamp,
   type EventRow,
 } from '@/lib/event-service'
-import { parseRfcStamp } from '@/lib/recurrence/engine'
+import { parseRfcStamp } from '@zntr/calendar-ui/lib/recurrence/engine'
 
 function day(y: number, m: number, d: number, h = 0, min = 0, s = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, s))

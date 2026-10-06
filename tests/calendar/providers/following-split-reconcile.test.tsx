@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render, waitFor } from '@testing-library/react'
 import { SWRConfig, useSWRConfig } from 'swr'
-import { DataProvider, useData } from '@/components/providers/data-provider'
+import {
+  DataProvider,
+  useData,
+} from '@zntr/calendar-ui/components/providers/data-provider'
 import {
   CalendarProvider,
   useCalendar,
-} from '@/components/providers/calendar-context'
-import type { CalendarEvent } from '@/components/providers/calendar-context'
-import type { api, EventData } from '@/lib/api-client'
+} from '@zntr/calendar-ui/components/providers/calendar-context'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/providers/calendar-context'
+import type { api, EventData } from '@zntr/calendar-ui/lib/api-client'
 
 /**
  * Regression tests for the "this and following" split ghost: after saving a

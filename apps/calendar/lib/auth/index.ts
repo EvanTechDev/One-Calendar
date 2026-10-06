@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 import { desktopAuthConfig } from './desktop-config'
 import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 import { authEmailCallbacks, resendSender } from '@zntr/auth/email'
-import { ALL_SCOPES } from '@/lib/mcp/types'
+import { ALL_SCOPES } from '@zntr/calendar-ui/lib/mcp/types'
 import {
   MCP_ACCESS_TOKEN_TTL_SECONDS,
   MCP_RESOURCE,

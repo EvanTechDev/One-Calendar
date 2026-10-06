@@ -6,7 +6,7 @@ import {
   ParticipantScopeError,
 } from '@/lib/invites/scoped-invites'
 import type { ApplyTo } from '@/lib/event-service'
-import { isEmail } from '@/lib/email'
+import { isEmail } from '@zntr/calendar-ui/lib/email'
 
 export const runtime = 'nodejs'
 

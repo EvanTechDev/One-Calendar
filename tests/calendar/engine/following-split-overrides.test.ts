@@ -5,7 +5,7 @@ import {
   defaultExpansionWindow,
   shiftExdates,
   toRfcStamp,
-} from '@/lib/recurrence/engine'
+} from '@zntr/calendar-ui/lib/recurrence/engine'
 import { planInstanceChange } from '@/lib/event-service'
 
 interface StoreEvent {

@@ -1,26 +1,26 @@
 import { cleanup, fireEvent, render, screen } from '../host-render'
 import { afterEach, expect, it, vi } from 'vitest'
-import YearView from '@/components/app/views/year-view'
-import EventPreview from '@/components/app/event/event-preview'
+import YearView from '@zntr/calendar-ui/components/app/views/year-view'
+import EventPreview from '@zntr/calendar-ui/components/app/event/event-preview'
 import {
   FirstDayOfWeek,
   Language,
   TimeFormat,
   ViewConfig,
   type CalendarEvent,
-} from '@/lib/calendar-types'
+} from '@zntr/calendar-ui/lib/calendar-types'
 
-vi.mock('@/components/providers/calendar-context', () => ({
+vi.mock('@zntr/calendar-ui/components/providers/calendar-context', () => ({
   useCalendar: () => ({ calendars: [], events: [] }),
 }))
-vi.mock('@/components/providers/data-provider', () => ({
+vi.mock('@zntr/calendar-ui/components/providers/data-provider', () => ({
   useBookmarks: () => ({
     bookmarks: [],
     createBookmark: vi.fn(),
     deleteBookmark: vi.fn(),
   }),
 }))
-vi.mock('@/hooks/use-anchored-popover', () => ({
+vi.mock('@zntr/calendar-ui/hooks/use-anchored-popover', () => ({
   useLiveAnchorRect: () => null,
   pickPopoverSide: () => 'bottom',
   buildAnchorStyle: () => ({}),

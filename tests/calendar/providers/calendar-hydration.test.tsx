@@ -4,11 +4,11 @@ import { SWRConfig } from 'swr'
 import {
   DataProvider,
   useCountdowns,
-} from '@/components/providers/data-provider'
+} from '@zntr/calendar-ui/components/providers/data-provider'
 import {
   CalendarProvider,
   useCalendar,
-} from '@/components/providers/calendar-context'
+} from '@zntr/calendar-ui/components/providers/calendar-context'
 import { useEffect } from 'react'
 
 type Resolver = (value: {

@@ -7,30 +7,33 @@ import {
   screen,
   waitFor,
 } from '../host-render'
-import { BookmarkPanelBody } from '@/components/app/sidebar/bookmark-panel'
-import { eventDataToCalendarEvent } from '@/components/providers/calendar-context'
-import { useEventPreviewNavigation } from '@/hooks/use-event-preview-navigation'
-import { toCalendarDate } from '@/lib/zoned-date'
-import type { BookmarkData, EventData } from '@/lib/api-client'
-import type { CalendarEvent } from '@/lib/calendar-types'
+import { BookmarkPanelBody } from '@zntr/calendar-ui/components/app/sidebar/bookmark-panel'
+import { eventDataToCalendarEvent } from '@zntr/calendar-ui/components/providers/calendar-context'
+import { useEventPreviewNavigation } from '@zntr/calendar-ui/hooks/use-event-preview-navigation'
+import { toCalendarDate } from '@zntr/calendar-ui/lib/zoned-date'
+import type { BookmarkData, EventData } from '@zntr/calendar-ui/lib/api-client'
+import type { CalendarEvent } from '@zntr/calendar-ui/lib/calendar-types'
 
 const state = vi.hoisted(() => ({
   bookmarks: [] as BookmarkData[],
   events: [] as CalendarEvent[],
   deleteBookmark: vi.fn(),
 }))
-vi.mock('@/components/providers/data-provider', () => ({
+vi.mock('@zntr/calendar-ui/components/providers/data-provider', () => ({
   useBookmarks: () => ({
     bookmarks: state.bookmarks,
     deleteBookmark: state.deleteBookmark,
   }),
 }))
-vi.mock('@/components/providers/calendar-context', async (importOriginal) => ({
-  ...(await importOriginal<
-    typeof import('@/components/providers/calendar-context')
-  >()),
-  useCalendar: () => ({ events: state.events }),
-}))
+vi.mock(
+  '@zntr/calendar-ui/components/providers/calendar-context',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@zntr/calendar-ui/components/providers/calendar-context')
+    >()),
+    useCalendar: () => ({ events: state.events }),
+  }),
+)
 vi.mock('@zntr/i18n/calendar', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@zntr/i18n/calendar')>()),
   useLanguage: () => ['en', vi.fn()],

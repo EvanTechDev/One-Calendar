@@ -13,7 +13,6 @@ import { AVAILABLE_THEMES } from '@zntr/calendar-ui/lib/theme'
 import { ThemeProvider } from 'next-themes'
 import { SWRConfig } from 'swr'
 import { Toaster, toast } from 'sonner'
-import { Button } from '@zntr/ui/button'
 import {
   createNativeFetch,
   invoke,
@@ -23,8 +22,13 @@ import {
   type SessionView,
 } from './native'
 import { DesktopUpdates } from './updates'
-import appIcon from '../src-tauri/icons/128x128.png'
-import '@zntr/calendar-ui/styles.css'
+import {
+  DesktopAccount,
+  DesktopNotice,
+  DesktopState,
+  DesktopWelcome,
+} from './desktop-surfaces'
+import './styles.css'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/geist'
 import '@fontsource-variable/instrument-sans'
@@ -188,30 +192,15 @@ export default function App() {
       requestNotifications: () =>
         invoke<boolean>('desktop_notification_permission'),
       renderAccount: (section) => (
-        <section className="space-y-4">
-          <h3 className="font-medium">
-            {session.user?.name ?? session.user?.email}
-          </h3>
-          <p className="text-sm text-muted-foreground">{session.user?.email}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() =>
-                navigate(
-                  `/account${section ? `?section=${encodeURIComponent(section)}` : ''}`,
-                )
-              }
-            >
-              Manage account in browser
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => void action('desktop_sign_out')}
-            >
-              Sign out of this app
-            </Button>
-          </div>
-        </section>
+        <DesktopAccount
+          user={session.user}
+          onManage={() =>
+            navigate(
+              `/account${section ? `?section=${encodeURIComponent(section)}` : ''}`,
+            )
+          }
+          onSignOut={() => void action('desktop_sign_out')}
+        />
       ),
       renderUpdate: () => (config ? <DesktopUpdates config={config} /> : null),
     }),
@@ -236,15 +225,12 @@ export default function App() {
         {config && session.user ? (
           <>
             {connectionError || error ? (
-              <div className="desktop-connection" role="alert">
-                <span>{connectionError ?? error}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void retry()}
-                >
-                  Retry
-                </Button>
+              <div className="desktop-connection">
+                <DesktopNotice
+                  title="Connection needs attention"
+                  message={connectionError ?? error ?? ''}
+                  onRetry={() => void retry()}
+                />
               </div>
             ) : null}
             <CalendarBoundary key={`${session.user.id}:${revision}`}>
@@ -253,13 +239,7 @@ export default function App() {
               >
                 <CalendarDataHost>
                   <CalendarProvider>
-                    <Suspense
-                      fallback={
-                        <div className="desktop-welcome" role="status">
-                          Loading calendar…
-                        </div>
-                      }
-                    >
+                    <Suspense fallback={<DesktopState />}>
                       <CalendarApp />
                     </Suspense>
                   </CalendarProvider>
@@ -268,75 +248,19 @@ export default function App() {
             </CalendarBoundary>
           </>
         ) : (
-          <main className="desktop-welcome">
-            <section className="welcome-panel" aria-labelledby="app-name">
-              <img
-                src={appIcon}
-                className="app-icon"
-                alt=""
-                width={64}
-                height={64}
-              />
-              {config?.environment === 'dev' ? (
-                <span className="environment">Dev</span>
-              ) : null}
-              <h1 id="app-name">{config?.appName ?? 'Zentra Calendar'}</h1>
-              <p className="welcome-copy">
-                Sign in to access your Zentra calendar.
-              </p>
-              {config && !startupError ? (
-                <>
-                  <Button
-                    className="w-full"
-                    disabled={session.pending}
-                    onClick={() => void action('desktop_sign_in')}
-                  >
-                    Sign in with your browser
-                  </Button>
-                  {session.pending ? (
-                    <>
-                      <p role="status">
-                        {session.signingIn
-                          ? 'Waiting for sign-in…'
-                          : 'Restoring your session…'}
-                      </p>
-                      {session.signingIn ? (
-                        <Button
-                          variant="ghost"
-                          onClick={() => void action('desktop_cancel_sign_in')}
-                        >
-                          Cancel
-                        </Button>
-                      ) : null}
-                    </>
-                  ) : null}
-                  <p className="connection">
-                    {new URL(config.apiOrigin).hostname}
-                  </p>
-                </>
-              ) : !error ? (
-                <p role="status">Starting calendar…</p>
-              ) : null}
-              {error ? (
-                <>
-                  <p role="alert">{error}</p>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      startupError
-                        ? setAttempt((value) => value + 1)
-                        : void action('desktop_session')
-                    }
-                  >
-                    Retry
-                  </Button>
-                </>
-              ) : null}
-              {config ? (
-                <small className="version">Version {config.version}</small>
-              ) : null}
-            </section>
-          </main>
+          <DesktopWelcome
+            config={config}
+            session={session}
+            error={error}
+            startupFailed={Boolean(startupError)}
+            onSignIn={() => void action('desktop_sign_in')}
+            onCancel={() => void action('desktop_cancel_sign_in')}
+            onRetry={() =>
+              startupError
+                ? setAttempt((value) => value + 1)
+                : void action('desktop_session')
+            }
+          />
         )}
         <Toaster richColors />
       </CalendarHostProvider>

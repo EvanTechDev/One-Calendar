@@ -1,7 +1,7 @@
 import { act, render } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
-import { useScrollLock } from '@/hooks/use-scroll-lock'
+import { useScrollLock } from '@zntr/calendar-ui/hooks/use-scroll-lock'
 
 /**
  * `RemoveScroll` cancels `wheel` and `touch*` at the document level and nothing

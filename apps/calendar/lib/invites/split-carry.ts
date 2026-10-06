@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import { eq, and, inArray } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { eventInvites, eventInviteOccurrences } from '@/lib/drizzle/schema'
-import { shiftExdates } from '@/lib/recurrence/engine'
+import { shiftExdates } from '@zntr/calendar-ui/lib/recurrence/engine'
 import {
   decryptInviteToken,
   protectInviteToken,

@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook } from '../host-render'
-import { useNotifications } from '@/hooks/use-notifications'
-import type { CalendarEvent } from '@/components/app/calendar'
+import { useNotifications } from '@zntr/calendar-ui/hooks/use-notifications'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
 
 const checkPendingNotifications = vi.hoisted(() => vi.fn())
 
-vi.mock('@/lib/notifications', () => ({ checkPendingNotifications }))
+vi.mock('@zntr/calendar-ui/lib/notifications', () => ({
+  checkPendingNotifications,
+}))
 
 function event(id: string): CalendarEvent {
   return {

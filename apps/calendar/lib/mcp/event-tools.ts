@@ -9,7 +9,10 @@ import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
 import { deleteMeetingsForEvent, moveMeetingToEvent } from '@zntr/meetings'
 import { normalizeColor } from './colors'
-import { EVENT_COLOR_VALUES, PALETTE_TO_EVENT_COLOR } from '@/lib/event-colors'
+import {
+  EVENT_COLOR_VALUES,
+  PALETTE_TO_EVENT_COLOR,
+} from '@zntr/calendar-ui/lib/event-colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
 import { invalidateEventCache } from '@/lib/cache/events'
@@ -41,15 +44,15 @@ import {
   withUntil,
   partsInTz,
   tzOffsetMs,
-} from '@/lib/recurrence/engine'
-import { isValidTimezone } from '@/lib/timezone'
+} from '@zntr/calendar-ui/lib/recurrence/engine'
+import { isValidTimezone } from '@zntr/calendar-ui/lib/timezone'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
   baselineOf,
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
-import { normalizeEmails as normalizeEmailsShared } from '@/lib/email'
+import { normalizeEmails as normalizeEmailsShared } from '@zntr/calendar-ui/lib/email'
 import {
   encryptMergedFields,
   isValidRrule,

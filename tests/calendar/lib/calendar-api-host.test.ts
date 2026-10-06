@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createCalendarApi } from '@/lib/api-client'
+import { createCalendarApi } from '@zntr/calendar-ui/lib/api-client'
 
 afterEach(() => {
   vi.unstubAllGlobals()

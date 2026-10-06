@@ -28,7 +28,7 @@ vi.mock('@ai-sdk/react', () => ({
     addToolApprovalResponse: vi.fn(),
   }),
 }))
-vi.mock('@/components/app/ai/chat-transcript', () => ({
+vi.mock('@zntr/calendar-ui/components/app/ai/chat-transcript', () => ({
   ChatTranscript: () => null,
 }))
 vi.mock('@zntr/i18n/calendar', async (importOriginal) => ({
@@ -39,7 +39,7 @@ vi.mock('@zntr/i18n/calendar', async (importOriginal) => ({
 import {
   AiCommandPalette,
   type PaletteActions,
-} from '@/components/app/ai/ai-command-palette'
+} from '@zntr/calendar-ui/components/app/ai/ai-command-palette'
 
 const fetchSearch = vi.fn()
 beforeEach(() => {

@@ -26,7 +26,7 @@ import {
   UNCATEGORIZED_ID,
   type AnalyticsEngineEvent,
   type AnalyticsRange,
-} from '@/lib/analytics/engine'
+} from '@zntr/calendar-ui/lib/analytics/engine'
 import { InvalidEventQueryError } from './errors'
 import { decryptFieldStrict } from '@/lib/field-crypto'
 import { getSettings } from './settings-tools'

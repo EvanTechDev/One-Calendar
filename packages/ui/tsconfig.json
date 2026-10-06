@@ -11,6 +11,6 @@
       "@zntr/i18n/*": ["../../packages/i18n/src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules"]
 }

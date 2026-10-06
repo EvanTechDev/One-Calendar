@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import MonthView from '@/components/app/views/month-view'
-import type { CalendarEvent } from '@/components/app/calendar'
+import MonthView from '@zntr/calendar-ui/components/app/views/month-view'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
 import {
   Language,
   FirstDayOfWeek,
   ViewConfig,
   TimeFormat,
-} from '@/lib/calendar-types'
+} from '@zntr/calendar-ui/lib/calendar-types'
 
 const baseEvent: CalendarEvent = {
   id: '1',

@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { eventsOnDay, useEventsByDay } from '@/hooks/use-events-by-day'
-import type { CalendarEvent } from '@/components/app/calendar'
+import {
+  eventsOnDay,
+  useEventsByDay,
+} from '@zntr/calendar-ui/hooks/use-events-by-day'
+import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
 
 const baseEvent: CalendarEvent = {
   id: '1',

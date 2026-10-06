@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react'
-import { Button } from '@zntr/ui/button'
+import { DesktopState } from './desktop-surfaces'
 
 export class CalendarBoundary extends Component<
   { children: ReactNode },
@@ -13,16 +13,6 @@ export class CalendarBoundary extends Component<
 
   render() {
     if (!this.state.failed) return this.props.children
-    return (
-      <main className="desktop-welcome">
-        <section className="welcome-panel space-y-4" role="alert">
-          <h1>Calendar could not open</h1>
-          <p>Your calendar is stored online. Reload the app to try again.</p>
-          <Button onClick={() => window.location.reload()}>
-            Reload calendar
-          </Button>
-        </section>
-      </main>
-    )
+    return <DesktopState failed />
   }
 }

@@ -22,6 +22,7 @@
     "@zntr/calendar-ui": "workspace:*",
     "@zntr/ui": "workspace:*",
     "next-themes": "latest",
+    "lucide-react": "1.48.0",
     "sonner": "2.0.8",
     "swr": "^2.5.1",
     "@tauri-apps/api": "^2.11.0",

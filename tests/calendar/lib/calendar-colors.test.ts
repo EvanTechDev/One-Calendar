@@ -3,7 +3,7 @@ import {
   CALENDAR_COLOR_OPTIONS,
   applyCalendarColor,
   normalizeCalendarColor,
-} from '@/lib/calendar-colors'
+} from '@zntr/calendar-ui/lib/calendar-colors'
 
 describe('calendar colors', () => {
   it('offers the default and requested color choices', () => {
