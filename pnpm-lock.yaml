@@ -96,12 +96,6 @@ importers:
       '@zntr/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@zntr/calendar-host':
-        specifier: workspace:*
-        version: link:../../packages/calendar-host
-      '@zntr/calendar-ui':
-        specifier: workspace:*
-        version: link:../../packages/ui/calendar
       '@zntr/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -235,15 +229,15 @@ importers:
       '@tauri-apps/api':
         specifier: ^2.11.0
         version: 2.12.1
-      '@zntr/calendar-host':
+      '@zntr/auth':
         specifier: workspace:*
-        version: link:../../packages/calendar-host
-      '@zntr/calendar-ui':
-        specifier: workspace:*
-        version: link:../../packages/ui/calendar
+        version: link:../../packages/auth
       '@zntr/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@zntr/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       lucide-react:
         specifier: 1.48.0
         version: 1.48.0(react@19.2.7)
@@ -325,13 +319,13 @@ importers:
         version: 3.0.3
       botid:
         specifier: 1.5.11
-        version: 1.5.11(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 1.5.11(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(kysely@0.29.4)(postgres@3.4.9)
       geist:
         specifier: latest
-        version: 1.7.2(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
+        version: 1.7.2(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
       ioredis:
         specifier: ^5.11.1
         version: 5.11.1
@@ -590,12 +584,6 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@25.6.0)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
 
-  packages/calendar-host:
-    dependencies:
-      react:
-        specifier: 19.2.7
-        version: 19.2.7
-
   packages/i18n:
     dependencies:
       react:
@@ -621,12 +609,24 @@ importers:
 
   packages/ui:
     dependencies:
+      '@ai-sdk/react':
+        specifier: 4.0.130
+        version: 4.0.130(react@19.2.7)(zod@4.6.5)
       '@shadcn/react':
         specifier: 0.3.1
         version: 0.3.1(@types/react@19.2.18)(react@19.2.7)
+      '@zntr/agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@zntr/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@zntr/utils':
         specifier: workspace:*
         version: link:../utils
+      ai:
+        specifier: 7.0.127
+        version: 7.0.127(zod@4.6.5)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -636,9 +636,12 @@ importers:
       cobe:
         specifier: 0.6.4
         version: 0.6.4
+      date-fns:
+        specifier: 4.4.0
+        version: 4.4.0
       lucide-react:
-        specifier: 1.21.0
-        version: 1.21.0(react@19.2.7)
+        specifier: 1.48.0
+        version: 1.48.0(react@19.2.7)
       motion:
         specifier: ^12.41.0
         version: 12.43.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -657,67 +660,18 @@ importers:
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
-      recharts:
-        specifier: 3.9.0
-        version: 3.9.0(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react-is@19.2.8)(react@19.2.7)(redux@5.0.1)
-      sonner:
-        specifier: 2.0.8
-        version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-    devDependencies:
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@25.6.0)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
-
-  packages/ui/calendar:
-    dependencies:
-      '@ai-sdk/react':
-        specifier: 4.0.130
-        version: 4.0.130(react@19.2.7)(zod@4.6.5)
-      '@zntr/agent':
-        specifier: workspace:*
-        version: link:../../agent
-      '@zntr/auth':
-        specifier: workspace:*
-        version: link:../../auth
-      '@zntr/calendar-host':
-        specifier: workspace:*
-        version: link:../../calendar-host
-      '@zntr/i18n':
-        specifier: workspace:*
-        version: link:../../i18n
-      '@zntr/ui':
-        specifier: workspace:*
-        version: link:..
-      '@zntr/utils':
-        specifier: workspace:*
-        version: link:../../utils
-      ai:
-        specifier: 7.0.127
-        version: 7.0.127(zod@4.6.5)
-      date-fns:
-        specifier: 4.4.0
-        version: 4.4.0
-      lucide-react:
-        specifier: 1.48.0
-        version: 1.48.0(react@19.2.7)
-      next-themes:
-        specifier: latest
-        version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react:
-        specifier: 19.2.7
-        version: 19.2.7
-      react-dom:
-        specifier: 19.2.7
-        version: 19.2.7(react@19.2.7)
       react-remove-scroll:
         specifier: 2.7.2
         version: 2.7.2(@types/react@19.2.18)(react@19.2.7)
+      recharts:
+        specifier: 3.9.0
+        version: 3.9.0(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react-is@19.2.8)(react@19.2.7)(redux@5.0.1)
       rrule:
         specifier: 2.8.1
         version: 2.8.1
       shadcn:
         specifier: latest
-        version: 4.21.1(typescript@6.0.3)
+        version: 4.21.2
       sonner:
         specifier: 2.0.8
         version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -749,12 +703,18 @@ importers:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.6.2)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
 
   packages/utils:
     dependencies:
       cn:
         specifier: ^0.4.0
         version: 0.4.0
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
     devDependencies:
       vitest:
         specifier: ^4.1.10
@@ -3578,6 +3538,10 @@ packages:
 
   '@shadcn/registry@0.1.0':
     resolution: {integrity: sha512-eMF6tPNi9SWZgPvqBvPQFhJN7gV9PcjRdF3kPiiWo5yZJocWqVgxFuspCHrOij3bIJ797NIGZ+j/v7AiXfA6qg==}
+    engines: {node: '>=20.18.1'}
+
+  '@shadcn/registry@0.1.1':
+    resolution: {integrity: sha512-2StvkWtNuzWfAArbUL182FqFg1KYX7d/Pa0h+bdUgBOdIGXp2+6JMPi+zvJ4FgoGFxubcxwbKFmfIVeY44dpEw==}
     engines: {node: '>=20.18.1'}
 
   '@shikijs/core@4.4.1':
@@ -7130,6 +7094,11 @@ packages:
     engines: {node: '>=20.18.1'}
     hasBin: true
 
+  shadcn@4.21.2:
+    resolution: {integrity: sha512-hVjBCjAqA1frsNoWC1731LHYn+gitC48EuDK8K48pUMjD0RnxoIwx7u4D7akdMNhyUkYjdVm3962vS2pgChAOQ==}
+    engines: {node: '>=20.18.1'}
+    hasBin: true
+
   sharp@0.35.3:
     resolution: {integrity: sha512-ej0zVHuZGHCiABXcNxeYhpRnPNPAcvbG8RMdBAhDAxLKkCRVSpK3Iyu7qbqw3JMzoj0REeM6f3tJLtVwl0023Q==}
     engines: {node: '>=20.9.0'}
@@ -10636,6 +10605,34 @@ snapshots:
       - supports-color
       - typescript
 
+  '@shadcn/registry@0.1.1':
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/parser': 7.29.8
+      '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.7)
+      '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7)
+      '@dotenvx/dotenvx': 1.75.1
+      cn: 0.2.6
+      deepmerge: 4.3.1
+      execa: 9.6.0
+      fast-glob: 3.3.3
+      fs-extra: 11.4.0
+      fuzzysort: 3.1.0
+      kleur: 4.1.5
+      ora: 8.2.0
+      postcss: 8.5.28
+      prompts: 2.4.2
+      recast: 0.23.19
+      socks: 2.8.10
+      stringify-object: 5.0.0
+      ts-morph: 26.0.0
+      tsconfig-paths: 4.2.0
+      type-fest: 4.41.0
+      undici: 7.29.0
+      zod: 3.24.1
+    transitivePeerDependencies:
+      - supports-color
+
   '@shikijs/core@4.4.1':
     dependencies:
       '@shikijs/primitive': 4.4.1
@@ -12572,10 +12569,6 @@ snapshots:
     dependencies:
       next: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
-  geist@1.7.2(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)):
-    dependencies:
-      next: 16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-
   gensync@1.0.0-beta.2: {}
 
   get-caller-file@2.0.5: {}
@@ -13854,6 +13847,7 @@ snapshots:
       - '@babel/core'
       - '@types/node'
       - babel-plugin-macros
+    optional: true
 
   nlcst-to-string@4.0.0:
     dependencies:
@@ -14725,6 +14719,46 @@ snapshots:
       - supports-color
       - typescript
 
+  shadcn@4.21.2:
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/parser': 7.29.8
+      '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.7)
+      '@babel/preset-typescript': 7.29.7(@babel/core@7.29.7)
+      '@dotenvx/dotenvx': 1.75.1
+      '@modelcontextprotocol/sdk': 1.30.0(zod@3.24.1)
+      '@shadcn/registry': 0.1.1
+      '@types/validate-npm-package-name': 4.0.2
+      browserslist: 4.28.7
+      cn: 0.2.6
+      commander: 14.0.3
+      dedent: 1.7.2
+      deepmerge: 4.3.1
+      diff: 8.0.4
+      execa: 9.6.0
+      fast-glob: 3.3.3
+      fs-extra: 11.4.0
+      fuzzysort: 3.1.0
+      kleur: 4.1.5
+      open: 11.0.1
+      ora: 8.2.0
+      postcss: 8.5.28
+      postcss-selector-parser: 7.1.4
+      prompts: 2.4.2
+      recast: 0.23.19
+      socks: 2.8.10
+      stringify-object: 5.0.0
+      ts-morph: 26.0.0
+      tsconfig-paths: 4.2.0
+      undici: 7.29.0
+      validate-npm-package-name: 7.0.2
+      zod: 3.24.1
+      zod-to-json-schema: 3.25.2(zod@3.24.1)
+    transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - babel-plugin-macros
+      - supports-color
+
   sharp@0.35.3(@types/node@24.13.3):
     dependencies:
       '@img/colour': 1.1.0
@@ -15490,6 +15524,34 @@ snapshots:
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
       vite: 7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 26.6.2
+      jsdom: 29.1.1(@noble/hashes@2.2.0)
+    transitivePeerDependencies:
+      - msw
+
+  vitest@4.1.10(@types/node@26.6.2)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)):
+    dependencies:
+      '@vitest/expect': 4.1.10
+      '@vitest/mocker': 4.1.10(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
+      '@vitest/pretty-format': 4.1.10
+      '@vitest/runner': 4.1.10
+      '@vitest/snapshot': 4.1.10
+      '@vitest/spy': 4.1.10
+      '@vitest/utils': 4.1.10
+      es-module-lexer: 2.3.1
+      expect-type: 1.4.0
+      magic-string: 0.30.21
+      obug: 2.1.4
+      pathe: 2.0.3
+      picomatch: 4.0.5
+      std-env: 4.2.0
+      tinybench: 2.9.0
+      tinyexec: 1.3.0
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.1
+      vite: 8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.6.2

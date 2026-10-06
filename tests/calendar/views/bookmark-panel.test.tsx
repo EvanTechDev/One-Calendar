@@ -7,29 +7,29 @@ import {
   screen,
   waitFor,
 } from '../host-render'
-import { BookmarkPanelBody } from '@zntr/calendar-ui/components/app/sidebar/bookmark-panel'
-import { eventDataToCalendarEvent } from '@zntr/calendar-ui/components/providers/calendar-context'
-import { useEventPreviewNavigation } from '@zntr/calendar-ui/hooks/use-event-preview-navigation'
-import { toCalendarDate } from '@zntr/calendar-ui/lib/zoned-date'
-import type { BookmarkData, EventData } from '@zntr/calendar-ui/lib/api-client'
-import type { CalendarEvent } from '@zntr/calendar-ui/lib/calendar-types'
+import { BookmarkPanelBody } from '@zntr/ui/calendar/components/app/sidebar/bookmark-panel'
+import { eventDataToCalendarEvent } from '@zntr/ui/calendar/components/providers/calendar-context'
+import { useEventPreviewNavigation } from '@zntr/ui/calendar/hooks/use-event-preview-navigation'
+import { toCalendarDate } from '@zntr/ui/calendar/lib/zoned-date'
+import type { BookmarkData, EventData } from '@zntr/ui/calendar/lib/api-client'
+import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
 
 const state = vi.hoisted(() => ({
   bookmarks: [] as BookmarkData[],
   events: [] as CalendarEvent[],
   deleteBookmark: vi.fn(),
 }))
-vi.mock('@zntr/calendar-ui/components/providers/data-provider', () => ({
+vi.mock('@zntr/ui/calendar/components/providers/data-provider', () => ({
   useBookmarks: () => ({
     bookmarks: state.bookmarks,
     deleteBookmark: state.deleteBookmark,
   }),
 }))
 vi.mock(
-  '@zntr/calendar-ui/components/providers/calendar-context',
+  '@zntr/ui/calendar/components/providers/calendar-context',
   async (importOriginal) => ({
     ...(await importOriginal<
-      typeof import('@zntr/calendar-ui/components/providers/calendar-context')
+      typeof import('@zntr/ui/calendar/components/providers/calendar-context')
     >()),
     useCalendar: () => ({ events: state.events }),
   }),

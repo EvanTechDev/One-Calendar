@@ -4,7 +4,7 @@ import { eq, and, inArray } from 'drizzle-orm'
 import {
   parseInstanceId,
   isSeriesEvent,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
 import { baselineOf, getInviteOccurrences } from '@/lib/invites/invite-service'
 

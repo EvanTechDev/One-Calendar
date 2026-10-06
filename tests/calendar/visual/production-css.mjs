@@ -105,13 +105,15 @@ try {
   await captureCalendar('web-desktop-width', 1200, 680)
   await captureCalendar('web-month-events', 1280, 900, '?view=month&events=1')
   for (const [surface, theme, width, height] of [
-    ['welcome', 'light', 1200, 680],
-    ['welcome', 'dark', 1200, 680],
-    ['waiting', 'light', 1200, 680],
-    ['error', 'light', 1200, 680],
-    ['settings', 'light', 1200, 680],
-    ['failed', 'dark', 1200, 680],
-    ['welcome', 'light', 640, 600],
+    ['sign-in', 'light', 1320, 880],
+    ['sign-in', 'dark', 1320, 880],
+    ['sign-up', 'light', 1320, 880],
+    ['reset-password', 'light', 1320, 880],
+    ['settings', 'light', 1320, 880],
+    ['offline', 'light', 1320, 880],
+    ['offline', 'dark', 1320, 880],
+    ['failed', 'dark', 1320, 880],
+    ['sign-in', 'light', 640, 600],
   ]) {
     await page.setViewportSize({ width, height })
     await page.goto(`${fixtureOrigin}/?surface=${surface}&theme=${theme}`)

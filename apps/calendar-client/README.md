@@ -1,26 +1,34 @@
 # Zentra Calendar Desktop
 
-The Tauri client bundles `/app` locally from `@zntr/calendar-ui`, the same
+The Tauri client bundles `/app` locally from `@zntr/ui/calendar`, the same
 calendar components, data providers and recurrence implementation used by Web.
-Authentication and other webpages open in the system browser. This version
-requires a connection; failed requests expose a retry action.
+Sign-in, sign-up, password recovery and account settings stay inside the client.
+Web and desktop share a No internet screen that preserves the mounted calendar
+and editor while disconnected, then revalidates data when connectivity returns.
 
 ## Architecture
 
-- Shared calendar code lives in `packages/ui/calendar`, a nested workspace named
-  `@zntr/calendar-ui`. Web and desktop import it directly; Web retains only its
-  framework-specific adapters. Each app registers its own Tailwind source paths.
+- Shared calendar code lives in `packages/ui/src/calendar`, exported by
+  `@zntr/ui/calendar`. The host port lives in `packages/utils/src/calendar-host`,
+  exported by `@zntr/utils/calendar-host`. Web and desktop import them directly.
+  Each app registers its own Tailwind source paths.
 - React requests use `CalendarHost.request`: Tauri IPC → Rust → Calendar API.
   Streaming responses and cancellation use the same port. Session cookies remain
   in Rust and the operating system credential store.
-- Browser sign-in uses the existing Better Auth OAuth provider, authorization
+- The embedded official-origin auth view uses the existing Better Auth forms,
+  including BotID browser instrumentation, email verification and two-factor
+  authentication. The remote view has no native IPC access. Sign-in uses authorization
   code and S256 PKCE. Exchanging the code creates an independent desktop session.
   Signing out of either browser or desktop leaves the other session intact.
-- Opening an account page creates a single-use, 60-second browser handoff. An
+- Opening account settings creates a single-use, 60-second handoff into an
+  ephemeral official-origin view inside Settings. The standalone `/account`
+  route is removed. External browser links still use a handoff: an
   already signed-in browser keeps its current account. A signed-out browser gets
-  a new independent session. Account management remains on the Web.
+  a new independent session.
 - Close hides the window in the tray; Open and Quit are explicit tray actions.
-  The fixed outer window is 1200 × 720 logical pixels, clamped to screen space.
+  The fixed outer window is 1320 × 880 logical pixels, clamped to screen space.
+  Fullscreen is available from the tray or F11 (Escape exits). The embedded
+  identity header also has a fullscreen button. Edge-drag resizing remains disabled.
 - The native reminder worker refreshes the server's recurrence-expanded feed
   independently of the displayed range. It checks online before delivery and
   stores hashed Fired records per account and origin, preserving Catch-Up rules.

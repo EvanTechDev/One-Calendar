@@ -3,7 +3,7 @@ import {
   ApiError,
   fetchJson,
   messageOr,
-} from '@zntr/calendar-ui/lib/fetch-json'
+} from '@zntr/ui/calendar/lib/fetch-json'
 
 /**
  * `fetchJson` is the wrapper every client mutation goes through, and it used

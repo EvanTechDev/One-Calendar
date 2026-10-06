@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "botid": "1.5.11",
-    "@zntr/calendar-ui": "workspace:*",
     "@ai-sdk/groq": "4.0.54",
     "@ai-sdk/react": "4.0.130",
     "@mdx-js/loader": "^3.1.0",
@@ -28,7 +27,6 @@
     "@types/mdx": "^2.0.13",
     "@zntr/agent": "workspace:*",
     "@zntr/auth": "workspace:*",
-    "@zntr/calendar-host": "workspace:*",
     "@zntr/i18n": "workspace:*",
     "@zntr/meetings": "workspace:*",
     "@zntr/ui": "workspace:*",

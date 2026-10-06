@@ -35,7 +35,7 @@ fn deliver(app: &AppHandle, reminder: &Reminder) {
     if notification.show().is_err() { eprintln!("System reminder delivery failed"); }
     let _ = app.emit("desktop-reminder", serde_json::json!({ "title": reminder.title }));
     if let Ok(stream) = rodio::OutputStreamBuilder::open_default_stream() {
-        let bytes = include_bytes!("../../../../packages/ui/calendar/assets/reminder.wav");
+        let bytes = include_bytes!("../../../../packages/ui/src/calendar/assets/reminder.wav");
         if let Ok(sink) = rodio::play(stream.mixer(), Cursor::new(bytes.as_slice())) {
             sink.sleep_until_end();
         }

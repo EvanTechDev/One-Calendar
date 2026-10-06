@@ -19,7 +19,7 @@ import {
   parseICSDate,
   unescapeIcsText,
   type IcsEvent,
-} from '@zntr/calendar-ui/lib/ics'
+} from '@zntr/ui/calendar/lib/ics'
 
 function timed(overrides: Partial<IcsEvent> = {}): IcsEvent {
   return {

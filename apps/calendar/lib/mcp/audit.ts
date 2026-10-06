@@ -17,7 +17,7 @@ import { parseRetentionDays } from './cleanup-config'
 import type {
   AuditEntry,
   AuditEntryType,
-} from '@zntr/calendar-ui/lib/mcp/types'
+} from '@zntr/ui/calendar/lib/mcp/types'
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
   const db = await getDb()

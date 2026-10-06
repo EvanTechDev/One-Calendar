@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { settingsPatchSchema, settingsSchema } from '@/lib/validation'
-import { CALENDAR_COLOR_OPTIONS } from '@zntr/calendar-ui/lib/calendar-colors'
+import { CALENDAR_COLOR_OPTIONS } from '@zntr/ui/calendar/lib/calendar-colors'
 
 /**
  * The settings blob is merged, not replaced — a PUT carries only what changed.

@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from '../host-render'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useKeywordSearch } from '@zntr/calendar-ui/hooks/use-keyword-search'
+import { useKeywordSearch } from '@zntr/ui/calendar/hooks/use-keyword-search'
 afterEach(() => {
   cleanup()
   vi.useRealTimers()

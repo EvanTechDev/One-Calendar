@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_opener::OpenerExt;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -268,8 +267,7 @@ pub async fn desktop_session(app: AppHandle) -> Result<SessionView, String> {
     auth.snapshot()
 }
 
-#[tauri::command]
-pub async fn desktop_sign_in(app: AppHandle) -> Result<(), String> {
+pub async fn begin_sign_in(app: AppHandle) -> Result<tauri::Url, String> {
     let auth = app.state::<DesktopAuth>();
     let state = random_secret()?;
     let verifier = random_secret()?;
@@ -292,10 +290,6 @@ pub async fn desktop_sign_in(app: AppHandle) -> Result<(), String> {
         ("resource", auth.origin.join("/api/desktop").unwrap().as_str()),
         ("state", state.as_str()), ("code_challenge", challenge.as_str()), ("code_challenge_method", "S256"),
     ]);
-    if app.opener().open_url(url.as_str(), None::<&str>).is_err() {
-        desktop_cancel_sign_in(app.clone())?;
-        return Err("Could not open your browser. Try again.".into());
-    }
     emit_session(&app);
     let handle = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -310,7 +304,7 @@ pub async fn desktop_sign_in(app: AppHandle) -> Result<(), String> {
         }
         emit_session(&handle);
     });
-    Ok(())
+    Ok(url)
 }
 
 #[tauri::command]
@@ -358,7 +352,7 @@ pub async fn callback(app: AppHandle, url: tauri::Url) {
             .json(&serde_json::json!({ "code": code, "codeVerifier": verifier }))
             .timeout(Duration::from_secs(30)).send().await
             .map_err(|_| "Could not finish sign-in. Check your connection and try again.")?;
-        if !response.status().is_success() { return Err("Sign-in could not be completed. Start again in your browser.".to_string()); }
+        if !response.status().is_success() { return Err("Sign-in could not be completed. Reload the sign-in page and try again.".to_string()); }
         let reply = response.json::<SessionReply>().await.map_err(|_| "Invalid sign-in response")?;
         Ok((http, reply))
     }, registration).await;

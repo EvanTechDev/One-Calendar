@@ -18,7 +18,7 @@ import {
 } from '@/lib/invites/invite-service'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
-import { isSeriesEvent } from '@zntr/calendar-ui/lib/recurrence/engine'
+import { isSeriesEvent } from '@zntr/ui/calendar/lib/recurrence/engine'
 import {
   applyScopedParticipantChange,
   resolveParticipantTarget,
@@ -29,7 +29,7 @@ import {
   ParticipantScopeError,
 } from '@/lib/invites/visibility'
 import type { ApplyTo } from '@/lib/event-service'
-import { normalizeEmails as normalizeEmailsShared } from '@zntr/calendar-ui/lib/email'
+import { normalizeEmails as normalizeEmailsShared } from '@zntr/ui/calendar/lib/email'
 
 const MAX_PARTICIPANTS = 20
 

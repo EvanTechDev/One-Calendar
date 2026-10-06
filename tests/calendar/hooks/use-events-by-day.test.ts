@@ -3,8 +3,8 @@ import { renderHook } from '@testing-library/react'
 import {
   eventsOnDay,
   useEventsByDay,
-} from '@zntr/calendar-ui/hooks/use-events-by-day'
-import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
+} from '@zntr/ui/calendar/hooks/use-events-by-day'
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 
 const baseEvent: CalendarEvent = {
   id: '1',

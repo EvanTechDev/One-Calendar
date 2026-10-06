@@ -36,7 +36,7 @@ vi.mock('sonner', () => ({
 }))
 
 const { useEventMeetingDraft } =
-  await import('@zntr/calendar-ui/hooks/use-event-meeting-draft')
+  await import('@zntr/ui/calendar/hooks/use-event-meeting-draft')
 
 interface Call {
   url: string

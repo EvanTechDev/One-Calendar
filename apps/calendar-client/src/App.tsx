@@ -6,10 +6,13 @@ import {
   useMemo,
   useState,
 } from 'react'
-import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar-host'
-import { CalendarDataHost } from '@zntr/calendar-ui/components/providers/calendar-data-host'
-import { CalendarProvider } from '@zntr/calendar-ui/components/providers/calendar-context'
-import { AVAILABLE_THEMES } from '@zntr/calendar-ui/lib/theme'
+import {
+  CalendarHostProvider,
+  type CalendarHost,
+} from '@zntr/utils/calendar-host'
+import { CalendarDataHost } from '@zntr/ui/calendar/components/providers/calendar-data-host'
+import { CalendarProvider } from '@zntr/ui/calendar/components/providers/calendar-context'
+import { AVAILABLE_THEMES } from '@zntr/ui/calendar/lib/theme'
 import { ThemeProvider } from 'next-themes'
 import { SWRConfig } from 'swr'
 import { Toaster, toast } from 'sonner'
@@ -22,12 +25,9 @@ import {
   type SessionView,
 } from './native'
 import { DesktopUpdates } from './updates'
-import {
-  DesktopAccount,
-  DesktopNotice,
-  DesktopState,
-  DesktopWelcome,
-} from './desktop-surfaces'
+import { ConnectionBoundary } from '@zntr/ui/calendar/components/connection-boundary'
+import { IdentityPanel } from './identity-panel'
+import { DesktopNotice, DesktopState } from './desktop-surfaces'
 import './styles.css'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/geist'
@@ -36,7 +36,7 @@ import { CalendarBoundary } from './calendar-boundary'
 import { receiveSession } from './session-state'
 import './App.css'
 
-const CalendarApp = lazy(() => import('@zntr/calendar-ui'))
+const CalendarApp = lazy(() => import('@zntr/ui/calendar'))
 const initialSession: SessionView = {
   generation: 0,
   user: null,
@@ -52,7 +52,6 @@ export default function App() {
   const [startupError, setStartupError] = useState<string | null>(null)
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -87,6 +86,17 @@ export default function App() {
     } catch (error) {
       toast.error(String(error))
     }
+  }, [])
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== 'F11' && event.key !== 'Escape') return
+      if (event.key === 'F11') event.preventDefault()
+      void invoke('desktop_fullscreen', {
+        enabled: event.key === 'Escape' ? false : null,
+      }).catch(() => {})
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
   }, [])
   useEffect(() => {
     const subscription = listen<{ title: string }>(
@@ -192,13 +202,9 @@ export default function App() {
       requestNotifications: () =>
         invoke<boolean>('desktop_notification_permission'),
       renderAccount: (section) => (
-        <DesktopAccount
-          user={session.user}
-          onManage={() =>
-            navigate(
-              `/account${section ? `?section=${encodeURIComponent(section)}` : ''}`,
-            )
-          }
+        <IdentityPanel
+          mode="settings"
+          section={section}
           onSignOut={() => void action('desktop_sign_out')}
         />
       ),
@@ -207,11 +213,10 @@ export default function App() {
     [config, session, request, navigate, action],
   )
 
-  const retry = async () => {
+  const retry = useCallback(async () => {
     await action('desktop_session')
     setConnectionError(null)
-    setRevision((value) => value + 1)
-  }
+  }, [action])
   const error = startupError ?? session.error
 
   return (
@@ -222,48 +227,51 @@ export default function App() {
       enableSystem
     >
       <CalendarHostProvider value={host}>
-        {config && session.user ? (
-          <>
-            {connectionError || error ? (
-              <div className="desktop-connection">
-                <DesktopNotice
-                  title="Connection needs attention"
-                  message={connectionError ?? error ?? ''}
-                  onRetry={() => void retry()}
-                />
-              </div>
-            ) : null}
-            <CalendarBoundary key={`${session.user.id}:${revision}`}>
-              <SWRConfig
-                value={{ provider: () => new Map(), errorRetryCount: 1 }}
-              >
-                <CalendarDataHost>
-                  <CalendarProvider>
-                    <Suspense fallback={<DesktopState />}>
-                      <CalendarApp />
-                    </Suspense>
-                  </CalendarProvider>
-                </CalendarDataHost>
-              </SWRConfig>
-            </CalendarBoundary>
-          </>
-        ) : (
-          <DesktopWelcome
-            config={config}
-            session={session}
-            error={error}
-            startupFailed={Boolean(startupError)}
-            onSignIn={() => void action('desktop_sign_in')}
-            onCancel={() => void action('desktop_cancel_sign_in')}
-            onRetry={() =>
-              startupError
-                ? setAttempt((value) => value + 1)
-                : void action('desktop_session')
-            }
-          />
-        )}
+        <ConnectionBoundary
+          checkConnection={checkConnection}
+          onReconnect={retry}
+        >
+          {config && session.user ? (
+            <>
+              {connectionError || error ? (
+                <div className="desktop-connection">
+                  <DesktopNotice
+                    title="Connection needs attention"
+                    message={connectionError ?? error ?? ''}
+                    onRetry={() => void retry()}
+                  />
+                </div>
+              ) : null}
+              <CalendarBoundary key={session.user.id}>
+                <SWRConfig
+                  value={{ provider: () => new Map(), errorRetryCount: 1 }}
+                >
+                  <CalendarDataHost>
+                    <CalendarProvider>
+                      <Suspense fallback={<DesktopState />}>
+                        <CalendarApp />
+                      </Suspense>
+                    </CalendarProvider>
+                  </CalendarDataHost>
+                </SWRConfig>
+              </CalendarBoundary>
+            </>
+          ) : config && (!session.pending || session.signingIn) ? (
+            <IdentityPanel mode="sign-in" sessionError={session.error} />
+          ) : startupError ? (
+            <DesktopNotice
+              title="Could not open calendar"
+              message={startupError}
+              onRetry={() => setAttempt((n) => n + 1)}
+            />
+          ) : (
+            <DesktopState />
+          )}
+        </ConnectionBoundary>
         <Toaster richColors />
       </CalendarHostProvider>
     </ThemeProvider>
   )
 }
+
+const checkConnection = () => invoke<boolean>('desktop_connection')

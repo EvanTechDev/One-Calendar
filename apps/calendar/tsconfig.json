@@ -14,8 +14,7 @@
       "@zntr/i18n": ["../../packages/i18n/src/index.ts"],
       "@zntr/i18n/*": ["../../packages/i18n/src/*"],
       "@zntr/auth": ["../../packages/auth/src/index.ts"],
-      "@zntr/calendar-host": ["../../packages/calendar-host/src/index.ts"],
-      "@zntr/calendar-host/*": ["../../packages/calendar-host/src/*"],
+      "@zntr/ui/calendar": ["../../packages/ui/src/calendar/index.tsx"],
       "@zntr/meetings": ["../../packages/meetings/src/index.ts"],
       "@zntr/meetings/*": ["../../packages/meetings/src/*"],
       "@zntr/auth/*": ["../../packages/auth/src/*"]

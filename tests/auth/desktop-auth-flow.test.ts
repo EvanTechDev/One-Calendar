@@ -133,7 +133,7 @@ function createFixture(
   }
   const link = async (
     cookie: string,
-    destination = '/account?section=security',
+    destination = '/desktop/settings?section=profile',
   ) => {
     const response = await send('desktop/browser-link', cookie, { destination })
     expect(response.status, await response.clone().text()).toBe(200)
@@ -300,7 +300,7 @@ describe.each(['memory', 'PostgreSQL'])(
         const browserCookie = cookies(accepted)
         expect(browserCookie).not.toBe(desktop.cookie)
         expect(await accepted.json()).toEqual({
-          destination: '/account?section=security',
+          destination: '/desktop/settings?section=profile',
         })
         await f.send('sign-out', desktop.cookie, {})
         expect((await f.send('desktop/session', browserCookie)).status).toBe(

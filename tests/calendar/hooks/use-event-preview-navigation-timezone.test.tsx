@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, render, waitFor } from '@testing-library/react'
 import { useRef, useState } from 'react'
-import { useEventPreviewNavigation } from '@zntr/calendar-ui/hooks/use-event-preview-navigation'
+import { useEventPreviewNavigation } from '@zntr/ui/calendar/hooks/use-event-preview-navigation'
 
 afterEach(cleanup)
 

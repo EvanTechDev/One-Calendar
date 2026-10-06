@@ -7,7 +7,7 @@ import {
   normalizeCountdownColor,
   COUNTDOWN_COLOR_NAMES,
 } from '@/lib/mcp/colors'
-import { EVENT_COLORS } from '@zntr/calendar-ui/lib/event-colors'
+import { EVENT_COLORS } from '@zntr/ui/calendar/lib/event-colors'
 
 describe('mcp colors', () => {
   it('offers a colour for every selectable event colour', () => {

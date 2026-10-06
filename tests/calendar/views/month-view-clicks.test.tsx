@@ -1,13 +1,13 @@
 import { fireEvent, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import MonthView from '@zntr/calendar-ui/components/app/views/month-view'
-import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
+import MonthView from '@zntr/ui/calendar/components/app/views/month-view'
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 import {
   FirstDayOfWeek,
   Language,
   TimeFormat,
   ViewConfig,
-} from '@zntr/calendar-ui/lib/calendar-types'
+} from '@zntr/ui/calendar/lib/calendar-types'
 
 /**
  * The month grid's two gestures.

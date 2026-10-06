@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import type { McpAuthUser } from '@zntr/calendar-ui/lib/mcp/types'
+import type { McpAuthUser } from '@zntr/ui/calendar/lib/mcp/types'
 import { getUserNameAndEmail, verifyApiKey } from './auth'
 import { getDb } from '@/lib/drizzle/client'
 import { oauthClient, oauthConsent } from '@zntr/auth/schema'

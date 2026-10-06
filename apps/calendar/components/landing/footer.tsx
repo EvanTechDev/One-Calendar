@@ -1,6 +1,6 @@
 import { cn } from '@zntr/utils'
 import type { ReactNode } from 'react'
-import { ZentraLogo } from '@zntr/calendar-ui/components/brand/zentra-logo'
+import { ZentraLogo } from '@zntr/ui/calendar/components/brand/zentra-logo'
 
 type FooterLink = {
   title: string

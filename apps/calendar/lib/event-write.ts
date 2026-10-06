@@ -6,7 +6,7 @@ import {
   shiftExdates,
   translateStampsByDays,
   isValidRrule as isSupportedRrule,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import { getDb } from '@/lib/drizzle/client'
 import type { InstanceChangePlan } from '@/lib/event-service'
 

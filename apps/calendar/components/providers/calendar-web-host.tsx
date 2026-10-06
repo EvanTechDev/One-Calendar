@@ -1,9 +1,13 @@
 'use client'
 
-import { lazy, Suspense, useMemo, type ReactNode } from 'react'
+import { lazy, Suspense, useMemo, useRef, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar-host'
+import {
+  CalendarHostProvider,
+  type CalendarHost,
+} from '@zntr/utils/calendar-host'
 import { authClient } from '@/lib/auth/client'
+import { ConnectionBoundary } from '@zntr/ui/calendar/components/connection-boundary'
 
 const request: typeof fetch = (input, init) => fetch(input, init)
 const AccountPanel = lazy(() => import('../app/profile/web-account-panel'))
@@ -23,8 +27,11 @@ function openExternal(to: string) {
 
 export function CalendarWebHost({ children }: { children: ReactNode }) {
   const router = useRouter()
-  const { data, isPending } = authClient.useSession()
-  const user = data?.user
+  const { data, isPending, error } = authClient.useSession()
+  const remembered = useRef(data?.user)
+  if (data?.user) remembered.current = data.user
+  else if (!isPending && !error) remembered.current = undefined
+  const user = data?.user ?? remembered.current
   const navigation = useMemo(
     () => ({
       push: (to: string) => router.push(to),
@@ -44,5 +51,9 @@ export function CalendarWebHost({ children }: { children: ReactNode }) {
     [user, isPending, navigation],
   )
 
-  return <CalendarHostProvider value={host}>{children}</CalendarHostProvider>
+  return (
+    <CalendarHostProvider value={host}>
+      <ConnectionBoundary>{children}</ConnectionBoundary>
+    </CalendarHostProvider>
+  )
 }

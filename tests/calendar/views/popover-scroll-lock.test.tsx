@@ -14,15 +14,15 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { useRef } from 'react'
-import MonthView from '@zntr/calendar-ui/components/app/views/month-view'
-import YearView from '@zntr/calendar-ui/components/app/views/year-view'
-import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
+import MonthView from '@zntr/ui/calendar/components/app/views/month-view'
+import YearView from '@zntr/ui/calendar/components/app/views/year-view'
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 import {
   Language,
   FirstDayOfWeek,
   ViewConfig,
   TimeFormat,
-} from '@zntr/calendar-ui/lib/calendar-types'
+} from '@zntr/ui/calendar/lib/calendar-types'
 
 const config = ViewConfig.create({
   date: new Date(2025, 0, 15),

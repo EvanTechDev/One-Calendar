@@ -3,45 +3,26 @@
   --font-heading: 'Geist Variable', sans-serif;
   --font-instrument-sans: 'Instrument Sans Variable', sans-serif;
   --desktop-blue: #3566c7;
-  --desktop-blue-foreground: #fff;
   font-synthesis: none;
 }
 .dark {
   --desktop-blue: #8baaff;
-  --desktop-blue-foreground: #171c24;
 }
 body {
   font-family: var(--font-heading);
 }
-
-/* Desktop-only surfaces: never change shared calendar element styles. */
-.desktop-entry,
-.desktop-state {
-  --desktop-ink: #20262e;
-  --desktop-muted: #69737e;
-  --desktop-line: #e1e6ed;
-  --desktop-paper: #fff;
-  --desktop-wash: #f2f5fa;
-  color: var(--desktop-ink);
-  background: var(--desktop-paper);
-}
-.dark .desktop-entry,
-.dark .desktop-state {
-  --desktop-ink: #e8edf5;
-  --desktop-muted: #9ba8ba;
-  --desktop-line: #2e3948;
-  --desktop-paper: #171c24;
-  --desktop-wash: #1c2430;
-}
-.desktop-entry {
-  min-height: 100dvh;
-  display: grid;
-  grid-template-columns: minmax(400px, 1fr) minmax(340px, 1fr);
-}
-.welcome-content {
+.desktop-auth {
   display: flex;
   flex-direction: column;
-  padding: 36px 52px 24px;
+  height: 100dvh;
+  background: var(--background);
+}
+.desktop-account-embedded {
+  display: flex;
+  flex-direction: column;
+  height: min(620px, calc(100dvh - 220px));
+  min-height: 300px;
+  background: var(--background);
 }
 .desktop-brand {
   display: flex;
@@ -53,175 +34,19 @@ body {
 }
 .desktop-brand-subtitle {
   font-weight: 400;
-  color: var(--desktop-muted, var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 .dark .desktop-brand img {
   filter: invert(1);
 }
 .desktop-channel {
   padding: 2px 7px;
-  border: 1px solid var(--desktop-line, var(--border));
+  border: 1px solid var(--border);
   border-radius: 5px;
-  color: var(--desktop-muted, var(--muted-foreground));
+  color: var(--muted-foreground);
   font-size: 10px;
   letter-spacing: 0.03em;
   font-weight: 500;
-}
-.welcome-intro {
-  margin: auto 0;
-  padding: 52px 0 44px;
-  max-width: 400px;
-}
-.desktop-eyebrow {
-  color: var(--desktop-muted);
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  font-weight: 600;
-  margin-bottom: 22px;
-}
-.welcome-intro h1 {
-  font-family: var(--font-instrument-sans);
-  font-weight: 500;
-  font-size: clamp(42px, 5vw, 62px);
-  line-height: 1.06;
-  letter-spacing: -0.055em;
-  margin: 0 0 24px;
-}
-.desktop-description {
-  max-width: 330px;
-  color: var(--desktop-muted);
-  font-size: 14px;
-  line-height: 1.8;
-}
-.welcome-actions {
-  margin-top: 30px;
-}
-.welcome-signin {
-  min-width: 240px;
-  justify-content: space-between;
-  background: var(--desktop-blue);
-  color: var(--desktop-blue-foreground);
-  padding-inline: 18px;
-}
-.welcome-signin:hover {
-  background: color-mix(in srgb, var(--desktop-blue), black 10%);
-}
-.welcome-hint {
-  font-size: 12px;
-  color: var(--desktop-muted);
-  margin-top: 12px;
-}
-.welcome-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: space-between;
-  color: var(--desktop-muted);
-  font-size: 11px;
-}
-.welcome-art {
-  background: var(--desktop-wash);
-  border-left: 1px solid var(--desktop-line);
-  padding: 48px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  gap: 28px;
-  overflow: hidden;
-}
-.welcome-art > p {
-  color: var(--desktop-muted);
-  font-size: 12px;
-}
-.welcome-calendar {
-  width: min(100%, 360px);
-  border: 1px solid var(--desktop-line);
-  border-radius: 14px;
-  background: var(--desktop-paper);
-  padding: 26px 28px;
-  box-shadow: 0 12px 36px -24px #172d5040;
-}
-.welcome-calendar-heading {
-  display: flex;
-  justify-content: space-between;
-  color: var(--desktop-muted);
-  font-size: 12px;
-}
-.welcome-date {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  padding: 26px 0;
-  border-bottom: 1px solid var(--desktop-line);
-}
-.welcome-date > span {
-  font-family: var(--font-instrument-sans);
-  font-size: 80px;
-  letter-spacing: -0.075em;
-  line-height: 1;
-  color: var(--desktop-blue);
-  font-variant-numeric: tabular-nums;
-}
-.welcome-date > div {
-  font-size: 13px;
-  font-weight: 500;
-}
-.welcome-date small {
-  display: block;
-  margin-top: 6px;
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--desktop-muted);
-}
-.welcome-month {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px 3px;
-  padding-top: 22px;
-  font-size: 12px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.welcome-month > span {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-}
-.welcome-month .welcome-weekday {
-  color: var(--desktop-muted);
-  font-size: 10px;
-}
-.welcome-today {
-  color: var(--desktop-blue-foreground);
-  background: var(--desktop-blue);
-  border-radius: 50%;
-}
-.welcome-wait {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px 0;
-}
-.welcome-wait strong {
-  font-size: 13px;
-  font-weight: 500;
-}
-.welcome-wait p {
-  color: var(--desktop-muted);
-  font-size: 12px;
-  line-height: 1.6;
-  margin-top: 5px;
-}
-.welcome-wait > button {
-  margin-left: auto;
-}
-.welcome-restoring {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  font-size: 13px;
-  color: var(--desktop-muted);
 }
 .desktop-spinner {
   animation: desktop-spin 1s linear infinite;
@@ -262,9 +87,6 @@ body {
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
-.welcome-actions .desktop-notice {
-  margin-bottom: 20px;
-}
 .desktop-connection {
   position: fixed;
   z-index: 100;
@@ -280,6 +102,8 @@ body {
   display: flex;
   flex-direction: column;
   padding: 36px 52px;
+  color: var(--foreground);
+  background: var(--background);
 }
 .desktop-state > section {
   margin: auto;
@@ -300,56 +124,10 @@ body {
   margin: 12px 0 24px;
   font-size: 14px;
   line-height: 1.7;
-  color: var(--desktop-muted);
+  color: var(--muted-foreground);
 }
-.desktop-account,
 .desktop-updates {
   font-size: 13px;
-}
-.desktop-identity {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  padding-bottom: 24px;
-}
-.desktop-avatar {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--muted);
-  font-size: 18px;
-  font-weight: 500;
-}
-.desktop-identity h3 {
-  font-weight: 500;
-  font-size: 15px;
-}
-.desktop-identity p {
-  color: var(--muted-foreground);
-  margin-top: 3px;
-  overflow-wrap: anywhere;
-}
-.desktop-account-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border-top: 1px solid var(--border);
-  padding: 20px 0;
-}
-.desktop-account-row h4 {
-  font-weight: 500;
-}
-.desktop-account-row p {
-  color: var(--muted-foreground);
-  margin-top: 5px;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.desktop-account-row > button {
-  flex-shrink: 0;
 }
 .desktop-update-heading {
   display: flex;
@@ -400,41 +178,9 @@ body {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
-@media (max-width: 800px) {
-  .welcome-content {
-    padding-inline: 32px;
-  }
-  .welcome-art {
-    padding: 28px;
-  }
-  .desktop-entry {
-    grid-template-columns: minmax(360px, 1fr) minmax(280px, 0.9fr);
-  }
-  .welcome-date {
-    gap: 12px;
-  }
-  .welcome-date > span {
-    font-size: 64px;
-  }
-}
 @media (max-width: 660px) {
-  .desktop-entry {
-    display: block;
-  }
-  .welcome-content {
-    min-height: 100dvh;
-    padding: 24px;
-  }
-  .welcome-art {
-    display: none;
-  }
   .desktop-state {
     padding: 24px;
-  }
-  .desktop-account-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

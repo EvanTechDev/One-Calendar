@@ -112,8 +112,8 @@ function verify(report) {
   assert(window.workArea, 'No monitor work area was reported')
   assert(window.scaleFactor > 0)
   for (const [dimension, logicalSize] of [
-    ['width', 1200],
-    ['height', 720],
+    ['width', 1320],
+    ['height', 880],
   ]) {
     const expected = Math.min(
       Math.round(logicalSize * window.scaleFactor),
@@ -180,6 +180,33 @@ async function launch(executable, label, extraEnvironment = {}) {
     writeFileSync(
       join(artifacts, `${label}.json`),
       JSON.stringify(report, null, 2),
+    )
+    const identityDeadline = Date.now() + 90_000
+    let identity
+    while (Date.now() < identityDeadline) {
+      const match = output.match(/ZENTRA_IDENTITY_SMOKE (\{[^\r\n]+\})\r?\n/)
+      if (match) {
+        identity = JSON.parse(match[1])
+        break
+      }
+      assert.equal(
+        child.exitCode,
+        null,
+        'Application exited while opening sign in',
+      )
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+    assert(
+      identity,
+      'Embedded identity document/fullscreen verification timed out',
+    )
+    assert.equal(identity.path, '/oauth/sign-in')
+    assert.equal(identity.enteredFullscreen, true)
+    assert.equal(identity.window.fullscreen, false)
+    verify({ ...report, window: identity.window })
+    writeFileSync(
+      join(artifacts, `${label}-identity.json`),
+      JSON.stringify(identity, null, 2),
     )
     if (process.platform === 'linux') {
       assert(

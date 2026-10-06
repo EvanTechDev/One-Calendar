@@ -1,11 +1,14 @@
 import { createRoot } from 'react-dom/client'
 import {
-  DesktopWelcome,
-  DesktopAccount,
-  DesktopNotice,
-  DesktopState,
-} from '../../../apps/calendar-client/src/desktop-surfaces'
+  AuthFormProvider,
+  LoginForm,
+  SignUpForm,
+  ResetPasswordForm,
+  type AuthFormClient,
+} from '@zntr/auth/forms'
+import { DesktopState } from '../../../apps/calendar-client/src/desktop-surfaces'
 import { DesktopUpdates } from '../../../apps/calendar-client/src/updates'
+import { NoInternet } from '@zntr/ui/calendar/components/connection-boundary'
 import '@fontsource-variable/geist'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/instrument-sans'
@@ -24,58 +27,49 @@ const config = {
   appName: 'Zentra Calendar Dev',
   version: '0.1.0',
 }
-const session = {
-  user: null,
-  expiresAt: null,
-  pending: surface === 'waiting',
-  signingIn: surface === 'waiting',
-  error: null,
-  generation: 0,
+const success = async () => ({ data: null, error: null })
+const client: AuthFormClient = {
+  signIn: { email: success },
+  signUp: { email: success },
+  requestPasswordReset: success,
+  resetPassword: success,
 }
-const idle = () => {}
+const routes = {
+  home: '/',
+  signIn: '/?surface=sign-in',
+  signUp: '/?surface=sign-up',
+  resetPassword: '/?surface=reset-password',
+}
 createRoot(document.getElementById('root')!).render(
   surface === 'settings' ? (
-    <main style={{ maxWidth: 640, margin: '48px auto', padding: '0 32px' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 32 }}>Desktop settings</h1>
-      <DesktopAccount
-        user={{
-          id: 'fixture',
-          name: 'Alex Chen',
-          email: 'alex@example.invalid',
-        }}
-        onManage={idle}
-        onSignOut={idle}
-      />
-      <div style={{ marginTop: 40 }}>
-        <DesktopUpdates config={config} />
-      </div>
+    <main className="mx-auto max-w-xl p-8">
+      <h1 className="mb-8 text-2xl font-semibold">Desktop settings</h1>
+      <DesktopUpdates config={config} />
+    </main>
+  ) : surface === 'offline' ? (
+    <main>
+      <NoInternet retry={() => {}} />
     </main>
   ) : surface === 'failed' ? (
     <DesktopState failed />
   ) : (
-    <>
-      <DesktopWelcome
-        config={config}
-        session={session}
-        error={
-          surface === 'error'
-            ? 'Could not reach the calendar service. Check your connection and try again.'
-            : null
-        }
-        startupFailed={false}
-        onSignIn={idle}
-        onCancel={idle}
-        onRetry={idle}
-      />
-      {surface === 'offline' ? (
-        <div className="desktop-connection">
-          <DesktopNotice
-            title="Connection interrupted"
-            message="Reconnect to load your latest changes."
-            onRetry={idle}
-          />
-        </div>
-      ) : null}
-    </>
+    <main>
+      <AuthFormProvider
+        value={{
+          client,
+          routes,
+          brand: { appName: 'Zentra Calendar', blurb: 'Your day, in view.' },
+          navigate: (to) => location.assign(to),
+        }}
+      >
+        {surface === 'sign-up' ? (
+          <SignUpForm />
+        ) : surface === 'reset-password' ? (
+          <ResetPasswordForm />
+        ) : (
+          <LoginForm />
+        )}
+      </AuthFormProvider>
+    </main>
   ),
 )

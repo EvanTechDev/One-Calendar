@@ -4,7 +4,7 @@ import {
   expandSeriesViewInRange,
   optimisticFollowingSplit,
   type SeriesViewInput,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 
 function day(y: number, m: number, d: number, h = 0, min = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, 0))

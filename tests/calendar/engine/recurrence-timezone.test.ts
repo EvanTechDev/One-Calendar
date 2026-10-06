@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { expandSeries } from '@zntr/calendar-ui/lib/recurrence/engine'
-import type { RecurrenceEvent } from '@zntr/calendar-ui/lib/recurrence'
+import { expandSeries } from '@zntr/ui/calendar/lib/recurrence/engine'
+import type { RecurrenceEvent } from '@zntr/ui/calendar/lib/recurrence'
 
 const WINDOW = new Date('2026-01-01T00:00:00Z')
 

@@ -5,7 +5,7 @@ import {
   reanchor,
   remainingSeriesCount,
   type SeriesViewInput,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import { planInstanceChange, type EventRow } from '@/lib/event-service'
 
 const day = (d: number, hour = 9) => new Date(Date.UTC(2026, 7, d, hour, 0, 0))

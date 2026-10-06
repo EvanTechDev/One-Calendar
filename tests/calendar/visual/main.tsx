@@ -2,9 +2,12 @@ import { createRoot } from 'react-dom/client'
 import { SWRConfig } from 'swr'
 import { ThemeProvider } from 'next-themes'
 import { LANGUAGE_STORAGE_KEY } from '@zntr/i18n/calendar'
-import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar-host'
-import { CalendarDataHost } from '@zntr/calendar-ui/components/providers/calendar-data-host'
-import { CalendarProvider } from '@zntr/calendar-ui/components/providers/calendar-context'
+import {
+  CalendarHostProvider,
+  type CalendarHost,
+} from '@zntr/utils/calendar-host'
+import { CalendarDataHost } from '@zntr/ui/calendar/components/providers/calendar-data-host'
+import { CalendarProvider } from '@zntr/ui/calendar/components/providers/calendar-context'
 import Home from '@/app/(app)/app/page'
 import '@/app/globals.css'
 

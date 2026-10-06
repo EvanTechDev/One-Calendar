@@ -15,7 +15,7 @@ import {
   getEventAccentColor,
   getEventBackgroundColor,
   type ColorOption,
-} from '@zntr/calendar-ui/lib/event-colors'
+} from '@zntr/ui/calendar/lib/event-colors'
 
 const HEX = /^#[0-9A-F]{6}$/
 

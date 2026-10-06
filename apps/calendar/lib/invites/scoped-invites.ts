@@ -6,7 +6,7 @@ import {
   isInstanceId,
   parseInstanceId,
   toRfcStamp,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import type { ApplyTo } from '@/lib/event-service'
 import {
   planParticipantChange,

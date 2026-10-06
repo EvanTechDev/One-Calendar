@@ -1,6 +1,6 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import type { CalendarUser } from '@zntr/calendar-host'
+import type { CalendarUser } from '@zntr/utils/calendar-host'
 
 export { invoke, listen }
 

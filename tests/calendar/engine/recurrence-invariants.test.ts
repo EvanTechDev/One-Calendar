@@ -34,7 +34,7 @@ import {
   wallClockDayDelta,
   addWallClockDays,
   type SeriesViewInput,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import { planInstanceChange, type EventRow } from '@/lib/event-service'
 
 const TZ = 'UTC'

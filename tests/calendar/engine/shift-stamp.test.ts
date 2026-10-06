@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shiftStamp } from '@zntr/calendar-ui/lib/recurrence/engine'
+import { shiftStamp } from '@zntr/ui/calendar/lib/recurrence/engine'
 
 describe('shiftStamp', () => {
   it('shifts a timed stamp by a full delta', () => {

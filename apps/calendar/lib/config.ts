@@ -1,4 +1,4 @@
-import { APP_CONFIG as PUBLIC_CONFIG } from '@zntr/calendar-ui/lib/config'
+import { APP_CONFIG as PUBLIC_CONFIG } from '@zntr/ui/calendar/lib/config'
 
 export const APP_CONFIG = {
   ...PUBLIC_CONFIG,

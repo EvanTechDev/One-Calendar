@@ -4,13 +4,13 @@ import { SWRConfig, useSWRConfig } from 'swr'
 import {
   DataProvider,
   useData,
-} from '@zntr/calendar-ui/components/providers/data-provider'
+} from '@zntr/ui/calendar/components/providers/data-provider'
 import {
   CalendarProvider,
   useCalendar,
-} from '@zntr/calendar-ui/components/providers/calendar-context'
-import type { CalendarEvent } from '@zntr/calendar-ui/components/providers/calendar-context'
-import type { api, EventData } from '@zntr/calendar-ui/lib/api-client'
+} from '@zntr/ui/calendar/components/providers/calendar-context'
+import type { CalendarEvent } from '@zntr/ui/calendar/components/providers/calendar-context'
+import type { api, EventData } from '@zntr/ui/calendar/lib/api-client'
 
 /**
  * Regression tests for the "this and following" split ghost: after saving a

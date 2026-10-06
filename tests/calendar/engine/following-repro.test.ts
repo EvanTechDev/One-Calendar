@@ -8,7 +8,7 @@ import {
   shiftExdates,
   shiftToAnchorClock,
   toRfcStamp,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import {
   planInstanceChange,
   type InstanceChangePlan,

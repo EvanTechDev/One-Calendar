@@ -3,11 +3,11 @@ import { RRule } from 'rrule'
 import {
   DEFAULT_COUNTDOWN_ICON,
   isCountdownIconName,
-} from '@zntr/calendar-ui/lib/countdown-icons'
+} from '@zntr/ui/calendar/lib/countdown-icons'
 import {
   CALENDAR_COLOR_OPTIONS,
   type CalendarColor,
-} from '@zntr/calendar-ui/lib/calendar-colors'
+} from '@zntr/ui/calendar/lib/calendar-colors'
 
 // The calendar client stores colors as Tailwind classes, not raw hex:
 // events use arbitrary values ("bg-[#E6F6FD]"), categories/countdowns use the

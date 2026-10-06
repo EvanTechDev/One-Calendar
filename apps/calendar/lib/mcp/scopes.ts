@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ALL_SCOPES, type McpScope } from '@zntr/calendar-ui/lib/mcp/types'
+import { ALL_SCOPES, type McpScope } from '@zntr/ui/calendar/lib/mcp/types'
 
 /**
  * Validation for a caller-supplied `scopes` payload on an API key.

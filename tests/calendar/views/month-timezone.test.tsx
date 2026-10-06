@@ -1,13 +1,13 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import MonthView from '@zntr/calendar-ui/components/app/views/month-view'
+import MonthView from '@zntr/ui/calendar/components/app/views/month-view'
 import {
   FirstDayOfWeek,
   Language,
   TimeFormat,
   ViewConfig,
   type CalendarEvent,
-} from '@zntr/calendar-ui/lib/calendar-types'
+} from '@zntr/ui/calendar/lib/calendar-types'
 
 afterEach(cleanup)
 it('moves a timed event to the previous date when switching to UTC-11', () => {

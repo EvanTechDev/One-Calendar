@@ -6,6 +6,15 @@ use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use crate::auth::DesktopAuth;
 
+#[tauri::command]
+pub async fn desktop_connection(app: AppHandle) -> Result<bool, String> {
+    let auth = app.state::<DesktopAuth>();
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(10))
+        .redirect(reqwest::redirect::Policy::none()).build().map_err(|e| e.to_string())?;
+    Ok(client.get(auth.origin.join("/api/connection").unwrap()).send().await
+        .map(|response| response.status().is_success()).unwrap_or(false))
+}
+
 #[derive(serde::Deserialize)]
 struct BrowserPages {
     paths: Vec<String>,

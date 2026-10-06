@@ -3,7 +3,7 @@ import { mcpApiKeys, mcpSettings } from '@/lib/drizzle/schema'
 import { eq, and } from 'drizzle-orm'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
-import { ALL_SCOPES, type McpAuthUser } from '@zntr/calendar-ui/lib/mcp/types'
+import { ALL_SCOPES, type McpAuthUser } from '@zntr/ui/calendar/lib/mcp/types'
 
 const KEY_PREFIX = 'zc_'
 const KEY_PREFIX_LENGTH = 12

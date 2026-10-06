@@ -12,7 +12,7 @@ import { normalizeColor } from './colors'
 import {
   EVENT_COLOR_VALUES,
   PALETTE_TO_EVENT_COLOR,
-} from '@zntr/calendar-ui/lib/event-colors'
+} from '@zntr/ui/calendar/lib/event-colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
 import { invalidateEventCache } from '@/lib/cache/events'
@@ -44,15 +44,15 @@ import {
   withUntil,
   partsInTz,
   tzOffsetMs,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
-import { isValidTimezone } from '@zntr/calendar-ui/lib/timezone'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
+import { isValidTimezone } from '@zntr/ui/calendar/lib/timezone'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
   baselineOf,
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
-import { normalizeEmails as normalizeEmailsShared } from '@zntr/calendar-ui/lib/email'
+import { normalizeEmails as normalizeEmailsShared } from '@zntr/ui/calendar/lib/email'
 import {
   encryptMergedFields,
   isValidRrule,

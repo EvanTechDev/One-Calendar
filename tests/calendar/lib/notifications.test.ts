@@ -5,8 +5,8 @@ import {
   isReminderDue,
   getPendingEvents,
   checkPendingNotifications,
-} from '@zntr/calendar-ui/lib/notifications'
-import type { CalendarEvent } from '@zntr/calendar-ui/components/app/calendar'
+} from '@zntr/ui/calendar/lib/notifications'
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 
 vi.mock('sonner', () => ({ toast: vi.fn() }))
 

@@ -1,14 +1,14 @@
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import WeekView from '@zntr/calendar-ui/components/app/views/week-view'
-import DayView from '@zntr/calendar-ui/components/app/views/day-view'
-import type { CalendarEvent } from '@zntr/calendar-ui/lib/calendar-types'
+import WeekView from '@zntr/ui/calendar/components/app/views/week-view'
+import DayView from '@zntr/ui/calendar/components/app/views/day-view'
+import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
 import {
   FirstDayOfWeek,
   Language,
   TimeFormat,
   ViewConfig,
-} from '@zntr/calendar-ui/lib/calendar-types'
+} from '@zntr/ui/calendar/lib/calendar-types'
 
 class ResizeObserverStub {
   observe() {}

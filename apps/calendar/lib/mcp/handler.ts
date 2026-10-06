@@ -8,7 +8,7 @@ import { createServer } from './server'
 import { logAudit } from './audit'
 import { getMcpSettings } from './settings'
 import { checkRateLimit } from './rate-limiter'
-import { McpAuthError } from '@zntr/calendar-ui/lib/mcp/types'
+import { McpAuthError } from '@zntr/ui/calendar/lib/mcp/types'
 import { getMcpPublicOrigin } from './oauth-config'
 
 function allowedOrigins(): string[] {
@@ -40,7 +40,7 @@ function allowedHosts(): string[] {
 export async function handleMcpRequest(
   request: Request,
   auth: {
-    user: import('@zntr/calendar-ui/lib/mcp/types').McpAuthUser
+    user: import('@zntr/ui/calendar/lib/mcp/types').McpAuthUser
     token: string
   },
 ): Promise<Response> {

@@ -4,7 +4,7 @@ import {
   AVAILABLE_THEMES,
   normalizeTheme,
   THEME_STORAGE_KEY,
-} from '@zntr/calendar-ui/lib/theme'
+} from '@zntr/ui/calendar/lib/theme'
 import { ThemeProvider as NextThemesProvider, useTheme } from 'next-themes'
 import * as React from 'react'
 

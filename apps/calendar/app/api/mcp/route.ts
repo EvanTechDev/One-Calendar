@@ -8,7 +8,7 @@ import {
   MCP_RESOURCE,
   MCP_RESOURCE_METADATA_URL,
 } from '@/lib/mcp/oauth-config'
-import { ALL_SCOPES } from '@zntr/calendar-ui/lib/mcp/types'
+import { ALL_SCOPES } from '@zntr/ui/calendar/lib/mcp/types'
 
 export const runtime = 'nodejs'
 

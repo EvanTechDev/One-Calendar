@@ -26,8 +26,8 @@ apps/
   calendar-client/ Tauri + React + Vite desktop client
   web/             Astro 7 marketing/site app (@astrojs/react + Tailwind v4)
 packages/
-  ui/calendar/   @zntr/calendar-ui — shared calendar UI, client state, recurrence and styles
-  calendar-host/  @zntr/calendar-host — shared frontend request/session/navigation port
+  ui/src/calendar/ — shared calendar UI, client state, recurrence and styles
+  utils/src/calendar-host/ — shared frontend request/session/navigation port
   agent/           @zntr/agent — AI calendar copilot: eve tool defs + AI SDK adapter
   auth/            @zntr/auth — Better Auth adapter, schema, client/server helpers
   meetings/        @zntr/meetings — meeting/session/attendance/chat schema + operations
@@ -160,7 +160,7 @@ byte-identical `BETTER_AUTH_SECRET`. See `packages/auth/src/cross-app.ts`.
 
 ## AI assistant (command palette)
 
-Cmd/Ctrl+K opens an AI command palette (`packages/ui/calendar/src/components/app/ai/ai-command-palette.tsx`,
+Cmd/Ctrl+K opens an AI command palette (`packages/ui/src/calendar/components/app/ai/ai-command-palette.tsx`,
 shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
 `POST /api/agent/chat`: Groq `openai/gpt-oss-120b` via the AI SDK (override
 with `GROQ_MODEL`), multi-step tool loop capped
@@ -229,7 +229,7 @@ the popover keeps the user's value — `sanitizeParsedEvent` drops invalid
 fields one by one (field-level degradation) instead of failing the parse,
 and a text that yields only a title ("午餐") is still a success.
 
-In `packages/ui/calendar/src/components/app/event/event-editor.tsx`: `applyParsedEvent` merges the
+In `packages/ui/src/calendar/components/app/event/event-editor.tsx`: `applyParsedEvent` merges the
 draft (missing `end` shifts the whole event so the current duration is
 preserved; a hex colour is mapped to the option whose
 `EVENT_BG_TO_ACCENT` matches; `rruleToParts` populates the recurrence
@@ -269,5 +269,5 @@ Conventional commits enforced by commitlint (commit-msg hook): `feat`, `fix`, `d
   `dev` or `production`; the dev configuration has a separate application ID.
 - knip config in root `package.json` tracks known dead-code exceptions.
 - Vercel crons run via `apps/calendar/vercel.json`: `GET /api/blob/check` at midnight UTC (which runs every job in `apps/calendar/lib/maintenance/jobs.ts` — table health, MCP audit retention, expired OAuth state, expired meetings) and `GET /api/reminders/topup` at 2am UTC. `/api/blob/check?jobs=<name>[,<name>]` runs a subset by hand. apps/meet registers no crons: it sweeps expired meetings from the calendar's maintenance run, since the rows are in the same database.
-- Recurrence expansion has exactly ONE owner: `packages/ui/calendar/src/lib/recurrence/engine.ts`. Server consumers import the package directly. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.
+- Recurrence expansion has exactly ONE owner: `packages/ui/src/calendar/lib/recurrence/engine.ts`. Server consumers import the package directly. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.
 - `apps/meet` needs the calendar's `SALT` to read encrypted event titles. Its `readEventTitle` is a deliberate read-only copy of the calendar's format; if `lib/field-crypto.ts` ever changes, update it in lockstep.

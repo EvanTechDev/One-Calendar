@@ -1,9 +1,11 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@zntr/ui": ["../../packages/ui/src/index.ts"],
+      "@zntr/ui/calendar": ["./src/calendar/index.tsx"],
       "@zntr/ui/*": ["../../packages/ui/src/*"],
       "@zntr/utils": ["../../packages/utils/src/index.ts"],
       "@zntr/utils/*": ["../../packages/utils/src/*"],

@@ -6,7 +6,7 @@ import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
 import {
   expandSeries,
   isSeriesEvent,
-} from '@zntr/calendar-ui/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import { meeting } from '@zntr/meetings'
 import { meetingUrl } from '@/lib/meetings'
 

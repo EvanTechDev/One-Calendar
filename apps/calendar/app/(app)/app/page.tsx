@@ -1,2 +1,2 @@
 'use client'
-export { default } from '@zntr/calendar-ui'
+export { default } from '@zntr/ui/calendar'

@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { UIMessage } from 'ai'
 import { translations } from '@zntr/i18n/calendar'
-import { ChatTranscript } from '@zntr/calendar-ui/components/app/ai/chat-transcript'
+import { ChatTranscript } from '@zntr/ui/calendar/components/app/ai/chat-transcript'
 
 // Layout/scrolling is not the seam under test; keep the real markdown and Marker.
 vi.mock('@zntr/ui/message-scroller', () => ({

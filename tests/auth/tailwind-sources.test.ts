@@ -31,7 +31,6 @@ const workspaces = new Map(
     ...readdirSync(resolve(ROOT, 'packages'), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => resolve(ROOT, 'packages', entry.name)),
-    resolve(ROOT, 'packages/ui/calendar'),
   ]
     .filter((directory) => existsSync(resolve(directory, 'package.json')))
     .map((directory) => {

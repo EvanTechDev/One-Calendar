@@ -4,11 +4,11 @@ import { SWRConfig } from 'swr'
 import {
   DataProvider,
   useData,
-} from '@zntr/calendar-ui/components/providers/data-provider'
-import { calendarLoadRange } from '@zntr/calendar-ui/lib/calendar-range'
+} from '@zntr/ui/calendar/components/providers/data-provider'
+import { calendarLoadRange } from '@zntr/ui/calendar/lib/calendar-range'
 
 const mock = vi.hoisted(() => ({ list: vi.fn(), delete: vi.fn() }))
-vi.mock('@zntr/calendar-ui/lib/api-client', () => ({
+vi.mock('@zntr/ui/calendar/lib/api-client', () => ({
   api: {
     events: { list: mock.list, delete: mock.delete },
     categories: { list: async () => ({ categories: [] }) },

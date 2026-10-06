@@ -5,6 +5,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 mod auth;
 mod transport;
 mod integrations;
+mod identity;
 #[cfg(target_os = "linux")]
 mod protocol;
 mod updates;
@@ -13,7 +14,7 @@ mod reminders;
 mod acceptance;
 
 pub fn show_main(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
+    if let Some(window) = app.get_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
@@ -24,11 +25,13 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
     use tauri::{menu::{Menu, MenuItem}, tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState}};
     let open = MenuItem::with_id(app, "open", "Open calendar", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&open, &quit])?;
+    let fullscreen = MenuItem::with_id(app, "fullscreen", "Toggle full screen", true, Some("F11"))?;
+    let menu = Menu::with_items(app, &[&open, &fullscreen, &quit])?;
     let mut tray = TrayIconBuilder::new().menu(&menu).show_menu_on_left_click(false)
         .tooltip(app.config().product_name.as_deref().unwrap_or("Zentra Calendar"))
         .on_menu_event(|app, event| match event.id.as_ref() {
             "open" => show_main(app),
+            "fullscreen" => { if let Some(window) = app.get_window("main") { let _ = desktop_fullscreen(window, None); } }
             "quit" => { transport::cancel_all(app); app.exit(0); }
             _ => {}
         })
@@ -53,7 +56,7 @@ struct DesktopConfig {
 
 #[tauri::command]
 async fn desktop_config(
-    window: tauri::WebviewWindow,
+    window: tauri::Window,
     config: tauri::State<'_, DesktopConfig>,
 ) -> Result<DesktopConfig, String> {
     // X11 decoration extents can arrive after the first map without a content
@@ -84,7 +87,7 @@ async fn desktop_config(
     Ok(config.inner().clone())
 }
 
-fn desktop_diagnostics(window: &tauri::WebviewWindow) -> tauri::Result<serde_json::Value> {
+fn desktop_diagnostics(window: &tauri::Window) -> tauri::Result<serde_json::Value> {
     let outer = window.outer_size()?;
     let inner = window.inner_size()?;
     let work = window
@@ -108,6 +111,7 @@ fn desktop_diagnostics(window: &tauri::WebviewWindow) -> tauri::Result<serde_jso
         "resizable": window.is_resizable()?,
         "maximizable": maximizable,
         "visible": window.is_visible()?,
+        "fullscreen": window.is_fullscreen()?,
     }))
 }
 
@@ -130,15 +134,16 @@ fn content_size(
     frame: PhysicalSize<u32>,
     available: PhysicalSize<u32>,
 ) -> PhysicalSize<u32> {
-    let width = ((1200.0 * scale).round() as u32).min(available.width);
-    let height = ((720.0 * scale).round() as u32).min(available.height);
+    let width = ((1320.0 * scale).round() as u32).min(available.width);
+    let height = ((880.0 * scale).round() as u32).min(available.height);
     PhysicalSize::new(
         width.saturating_sub(frame.width).max(1),
         height.saturating_sub(frame.height).max(1),
     )
 }
 
-fn fit_window(window: &tauri::WebviewWindow, center: bool) -> tauri::Result<()> {
+fn fit_window(window: &tauri::Window, center: bool) -> tauri::Result<()> {
+    if window.is_fullscreen()? { return Ok(()); }
     let Some(monitor) = window.current_monitor()?.or(window.primary_monitor()?) else {
         return Ok(());
     };
@@ -244,10 +249,14 @@ pub fn run() {
         .manage(transport::Requests::default())
         .manage(updates::UpdateState::default())
         .manage(reminders::Reminders::default())
+        .manage(identity::Identity::default())
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("desktop-navigation")
                 .on_navigation(|webview, url| {
                     startup_trace(&format!("navigation {} {} allowed={}", url.origin().ascii_serialization(), url.path(), bundled_page(url)));
+                    if webview.label() == identity::LABEL {
+                        return identity::navigation(webview.app_handle(), url);
+                    }
                     if bundled_page(url) {
                         return true;
                     }
@@ -258,7 +267,9 @@ pub fn run() {
         )
         .invoke_handler(tauri::generate_handler![
             desktop_config, desktop_startup_error, open_external,
-            auth::desktop_session, auth::desktop_sign_in, auth::desktop_cancel_sign_in,
+            desktop_fullscreen, identity::desktop_identity_open, identity::desktop_identity_bounds, identity::desktop_identity_close,
+            integrations::desktop_connection,
+            auth::desktop_session, auth::desktop_cancel_sign_in,
             auth::desktop_sign_out, transport::desktop_request, transport::desktop_cancel_request,
             integrations::desktop_open_page, integrations::desktop_save_file,
             integrations::desktop_read_external, integrations::desktop_notification_permission,
@@ -331,7 +342,7 @@ pub fn run() {
                 }
             });
             let window = app
-                .get_webview_window("main")
+                .get_window("main")
                 .ok_or("Main window is missing")?;
             window.set_title(&name)?;
             fit_window(&window, true)?;
@@ -354,16 +365,15 @@ pub fn run() {
                     | WindowEvent::Resized(_)
                     | WindowEvent::ScaleFactorChanged { .. }
             ) {
+                if window.is_fullscreen().unwrap_or(false) { return; }
                 if window.is_maximized().unwrap_or(false) {
                     if let Err(error) = window.unmaximize() {
                         eprintln!("Failed to restore the fixed-size window: {error}");
                     }
                     return;
                 }
-                if let Some(webview) = window.app_handle().get_webview_window(window.label()) {
-                    if let Err(error) = fit_window(&webview, false) {
-                        eprintln!("Failed to adapt the desktop window: {error}");
-                    }
+                if let Err(error) = fit_window(window, false) {
+                    eprintln!("Failed to adapt the desktop window: {error}");
                 }
             }
         })
@@ -389,6 +399,14 @@ fn desktop_startup_error(message: String) {
     startup_trace(&format!("frontend import failed: {message}"));
 }
 
+#[tauri::command]
+fn desktop_fullscreen(window: tauri::Window, enabled: Option<bool>) -> Result<(), String> {
+    let full = enabled.unwrap_or(!window.is_fullscreen().map_err(|e| e.to_string())?);
+    window.set_fullscreen(full).map_err(|e| e.to_string())?;
+    if !full { fit_window(&window, false).map_err(|e| e.to_string())?; }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -401,7 +419,7 @@ mod tests {
                 PhysicalSize::new(16, 40),
                 PhysicalSize::new(2560, 1440),
             ),
-            PhysicalSize::new(1784, 1040),
+            PhysicalSize::new(1964, 1280),
         );
     }
 
