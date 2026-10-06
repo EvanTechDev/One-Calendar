@@ -87,22 +87,9 @@ describe.skipIf(!available)('auth test database harness', () => {
     // Once this schema holds its own `account` replica, a name probe resolves
     // `account` to the replica and the leak goes undetected — which is exactly
     // the blind spot this rehearsal exposed.
-    const postgres = (await import('postgres')).default
-    const fs = await import('node:fs')
-    const path = await import('node:path')
-    const contents = fs.readFileSync(
-      path.resolve(import.meta.dirname, '../../.env.local'),
-      'utf8',
-    )
-    const url = contents.match(/^POSTGRES_URL="?([^"\n]+)"?/m)![1]!
-
-    const leaky = postgres(url, {
-      ssl: 'require',
-      max: 1,
-      connection: { search_path: `${TEST_SCHEMA}, public` },
-      connect_timeout: 20,
-    })
+    const leaky = (await connectIsolated())!
     try {
+      await leaky.unsafe(`SET search_path TO ${TEST_SCHEMA}, public`)
       await expect(assertIsolated(leaky)).rejects.toThrow(
         /search_path exposes public/,
       )
@@ -112,17 +99,9 @@ describe.skipIf(!available)('auth test database harness', () => {
   })
 
   it('rejects a connection pointed at public', async () => {
-    const postgres = (await import('postgres')).default
-    const fs = await import('node:fs')
-    const path = await import('node:path')
-    const contents = fs.readFileSync(
-      path.resolve(import.meta.dirname, '../../.env.local'),
-      'utf8',
-    )
-    const url = contents.match(/^POSTGRES_URL="?([^"\n]+)"?/m)![1]!
-
-    const wrong = postgres(url, { ssl: 'require', max: 1, connect_timeout: 20 })
+    const wrong = (await connectIsolated())!
     try {
+      await wrong`SET search_path TO public`
       await expect(assertIsolated(wrong)).rejects.toThrow(/not isolated/)
     } finally {
       await wrong.end()

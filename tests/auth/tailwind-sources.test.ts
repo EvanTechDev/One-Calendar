@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve, sep } from 'node:path'
 
 /**
  * Every workspace package holding components must be a Tailwind source.
@@ -19,6 +19,73 @@ import { resolve } from 'node:path'
 const ROOT = resolve(__dirname, '../..')
 
 const APPS = ['apps/calendar/app/globals.css', 'apps/meet/app/globals.css']
+
+interface Manifest {
+  name: string
+  dependencies?: Record<string, string>
+  exports?: Record<string, string>
+}
+
+const workspaces = new Map(
+  readdirSync(resolve(ROOT, 'packages'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const directory = resolve(ROOT, 'packages', entry.name)
+      const manifest: Manifest = JSON.parse(
+        readFileSync(resolve(directory, 'package.json'), 'utf8'),
+      )
+      return [manifest.name, { directory, manifest }] as const
+    }),
+)
+
+function componentDependencies(app: string): string[] {
+  const manifest: Manifest = JSON.parse(
+    readFileSync(resolve(ROOT, dirname(app), '../package.json'), 'utf8'),
+  )
+  const visited = new Set<string>()
+  function visit(value: Manifest) {
+    for (const name of Object.keys(value.dependencies ?? {})) {
+      const workspace = workspaces.get(name)
+      if (!workspace || visited.has(name)) continue
+      visited.add(name)
+      visit(workspace.manifest)
+    }
+  }
+  visit(manifest)
+  return [...visited].flatMap((name) => {
+    const source = resolve(workspaces.get(name)!.directory, 'src')
+    return hasTsx(source) ? [source] : []
+  })
+}
+
+/** Follow workspace stylesheet exports, just as Tailwind's importer does. */
+function sourceDirectories(file: string, seen = new Set<string>()): string[] {
+  if (seen.has(file)) return []
+  seen.add(file)
+  const css = readFileSync(file, 'utf8')
+  const sources = [...css.matchAll(/@source\s+['"]([^'"]+)['"]/g)].map(
+    (match) => resolve(dirname(file), match[1]),
+  )
+  for (const match of css.matchAll(/@import\s+['"]([^'"]+)['"]/g)) {
+    const specifier = match[1]
+    if (specifier.startsWith('.')) {
+      sources.push(
+        ...sourceDirectories(resolve(dirname(file), specifier), seen),
+      )
+      continue
+    }
+    const name = specifier.split('/').slice(0, 2).join('/')
+    const workspace = workspaces.get(name)
+    const exported =
+      workspace?.manifest.exports?.[`.${specifier.slice(name.length)}`]
+    if (workspace && typeof exported === 'string') {
+      sources.push(
+        ...sourceDirectories(resolve(workspace.directory, exported), seen),
+      )
+    }
+  }
+  return sources
+}
 
 /** Workspace packages that ship .tsx, and therefore Tailwind classes. */
 function packagesWithComponents(): string[] {
@@ -57,10 +124,14 @@ describe('Tailwind sources', () => {
   })
 
   for (const app of APPS) {
-    it(`${app} scans every package that ships components`, () => {
-      const css = readFileSync(resolve(ROOT, app), 'utf8')
-      const missing = withComponents.filter(
-        (pkg) => !css.includes(`packages/${pkg}`),
+    it(`${app} scans the component packages it actually consumes`, () => {
+      const sources = sourceDirectories(resolve(ROOT, app))
+      const missing = componentDependencies(app).filter(
+        (source) =>
+          !sources.some(
+            (directory) =>
+              source === directory || source.startsWith(`${directory}${sep}`),
+          ),
       )
       expect(missing).toEqual([])
     })

@@ -70,7 +70,9 @@ async fn reconcile(app: &AppHandle) -> Result<Duration, String> {
             Err(error) => return Err(error.to_string()),
         };
         let now = now_ms();
-        fired.retain(|_, at| now.saturating_sub(*at) < 86_400_000);
+        // Values are expiry instants, not delivery instants: a seven-day lead
+        // must remain Fired until its full catch-up window has closed.
+        fired.retain(|_, expires_at| *expires_at > now);
         let mut next = 60_000;
         for reminder in feed.reminders {
             let now = now_ms();
@@ -80,7 +82,7 @@ async fn reconcile(app: &AppHandle) -> Result<Duration, String> {
             if fired.contains_key(&key) { continue; }
             let auth = handle.state::<crate::auth::DesktopAuth>();
             if !auth.is_current(generation) { break; }
-            fired.insert(key, now);
+            fired.insert(key, reminder.deadline.max(now.saturating_add(86_400_000)));
             let temporary = path.with_extension("tmp");
             std::fs::write(&temporary, serde_json::to_vec(&fired).map_err(|error| error.to_string())?)
                 .and_then(|_| std::fs::rename(&temporary, &path)).map_err(|error| error.to_string())?;

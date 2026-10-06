@@ -87,9 +87,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot wmctrl x11-utils
       - run: pnpm install --frozen-lockfile
-      - name: Resolve native dependencies
-        working-directory: apps/calendar-client/src-tauri
-        run: cargo generate-lockfile
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
@@ -106,7 +103,7 @@ jobs:
           if [ "$ZENTRA_DESKTOP_ENV" = "dev" ]; then
             config_args=(--config src-tauri/tauri.dev.conf.json)
           fi
-          pnpm tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" "${config_args[@]}"
+          pnpm tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" "${config_args[@]}" -- --locked
       - name: Verify window sizing rules
         if: runner.os == 'Linux'
         working-directory: apps/calendar-client/src-tauri
@@ -239,7 +236,12 @@ jobs:
       - name: Initialize isolated authentication test schema
         env:
           PGPASSWORD: desktop_test
-        run: psql -h 127.0.0.1 -U desktop_test -d desktop_test -c 'CREATE SCHEMA auth_test'
+        run: |
+          psql -h 127.0.0.1 -U desktop_test -d desktop_test <<'SQL'
+          CREATE SCHEMA auth_test;
+          CREATE TABLE public."user" (id text PRIMARY KEY);
+          INSERT INTO public."user" VALUES ('ci-isolation-sentinel');
+          SQL
       - run: pnpm type-check
       - run: pnpm lint:check
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}

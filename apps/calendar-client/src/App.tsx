@@ -181,7 +181,7 @@ export default function App() {
       request,
       navigation: { push: navigate, replace: navigate, openExternal: navigate },
       saveFile: (name, content) =>
-        invoke('desktop_save_file', { name, content }),
+        invoke<boolean>('desktop_save_file', { name, content }),
       readExternal: (url) => invoke('desktop_read_external', { url }),
       requestNotifications: () =>
         invoke<boolean>('desktop_notification_permission'),

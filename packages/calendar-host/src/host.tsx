@@ -23,7 +23,7 @@ export interface CalendarHost {
   origin?: string
   renderAccount?: (section?: string | null) => ReactNode
   renderUpdate?: () => ReactNode
-  saveFile?: (name: string, content: string, mime: string) => Promise<void>
+  saveFile?: (name: string, content: string, mime: string) => Promise<boolean>
   readExternal?: (url: string) => Promise<string>
   requestNotifications?: () => Promise<boolean>
   request: typeof fetch

@@ -11,6 +11,7 @@ import {
 import { setSessionCookie } from 'better-auth/cookies'
 import * as z from 'zod'
 import type { DesktopAuthOptions } from './types'
+import browserPages from './browser-pages.json'
 
 export const DESKTOP_SCOPES = ['openid', 'profile', 'email', 'desktop:session']
 
@@ -24,10 +25,8 @@ function browserDestination(value: string, origin: string) {
     url.origin !== origin ||
     url.username ||
     url.password ||
-    (!['/app', '/account', '/privacy', '/terms', '/changelog', '/'].includes(
-      url.pathname,
-    ) &&
-      !url.pathname.startsWith('/invite/'))
+    (!browserPages.paths.includes(url.pathname) &&
+      !browserPages.prefixes.some((prefix) => url.pathname.startsWith(prefix)))
   ) {
     throw new APIError('BAD_REQUEST', {
       message: 'Unsupported browser destination',
@@ -105,7 +104,7 @@ async function ensureClient(
   )
   if (
     client.softwareId !== options.clientId ||
-    client.userId != null ||
+    (client.userId !== null && client.userId !== undefined) ||
     client.applicationType !== 'native' ||
     client.tokenEndpointAuthMethod !== 'none' ||
     client.subjectType !== 'public' ||

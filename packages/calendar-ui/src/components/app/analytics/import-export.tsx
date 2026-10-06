@@ -255,7 +255,14 @@ export default function ImportExport({
 
       if (exportFormat === 'ics') {
         const icsContent = generateICSFile(filteredEvents)
-        await downloadFile(icsContent, 'calendar-export.ics', 'text/calendar')
+        if (
+          (await downloadFile(
+            icsContent,
+            'calendar-export.ics',
+            'text/calendar',
+          )) === false
+        )
+          return
       } else if (exportFormat === 'json') {
         const backupEvents = toBackupEvents(filteredEvents)
         const exportPayload: JsonBackupPayloadV2 = {
@@ -299,14 +306,24 @@ export default function ImportExport({
         }
 
         const jsonContent = JSON.stringify(exportPayload, null, 2)
-        await downloadFile(
-          jsonContent,
-          'calendar-export.json',
-          'application/json',
+        if (
+          (await downloadFile(
+            jsonContent,
+            'calendar-export.json',
+            'application/json',
+          )) === false
         )
+          return
       } else if (exportFormat === 'csv') {
         const csvContent = generateCSV(filteredEvents)
-        await downloadFile(csvContent, 'calendar-export.csv', 'text/csv')
+        if (
+          (await downloadFile(
+            csvContent,
+            'calendar-export.csv',
+            'text/csv',
+          )) === false
+        )
+          return
       }
 
       toast(
@@ -885,6 +902,7 @@ ${rawContent.substring(0, 500)}...`)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+    return true
   }
 
   const handleImportDialogOpenChange = (open: boolean) => {

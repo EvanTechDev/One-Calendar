@@ -69,7 +69,7 @@ export function createNativeFetch(origin: string): typeof fetch {
         reject(error)
       }
       const cancel = () =>
-        invoke('desktop_cancel_request', { id }).catch(() => {})
+        invoke<void>('desktop_cancel_request', { id }).catch(() => {})
       const abort = () => {
         fail(new DOMException('Request cancelled', 'AbortError'))
         void cancel()

@@ -6,6 +6,21 @@ use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_opener::OpenerExt;
 use crate::auth::DesktopAuth;
 
+#[derive(serde::Deserialize)]
+struct BrowserPages {
+    paths: Vec<String>,
+    prefixes: Vec<String>,
+}
+
+fn supports_handoff(path: &str) -> bool {
+    static PAGES: std::sync::OnceLock<BrowserPages> = std::sync::OnceLock::new();
+    let pages = PAGES.get_or_init(|| serde_json::from_str(include_str!(
+        "../../../../packages/auth/src/browser-pages.json"
+    )).expect("Bundled browser-page policy must be valid"));
+    pages.paths.iter().any(|value| value == path)
+        || pages.prefixes.iter().any(|prefix| path.starts_with(prefix))
+}
+
 #[tauri::command]
 pub async fn desktop_open_page(app: AppHandle, destination: String) -> Result<(), String> {
     let auth = app.state::<DesktopAuth>();
@@ -13,8 +28,7 @@ pub async fn desktop_open_page(app: AppHandle, destination: String) -> Result<()
     if url.origin() != auth.origin.origin() || !url.username().is_empty() || url.password().is_some() {
         return Err("Not an official calendar page".into());
     }
-    let handoff = matches!(url.path(), "/app" | "/account" | "/privacy" | "/terms" | "/changelog" | "/")
-        || url.path().starts_with("/invite/");
+    let handoff = supports_handoff(url.path());
     let target = if handoff {
         if let Ok((client, generation)) = auth.authorized_client() {
             let response = client.post(auth.origin.join("/api/auth/desktop/browser-link").unwrap())
@@ -36,14 +50,15 @@ pub async fn desktop_open_page(app: AppHandle, destination: String) -> Result<()
 }
 
 #[tauri::command]
-pub async fn desktop_save_file(app: AppHandle, name: String, content: String) -> Result<(), String> {
+pub async fn desktop_save_file(app: AppHandle, name: String, content: String) -> Result<bool, String> {
     if content.len() > 20 * 1024 * 1024 { return Err("Export is too large".into()); }
     let name = std::path::Path::new(&name).file_name().and_then(|v| v.to_str())
         .unwrap_or("calendar.ics").to_owned();
     tauri::async_runtime::spawn_blocking(move || {
-        let Some(path) = app.dialog().file().set_file_name(name).blocking_save_file() else { return Ok(()); };
+        let Some(path) = app.dialog().file().set_file_name(name).blocking_save_file() else { return Ok(false); };
         let path = path.into_path().map_err(|_| "Unsupported file destination")?;
-        std::fs::write(path, content).map_err(|_| "Could not save the file. Choose a writable folder.".to_string())
+        std::fs::write(path, content).map(|_| true)
+            .map_err(|_| "Could not save the file. Choose a writable folder.".to_string())
     }).await.map_err(|error| error.to_string())?
 }
 
