@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  render,
-  screen,
-  fireEvent,
-  within,
-  waitFor,
-} from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor } from '../host-render'
 import EventEditor from '@/components/app/event/event-editor'
 import type { CalendarEvent } from '@/lib/calendar-types'
 import {

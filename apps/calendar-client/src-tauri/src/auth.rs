@@ -196,7 +196,7 @@ pub async fn desktop_session(app: AppHandle) -> Result<SessionView, String> {
     let result = async {
         if restore {
             let handle = app.clone();
-            let stored = tauri::async_runtime::spawn_blocking(move || {
+            let stored = tauri::async_runtime::spawn_blocking(move || -> Result<Option<String>, String> {
                 let auth = handle.state::<DesktopAuth>();
                 let _vault = auth.vault.lock().map_err(|_| "Credential store is unavailable".to_string())?;
                 match std::fs::metadata(&auth.signed_out_marker) {

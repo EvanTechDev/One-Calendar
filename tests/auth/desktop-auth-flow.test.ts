@@ -1,8 +1,9 @@
 // @vitest-environment node
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { memoryAdapter } from '@better-auth/memory-adapter'
+import { twoFactor } from 'better-auth/plugins'
 import {
   createMcpOAuthPlugins,
   createDesktopAuthPlugin,
@@ -24,7 +25,28 @@ function cookies(response: Response) {
     .join('; ')
 }
 
-function createFixture(database?: BetterAuthOptions['database']) {
+function totp(uri: string) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  const secret = new URL(uri).searchParams.get('secret')!
+  const bits = [...secret.toUpperCase().replace(/=+$/, '')]
+    .map((character) =>
+      alphabet.indexOf(character).toString(2).padStart(5, '0'),
+    )
+    .join('')
+  const key = Buffer.from(bits.match(/.{8}/g)!.map((byte) => parseInt(byte, 2)))
+  const counter = Buffer.alloc(8)
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30_000)))
+  const hash = createHmac('sha1', key).update(counter).digest()
+  return ((hash.readUInt32BE(hash[19] & 15) & 0x7fffffff) % 1_000_000)
+    .toString()
+    .padStart(6, '0')
+}
+
+function createFixture(
+  database?: BetterAuthOptions['database'],
+  requireEmailVerification = false,
+) {
+  let verificationURL = ''
   const memory = Object.fromEntries(
     Object.keys(authSchema).map((key) => [key, []]),
   )
@@ -32,11 +54,18 @@ function createFixture(database?: BetterAuthOptions['database']) {
     baseURL: ORIGIN,
     secret: 'desktop-auth-integration-secret-with-sufficient-length',
     database: database ?? memoryAdapter(memory),
-    emailAndPassword: { enabled: true },
+    emailAndPassword: { enabled: true, requireEmailVerification },
+    emailVerification: {
+      sendOnSignUp: requireEmailVerification,
+      async sendVerificationEmail({ url }) {
+        verificationURL = url
+      },
+    },
     trustedOrigins: [ORIGIN],
     rateLimit: { enabled: false },
     plugins: [
       createDesktopAuthPlugin(desktop, (input: Request) => auth.handler(input)),
+      twoFactor({ issuer: 'Zentra Calendar' }),
       ...createMcpOAuthPlugins(
         {
           resource: `${ORIGIN}/api/mcp`,
@@ -113,7 +142,14 @@ function createFixture(database?: BetterAuthOptions['database']) {
     expect(url.search).toBe('')
     return url.hash.slice(1)
   }
-  return { send, signup, authorize, exchange, link }
+  return {
+    send,
+    signup,
+    authorize,
+    exchange,
+    link,
+    verifyEmail: () => auth.handler(new Request(verificationURL)),
+  }
 }
 
 describe.each(['memory', 'PostgreSQL'])(
@@ -123,7 +159,7 @@ describe.each(['memory', 'PostgreSQL'])(
     const usePostgres = storage === 'PostgreSQL'
     const enabled =
       !usePostgres || process.env.DESKTOP_AUTH_DATABASE_TEST === '1'
-    const fixture = () => createFixture(db?.database)
+    const fixture = (verified = false) => createFixture(db?.database, verified)
     beforeAll(async () => {
       if (usePostgres && enabled) db = await desktopDatabase()
     })
@@ -134,6 +170,76 @@ describe.each(['memory', 'PostgreSQL'])(
       await db?.cleanup()
     })
     describe.skipIf(!enabled)('protocol contract', () => {
+      it('requires browser email verification before issuing desktop authorization', async () => {
+        const f = fixture(true)
+        const pending = await f.signup()
+        expect((await f.send('desktop/session', pending)).status).toBe(401)
+        const blocked = await f.authorize(pending)
+        expect(
+          new URL(
+            blocked.response.headers.get('location')!,
+            ORIGIN,
+          ).searchParams.has('code'),
+        ).toBe(false)
+        const credentials = {
+          email: 'desktop@example.com',
+          password: 'correct horse battery staple',
+        }
+        expect((await f.send('sign-in/email', '', credentials)).status).toBe(
+          403,
+        )
+        const verified = await f.verifyEmail()
+        expect([200, 302]).toContain(verified.status)
+        const signedIn = await f.send('sign-in/email', '', credentials)
+        expect(signedIn.status).toBe(200)
+        const desktop = await f.exchange(cookies(signedIn))
+        expect((await desktop.response.json()).user.emailVerified).toBe(true)
+      })
+
+      it('keeps a pending second factor out of the desktop OAuth flow', async () => {
+        const f = fixture()
+        const browser = await f.signup()
+        const enabled = await f.send('two-factor/enable', browser, {
+          password: 'correct horse battery staple',
+        })
+        expect(enabled.status, await enabled.clone().text()).toBe(200)
+        const { totpURI } = await enabled.json()
+        const enrolled = await f.send(
+          'two-factor/verify-totp',
+          cookies(enabled) || browser,
+          {
+            code: totp(totpURI),
+          },
+        )
+        expect(enrolled.status, await enrolled.clone().text()).toBe(200)
+        await f.send(
+          'sign-out',
+          cookies(enrolled) || cookies(enabled) || browser,
+          {},
+        )
+        const challenge = await f.send('sign-in/email', '', {
+          email: 'desktop@example.com',
+          password: 'correct horse battery staple',
+        })
+        expect(challenge.status).toBe(200)
+        expect((await challenge.json()).twoFactorRedirect).toBe(true)
+        const pending = cookies(challenge)
+        expect((await f.send('desktop/session', pending)).status).toBe(401)
+        const blocked = await f.authorize(pending)
+        expect(
+          new URL(
+            blocked.response.headers.get('location')!,
+            ORIGIN,
+          ).searchParams.has('code'),
+        ).toBe(false)
+        const verified = await f.send('two-factor/verify-totp', pending, {
+          code: totp(totpURI),
+        })
+        expect(verified.status, await verified.clone().text()).toBe(200)
+        const desktop = await f.exchange(cookies(verified))
+        expect((await desktop.response.json()).user.twoFactorEnabled).toBe(true)
+      })
+
       it('creates an independent session without returning credentials to the renderer', async () => {
         const f = fixture()
         const browser = await f.signup()

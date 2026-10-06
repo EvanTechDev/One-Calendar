@@ -170,6 +170,10 @@ fn local_navigation(url: &Url) -> bool {
     assets || development
 }
 
+fn bundled_page(url: &Url) -> bool {
+    local_navigation(url) && matches!(url.path(), "/" | "/index.html" | "/app" | "/app/")
+}
+
 fn route_browser_link(app: tauri::AppHandle, mut url: Url) {
     if local_navigation(&url) {
         let Some(config) = app.try_state::<DesktopConfig>() else { return };
@@ -194,7 +198,7 @@ fn route_browser_link(app: tauri::AppHandle, mut url: Url) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let application = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| show_main(app)))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
@@ -207,12 +211,10 @@ pub fn run() {
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("desktop-navigation")
                 .on_navigation(|webview, url| {
-                    if local_navigation(url) {
+                    if bundled_page(url) {
                         return true;
                     }
-                    if matches!(url.scheme(), "https" | "http" | "mailto") {
-                        route_browser_link(webview.app_handle().clone(), url.clone());
-                    }
+                    route_browser_link(webview.app_handle().clone(), url.clone());
                     false
                 })
                 .build(),
@@ -319,8 +321,14 @@ pub fn run() {
                 }
             }
         })
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("error while running Zentra Calendar");
+    application.run(|_app, _event| {
+        #[cfg(target_os = "macos")]
+        if matches!(_event, tauri::RunEvent::Reopen { .. }) {
+            show_main(_app);
+        }
+    });
 }
 
 #[cfg(test)]
@@ -364,6 +372,15 @@ mod tests {
             "javascript:alert(1)",
         ] {
             assert!(!local_navigation(&Url::parse(address).unwrap()));
+        }
+    }
+
+    #[test]
+    fn only_bundled_app_documents_stay_inside_the_webview() {
+        assert!(bundled_page(&Url::parse("tauri://localhost/").unwrap()));
+        assert!(bundled_page(&Url::parse("http://tauri.localhost/app?date=2026-10-06").unwrap()));
+        for path in ["/account", "/home", "/sign-in", "/invite/example"] {
+            assert!(!bundled_page(&Url::parse(&format!("tauri://localhost{path}")).unwrap()));
         }
     }
 }

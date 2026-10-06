@@ -18,21 +18,27 @@ export async function desktopDatabase() {
       'utf8',
     )
   const base = migration('0000_opposite_joystick.sql')
-  const core = ['User', 'Session', 'Account', 'Verification'].map((name) => {
-    const statement = base.match(
-      new RegExp(`CREATE TABLE "${name}" \\([\\s\\S]*?\\n\\);`),
-    )?.[0]
-    if (!statement) throw new Error(`Missing base auth table ${name}`)
-    return statement.replace(`"${name}"`, `"${name.toLowerCase()}"`)
-  })
+  const core = ['User', 'Session', 'Account', 'Verification', 'twoFactor'].map(
+    (name) => {
+      const statement = base.match(
+        new RegExp(`CREATE TABLE "${name}" \\([\\s\\S]*?\\n\\);`),
+      )?.[0]
+      if (!statement) throw new Error(`Missing base auth table ${name}`)
+      return statement.replace(
+        `"${name}"`,
+        `"${name === 'twoFactor' ? 'two_factor' : name.toLowerCase()}"`,
+      )
+    },
+  )
   const additions = [
+    '0013_two_factor_lockout_fields.sql',
     '0016_account_issuer_identity.sql',
     '0017_oauth_provider_tables.sql',
     '0019_better_auth_mcp_oauth.sql',
     '0022_relax_legacy_account_issuer.sql',
   ].map(migration)
   const tables = [...core, ...additions].flatMap((text) =>
-    [...text.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?"([A-Za-z]+)"/g)].map(
+    [...text.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?"([A-Za-z_]+)"/g)].map(
       (m) => m[1],
     ),
   )
@@ -62,6 +68,9 @@ export async function desktopDatabase() {
     )
     await sql.unsafe(
       'alter table "account" add foreign key ("userId") references "user"("id") on delete cascade',
+    )
+    await sql.unsafe(
+      'alter table "two_factor" add foreign key ("userId") references "user"("id") on delete cascade',
     )
     await sql.unsafe(
       'create unique index "account_providerId_accountId_key" on "account" ("providerId", "accountId")',

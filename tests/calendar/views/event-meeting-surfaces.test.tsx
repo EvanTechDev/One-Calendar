@@ -19,7 +19,7 @@
  *    type step as the preview's other metadata rows.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '../host-render'
 import type { CalendarEvent } from '@/components/app/calendar'
 
 const toasts = { error: vi.fn(), success: vi.fn(), warning: vi.fn() }
@@ -41,10 +41,6 @@ vi.mock('@/components/providers/data-provider', () => ({
     createBookmark: vi.fn(),
     deleteBookmark: vi.fn(),
   }),
-}))
-
-vi.mock('@/lib/auth/client', () => ({
-  authClient: { useSession: () => ({ data: null }) },
 }))
 
 const EventPreview = (await import('@/components/app/event/event-preview'))

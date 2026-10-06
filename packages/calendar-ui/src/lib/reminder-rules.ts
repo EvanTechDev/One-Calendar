@@ -10,7 +10,13 @@ export const FIRED_RECORD_TTL_MS = 24 * 60 * 60 * 1000
 
 export function getReminderTime(event: ReminderEvent): number | null {
   const minutes = event.notification
-  if (minutes == null || !Number.isFinite(minutes) || minutes < 0) return null
+  if (
+    minutes === null ||
+    minutes === undefined ||
+    !Number.isFinite(minutes) ||
+    minutes < 0
+  )
+    return null
   const start = new Date(event.startDate).getTime()
   return Number.isFinite(start) ? start - minutes * 60_000 : null
 }

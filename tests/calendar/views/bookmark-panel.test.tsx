@@ -6,7 +6,7 @@ import {
   renderHook,
   screen,
   waitFor,
-} from '@testing-library/react'
+} from '../host-render'
 import { BookmarkPanelBody } from '@/components/app/sidebar/bookmark-panel'
 import { eventDataToCalendarEvent } from '@/components/providers/calendar-context'
 import { useEventPreviewNavigation } from '@/hooks/use-event-preview-navigation'

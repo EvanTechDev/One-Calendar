@@ -1,4 +1,4 @@
-import { act, cleanup, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook } from '../host-render'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useKeywordSearch } from '@/hooks/use-keyword-search'
 afterEach(() => {

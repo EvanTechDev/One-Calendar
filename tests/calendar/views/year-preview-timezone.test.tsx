@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '../host-render'
 import { afterEach, expect, it, vi } from 'vitest'
 import YearView from '@/components/app/views/year-view'
 import EventPreview from '@/components/app/event/event-preview'
@@ -19,9 +19,6 @@ vi.mock('@/components/providers/data-provider', () => ({
     createBookmark: vi.fn(),
     deleteBookmark: vi.fn(),
   }),
-}))
-vi.mock('@/lib/auth/client', () => ({
-  authClient: { useSession: () => ({ data: null }) },
 }))
 vi.mock('@/hooks/use-anchored-popover', () => ({
   useLiveAnchorRect: () => null,

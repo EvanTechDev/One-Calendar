@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { renderHook } from '../host-render'
 import { useNotifications } from '@/hooks/use-notifications'
 import type { CalendarEvent } from '@/components/app/calendar'
 

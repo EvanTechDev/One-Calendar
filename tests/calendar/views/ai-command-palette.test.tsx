@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
   within,
-} from '@testing-library/react'
+} from '../host-render'
 
 const { sendMessage, stop, setMessages, chatState } = vi.hoisted(() => {
   process.env.NEXT_PUBLIC_AI_ENABLED = '1'

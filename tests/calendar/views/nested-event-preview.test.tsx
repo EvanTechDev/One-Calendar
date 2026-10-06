@@ -17,7 +17,7 @@
  *    narrow, not a blanket "the list can no longer be dismissed".
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '../host-render'
 import { useState, useRef } from 'react'
 import MonthView from '@/components/app/views/month-view'
 import YearView from '@/components/app/views/year-view'
@@ -49,10 +49,6 @@ vi.mock('@/components/providers/data-provider', () => ({
     createBookmark: vi.fn(),
     deleteBookmark: vi.fn(),
   }),
-}))
-
-vi.mock('@/lib/auth/client', () => ({
-  authClient: { useSession: () => ({ data: null }) },
 }))
 
 const config = ViewConfig.create({
