@@ -6,6 +6,7 @@ import readline from 'node:readline'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname, '..')
+const workspaceRoot = path.resolve(projectRoot, '../..')
 const localesDir = path.join(projectRoot, 'src', 'calendar', 'locales')
 const sourceLocale = 'en.json'
 
@@ -76,18 +77,34 @@ async function run() {
   const enJson = JSON.parse(enContent)
   const keys = Object.keys(enJson)
 
-  const searchDirs = ['app', 'components', 'lib', 'hooks']
+  // Calendar consumers now span the Web host and the shared/native frontend.
+  // Do not scan beneath the locale package itself: it has no app/components.
+  const searchDirs = [
+    'apps/calendar/app',
+    'apps/calendar/components',
+    'apps/calendar/lib',
+    'apps/calendar/hooks',
+    'apps/calendar-client/src',
+    'packages/calendar-ui/src',
+    'packages/calendar-host/src',
+    'packages/auth/src',
+    'packages/ui/src',
+  ]
   let allCodeFiles = []
   for (const dir of searchDirs) {
-    const fullPath = path.join(projectRoot, dir)
+    const fullPath = path.join(workspaceRoot, dir)
     try {
       const files = await getFiles(fullPath)
       allCodeFiles = allCodeFiles.concat(
         files.filter((f) => /\.(ts|tsx|js|jsx|mjs)$/.test(f)),
       )
-    } catch {
-      // Directory might not exist
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
     }
+  }
+
+  if (allCodeFiles.length === 0) {
+    throw new Error('No calendar source files found; refusing locale cleanup')
   }
 
   console.log(`📄 Found ${allCodeFiles.length} code files.`)

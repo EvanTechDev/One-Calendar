@@ -154,7 +154,7 @@ byte-identical `BETTER_AUTH_SECRET`. See `packages/auth/src/cross-app.ts`.
 
 ## AI assistant (command palette)
 
-Cmd/Ctrl+K opens an AI command palette (`components/app/ai/ai-command-palette.tsx`,
+Cmd/Ctrl+K opens an AI command palette (`packages/calendar-ui/src/components/app/ai/ai-command-palette.tsx`,
 shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
 `POST /api/agent/chat`: Groq `openai/gpt-oss-120b` via the AI SDK (override
 with `GROQ_MODEL`), multi-step tool loop capped
@@ -223,7 +223,7 @@ the popover keeps the user's value — `sanitizeParsedEvent` drops invalid
 fields one by one (field-level degradation) instead of failing the parse,
 and a text that yields only a title ("午餐") is still a success.
 
-In `components/app/event/event-editor.tsx`: `applyParsedEvent` merges the
+In `packages/calendar-ui/src/components/app/event/event-editor.tsx`: `applyParsedEvent` merges the
 draft (missing `end` shifts the whole event so the current duration is
 preserved; a hex colour is mapped to the option whose
 `EVENT_BG_TO_ACCENT` matches; `rruleToParts` populates the recurrence

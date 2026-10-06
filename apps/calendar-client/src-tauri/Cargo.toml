@@ -42,6 +42,9 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "sync-s
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+
 [profile.dev]
 debug = 0          # 0 表示完全关闭 debug 调试符号，1 表示仅生成行号，2 是默认值（完整符号）
 incremental = true # 保持增量编译开启，确保开发时编译速度不受大影响

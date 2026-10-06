@@ -151,6 +151,26 @@ fn fit_window(window: &tauri::WebviewWindow, center: bool) -> tauri::Result<()> 
     let work = monitor.work_area();
     let desired = content_size(window.scale_factor()?, frame, work.size);
     if inner != desired {
+        // GTK clamps non-resizable windows to at least their default size
+        // (gtk_window_update_fixed_size). Tao's set_size only calls resize,
+        // so reducing the content area for mapped decorations also requires
+        // replacing that default. Keep the window non-resizable throughout.
+        #[cfg(target_os = "linux")]
+        {
+            let logical = desired.to_logical::<i32>(window.scale_factor()?);
+            let native = window.clone();
+            window.run_on_main_thread(move || {
+                use gtk::prelude::GtkWindowExt;
+                match native.gtk_window() {
+                    Ok(gtk) => {
+                        gtk.set_default_size(logical.width, logical.height);
+                        gtk.resize(logical.width, logical.height);
+                    }
+                    Err(error) => eprintln!("Could not adjust fixed GTK window size: {error}"),
+                }
+            })?;
+        }
+        #[cfg(not(target_os = "linux"))]
         window.set_size(desired)?;
     }
     if center {

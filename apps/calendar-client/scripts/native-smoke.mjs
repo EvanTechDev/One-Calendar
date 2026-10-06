@@ -7,6 +7,7 @@ import {
   copyFileSync,
   chmodSync,
   writeFileSync,
+  realpathSync,
 } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -31,7 +32,12 @@ function singleFile(directory, suffix) {
 }
 
 export function install() {
-  const destination = join(tmpdir(), `zentra-native-smoke-${environment}`)
+  // macOS /var is a symlink to /private/var. The updater correctly refuses
+  // to replace a binary through a symlinked ancestor; use a real install path.
+  const destination = join(
+    realpathSync(tmpdir()),
+    `zentra-native-smoke-${environment}`,
+  )
   mkdirSync(destination, { recursive: true })
   if (process.platform === 'win32') {
     execFileSync(
