@@ -117,7 +117,8 @@ fn smoke_loaded(app: &AppHandle, path: &str) {
             }
             let identity = app.get_webview(LABEL).ok_or("Identity view missing")?;
             let main = app.get_webview("main").ok_or("Calendar view missing")?;
-            let requested = app.state::<Identity>().bounds.lock().map_err(|_| "Identity layout unavailable")?.clone();
+            let requested = app.state::<Identity>().bounds.lock().map_err(|_| "Identity layout unavailable")?.clone().ok_or("Identity layout missing")?;
+            let content_offset = content_offset(&app, &requested)?;
             #[cfg(target_os = "linux")]
             let actual = crate::identity_layout::measure(&identity).await?;
             #[cfg(not(target_os = "linux"))]
@@ -127,6 +128,7 @@ fn smoke_loaded(app: &AppHandle, path: &str) {
                 "identityPosition": actual["position"],
                 "identitySize": actual["size"],
                 "requested": requested,
+                "contentOffset": content_offset,
                 "mainSize": main.size().map_err(|e| e.to_string())?,
                 "window":crate::desktop_diagnostics(&window).map_err(|e| e.to_string())?}))
         }.await;
@@ -172,12 +174,28 @@ async fn place(view: &tauri::Webview, bounds: &Bounds, visible: bool) -> Result<
     #[cfg(not(target_os = "linux"))]
     {
         if visible {
-            view.set_position(LogicalPosition::new(bounds.x, bounds.y)).map_err(|e| e.to_string())?;
+            let offset = content_offset(view.app_handle(), bounds)?;
+            view.set_position(LogicalPosition::new(bounds.x, bounds.y + offset)).map_err(|e| e.to_string())?;
             view.set_size(LogicalSize::new(bounds.width, bounds.height)).map_err(|e| e.to_string())?;
             view.show().map_err(|e| e.to_string())?;
         } else { view.hide().map_err(|e| e.to_string())?; }
         Ok(())
     }
+}
+
+/// WKWebView's native parent includes the title-bar inset, while CSS coordinates
+/// begin in its visible content area. Derive that inset from the live viewport
+/// rather than hard-coding a title-bar height (fullscreen has no inset).
+fn content_offset(_app: &AppHandle, _bounds: &Bounds) -> Result<f64, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let main = _app.get_webview("main").ok_or("Calendar view missing")?;
+        let scale = main.window().scale_factor().map_err(|e| e.to_string())?;
+        let height = main.size().map_err(|e| e.to_string())?.height as f64 / scale;
+        return Ok((height - _bounds.viewport_height).max(0.0));
+    }
+    #[cfg(not(target_os = "macos"))]
+    Ok(0.0)
 }
 
 #[tauri::command]

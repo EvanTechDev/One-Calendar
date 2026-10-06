@@ -220,6 +220,7 @@ async function launch(executable, label, extraEnvironment = {}) {
     const position = identity.identityPosition
     const size = identity.identitySize
     const requested = identity.requested
+    const contentOffset = identity.contentOffset
     for (const dimension of ['width', 'height']) {
       assert(
         Math.abs(identity.mainSize[dimension] - inner[dimension]) <= 2,
@@ -237,7 +238,9 @@ async function launch(executable, label, extraEnvironment = {}) {
     )
     assert(
       Math.abs(
-        position.y + size.height - requested.viewportHeight * scaleFactor,
+        position.y +
+          size.height -
+          (requested.viewportHeight + contentOffset) * scaleFactor,
       ) <= 2,
       'Sign-in view is clipped or stacked below the local calendar view',
     )
@@ -250,7 +253,7 @@ async function launch(executable, label, extraEnvironment = {}) {
     )
     for (const [actual, expected] of [
       [position.x, requested.x],
-      [position.y, requested.y],
+      [position.y, requested.y + contentOffset],
       [size.width, requested.width],
       [size.height, requested.height],
     ])
