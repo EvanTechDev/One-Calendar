@@ -8,10 +8,22 @@ real-account checks.
 
 ## Recorded evidence
 
+### Shared UI migration and visual repair
+
+- `7b74357d` / [37462106922](https://github.com/EvanTechDev/One-Calendar/actions/runs/37462106922): workspace type checks, lint, tests and all four installed native startup checks passed after moving the shared code to `packages/ui/calendar` and removing the Web forwarding modules. The initial screenshot job could not load its authenticated entry without a database; it did not establish visual acceptance.
+- `bd89de62` / [37464233248](https://github.com/EvanTechDev/One-Calendar/actions/runs/37464233248): Next production build, compiled-CSS calendar assertions, desktop surface captures and Tailwind source tests passed. Reviewed the actual production-styled week at 1280×900 and 1200×680, populated seven-column month, light/dark and narrow desktop entry, browser-login waiting, connection failure, account/update and loading-failure screenshots. Also inspected the installed Linux WebKit screenshot from the first run. Its credential-store error reflects the CI desktop's unavailable keyring, not completed login acceptance.
+
+The Web regression was missing calendar utility rules in Next's generated CSS:
+the old Vite-only screenshots could not catch it. Both app stylesheet entries
+now explicitly register their shared source directories. The regression capture
+rejects Vite calendar CSS before injecting the built Next styles and fonts.
+
+### Earlier native implementation
+
 | Check                                                                                                        | Revision / GitHub Actions run                                                                    | Result                                                                                                                                          |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Workspace type checks, lint, tests; Next.js production build                                                 | `b00b735d` / [37434044441](https://github.com/EvanTechDev/One-Calendar/actions/runs/37434044441) | Passed these jobs. Authentication includes 26 memory/PostgreSQL desktop cases with email verification and TOTP.                                 |
-| Shared calendar frame at 1280×900 and 1200×680                                                               | `60c50609` / [37422363994](https://github.com/EvanTechDev/One-Calendar/actions/runs/37422363994) | Screenshots inspected against the reference. This is frame/layout evidence, not authenticated interaction evidence.                             |
+| Shared calendar frame at 1280×900 and 1200×680                                                               | `60c50609` / [37422363994](https://github.com/EvanTechDev/One-Calendar/actions/runs/37422363994) | Vite-fixture screenshots only. They did not validate Next production CSS and missed the later reported missing calendar utilities.              |
 | Installed Windows and both macOS startup/window checks                                                       | `09b3ca77` / [37430483400](https://github.com/EvanTechDev/One-Calendar/actions/runs/37430483400) | Passed these three targets.                                                                                                                     |
 | Installed signed update, corrupt-signature rejection, retry, restart and app-data retention on Windows/Linux | `b00b735d` / [37434044441](https://github.com/EvanTechDev/One-Calendar/actions/runs/37434044441) | Passed both updater jobs.                                                                                                                       |
 | Production installed signed updates on all four targets                                                      | `678aaab8` / [37437008633](https://github.com/EvanTechDev/One-Calendar/actions/runs/37437008633) | All four actual updater jobs passed, including corrupt-signature rejection, retry, automatic restart, installation-path and app-data retention. |
@@ -41,11 +53,18 @@ It passed installed Windows startup checks and targets the development backend.
 ## Automated gate
 
 Run Workspace Checks with the implementation branch, `desktop_environment=dev`
-and `visual_baseline=true`. It runs workspace type checks, lint and tests,
+and `production_ui=true`. It runs workspace type checks, lint and tests,
 including the desktop authentication contract against an isolated PostgreSQL
 service, native Rust tests, four installed-application startup checks, and the
-reference/desktop-content-width screenshots. Repeat the native matrix for
+production-CSS calendar and desktop-surface screenshots. Repeat the native matrix for
 production environment isolation after the dev run passes.
+
+The production UI check takes stylesheets and font classes from the built Next
+root layout, then applies them to a deterministic calendar with Vite's calendar
+CSS explicitly disabled. It asserts the populated month has seven columns and
+captures the 1280px/1200px layouts and desktop entry/settings/error states. The
+separate `visual_baseline` input is a Vite-only reference and cannot establish
+production Web appearance on its own.
 
 Inspect the screenshots against `tests/calendar/visual/reference-width.png`.
 Exercise day/week/month/year views, event creation/editing and recurrence scopes,

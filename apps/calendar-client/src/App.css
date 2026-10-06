@@ -55,6 +55,9 @@ body {
   font-weight: 400;
   color: var(--desktop-muted, var(--muted-foreground));
 }
+.dark .desktop-brand img {
+  filter: invert(1);
+}
 .desktop-channel {
   padding: 2px 7px;
   border: 1px solid var(--desktop-line, var(--border));
