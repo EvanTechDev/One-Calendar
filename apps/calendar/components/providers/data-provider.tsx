@@ -180,6 +180,7 @@ export function DataProvider({
   const eventsKey = eventRangeKey(eventsRange)
   const eventsKeyRef = useRef(eventsKey)
   eventsKeyRef.current = eventsKey
+  const eventWrites = useRef({ pending: 0, needsRefresh: false })
   const eventsReq = useSWR(eventsKey, () => api.events.list(eventsRange))
   const categoriesReq = useSWR(DATA_KEYS.categories, () =>
     api.categories.list(),
@@ -227,16 +228,33 @@ export function DataProvider({
   bookmarksRef.current = bookmarks
 
   const refreshEvents = useCallback(
-    // Supplying an explicit data argument starts another SWR mutation, even
-    // when it is undefined. That would end an in-flight DELETE's protection
-    // against stale GET responses. Omitting data requests revalidation only.
     async () => {
-      // Keep refresh fire-and-forget: saving finishes when the write is
-      // durable, not after the follow-up GET. SWR exposes fetch errors through
-      // eventsReq.error; background refresh must not reject an unobserved promise.
-      void mutate(isEventRangeKey).catch(() => {})
+      if (eventWrites.current.pending > 0) {
+        // Revalidation must not replace a pending write's SWR mutation marker.
+        // Queue full invalidation until writes settle, including inactive keys.
+        eventWrites.current.needsRefresh = true
+        void mutate(isEventRangeKey).catch(() => {})
+      } else {
+        // Clearing data also invalidates visited windows with no mounted hook;
+        // revalidation alone would leave their stale cached rows intact.
+        void mutate(isEventRangeKey, undefined, { revalidate: true }).catch(
+          () => {},
+        )
+      }
     },
     [mutate],
+  )
+  const finishEventWrite = useCallback(
+    async (needsRefresh: boolean) => {
+      const writes = eventWrites.current
+      writes.pending -= 1
+      writes.needsRefresh ||= needsRefresh
+      if (writes.pending === 0 && writes.needsRefresh) {
+        writes.needsRefresh = false
+        await refreshEvents()
+      }
+    },
+    [refreshEvents],
   )
   const refreshCategories = useCallback(
     () => mutate(DATA_KEYS.categories).then(() => undefined),
@@ -335,6 +353,7 @@ export function DataProvider({
       oldSeriesIds?: Set<string>,
     ) => {
       const eventKey = eventsKeyRef.current
+      eventWrites.current.pending += 1
       try {
         // A "this and following" split orphans the old series: the server
         // truncates it, and when nothing survives before the split point
@@ -458,18 +477,19 @@ export function DataProvider({
             { revalidate: false },
           )
         }
-        await refreshEvents()
         return res.event
       } catch (e) {
-        await refreshEvents()
         toast.error(tRef.current.saveEventFailed, {
           description:
             e instanceof Error ? e.message : tRef.current.unknownError,
         })
         throw e
+      } finally {
+        // Failed optimistic edits also need the authoritative event windows.
+        await finishEventWrite(true)
       }
     },
-    [refreshEvents, mutate, api],
+    [finishEventWrite, mutate, api],
   )
 
   const deleteEvent = useCallback(
@@ -494,6 +514,8 @@ export function DataProvider({
           )
         }
       }
+      eventWrites.current.pending += 1
+      let deleted = false
       try {
         // Keep SWR's mutation open until the write is durable. Revalidations
         // started before/during the DELETE must not resurrect removed rows.
@@ -514,16 +536,20 @@ export function DataProvider({
             revalidate: false,
           },
         )
-        await refreshEvents()
+        deleted = true
       } catch (e) {
         toast.error(tRef.current.deleteEventFailed, {
           description:
             e instanceof Error ? e.message : tRef.current.unknownError,
         })
         throw e
+      } finally {
+        // Preserve rollback data on failure unless another write/refresh queued
+        // invalidation while this request was pending.
+        await finishEventWrite(deleted)
       }
     },
-    [refreshEvents, mutate, api],
+    [finishEventWrite, mutate, api],
   )
 
   const createCategory = useCallback(
