@@ -16,21 +16,27 @@ real-account checks.
 | Installed signed update, corrupt-signature rejection, retry, restart and app-data retention on Windows/Linux | `b00b735d` / [37434044441](https://github.com/EvanTechDev/One-Calendar/actions/runs/37434044441) | Passed both updater jobs.                                                                                                                       |
 | Production installed signed updates on all four targets                                                      | `678aaab8` / [37437008633](https://github.com/EvanTechDev/One-Calendar/actions/runs/37437008633) | All four actual updater jobs passed, including corrupt-signature rejection, retry, automatic restart, installation-path and app-data retention. |
 | Production startup/window geometry                                                                           | `678aaab8` / [37437008633](https://github.com/EvanTechDev/One-Calendar/actions/runs/37437008633) | Windows and both macOS jobs passed. Linux also reached correct 1200×720 outer geometry; its later second-instance lifecycle check failed.       |
+| Linux startup, fixed geometry, protocol registration, close/reopen lifecycle and signed update               | `55fb4b8a` / [37439991205](https://github.com/EvanTechDev/One-Calendar/actions/runs/37439991205) | Both jobs passed with a shared desktop D-Bus session, including normal/high-DPI startup and restoring the original window/process.              |
 
-These runs were not wholly green: Linux's second-instance lifecycle failure is
-still under investigation. Real-account browser login, OS
+The final focused Linux run is green; the earlier failures above remain recorded
+to preserve the red/green evidence. Real-account browser login, OS
 credential restoration, reminder delivery and signed-in upgrade checks remain
 pending. The matching backend must serve the configured official origin, and
 long-term release signing environments must be configured before public publishing.
 
-Backend deployment probe at `678aaab8`: Vercel deployment `6879425921` succeeded
-at `https://calendar-i1p3ugmik-zntr-labs.vercel.app`. Its unauthenticated desktop
-session endpoint returns the expected 401, but the development origin
-`https://precal.xyehr.cn/api/auth/desktop/session` still returns 404. The preview's
-OAuth metadata advertises `https://precal.xyehr.cn/api/auth` as issuer and uses
-that origin for authorization/token endpoints. A preview-only deployment is
-therefore insufficient: promote the matching backend to the configured dev
-origin before attempting installed-client login acceptance.
+On 2026-10-06, the user authorized merging the feature branch into `dev` for
+Windows trial use. `dev` was fast-forwarded from `01df0867` to `55fb4b8a`.
+Vercel's resulting dev deployment, `calendar-pedl926zz-zntr-labs.vercel.app`, is
+Ready and serves `precal.xyehr.cn`. The official development desktop session
+endpoint now returns the expected unauthenticated 401; OAuth metadata returns
+200 with the correct `https://precal.xyehr.cn/api/auth` issuer and desktop scope.
+An unauthenticated desktop authorization request reaches the OAuth sign-in page.
+This establishes backend availability, not a completed native account login.
+
+Windows trial installer: `Zentra Calendar Dev_0.1.0_x64-setup.exe`, revision
+`b00b735d`, [artifact 11398373495](https://github.com/EvanTechDev/One-Calendar/actions/runs/37434044441/artifacts/11398373495).
+Its SHA-256 is `8160096abd8528be7206196b98c602f187db787f5f5bed86cb3b67ac201e566f`.
+It passed installed Windows startup checks and targets the development backend.
 
 ## Automated gate
 
