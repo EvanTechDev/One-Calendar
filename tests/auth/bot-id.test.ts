@@ -43,6 +43,18 @@ describe('browser BotID boundary', () => {
     })
   })
 
+  it.each([{}, { isBot: null }, { isBot: 'false' }, null])(
+    'rejects an inconclusive provider response: %j',
+    async (verdict) => {
+      check.mockResolvedValueOnce(verdict)
+      const response = await rejectBotRequest('POST', 'sign-in/email')
+      expect(response?.status).toBe(503)
+      expect(await response?.json()).toMatchObject({
+        error: 'BOT_VERIFICATION_UNAVAILABLE',
+      })
+    },
+  )
+
   it.each([
     'oauth2/token',
     'oauth2/authorize',

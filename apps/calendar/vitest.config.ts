@@ -19,6 +19,10 @@ export default defineConfig({
       '@zntr/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@zntr/utils': path.resolve(__dirname, '../../packages/utils/src'),
       '@zntr/i18n': path.resolve(__dirname, '../../packages/i18n/src'),
+      'botid/server': path.resolve(
+        __dirname,
+        '../../packages/auth/node_modules/botid/dist/server/index.mjs',
+      ),
     },
   },
   server: {

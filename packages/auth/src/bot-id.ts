@@ -9,7 +9,7 @@ export async function rejectBotRequest(
   if (!botIdIsGuarded(method, path)) return null
   try {
     const result = await checkBotId({ advancedOptions: BOT_ID_OPTIONS })
-    if (result.isBot) {
+    if (result.isBot === true) {
       return Response.json(
         {
           error: 'BOT_DETECTED',
@@ -19,6 +19,9 @@ export async function rejectBotRequest(
         { status: 403 },
       )
     }
+    // The SDK can resolve an upstream JSON error without a classification.
+    // Only an explicit human verdict may reach the auth handler.
+    if (result.isBot !== false) throw new Error('Missing BotID verdict')
     return null
   } catch {
     console.error('[auth] BotID verification unavailable', { path })
