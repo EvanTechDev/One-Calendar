@@ -7,6 +7,8 @@ mod transport;
 mod integrations;
 mod identity;
 #[cfg(target_os = "linux")]
+mod identity_layout;
+#[cfg(target_os = "linux")]
 mod protocol;
 mod updates;
 mod reminders;

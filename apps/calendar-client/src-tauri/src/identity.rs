@@ -78,9 +78,12 @@ pub async fn desktop_identity_open(app: AppHandle, owner: String, mode: String, 
             }
         })
         .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny);
-    app.get_window("main").ok_or("Main window missing")?
+    #[cfg(target_os = "linux")]
+    crate::identity_layout::prepare(&app.get_webview("main").ok_or("Calendar view missing")?).await?;
+    let view = app.get_window("main").ok_or("Main window missing")?
         .add_child(builder, LogicalPosition::new(bounds.x, bounds.y), LogicalSize::new(bounds.width, bounds.height))
         .map_err(|e| e.to_string())?;
+    place(&view, &bounds, true).await?;
     Ok(())
 }
 
@@ -109,7 +112,13 @@ fn smoke_loaded(app: &AppHandle, path: &str) {
                 crate::fit_window(&window, false).map_err(|e| e.to_string())?;
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             }
-            Ok(serde_json::json!({"path":path,"enteredFullscreen":entered,"window":crate::desktop_diagnostics(&window).map_err(|e| e.to_string())?}))
+            let identity = app.get_webview(LABEL).ok_or("Identity view missing")?;
+            let main = app.get_webview("main").ok_or("Calendar view missing")?;
+            Ok(serde_json::json!({"path":path,"enteredFullscreen":entered,
+                "identityPosition": identity.position().map_err(|e| e.to_string())?,
+                "identitySize": identity.size().map_err(|e| e.to_string())?,
+                "mainSize": main.size().map_err(|e| e.to_string())?,
+                "window":crate::desktop_diagnostics(&window).map_err(|e| e.to_string())?}))
         }.await;
         match result {
             Ok(report) => eprintln!("ZENTRA_IDENTITY_SMOKE {report}"),
@@ -140,13 +149,24 @@ pub async fn desktop_identity_bounds(app: AppHandle, owner: String, bounds: Boun
     let _operation = state.operation.lock().await;
     if !bounds.valid() || state.owner.lock().map_err(|_| "Identity view unavailable")?.as_ref().map(|v| &v.0) != Some(&owner) { return Ok(()); }
     if let Some(view) = app.get_webview(LABEL) {
+        place(&view, &bounds, visible).await?;
+    }
+    Ok(())
+}
+
+async fn place(view: &tauri::Webview, bounds: &Bounds, visible: bool) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    return crate::identity_layout::place(view, bounds.x.round() as i32, bounds.y.round() as i32,
+        bounds.width.round() as i32, bounds.height.round() as i32, visible).await;
+    #[cfg(not(target_os = "linux"))]
+    {
         if visible {
             view.set_position(LogicalPosition::new(bounds.x, bounds.y)).map_err(|e| e.to_string())?;
             view.set_size(LogicalSize::new(bounds.width, bounds.height)).map_err(|e| e.to_string())?;
             view.show().map_err(|e| e.to_string())?;
         } else { view.hide().map_err(|e| e.to_string())?; }
+        Ok(())
     }
-    Ok(())
 }
 
 #[tauri::command]

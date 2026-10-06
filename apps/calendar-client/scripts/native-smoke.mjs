@@ -204,6 +204,28 @@ async function launch(executable, label, extraEnvironment = {}) {
     assert.equal(identity.enteredFullscreen, true)
     assert.equal(identity.window.fullscreen, false)
     verify({ ...report, window: identity.window })
+    const { inner, scaleFactor } = identity.window
+    const position = identity.identityPosition
+    const size = identity.identitySize
+    for (const dimension of ['width', 'height']) {
+      assert(
+        Math.abs(identity.mainSize[dimension] - inner[dimension]) <= 2,
+        `The local calendar view no longer fills the window (${dimension})`,
+      )
+    }
+    assert(
+      position.y >= 30 * scaleFactor && position.y <= 100 * scaleFactor,
+      `Identity view must start below the toolbar, got y=${position.y}`,
+    )
+    assert(Math.abs(position.x) <= 2, 'Sign-in view must align with the window')
+    assert(
+      Math.abs(size.width - inner.width) <= 2,
+      'Sign-in view must fill the content width',
+    )
+    assert(
+      Math.abs(position.y + size.height - inner.height) <= 2,
+      'Sign-in view is clipped or stacked below the local calendar view',
+    )
     writeFileSync(
       join(artifacts, `${label}-identity.json`),
       JSON.stringify(identity, null, 2),
