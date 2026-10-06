@@ -8,6 +8,9 @@ on:
       checkout_ref:
         type: string
         default: ''
+      desktop_linux_only:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       desktop_environment:
@@ -18,6 +21,10 @@ on:
       checkout_ref:
         description: Optional implementation ref
         type: string
+      desktop_linux_only:
+        description: Focus the installed updater rehearsal on Linux
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -26,19 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            bundle: appimage
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bundle: nsis
-          - os: macos-15-intel
-            target: x86_64-apple-darwin
-            bundle: app,dmg
-          - os: macos-14
-            target: aarch64-apple-darwin
-            bundle: app,dmg
+        include: ${{ fromJSON(inputs.desktop_linux_only && '[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","bundle":"appimage"}]' || '[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","bundle":"appimage"},{"os":"windows-latest","target":"x86_64-pc-windows-msvc","bundle":"nsis"},{"os":"macos-15-intel","target":"x86_64-apple-darwin","bundle":"app,dmg"},{"os":"macos-14","target":"aarch64-apple-darwin","bundle":"app,dmg"}]') }}
     runs-on: ${{ matrix.os }}
     env:
       BUILD_TARGET: ${{ matrix.target }}
@@ -67,7 +62,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev xvfb openbox scrot wmctrl x11-utils desktop-file-utils xdg-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev xvfb openbox scrot wmctrl x11-utils desktop-file-utils xdg-utils dbus
       - run: pnpm install --frozen-lockfile
       - name: Build A and B with a disposable signing key
         working-directory: apps/calendar-client
@@ -75,7 +70,7 @@ jobs:
       - name: Rehearse installed Linux update
         if: runner.os == 'Linux'
         working-directory: apps/calendar-client
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" bash -c 'openbox >/dev/null 2>&1 & node scripts/native-update-smoke.mjs'
+        run: dbus-run-session -- xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" bash -c 'openbox >/dev/null 2>&1 & node scripts/native-update-smoke.mjs'
       - name: Rehearse installed desktop update
         if: runner.os != 'Linux'
         working-directory: apps/calendar-client

@@ -3,7 +3,34 @@
 Implementation is tracked by CORE-225 and its existing child issues. A build or
 unit-test pass alone does not complete native acceptance. Record the source SHA,
 installer checksum, OS version, environment, result and artifact link for each
-run. All entries below are pending for the integrated client.
+run. Protocol tests and the automated evidence below do not replace the remaining
+real-account checks.
+
+## Recorded evidence
+
+| Check                                                                                                        | Revision / GitHub Actions run                                                                    | Result                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace type checks, lint, tests; Next.js production build                                                 | `b00b735d` / [37434044441](https://github.com/EvanTechDev/One-Calendar/actions/runs/37434044441) | Passed these jobs. Authentication includes 26 memory/PostgreSQL desktop cases with email verification and TOTP.                                 |
+| Shared calendar frame at 1280×900 and 1200×680                                                               | `60c50609` / [37422363994](https://github.com/EvanTechDev/One-Calendar/actions/runs/37422363994) | Screenshots inspected against the reference. This is frame/layout evidence, not authenticated interaction evidence.                             |
+| Installed Windows and both macOS startup/window checks                                                       | `09b3ca77` / [37430483400](https://github.com/EvanTechDev/One-Calendar/actions/runs/37430483400) | Passed these three targets.                                                                                                                     |
+| Installed signed update, corrupt-signature rejection, retry, restart and app-data retention on Windows/Linux | `b00b735d` / [37434044441](https://github.com/EvanTechDev/One-Calendar/actions/runs/37434044441) | Passed both updater jobs.                                                                                                                       |
+| Production installed signed updates on all four targets                                                      | `678aaab8` / [37437008633](https://github.com/EvanTechDev/One-Calendar/actions/runs/37437008633) | All four actual updater jobs passed, including corrupt-signature rejection, retry, automatic restart, installation-path and app-data retention. |
+| Production startup/window geometry                                                                           | `678aaab8` / [37437008633](https://github.com/EvanTechDev/One-Calendar/actions/runs/37437008633) | Windows and both macOS jobs passed. Linux also reached correct 1200×720 outer geometry; its later second-instance lifecycle check failed.       |
+
+These runs were not wholly green: Linux's second-instance lifecycle failure is
+still under investigation. Real-account browser login, OS
+credential restoration, reminder delivery and signed-in upgrade checks remain
+pending. The matching backend must serve the configured official origin, and
+long-term release signing environments must be configured before public publishing.
+
+Backend deployment probe at `678aaab8`: Vercel deployment `6879425921` succeeded
+at `https://calendar-i1p3ugmik-zntr-labs.vercel.app`. Its unauthenticated desktop
+session endpoint returns the expected 401, but the development origin
+`https://precal.xyehr.cn/api/auth/desktop/session` still returns 404. The preview's
+OAuth metadata advertises `https://precal.xyehr.cn/api/auth` as issuer and uses
+that origin for authorization/token endpoints. A preview-only deployment is
+therefore insufficient: promote the matching backend to the configured dev
+origin before attempting installed-client login acceptance.
 
 ## Automated gate
 

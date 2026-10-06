@@ -182,6 +182,23 @@ async function launch(executable, label, extraEnvironment = {}) {
       JSON.stringify(report, null, 2),
     )
     if (process.platform === 'linux') {
+      assert(
+        process.env.DBUS_SESSION_BUS_ADDRESS,
+        'Run native smoke in a shared D-Bus session',
+      )
+      const owner = execFileSync(
+        'dbus-send',
+        [
+          '--session',
+          '--print-reply',
+          '--dest=org.freedesktop.DBus',
+          '/org/freedesktop/DBus',
+          'org.freedesktop.DBus.GetNameOwner',
+          `string:${report.identifier}.SingleInstance`,
+        ],
+        { encoding: 'utf8', timeout: 5000 },
+      )
+      writeFileSync(join(artifacts, `${label}-instance-bus.log`), owner)
       const handler = execFileSync(
         'xdg-mime',
         ['query', 'default', `x-scheme-handler/${report.identifier}`],
@@ -241,9 +258,17 @@ async function launch(executable, label, extraEnvironment = {}) {
         null,
         'Closing the window terminated the app',
       )
+      let secondOutput = ''
       const second = spawn(executable, [], {
-        env: { ...process.env, ...extraEnvironment },
-        stdio: 'ignore',
+        env: { ...process.env, ...extraEnvironment, ZENTRA_SMOKE_TEST: '1' },
+        detached: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      second.stdout.on('data', (chunk) => {
+        secondOutput += chunk.toString()
+      })
+      second.stderr.on('data', (chunk) => {
+        secondOutput += chunk.toString()
       })
       try {
         await new Promise((settled, reject) => {
@@ -281,7 +306,17 @@ async function launch(executable, label, extraEnvironment = {}) {
           ),
         )
       } finally {
-        if (second.exitCode === null) second.kill()
+        writeFileSync(
+          join(artifacts, `${label}-second-instance.log`),
+          secondOutput,
+        )
+        if (second.pid && second.exitCode === null) {
+          try {
+            process.kill(-second.pid, 'SIGTERM')
+          } catch {
+            /* Already exited. */
+          }
+        }
       }
     }
     console.log(`Native installation and IPC startup passed: ${label}`)
