@@ -159,11 +159,11 @@ pub async fn desktop_identity_close(app: AppHandle, owner: String) -> Result<(),
         current.take()
     };
     if let Some(view) = app.get_webview(LABEL) { view.close().map_err(|e| e.to_string())?; }
-    if previous.map(|(_, mode)| mode == "sign-in").unwrap_or(false) { auth::desktop_cancel_sign_in(app)?; }
+    if previous.map(|(_, mode)| mode == "sign-in").unwrap_or(false) { auth::desktop_cancel_sign_in(app.clone())?; }
     else if app.state::<DesktopAuth>().authorized_client().is_ok() {
         // Profile/email/2FA edits happen through the same-origin account form.
         // Refresh the independent native session after that surface closes.
-        tauri::async_runtime::spawn(auth::desktop_session(app));
+        tauri::async_runtime::spawn(auth::desktop_session(app.clone()));
     }
     Ok(())
 }

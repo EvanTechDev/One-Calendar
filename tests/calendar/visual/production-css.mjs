@@ -117,7 +117,13 @@ try {
   ]) {
     await page.setViewportSize({ width, height })
     await page.goto(`${fixtureOrigin}/?surface=${surface}&theme=${theme}`)
-    await page.locator('main').waitFor()
+    // The offline surface is fixed-position and does not give its <main>
+    // wrapper a layout box. Assert the actual surface, not that wrapper.
+    if (surface === 'offline') {
+      await page.getByRole('heading', { name: 'No internet connection' }).waitFor()
+    } else {
+      await page.locator('main').waitFor()
+    }
     await page.evaluate(() => document.fonts.ready)
     await page.waitForTimeout(200)
     if (surface === 'settings') {
