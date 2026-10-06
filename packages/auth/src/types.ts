@@ -84,10 +84,17 @@ export interface McpOAuthOptions {
 }
 
 export interface PluginOptions {
+  desktop?: DesktopAuthOptions
   twoFactor?: boolean | TwoFactorOptions
   sentinel?: boolean | SentinelOptions
   emailOTP?: boolean | EmailOTPOptions
   mcpOAuth?: McpOAuthOptions
+}
+
+export interface DesktopAuthOptions {
+  clientId: string
+  redirectUri: string
+  resource: string
 }
 
 export interface PasswordHashOptions {

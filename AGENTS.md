@@ -26,6 +26,7 @@ apps/
   calendar-client/ Tauri + React + Vite desktop client
   web/             Astro 7 marketing/site app (@astrojs/react + Tailwind v4)
 packages/
+  calendar-ui/    @zntr/calendar-ui — shared calendar UI, client state, recurrence and styles
   calendar-host/  @zntr/calendar-host — shared frontend request/session/navigation port
   agent/           @zntr/agent — AI calendar copilot: eve tool defs + AI SDK adapter
   auth/            @zntr/auth — Better Auth adapter, schema, client/server helpers
@@ -262,5 +263,5 @@ Conventional commits enforced by commitlint (commit-msg hook): `feat`, `fix`, `d
   `dev` or `production`; the dev configuration has a separate application ID.
 - knip config in root `package.json` tracks known dead-code exceptions.
 - Vercel crons run via `apps/calendar/vercel.json`: `GET /api/blob/check` at midnight UTC (which runs every job in `apps/calendar/lib/maintenance/jobs.ts` — table health, MCP audit retention, expired OAuth state, expired meetings) and `GET /api/reminders/topup` at 2am UTC. `/api/blob/check?jobs=<name>[,<name>]` runs a subset by hand. apps/meet registers no crons: it sweeps expired meetings from the calendar's maintenance run, since the rows are in the same database.
-- Recurrence expansion has exactly ONE owner: `apps/calendar/lib/recurrence/engine.ts`. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.
+- Recurrence expansion has exactly ONE owner: `packages/calendar-ui/src/lib/recurrence/engine.ts`. The calendar app's original path re-exports it for existing server consumers. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.
 - `apps/meet` needs the calendar's `SALT` to read encrypted event titles. Its `readEventTitle` is a deliberate read-only copy of the calendar's format; if `lib/field-crypto.ts` ever changes, update it in lockstep.

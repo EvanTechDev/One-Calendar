@@ -1,11 +1,17 @@
 'use client'
 
-import { useMemo, type ReactNode } from 'react'
+import { lazy, Suspense, useMemo, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar-host'
 import { authClient } from '@/lib/auth/client'
 
 const request: typeof fetch = (input, init) => fetch(input, init)
+const AccountPanel = lazy(() => import('../app/profile/web-account-panel'))
+const renderAccount = (section?: string | null) => (
+  <Suspense fallback={null}>
+    <AccountPanel section={section} />
+  </Suspense>
+)
 
 function openExternal(to: string) {
   if (to.startsWith('mailto:')) {
@@ -30,6 +36,8 @@ export function CalendarWebHost({ children }: { children: ReactNode }) {
   const host = useMemo<CalendarHost>(
     () => ({
       request,
+      platform: 'web',
+      renderAccount,
       session: { data: user ? { user } : null, isPending },
       navigation,
     }),

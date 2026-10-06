@@ -82,6 +82,19 @@ export function authRouteIsExposed(method: string, path: string): boolean {
   return false
 }
 
+/** First-party desktop routes exposed only by the Calendar auth host. */
+export function desktopRouteIsExposed(method: string, path: string): boolean {
+  return (
+    (method.toUpperCase() === 'GET' && path === 'desktop/session') ||
+    (method.toUpperCase() === 'POST' &&
+      [
+        'desktop/exchange',
+        'desktop/browser-link',
+        'desktop/browser-continue',
+      ].includes(path))
+  )
+}
+
 /** OAuth Provider routes exposed only by the Calendar auth host. */
 export function oauthRouteIsExposed(method: string, path: string): boolean {
   const verb = method.toUpperCase()

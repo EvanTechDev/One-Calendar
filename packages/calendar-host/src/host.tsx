@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createJsonFetcher } from './request'
 
 export interface CalendarUser {
   id: string
@@ -18,6 +19,13 @@ export interface CalendarSession {
 }
 
 export interface CalendarHost {
+  platform?: 'web' | 'desktop'
+  origin?: string
+  renderAccount?: (section?: string | null) => ReactNode
+  renderUpdate?: () => ReactNode
+  saveFile?: (name: string, content: string, mime: string) => Promise<void>
+  readExternal?: (url: string) => Promise<string>
+  requestNotifications?: () => Promise<boolean>
   request: typeof fetch
   session: CalendarSession
   navigation: {
@@ -45,4 +53,9 @@ export function useCalendarHost(): CalendarHost {
     throw new Error('Calendar UI must be rendered inside CalendarHostProvider')
   }
   return host
+}
+
+export function useCalendarRequest() {
+  const { request } = useCalendarHost()
+  return useMemo(() => createJsonFetcher(request), [request])
 }

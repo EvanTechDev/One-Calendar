@@ -1,12 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import process from 'node:process'
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react()],
+  publicDir: '../../packages/calendar-ui/assets',
+  resolve: { dedupe: ['react', 'react-dom'] },
+  define: {
+    'process.env.NEXT_PUBLIC_AI_ENABLED': JSON.stringify(
+      process.env.NEXT_PUBLIC_AI_ENABLED ?? '1',
+    ),
+    'process.env.NEXT_PUBLIC_APP_VERSION': JSON.stringify(
+      process.env.npm_package_version ?? '',
+    ),
+    'process.env.NEXT_PUBLIC_GIT_COMMIT': JSON.stringify(
+      process.env.GITHUB_SHA ?? '',
+    ),
+    'process.env.NEXT_PUBLIC_BUILD_TIME': JSON.stringify(
+      new Date().toISOString(),
+    ),
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

@@ -47,7 +47,7 @@ importers:
         version: 17.0.8
       next:
         specifier: 16.3.8
-        version: 16.3.8(@types/node@25.6.0)(react-dom@19.2.8(react@19.2.7))(react@19.2.7)
+        version: 16.3.8(@babel/core@7.29.7)(@types/node@25.6.0)(react-dom@19.2.8(react@19.2.7))(react@19.2.7)
       oxlint:
         specifier: 1.71.0
         version: 1.71.0
@@ -96,6 +96,9 @@ importers:
       '@zntr/calendar-host':
         specifier: workspace:*
         version: link:../../packages/calendar-host
+      '@zntr/calendar-ui':
+        specifier: workspace:*
+        version: link:../../packages/calendar-ui
       '@zntr/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -122,19 +125,19 @@ importers:
         version: 0.45.2(kysely@0.29.4)(postgres@3.4.9)
       evlog:
         specifier: 2.19.2
-        version: 2.19.2(ai@7.0.127(zod@4.6.5))(express@5.2.1)(h3@1.15.11)(hono@4.13.0)(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(ofetch@1.5.1)(react@19.2.7)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
+        version: 2.19.2(ai@7.0.127(zod@4.6.5))(express@5.2.1)(h3@1.15.11)(hono@4.13.0)(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(ofetch@1.5.1)(react@19.2.7)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
       fumadocs-core:
         specifier: 16.10.5
-        version: 16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
+        version: 16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
       fumadocs-mdx:
         specifier: 15.0.12
-        version: 15.0.12(@types/mdast@4.0.4)(@types/mdx@2.0.14)(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(rolldown@1.2.2)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
+        version: 15.0.12(@types/mdast@4.0.4)(@types/mdx@2.0.14)(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(rolldown@1.2.2)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
       fumadocs-ui:
         specifier: 16.10.5
-        version: 16.10.5(@tailwindcss/oxide@4.3.3)(@types/mdx@2.0.14)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.3)
+        version: 16.10.5(@tailwindcss/oxide@4.3.3)(@types/mdx@2.0.14)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.3)
       geist:
         specifier: latest
-        version: 1.7.2(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
+        version: 1.7.2(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
       ioredis:
         specifier: ^5.11.1
         version: 5.11.1
@@ -146,7 +149,7 @@ importers:
         version: 12.43.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next:
         specifier: 16.3.8
-        version: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next-themes:
         specifier: latest
         version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -214,19 +217,52 @@ importers:
 
   apps/calendar-client:
     dependencies:
+      '@fontsource-variable/geist':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource-variable/instrument-sans':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource-variable/inter':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@tauri-apps/api':
+        specifier: ^2.11.0
+        version: 2.12.1
       '@zntr/calendar-host':
         specifier: workspace:*
         version: link:../../packages/calendar-host
+      '@zntr/calendar-ui':
+        specifier: workspace:*
+        version: link:../../packages/calendar-ui
+      '@zntr/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      next-themes:
+        specifier: latest
+        version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react:
         specifier: 19.2.7
         version: 19.2.7
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
+      sonner:
+        specifier: 2.0.8
+        version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      swr:
+        specifier: ^2.5.1
+        version: 2.5.1(react@19.2.7)
     devDependencies:
+      '@tailwindcss/postcss':
+        specifier: 4.3.3
+        version: 4.3.3
       '@tauri-apps/cli':
         specifier: ^2
         version: 2.11.4
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.6.2
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
@@ -235,13 +271,19 @@ importers:
         version: 19.2.4(@types/react@19.2.18)
       '@vitejs/plugin-react':
         specifier: ^4.6.0
-        version: 4.6.0(vite@7.3.6(@types/node@25.6.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0))
+        version: 4.6.0(vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0))
+      tailwindcss:
+        specifier: 4.3.3
+        version: 4.3.3
       typescript:
-        specifier: ~5.8.3
-        version: 5.8.3
+        specifier: 6.0.3
+        version: 6.0.3
       vite:
         specifier: ^7.0.4
-        version: 7.3.6(@types/node@25.6.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)
+        version: 7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.6.2)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0))
 
   apps/meet:
     dependencies:
@@ -292,7 +334,7 @@ importers:
         version: 1.21.0(react@19.2.7)
       next:
         specifier: 16.3.8
-        version: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next-themes:
         specifier: latest
         version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -507,6 +549,9 @@ importers:
       sonner:
         specifier: 2.0.8
         version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@better-auth/memory-adapter':
         specifier: 1.7.7
@@ -538,6 +583,88 @@ importers:
       react:
         specifier: 19.2.7
         version: 19.2.7
+
+  packages/calendar-ui:
+    dependencies:
+      '@ai-sdk/react':
+        specifier: 4.0.130
+        version: 4.0.130(react@19.2.7)(zod@4.6.5)
+      '@zntr/agent':
+        specifier: workspace:*
+        version: link:../agent
+      '@zntr/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@zntr/calendar-host':
+        specifier: workspace:*
+        version: link:../calendar-host
+      '@zntr/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@zntr/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@zntr/utils':
+        specifier: workspace:*
+        version: link:../utils
+      ai:
+        specifier: 7.0.127
+        version: 7.0.127(zod@4.6.5)
+      date-fns:
+        specifier: 4.4.0
+        version: 4.4.0
+      lucide-react:
+        specifier: 1.48.0
+        version: 1.48.0(react@19.2.7)
+      next-themes:
+        specifier: latest
+        version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
+      react-dom:
+        specifier: 19.2.7
+        version: 19.2.7(react@19.2.7)
+      react-remove-scroll:
+        specifier: 2.7.2
+        version: 2.7.2(@types/react@19.2.18)(react@19.2.7)
+      rrule:
+        specifier: 2.8.1
+        version: 2.8.1
+      shadcn:
+        specifier: latest
+        version: 4.21.1(typescript@6.0.3)
+      sonner:
+        specifier: 2.0.8
+        version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      streamdown:
+        specifier: 2.7.0
+        version: 2.7.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      swr:
+        specifier: ^2.5.1
+        version: 2.5.1(react@19.2.7)
+      tailwindcss:
+        specifier: 4.3.3
+        version: 4.3.3
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
+      zustand:
+        specifier: 5.0.15
+        version: 5.0.15(@types/react@19.2.18)(immer@11.1.15)(react@19.2.7)(use-sync-external-store@1.7.0(react@19.2.7))
+    devDependencies:
+      '@types/node':
+        specifier: ^26.0.0
+        version: 26.6.2
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.0
+        version: 19.2.4(@types/react@19.2.18)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
 
   packages/i18n:
     dependencies:
@@ -1780,6 +1907,15 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@fontsource-variable/geist@5.3.0':
+    resolution: {integrity: sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA==}
+
+  '@fontsource-variable/instrument-sans@5.3.0':
+    resolution: {integrity: sha512-u4gKbDBTNFGkg997tfQn3eHOhHuquWUFTRT/rwzuKtrxX5P2ekfs2x+LgBPP4P32+cC+vUwF1Cr+IdRoPQbrGw==}
+
+  '@fontsource-variable/inter@5.3.0':
+    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
 
   '@fuma-translate/react@1.0.2':
     resolution: {integrity: sha512-uOiOtBx3nRXR8Nu1GzBf1tApgF1FErDBTHxRIAQeyQdyOoZbrNRN6H4kDCWObY4qyGeGbHydG0DHzgeUgFDMIw==}
@@ -3712,6 +3848,9 @@ packages:
     resolution: {integrity: sha512-yYU8cogLeSh/ms2jh8Fj7jaba/EWa7Ja6GoUqYZaraEuCI5YS6ms6ObZgjjedm+jm6XZjdNRWBpPP6Z86oOxcw==}
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
+
+  '@tauri-apps/api@2.12.1':
+    resolution: {integrity: sha512-DeyFHa3wynpyoqTDikDEDGTJIq4LQ5USfolQGRmGIWT6JMADyxZBTDa5cAdT3tDg73rUXufPaCwN7aXBos4OnQ==}
 
   '@tauri-apps/cli-darwin-arm64@2.11.4':
     resolution: {integrity: sha512-1ryOF3ZhpZ/nemHV5zVwBQBz9jDGKmKPvWPADOhc83ig0P4bMc2iER4NbC6r9sjeIZ6RVQ4g3RZIYvezhcl4TQ==}
@@ -8995,6 +9134,12 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
+  '@fontsource-variable/geist@5.3.0': {}
+
+  '@fontsource-variable/instrument-sans@5.3.0': {}
+
+  '@fontsource-variable/inter@5.3.0': {}
+
   '@fuma-translate/react@1.0.2(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       react: 19.2.7
@@ -9228,7 +9373,7 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 25.6.0
+      '@types/node': 26.6.2
       '@types/yargs': 16.0.11
       chalk: 4.0.0
 
@@ -10712,6 +10857,8 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 8.2.0(@types/node@24.13.3)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)
 
+  '@tauri-apps/api@2.12.1': {}
+
   '@tauri-apps/cli-darwin-arm64@2.11.4':
     optional: true
 
@@ -10831,7 +10978,7 @@ snapshots:
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 25.6.0
+      '@types/node': 26.6.2
 
   '@types/d3-array@3.2.2': {}
 
@@ -10914,7 +11061,6 @@ snapshots:
   '@types/node@26.6.2':
     dependencies:
       undici-types: 8.9.0
-    optional: true
 
   '@types/react-dom@19.2.4(@types/react@19.2.18)':
     dependencies:
@@ -10934,7 +11080,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.6.0
+      '@types/node': 26.6.2
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -10946,7 +11092,7 @@ snapshots:
 
   '@vercel/oidc@3.2.0': {}
 
-  '@vitejs/plugin-react@4.6.0(vite@7.3.6(@types/node@25.6.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0))':
+  '@vitejs/plugin-react@4.6.0(vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
@@ -10954,7 +11100,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.19
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 7.3.6(@types/node@25.6.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)
+      vite: 7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -10978,6 +11124,14 @@ snapshots:
       '@vitest/utils': 4.1.10
       chai: 6.2.2
       tinyrainbow: 3.1.1
+
+  '@vitest/mocker@4.1.10(vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0))':
+    dependencies:
+      '@vitest/spy': 4.1.10
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)
 
   '@vitest/mocker@4.1.10(vite@8.2.0(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))':
     dependencies:
@@ -11798,7 +11952,7 @@ snapshots:
   engine.io@6.6.9:
     dependencies:
       '@types/cors': 2.8.19
-      '@types/node': 25.6.0
+      '@types/node': 26.6.2
       '@types/ws': 8.18.1
       accepts: 1.3.8
       base64id: 2.0.0
@@ -12008,13 +12162,13 @@ snapshots:
     dependencies:
       eventsource-parser: 3.1.0
 
-  evlog@2.19.2(ai@7.0.127(zod@4.6.5))(express@5.2.1)(h3@1.15.11)(hono@4.13.0)(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(ofetch@1.5.1)(react@19.2.7)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)):
+  evlog@2.19.2(ai@7.0.127(zod@4.6.5))(express@5.2.1)(h3@1.15.11)(hono@4.13.0)(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(ofetch@1.5.1)(react@19.2.7)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)):
     optionalDependencies:
       ai: 7.0.127(zod@4.6.5)
       express: 5.2.1
       h3: 1.15.11
       hono: 4.13.0
-      next: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      next: 16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       ofetch: 1.5.1
       react: 19.2.7
       vite: 8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)
@@ -12178,39 +12332,6 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5):
-    dependencies:
-      '@orama/orama': 3.1.18
-      estree-util-value-to-estree: 3.5.0
-      github-slugger: 2.0.0
-      hast-util-to-estree: 3.1.3
-      hast-util-to-jsx-runtime: 2.3.6
-      js-yaml: 4.3.1
-      mdast-util-mdx: 3.0.0
-      mdast-util-to-markdown: 2.1.2
-      remark: 15.0.1
-      remark-gfm: 4.0.1
-      remark-rehype: 11.1.2
-      scroll-into-view-if-needed: 3.1.0
-      shiki: 4.4.1
-      tinyglobby: 0.2.17
-      unified: 11.0.5
-      unist-util-visit: 5.1.0
-      vfile: 6.0.3
-    optionalDependencies:
-      '@mdx-js/mdx': 3.1.1
-      '@types/estree-jsx': 1.0.5
-      '@types/hast': 3.0.5
-      '@types/mdast': 4.0.4
-      '@types/react': 19.2.18
-      lucide-react: 1.48.0(react@19.2.7)
-      next: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      zod: 4.6.5
-    transitivePeerDependencies:
-      - supports-color
-
   fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@25.6.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5):
     dependencies:
       '@orama/orama': 3.1.18
@@ -12244,33 +12365,36 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  fumadocs-mdx@15.0.12(@types/mdast@4.0.4)(@types/mdx@2.0.14)(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(rolldown@1.2.2)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)):
+  fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5):
     dependencies:
-      '@mdx-js/mdx': 3.1.1
-      '@standard-schema/spec': 1.1.0
-      chokidar: 5.0.0
-      esbuild: 0.28.1
+      '@orama/orama': 3.1.18
       estree-util-value-to-estree: 3.5.0
-      fumadocs-core: 16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
+      github-slugger: 2.0.0
+      hast-util-to-estree: 3.1.3
+      hast-util-to-jsx-runtime: 2.3.6
       js-yaml: 4.3.1
       mdast-util-mdx: 3.0.0
-      picocolors: 1.1.1
-      picomatch: 4.0.5
-      tinyexec: 1.3.0
+      mdast-util-to-markdown: 2.1.2
+      remark: 15.0.1
+      remark-gfm: 4.0.1
+      remark-rehype: 11.1.2
+      scroll-into-view-if-needed: 3.1.0
+      shiki: 4.4.1
       tinyglobby: 0.2.17
       unified: 11.0.5
-      unist-util-remove-position: 5.0.0
       unist-util-visit: 5.1.0
       vfile: 6.0.3
-      zod: 4.6.5
     optionalDependencies:
+      '@mdx-js/mdx': 3.1.1
+      '@types/estree-jsx': 1.0.5
+      '@types/hast': 3.0.5
       '@types/mdast': 4.0.4
-      '@types/mdx': 2.0.14
       '@types/react': 19.2.18
-      next: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      lucide-react: 1.48.0(react@19.2.7)
+      next: 16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
-      rolldown: 1.2.2
-      vite: 8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)
+      react-dom: 19.2.7(react@19.2.7)
+      zod: 4.6.5
     transitivePeerDependencies:
       - supports-color
 
@@ -12304,42 +12428,35 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  fumadocs-ui@16.10.5(@tailwindcss/oxide@4.3.3)(@types/mdx@2.0.14)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.3):
+  fumadocs-mdx@15.0.12(@types/mdast@4.0.4)(@types/mdx@2.0.14)(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(rolldown@1.2.2)(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)):
     dependencies:
-      '@fuma-translate/react': 1.0.2(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@fumadocs/tailwind': 0.0.5(@tailwindcss/oxide@4.3.3)(tailwindcss@4.3.3)
-      '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@radix-ui/react-collapsible': 1.1.20(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@radix-ui/react-direction': 1.1.4(@types/react@19.2.18)(react@19.2.7)
-      '@radix-ui/react-navigation-menu': 1.2.22(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@radix-ui/react-popover': 1.1.23(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@radix-ui/react-presence': 1.1.10(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@radix-ui/react-scroll-area': 1.2.18(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@radix-ui/react-slot': 1.3.3(@types/react@19.2.18)(react@19.2.7)
-      '@radix-ui/react-tabs': 1.1.21(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      class-variance-authority: 0.7.1
-      fumadocs-core: 16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
-      lucide-react: 1.48.0(react@19.2.7)
-      motion: 12.43.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      next-themes: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      react-remove-scroll: 2.7.2(@types/react@19.2.18)(react@19.2.7)
-      rehype-raw: 7.0.0
-      scroll-into-view-if-needed: 3.1.0
-      shiki: 4.4.1
-      tailwind-merge: 3.6.0
+      '@mdx-js/mdx': 3.1.1
+      '@standard-schema/spec': 1.1.0
+      chokidar: 5.0.0
+      esbuild: 0.28.1
+      estree-util-value-to-estree: 3.5.0
+      fumadocs-core: 16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
+      js-yaml: 4.3.1
+      mdast-util-mdx: 3.0.0
+      picocolors: 1.1.1
+      picomatch: 4.0.5
+      tinyexec: 1.3.0
+      tinyglobby: 0.2.17
+      unified: 11.0.5
+      unist-util-remove-position: 5.0.0
       unist-util-visit: 5.1.0
+      vfile: 6.0.3
+      zod: 4.6.5
     optionalDependencies:
+      '@types/mdast': 4.0.4
       '@types/mdx': 2.0.14
       '@types/react': 19.2.18
-      next: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      next: 16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react: 19.2.7
+      rolldown: 1.2.2
+      vite: 8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0)
     transitivePeerDependencies:
-      - '@emotion/is-prop-valid'
-      - '@tailwindcss/oxide'
-      - '@types/react-dom'
-      - tailwindcss
+      - supports-color
 
   fumadocs-ui@16.10.5(@tailwindcss/oxide@4.3.3)(@types/mdx@2.0.14)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@25.6.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@types/node@25.6.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.3):
     dependencies:
@@ -12378,13 +12495,46 @@ snapshots:
       - '@types/react-dom'
       - tailwindcss
 
+  fumadocs-ui@16.10.5(@tailwindcss/oxide@4.3.3)(@types/mdx@2.0.14)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(fumadocs-core@16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.3):
+    dependencies:
+      '@fuma-translate/react': 1.0.2(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@fumadocs/tailwind': 0.0.5(@tailwindcss/oxide@4.3.3)(tailwindcss@4.3.3)
+      '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@radix-ui/react-collapsible': 1.1.20(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@radix-ui/react-direction': 1.1.4(@types/react@19.2.18)(react@19.2.7)
+      '@radix-ui/react-navigation-menu': 1.2.22(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@radix-ui/react-popover': 1.1.23(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@radix-ui/react-presence': 1.1.10(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@radix-ui/react-scroll-area': 1.2.18(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@radix-ui/react-slot': 1.3.3(@types/react@19.2.18)(react@19.2.7)
+      '@radix-ui/react-tabs': 1.1.21(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      class-variance-authority: 0.7.1
+      fumadocs-core: 16.10.5(@mdx-js/mdx@3.1.1)(@types/estree-jsx@1.0.5)(@types/hast@3.0.5)(@types/mdast@4.0.4)(@types/react@19.2.18)(lucide-react@1.48.0(react@19.2.7))(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
+      lucide-react: 1.48.0(react@19.2.7)
+      motion: 12.43.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      next-themes: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+      react-remove-scroll: 2.7.2(@types/react@19.2.18)(react@19.2.7)
+      rehype-raw: 7.0.0
+      scroll-into-view-if-needed: 3.1.0
+      shiki: 4.4.1
+      tailwind-merge: 3.6.0
+      unist-util-visit: 5.1.0
+    optionalDependencies:
+      '@types/mdx': 2.0.14
+      '@types/react': 19.2.18
+      next: 16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+    transitivePeerDependencies:
+      - '@emotion/is-prop-valid'
+      - '@tailwindcss/oxide'
+      - '@types/react-dom'
+      - tailwindcss
+
   function-bind@1.1.2: {}
 
   fuzzysort@3.1.0: {}
-
-  geist@1.7.2(next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)):
-    dependencies:
-      next: 16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   geist@1.7.2(next@16.3.8(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)):
     dependencies:
@@ -13569,7 +13719,7 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  next@16.3.8(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  next@16.3.8(@babel/core@7.29.7)(@types/node@25.6.0)(react-dom@19.2.8(react@19.2.7))(react@19.2.7):
     dependencies:
       '@next/env': 16.3.8
       '@swc/helpers': 0.5.23
@@ -13577,32 +13727,7 @@ snapshots:
       caniuse-lite: 1.0.30001812
       postcss: 8.5.23
       react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 16.3.8
-      '@next/swc-darwin-x64': 16.3.8
-      '@next/swc-linux-arm64-gnu': 16.3.8
-      '@next/swc-linux-arm64-musl': 16.3.8
-      '@next/swc-linux-x64-gnu': 16.3.8
-      '@next/swc-linux-x64-musl': 16.3.8
-      '@next/swc-win32-arm64-msvc': 16.3.8
-      '@next/swc-win32-x64-msvc': 16.3.8
-      sharp: 0.35.4(@types/node@26.6.2)
-    transitivePeerDependencies:
-      - '@babel/core'
-      - '@types/node'
-      - babel-plugin-macros
-
-  next@16.3.8(@types/node@25.6.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
-    dependencies:
-      '@next/env': 16.3.8
-      '@swc/helpers': 0.5.23
-      baseline-browser-mapping: 2.11.25
-      caniuse-lite: 1.0.30001812
-      postcss: 8.5.23
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
+      react-dom: 19.2.8(react@19.2.7)
       styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.3.8
@@ -13619,7 +13744,7 @@ snapshots:
       - '@types/node'
       - babel-plugin-macros
 
-  next@16.3.8(@types/node@25.6.0)(react-dom@19.2.8(react@19.2.7))(react@19.2.7):
+  next@16.3.8(@types/node@25.6.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@next/env': 16.3.8
       '@swc/helpers': 0.5.23
@@ -13627,7 +13752,7 @@ snapshots:
       caniuse-lite: 1.0.30001812
       postcss: 8.5.23
       react: 19.2.7
-      react-dom: 19.2.8(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.3.8
@@ -14798,7 +14923,7 @@ snapshots:
       remark-parse: 11.0.0
       remark-rehype: 11.1.2
       remend: 1.4.0
-      tailwind-merge: 3.6.0
+      tailwind-merge: 3.7.0
       unified: 11.0.5
       unist-util-visit: 5.1.0
       unist-util-visit-parents: 6.0.2
@@ -15012,8 +15137,7 @@ snapshots:
 
   undici-types@7.19.2: {}
 
-  undici-types@8.9.0:
-    optional: true
+  undici-types@8.9.0: {}
 
   undici@7.29.0: {}
 
@@ -15157,7 +15281,7 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  vite@7.3.6(@types/node@25.6.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0):
+  vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0):
     dependencies:
       esbuild: 0.28.1
       fdir: 6.5.0(picomatch@4.0.5)
@@ -15166,7 +15290,7 @@ snapshots:
       rollup: 4.62.4
       tinyglobby: 0.2.17
     optionalDependencies:
-      '@types/node': 25.6.0
+      '@types/node': 26.6.2
       fsevents: 2.3.3
       jiti: 2.7.0
       lightningcss: 1.33.0
@@ -15274,6 +15398,34 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 25.6.0
+      jsdom: 29.1.1(@noble/hashes@2.2.0)
+    transitivePeerDependencies:
+      - msw
+
+  vitest@4.1.10(@types/node@26.6.2)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)):
+    dependencies:
+      '@vitest/expect': 4.1.10
+      '@vitest/mocker': 4.1.10(vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0))
+      '@vitest/pretty-format': 4.1.10
+      '@vitest/runner': 4.1.10
+      '@vitest/snapshot': 4.1.10
+      '@vitest/spy': 4.1.10
+      '@vitest/utils': 4.1.10
+      es-module-lexer: 2.3.1
+      expect-type: 1.4.0
+      magic-string: 0.30.21
+      obug: 2.1.4
+      pathe: 2.0.3
+      picomatch: 4.0.5
+      std-env: 4.2.0
+      tinybench: 2.9.0
+      tinyexec: 1.3.0
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.1
+      vite: 7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.5)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 26.6.2
       jsdom: 29.1.1(@noble/hashes@2.2.0)
     transitivePeerDependencies:
       - msw

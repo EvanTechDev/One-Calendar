@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+release-artifacts
+native-smoke-artifacts
+src-tauri/tauri.release.conf.json
 *.local
 
 # Editor directories and files

@@ -1,0 +1,257 @@
+import {
+  createJsonFetcher,
+  fetchJson as webFetchJson,
+} from '#calendar/lib/fetch-json'
+import type { CalendarColor } from '#calendar/lib/calendar-colors'
+
+type EventInviteData = {
+  id: string
+  email: string
+  status: 'pending' | 'accepted' | 'maybe' | 'declined'
+  inviteToken: string
+  emailSent: boolean
+  addedToCalendar: boolean
+  userName: string | null
+  userImage: string | null
+}
+
+export type EventData = {
+  id: string
+  userId: string
+  title: string
+  description: string | null
+  location: string | null
+  startDate: string
+  endDate: string
+  isAllDay: boolean
+  color: string | null
+  categoryId: string | null
+  participants: Array<{ name: string; email?: string; userId?: string }> | null
+  notificationMinutes: number | null
+  /** Also deliver the reminder by email. See ADR-0010. */
+  emailReminder?: boolean
+  rrule?: string | null
+  exdate?: string[] | null
+  seriesId?: string | null
+  recurrenceId?: string | null
+  isOverride?: boolean
+  isFirstInstance?: boolean
+  seriesStartDate?: string | null
+  /** Human-readable recurrence for a shared event; never the rrule (ADR-0006). */
+  recurrenceSummary?: string | null
+  createdAt: string
+  updatedAt: string
+  viewOnly?: boolean
+  organizer?: {
+    name: string
+    email: string
+    image: string | null
+  } | null
+  invites?: EventInviteData[]
+  /**
+   * The event's Meeting, or null when it has none. Rides along with the event
+   * rather than being fetched per-surface: the link used to arrive a round trip
+   * after the event did, and right after a save not at all. Resolved by lookup
+   * on the server — there is no meeting column on the event row (ADR-0019).
+   */
+  meeting?: { id: string; url: string } | null
+}
+
+/** Compact rows shared by keyword and semantic search. */
+export type EventSearchHit = Pick<
+  EventData,
+  'id' | 'title' | 'startDate' | 'endDate' | 'isAllDay' | 'location' | 'color'
+>
+
+export type CategoryData = {
+  id: string
+  userId: string
+  name: string
+  color: string
+  sortOrder: number
+  createdAt: string
+}
+
+export type CountdownData = {
+  id: string
+  userId: string
+  name: string
+  targetDate: string
+  repeat: 'none' | 'weekly' | 'monthly' | 'yearly'
+  description: string | null
+  color: string | null
+  icon: string | null
+  createdAt: string
+}
+
+export type BookmarkData = {
+  id: string
+  eventId: string
+  createdAt: string
+  event: EventData
+}
+
+export type SettingsData = {
+  language?: string
+  firstDayOfWeek?: number
+  timezone?: string
+  defaultView?: 'day' | 'week' | 'month' | 'year' | 'four-day'
+  timeFormat?: '24h' | '12h'
+  theme?: 'light' | 'dark' | 'system'
+  calendarColor?: CalendarColor
+  enableShortcuts?: boolean
+  skipLanding?: boolean
+}
+
+const bindCalendarApi = (fetchJson: typeof webFetchJson) => ({
+  events: {
+    list: (params?: {
+      startDate?: string
+      endDate?: string
+      categoryIds?: string
+      timezone?: string
+    }) => {
+      const searchParams = new URLSearchParams()
+      if (params?.startDate) searchParams.set('startDate', params.startDate)
+      if (params?.endDate) searchParams.set('endDate', params.endDate)
+      if (params?.categoryIds)
+        searchParams.set('categoryIds', params.categoryIds)
+      if (params?.timezone) searchParams.set('tz', params.timezone)
+      const qs = searchParams.toString()
+      return fetchJson<{ events: EventData[] }>(
+        `/api/events${qs ? `?${qs}` : ''}`,
+      )
+    },
+    create: (data: {
+      id?: string
+      title: string
+      description?: string | null
+      location?: string | null
+      startDate: string
+      endDate: string
+      isAllDay?: boolean
+      color?: string | null
+      categoryId?: string | null
+      participants?: Array<{
+        name: string
+        email?: string
+        userId?: string
+      }> | null
+      notificationMinutes?: number | null
+      emailReminder?: boolean
+      rrule?: string | null
+      exdate?: string[] | null
+      apply_to?: 'single' | 'following' | 'all'
+      split_id?: string
+      timezone?: string
+    }) =>
+      fetchJson<{
+        event: EventData
+        seriesEvents?: EventData[]
+        /**
+         * Series whose rendered instances must be purged from the local
+         * cache. Sent after a "this and following" split: the truncated old
+         * series can expand to zero in-window instances, leaving no trace of
+         * itself in seriesEvents for the client to infer the purge from.
+         */
+        removedSeriesIds?: string[]
+        /**
+         * The event saved, but its reminder emails were refused on the daily
+         * quota. Surfaced to the user so the checkbox does not look effective
+         * when it is not (ADR-0010).
+         */
+        reminderWarning?: string
+      }>('/api/events', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    delete: (
+      id: string,
+      applyTo?: 'single' | 'following' | 'all',
+      timezone?: string,
+    ) =>
+      fetchJson<{ success: boolean; seriesEvents?: EventData[] }>(
+        '/api/events',
+        {
+          method: 'DELETE',
+          body: JSON.stringify({ id, apply_to: applyTo, timezone }),
+        },
+      ),
+  },
+
+  settings: {
+    get: () => fetchJson<{ settings: SettingsData }>('/api/settings'),
+    update: (data: SettingsData) =>
+      fetchJson<{ success: boolean; settings: SettingsData }>('/api/settings', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
+
+  categories: {
+    list: () => fetchJson<{ categories: CategoryData[] }>('/api/categories'),
+    create: (data: {
+      id?: string
+      name: string
+      color: string
+      sortOrder?: number
+    }) =>
+      fetchJson<{ category: CategoryData }>('/api/categories', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchJson<{ success: boolean }>('/api/categories', {
+        method: 'DELETE',
+        body: JSON.stringify({ id }),
+      }),
+  },
+
+  countdowns: {
+    list: () => fetchJson<{ countdowns: CountdownData[] }>('/api/countdowns'),
+    create: (data: {
+      id?: string
+      name: string
+      targetDate: string
+      repeat?: 'none' | 'weekly' | 'monthly' | 'yearly'
+      description?: string | null
+      color?: string | null
+      icon?: string | null
+    }) =>
+      fetchJson<{ countdown: CountdownData }>('/api/countdowns', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchJson<{ success: boolean }>('/api/countdowns', {
+        method: 'DELETE',
+        body: JSON.stringify({ id }),
+      }),
+  },
+
+  bookmarks: {
+    list: () => fetchJson<{ bookmarks: BookmarkData[] }>('/api/bookmarks'),
+    create: (data: { id?: string; eventId: string }) =>
+      fetchJson<{ bookmark: BookmarkData }>('/api/bookmarks', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchJson<{ success: boolean }>('/api/bookmarks', {
+        method: 'DELETE',
+        body: JSON.stringify({ id }),
+      }),
+    deleteByEvent: (eventId: string) =>
+      fetchJson<{ success: boolean }>('/api/bookmarks', {
+        method: 'DELETE',
+        body: JSON.stringify({ eventId }),
+      }),
+  },
+})
+
+export function createCalendarApi(request: typeof fetch) {
+  return bindCalendarApi(createJsonFetcher(request))
+}
+
+/** Browser compatibility entry while consumers migrate to the host interface. */
+export const api = bindCalendarApi(webFetchJson)

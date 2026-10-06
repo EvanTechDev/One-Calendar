@@ -11,8 +11,15 @@ import {
 } from '@better-auth/oauth-provider'
 import { fetchCimdResource } from './cimd-fetch'
 import { createDrizzleAdapter } from './adapter'
+import {
+  createDesktopAuthPlugin,
+  desktopResource,
+  DESKTOP_SCOPES,
+} from './desktop'
+export { createDesktopAuthPlugin } from './desktop'
 import type {
   CreateAuthOptions,
+  DesktopAuthOptions,
   EmailOTPOptions,
   EnabledPlugins,
   McpOAuthOptions,
@@ -31,7 +38,10 @@ export function oauthProviderAuthServerMetadata(
   )
 }
 
-export function createMcpOAuthPlugins(oauth: McpOAuthOptions) {
+export function createMcpOAuthPlugins(
+  oauth: McpOAuthOptions,
+  desktop?: DesktopAuthOptions,
+) {
   return [
     {
       id: 'mcp-native-registration',
@@ -74,7 +84,10 @@ export function createMcpOAuthPlugins(oauth: McpOAuthOptions) {
       resource: oauth.resource,
       loginPage: oauth.loginPage,
       consentPage: oauth.consentPage,
-      scopes: oauth.scopes,
+      scopes: desktop
+        ? [...new Set([...oauth.scopes, ...DESKTOP_SCOPES])]
+        : oauth.scopes,
+      ...(desktop ? { resources: [desktopResource(desktop)] } : {}),
       accessTokenExpiresIn: oauth.accessTokenExpiresIn ?? 15 * 60,
       refreshTokenExpiresIn: oauth.refreshTokenExpiresIn ?? 90 * 24 * 60 * 60,
       refreshTokenReuseInterval: 0,
@@ -198,8 +211,20 @@ export function createAuth(options: CreateAuthOptions): {
   }
 
   if (plugins.mcpOAuth) {
-    resolvedPlugins.push(...createMcpOAuthPlugins(plugins.mcpOAuth))
+    resolvedPlugins.push(
+      ...createMcpOAuthPlugins(plugins.mcpOAuth, plugins.desktop),
+    )
     enabledPlugins.mcpOAuth = true
+  }
+  if (plugins.desktop) {
+    if (!plugins.mcpOAuth)
+      throw new Error('Desktop sign-in requires the OAuth provider')
+    resolvedPlugins.unshift(
+      createDesktopAuthPlugin(
+        plugins.desktop,
+        (request: Request): Promise<Response> => auth.handler(request),
+      ),
+    )
   }
 
   /**
@@ -258,8 +283,9 @@ export function createAuth(options: CreateAuthOptions): {
     authConfig.advanced = advanced
   }
 
+  const auth = betterAuth(authConfig)
   return {
-    auth: betterAuth(authConfig),
+    auth,
     enabledPlugins,
   }
 }

@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./server": "./src/server.ts",
+    "./desktop": "./src/desktop.ts",
     "./client": "./src/client.ts",
     "./cimd-fetch": "./src/cimd-fetch.ts",
     "./schema": "./src/schema.ts",
@@ -47,7 +48,8 @@
     "qr-code-styling": "latest",
     "react-email": "6.11.0",
     "resend": "6.14.0",
-    "sonner": "2.0.8"
+    "sonner": "2.0.8",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@better-auth/memory-adapter": "1.7.7",

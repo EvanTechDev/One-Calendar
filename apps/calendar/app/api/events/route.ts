@@ -85,6 +85,12 @@ import { z } from 'zod'
 import { dedupeById } from '@/lib/array-mutations'
 import { isValidTimezone } from '@/lib/timezone'
 import { MAX_CALENDAR_RANGE_MS } from '@/lib/calendar-range'
+import {
+  CATCH_UP_FLOOR_MS,
+  getReminderTime,
+  getReminderKey,
+  reminderDeadline,
+} from '@zntr/calendar-ui/lib/reminder-rules'
 
 export const runtime = 'nodejs'
 
@@ -850,7 +856,22 @@ export const GET = async function GET(request: NextRequest) {
   if (!currentUser)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { searchParams } = request.nextUrl
+  const searchParams = new URLSearchParams(request.nextUrl.searchParams)
+  const reminderFeed = searchParams.get('delivery') === 'desktop-reminders'
+  const now = Date.now()
+  if (reminderFeed) {
+    // The largest accepted lead time is seven days. This range is independent
+    // of the visible calendar and includes the at-start catch-up floor.
+    for (const key of [...searchParams.keys()]) searchParams.delete(key)
+    searchParams.set(
+      'startDate',
+      new Date(now - CATCH_UP_FLOOR_MS).toISOString(),
+    )
+    searchParams.set(
+      'endDate',
+      new Date(now + 10080 * 60_000 + 3600_000).toISOString(),
+    )
+  }
   const id = searchParams.get('id')
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
@@ -1065,6 +1086,29 @@ export const GET = async function GET(request: NextRequest) {
     },
     timeZone,
   )
+
+  if (reminderFeed) {
+    const reminders = eventsWithInvites.flatMap((event) => {
+      const candidate = { ...event, notification: event.notificationMinutes }
+      const dueAt = getReminderTime(candidate)
+      if (dueAt === null || dueAt > now + 3600_000) return []
+      const deadline = reminderDeadline(candidate, dueAt)
+      if (deadline <= now) return []
+      return [
+        {
+          key: getReminderKey(candidate, dueAt),
+          dueAt,
+          deadline,
+          title: event.title,
+          description: event.description ?? '',
+        },
+      ]
+    })
+    return NextResponse.json(
+      { reminders },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
+  }
 
   if (categoryIds) {
     const ids = categoryIds.split(',')

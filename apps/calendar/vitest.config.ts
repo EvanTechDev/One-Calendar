@@ -11,6 +11,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      // Keep existing Web test mocks on the compatibility paths while the
+      // implementation itself has a single owner in calendar-ui.
+      '#calendar': path.resolve(__dirname, '.'),
       '@zntr/calendar-host': path.resolve(
         __dirname,
         '../../packages/calendar-host/src',

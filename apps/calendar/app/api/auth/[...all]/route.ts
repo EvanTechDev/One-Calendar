@@ -4,6 +4,7 @@ import {
   authRouteIsExposed,
   authRoutePath,
   oauthRouteIsExposed,
+  desktopRouteIsExposed,
 } from '@zntr/auth/route-policy'
 import { auth } from '@/lib/auth'
 import {
@@ -36,6 +37,9 @@ type AuthLimit = {
 }
 
 const LIMITS: Record<string, AuthLimit> = {
+  'desktop/exchange': { limit: 15, windowSeconds: 60 },
+  'desktop/browser-link': { limit: 30, windowSeconds: 60 },
+  'desktop/browser-continue': { limit: 30, windowSeconds: 60 },
   'sign-in/email': { limit: 10, windowSeconds: 60 },
   'sign-up/email': { limit: 5, windowSeconds: 300 },
   'forget-password': { limit: 3, windowSeconds: 300 },
@@ -180,7 +184,8 @@ async function handleAuth(request: Request) {
   const path = authRoutePath(request.url)
   if (
     !authRouteIsExposed(request.method, path) &&
-    !oauthRouteIsExposed(request.method, path)
+    !oauthRouteIsExposed(request.method, path) &&
+    !desktopRouteIsExposed(request.method, path)
   ) {
     return notFound()
   }

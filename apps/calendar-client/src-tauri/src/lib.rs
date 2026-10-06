@@ -1,6 +1,42 @@
 use serde::Serialize;
 use tauri::{Manager, PhysicalPosition, PhysicalSize, Url, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
+use tauri_plugin_deep_link::DeepLinkExt;
+mod auth;
+mod transport;
+mod integrations;
+mod updates;
+mod reminders;
+
+pub fn show_main(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::{menu::{Menu, MenuItem}, tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState}};
+    let open = MenuItem::with_id(app, "open", "Open calendar", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&open, &quit])?;
+    let mut tray = TrayIconBuilder::new().menu(&menu).show_menu_on_left_click(false)
+        .tooltip(app.config().product_name.as_deref().unwrap_or("Zentra Calendar"))
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "open" => show_main(app),
+            "quit" => { transport::cancel_all(app); app.exit(0); }
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if matches!(event, TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. }) {
+                show_main(tray.app_handle());
+            }
+        });
+    if let Some(icon) = app.default_window_icon() { tray = tray.icon(icon.clone()); }
+    tray.build(app)?;
+    Ok(())
+}
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -134,10 +170,40 @@ fn local_navigation(url: &Url) -> bool {
     assets || development
 }
 
+fn route_browser_link(app: tauri::AppHandle, mut url: Url) {
+    if local_navigation(&url) {
+        let Some(config) = app.try_state::<DesktopConfig>() else { return };
+        let Ok(mut official) = Url::parse(&config.api_origin) else { return };
+        official.set_path(url.path());
+        official.set_query(url.query());
+        official.set_fragment(url.fragment());
+        url = official;
+    }
+    if !matches!(url.scheme(), "https" | "http" | "mailto") { return; }
+    tauri::async_runtime::spawn(async move {
+        let official = app.try_state::<auth::DesktopAuth>()
+            .map(|auth| url.origin() == auth.origin.origin()).unwrap_or(false);
+        let result = if official {
+            integrations::desktop_open_page(app, url.to_string()).await
+        } else {
+            open_external(app, url.to_string())
+        };
+        if result.is_err() { eprintln!("Failed to open a browser link"); }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| show_main(app)))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(transport::Requests::default())
+        .manage(updates::UpdateState::default())
+        .manage(reminders::Reminders::default())
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("desktop-navigation")
                 .on_navigation(|webview, url| {
@@ -145,16 +211,20 @@ pub fn run() {
                         return true;
                     }
                     if matches!(url.scheme(), "https" | "http" | "mailto") {
-                        if open_external(webview.app_handle().clone(), url.to_string()).is_err() {
-                            // Do not log a destination that could contain an invite token.
-                            eprintln!("Failed to open an external {} link", url.scheme());
-                        }
+                        route_browser_link(webview.app_handle().clone(), url.clone());
                     }
                     false
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![desktop_config, open_external])
+        .invoke_handler(tauri::generate_handler![
+            desktop_config, open_external,
+            auth::desktop_session, auth::desktop_sign_in, auth::desktop_cancel_sign_in,
+            auth::desktop_sign_out, transport::desktop_request, transport::desktop_cancel_request,
+            integrations::desktop_open_page, integrations::desktop_save_file,
+            integrations::desktop_read_external, integrations::desktop_notification_permission,
+            updates::desktop_check_update, updates::desktop_install_update,
+        ])
         .setup(|app| {
             let environment = option_env!("ZENTRA_DESKTOP_ENV").unwrap_or("production");
             if !matches!(environment, "dev" | "production") {
@@ -194,6 +264,26 @@ pub fn run() {
                 app_name: name.clone(),
                 version: app.package_info().version.to_string(),
             });
+            app.manage(auth::DesktopAuth::new(origin.as_str(), expected_id, environment == "dev", app.path().app_data_dir()?)?);
+            let window_config = app.config().app.windows.iter()
+                .find(|window| window.label == "main").ok_or("Main window configuration is missing")?.clone();
+            let browser = app.handle().clone();
+            tauri::WebviewWindowBuilder::from_config(app, &window_config)?
+                .on_new_window(move |url, _| {
+                    route_browser_link(browser.clone(), url);
+                    tauri::webview::NewWindowResponse::Deny
+                })
+                .build()?;
+            setup_tray(app)?;
+            reminders::start(app.handle().clone());
+            #[cfg(any(target_os = "linux", all(debug_assertions, target_os = "windows")))]
+            app.deep_link().register_all()?;
+            let handle = app.handle().clone();
+            app.deep_link().on_open_url(move |event| {
+                for url in event.urls() {
+                    tauri::async_runtime::spawn(auth::callback(handle.clone(), url));
+                }
+            });
             let window = app
                 .get_webview_window("main")
                 .ok_or("Main window is missing")?;
@@ -203,6 +293,13 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            if matches!(event, WindowEvent::Focused(true)) {
+                reminders::refresh(window.app_handle());
+            }
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
             if matches!(
                 event,
                 WindowEvent::Moved(_)

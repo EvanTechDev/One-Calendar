@@ -1,5 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Zentra Calendar Dev",
-  "identifier": "app.zntr.calendar.dev"
+  "identifier": "app.zntr.calendar.dev",
+  "plugins": {
+    "deep-link": { "desktop": { "schemes": ["app.zntr.calendar.dev"] } }
+  }
 }

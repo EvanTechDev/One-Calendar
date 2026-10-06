@@ -2,6 +2,7 @@ import { createAuth } from '@zntr/auth/server'
 import { crossAppAuthConfig } from '@zntr/auth'
 import { getDb } from '@/lib/drizzle/client'
 import bcrypt from 'bcryptjs'
+import { desktopAuthConfig } from './desktop-config'
 import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 import { authEmailCallbacks, resendSender } from '@zntr/auth/email'
 import { ALL_SCOPES } from '@/lib/mcp/types'
@@ -68,6 +69,7 @@ const { auth } = createAuth({
             accessTokenExpiresIn: MCP_ACCESS_TOKEN_TTL_SECONDS,
             refreshTokenExpiresIn: 90 * 24 * 60 * 60,
           },
+          desktop: desktopAuthConfig(baseURL),
         }),
   },
   isDev: process.env.NODE_ENV !== 'production',

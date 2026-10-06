@@ -85,8 +85,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot wmctrl x11-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot wmctrl x11-utils
       - run: pnpm install --frozen-lockfile
+      - name: Resolve native dependencies
+        working-directory: apps/calendar-client/src-tauri
+        run: cargo generate-lockfile
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: desktop-cargo-lock-${{ steps.source.outputs.sha }}
+          path: apps/calendar-client/src-tauri/Cargo.lock
       - name: Build native installer
         shell: bash
         working-directory: apps/calendar-client
@@ -160,12 +168,14 @@ jobs:
         run: |
           mkdir -p artifacts
           pnpm dlx playwright@1.63.0 screenshot --browser=chromium --viewport-size="1280,900" --timezone=UTC --wait-for-selector='[aria-label="Help"]' --wait-for-timeout=3000 --timeout=60000 http://127.0.0.1:4173/ artifacts/reference-width.png
+          pnpm dlx playwright@1.63.0 screenshot --browser=chromium --viewport-size="1200,680" --timezone=UTC --wait-for-selector='[aria-label="Help"]' --wait-for-timeout=3000 --timeout=60000 http://127.0.0.1:4173/ artifacts/desktop-content-width.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: calendar-reference-width-${{ steps.source.outputs.sha }}
           path: |
             artifacts/reference-width.png
+            artifacts/desktop-content-width.png
             ${{ runner.temp }}/zentra-visual-server.log
   calendar-test:
     if: ${{ inputs.calendar_test_file != '' }}
@@ -198,6 +208,21 @@ jobs:
   typecheck:
     if: ${{ !inputs.focused_only }}
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: desktop_test
+          POSTGRES_PASSWORD: desktop_test
+          POSTGRES_DB: desktop_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U desktop_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      AUTH_TEST_POSTGRES_URL: postgres://desktop_test:desktop_test@127.0.0.1:5432/desktop_test
+      AUTH_TEST_POSTGRES_SSL: disable
+      DESKTOP_AUTH_DATABASE_TEST: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -210,6 +235,13 @@ jobs:
           node-version: 25
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+        id: dependencies
+      - name: Initialize isolated authentication test schema
+        env:
+          PGPASSWORD: desktop_test
+        run: psql -h 127.0.0.1 -U desktop_test -d desktop_test -c 'CREATE SCHEMA auth_test'
       - run: pnpm type-check
       - run: pnpm lint:check
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
       - run: pnpm test
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}

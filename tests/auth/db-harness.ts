@@ -124,8 +124,18 @@ export async function connectIsolated(): Promise<Sql | null> {
   const url = readDatabaseUrl()
   if (!url) return null
 
+  const disableTLS = process.env.AUTH_TEST_POSTGRES_SSL === 'disable'
+  if (
+    disableTLS &&
+    !['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname)
+  ) {
+    throw new Error(
+      'Disabling database TLS is only supported for a local test server',
+    )
+  }
+
   const sql = postgres(url, {
-    ssl: 'require',
+    ssl: disableTLS ? false : 'require',
     max: 1,
     // Excluding `public` is the isolation. Postgres resolves unqualified names
     // against this list only, so a stray query fails rather than finding a real

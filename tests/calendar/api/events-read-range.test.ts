@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
@@ -44,6 +44,50 @@ function request(query: string) {
   return new NextRequest(`http://localhost/api/events?tz=UTC&${query}`)
 }
 beforeEach(() => fake.reset())
+afterEach(() => vi.useRealTimers())
+describe('desktop reminder feed', () => {
+  it('uses the server reminder horizon instead of the visible calendar or category', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2035-02-04T09:00:00Z'))
+    seed('week-ahead', '2035-02-11T09:00:00Z', '2035-02-11T10:00:00Z', {
+      notificationMinutes: 10080,
+    })
+    seed('disabled', '2035-02-04T09:10:00Z', '2035-02-04T10:00:00Z', {
+      notificationMinutes: null,
+    })
+    seed('expired', '2035-02-04T08:50:00Z', '2035-02-04T10:00:00Z', {
+      notificationMinutes: 0,
+    })
+    seed('not-yet-due', '2035-02-05T09:00:00Z', '2035-02-05T10:00:00Z', {
+      notificationMinutes: 5,
+    })
+    const response = await GET(
+      request(
+        'delivery=desktop-reminders&startDate=1990-01-01&categoryId=hidden',
+      ),
+    )
+    expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toContain('no-store')
+    expect((await response.json()).reminders).toEqual([
+      expect.objectContaining({ title: 'week-ahead', dueAt: Date.now() }),
+    ])
+  })
+  it('uses expanded recurrence identities and keeps the five-minute catch-up window', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2035-02-05T09:03:00Z'))
+    seed('daily', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {
+      rrule: 'FREQ=DAILY;COUNT=3',
+      notificationMinutes: 0,
+    })
+    const response = await GET(request('delivery=desktop-reminders'))
+    const { reminders } = await response.json()
+    expect(reminders).toHaveLength(1)
+    expect(reminders[0]).toMatchObject({
+      key: `daily_20350205T090000Z-${Date.parse('2035-02-05T09:00:00Z')}`,
+      deadline: Date.parse('2035-02-05T09:05:00Z'),
+    })
+  })
+})
 describe('complete calendar date ranges', () => {
   it('retains recurrence editing metadata when opening an unloaded own search hit', async () => {
     seed('series', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {

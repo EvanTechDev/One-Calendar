@@ -15,6 +15,7 @@
       {
         "title": "Zentra Calendar",
         "label": "main",
+        "create": false,
         "width": 1200,
         "height": 720,
         "resizable": false,
@@ -27,6 +28,9 @@
       "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'",
       "devCsp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1420 ws://localhost:1421 ws://127.0.0.1:1420; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'"
     }
+  },
+  "plugins": {
+    "deep-link": { "desktop": { "schemes": ["app.zntr.calendar"] } }
   },
   "bundle": {
     "active": true,
