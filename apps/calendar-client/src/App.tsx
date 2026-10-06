@@ -10,6 +10,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [browserOpened, setBrowserOpened] = useState(false)
+  const [openingBrowser, setOpeningBrowser] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -52,12 +53,18 @@ function App() {
   )
 
   const openSignIn = async () => {
-    if (!config) return
+    if (!config || openingBrowser) return
+    setError(null)
+    setBrowserOpened(false)
+    setOpeningBrowser(true)
     try {
       await openExternal(`${config.apiOrigin}/sign-in`)
+      setError(null)
       setBrowserOpened(true)
     } catch (reason) {
       setError(String(reason))
+    } finally {
+      setOpeningBrowser(false)
     }
   }
 
@@ -75,6 +82,8 @@ function App() {
             <>
               <button
                 className="primary-action"
+                disabled={openingBrowser}
+                aria-busy={openingBrowser}
                 onClick={() => void openSignIn()}
               >
                 Sign in with your browser

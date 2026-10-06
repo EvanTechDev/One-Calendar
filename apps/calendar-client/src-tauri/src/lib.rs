@@ -92,13 +92,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(
-            tauri::plugin::Builder::new("desktop-navigation")
+            tauri::plugin::Builder::<tauri::Wry, ()>::new("desktop-navigation")
                 .on_navigation(|webview, url| {
                     if local_navigation(url) {
                         return true;
                     }
                     if matches!(url.scheme(), "https" | "http" | "mailto") {
-                        let _ = open_external(webview.app_handle().clone(), url.to_string());
+                        if open_external(webview.app_handle().clone(), url.to_string()).is_err() {
+                            // Do not log a destination that could contain an invite token.
+                            eprintln!("Failed to open an external {} link", url.scheme());
+                        }
                     }
                     false
                 })
@@ -160,7 +163,9 @@ pub fn run() {
                     | WindowEvent::ScaleFactorChanged { .. }
             ) {
                 if let Some(webview) = window.app_handle().get_webview_window(window.label()) {
-                    let _ = fit_window(&webview, false);
+                    if let Err(error) = fit_window(&webview, false) {
+                        eprintln!("Failed to adapt the desktop window: {error}");
+                    }
                 }
             }
         })
