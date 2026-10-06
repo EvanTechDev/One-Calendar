@@ -68,7 +68,11 @@ function verify(report) {
   const window = report.window
   assert.equal(window.visible, true)
   assert.equal(window.resizable, false)
-  assert.equal(window.maximizable, false)
+  if (process.platform === 'linux') {
+    assert.equal(window.maximizable, null)
+  } else {
+    assert.equal(window.maximizable, false)
+  }
   assert(window.workArea, 'No monitor work area was reported')
   assert(window.scaleFactor > 0)
   for (const [dimension, logicalSize] of [['width', 1200], ['height', 720]]) {
@@ -110,6 +114,15 @@ async function launch(executable, label, extraEnvironment = {}) {
     writeFileSync(join(artifacts, `${label}.json`), JSON.stringify(report, null, 2))
     if (process.platform === 'linux') {
       await new Promise((settled) => setTimeout(settled, 500))
+      const title = environment === 'dev' ? 'Zentra Calendar Dev' : 'Zentra Calendar'
+      const windows = execFileSync('wmctrl', ['-l'], { encoding: 'utf8' })
+      const entry = windows.split('\n').find((line) => line.endsWith(title))
+      assert(entry, 'Installed calendar window is missing from the window manager')
+      const windowId = entry.split(/\s+/)[0]
+      execFileSync('wmctrl', ['-i', '-r', windowId, '-b', 'add,maximized_vert,maximized_horz'])
+      await new Promise((settled) => setTimeout(settled, 250))
+      const state = execFileSync('xprop', ['-id', windowId, '_NET_WM_STATE'], { encoding: 'utf8' })
+      assert(!state.includes('_NET_WM_STATE_MAXIMIZED_'), 'Calendar remained maximized')
       execFileSync('scrot', ['-o', join(artifacts, `${label}.png`)])
     }
     console.log(`Native installation and IPC startup passed: ${label}`)

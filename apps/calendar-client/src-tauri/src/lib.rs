@@ -46,13 +46,19 @@ fn desktop_diagnostics(window: &tauri::WebviewWindow) -> tauri::Result<serde_jso
             let work = monitor.work_area();
             serde_json::json!({ "width": work.size.width, "height": work.size.height })
         });
+    // Tauri documents the native maximize-button getter as unsupported on
+    // Linux. The Linux smoke test checks the window manager's actual state.
+    #[cfg(target_os = "linux")]
+    let maximizable: Option<bool> = None;
+    #[cfg(not(target_os = "linux"))]
+    let maximizable = Some(window.is_maximizable()?);
     Ok(serde_json::json!({
         "outer": { "width": outer.width, "height": outer.height },
         "inner": { "width": inner.width, "height": inner.height },
         "workArea": work,
         "scaleFactor": window.scale_factor()?,
         "resizable": window.is_resizable()?,
-        "maximizable": window.is_maximizable()?,
+        "maximizable": maximizable,
         "visible": window.is_visible()?,
     }))
 }
@@ -203,6 +209,12 @@ pub fn run() {
                     | WindowEvent::Resized(_)
                     | WindowEvent::ScaleFactorChanged { .. }
             ) {
+                if window.is_maximized().unwrap_or(false) {
+                    if let Err(error) = window.unmaximize() {
+                        eprintln!("Failed to restore the fixed-size window: {error}");
+                    }
+                    return;
+                }
                 if let Some(webview) = window.app_handle().get_webview_window(window.label()) {
                     if let Err(error) = fit_window(&webview, false) {
                         eprintln!("Failed to adapt the desktop window: {error}");

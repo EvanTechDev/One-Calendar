@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       calendar_test_file:
-        description: Calendar test path, or tests/calendar for the calendar suite
+        description: Test path under tests/calendar or tests/auth (legacy input name)
         required: false
         type: string
       focused_only:
@@ -85,7 +85,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot wmctrl x11-utils
       - run: pnpm install --frozen-lockfile
       - name: Build native installer
         shell: bash
@@ -187,13 +187,14 @@ jobs:
           TEST_FILE: ${{ inputs.calendar_test_file }}
         run: |
           case "$TEST_FILE" in
-            tests/calendar|tests/calendar/*.test.ts|tests/calendar/*.test.tsx) ;;
-            *) echo "Select a test under tests/calendar"; exit 1 ;;
+            tests/calendar|tests/calendar/*.test.ts|tests/calendar/*.test.tsx) TEST_PACKAGE=zentra-calendar ;;
+            tests/auth|tests/auth/*.test.ts|tests/auth/*.test.tsx) TEST_PACKAGE=@zntr/auth ;;
+            *) echo "Select a test under tests/calendar or tests/auth"; exit 1 ;;
           esac
           case "$TEST_FILE" in
             *..*) echo "Parent traversal is not allowed"; exit 1 ;;
           esac
-          pnpm --filter zentra-calendar exec vitest run "../../$TEST_FILE"
+          pnpm --filter "$TEST_PACKAGE" exec vitest run "../../$TEST_FILE"
   typecheck:
     if: ${{ !inputs.focused_only }}
     runs-on: ubuntu-latest
