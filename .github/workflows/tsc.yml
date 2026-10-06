@@ -16,11 +16,55 @@ on:
         description: Optional revision to compare against the work branch
         required: false
         type: string
+      visual_baseline:
+        description: Capture the deterministic 1280px Web calendar reference
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
+  visual-baseline:
+    if: ${{ inputs.visual_baseline }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm dlx playwright@1.63.0 install --with-deps --only-shell chromium
+      - name: Start the isolated visual fixture
+        run: |
+          pnpm exec vite --config tests/calendar/visual/vite.config.ts >"$RUNNER_TEMP/zentra-visual-server.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/zentra-visual-server.log"
+          exit 1
+      - name: Capture Reference Width
+        run: |
+          mkdir -p artifacts
+          pnpm dlx playwright@1.63.0 screenshot --browser=chromium --viewport-size="1280,900" --timezone=UTC --wait-for-selector='[aria-label="Help"]' --wait-for-timeout=3000 --timeout=60000 http://127.0.0.1:4173/ artifacts/reference-width.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-reference-width-${{ github.sha }}
+          path: |
+            artifacts/reference-width.png
+            ${{ runner.temp }}/zentra-visual-server.log
   calendar-test:
     if: ${{ inputs.calendar_test_file != '' }}
     runs-on: ubuntu-latest
