@@ -6,6 +6,7 @@
    scans only what it is told to: without this, every class in those components
    is absent from the stylesheet and the whole surface renders unstyled. */
 @source "../../../packages/auth/src";
+@source "../../../packages/calendar-host/src";
 
 @custom-variant dark (&:is(.dark *));
 
