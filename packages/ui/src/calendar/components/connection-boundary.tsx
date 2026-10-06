@@ -124,7 +124,9 @@ export function ConnectionBoundary({
     try {
       const connected = checkConnection
         ? await checkConnection()
-        : (await host.request('/api/connection', { cache: 'no-store' })).ok
+        : await host
+            .request('/api/connection', { cache: 'no-store' })
+            .then(() => true)
       if (connected) {
         setDisconnected(false)
         await onReconnect?.()

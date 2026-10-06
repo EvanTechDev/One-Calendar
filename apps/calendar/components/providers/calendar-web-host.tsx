@@ -1,6 +1,13 @@
 'use client'
 
-import { lazy, Suspense, useMemo, useRef, type ReactNode } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CalendarHostProvider,
@@ -28,10 +35,12 @@ function openExternal(to: string) {
 export function CalendarWebHost({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { data, isPending, error } = authClient.useSession()
-  const remembered = useRef(data?.user)
-  if (data?.user) remembered.current = data.user
-  else if (!isPending && !error) remembered.current = undefined
-  const user = data?.user ?? remembered.current
+  const [remembered, setRemembered] = useState(data?.user)
+  useEffect(() => {
+    if (data?.user) setRemembered(data.user)
+    else if (!isPending && !error) setRemembered(undefined)
+  }, [data?.user, isPending, error])
+  const user = data?.user ?? (isPending || error ? remembered : undefined)
   const navigation = useMemo(
     () => ({
       push: (to: string) => router.push(to),

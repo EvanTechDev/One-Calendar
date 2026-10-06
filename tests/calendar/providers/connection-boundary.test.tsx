@@ -174,4 +174,23 @@ describe('shared connection recovery', () => {
     ).toBeNull()
     view.unmount()
   })
+
+  it('distinguishes a reachable server error from an internet outage during recovery', async () => {
+    const view = fixture(
+      vi.fn(async () => new Response(null, { status: 503 })),
+      vi.fn(),
+    )
+    act(() => window.dispatchEvent(new Event('offline')))
+    expect(
+      screen.getByRole('heading', { name: 'No internet connection' }),
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', { name: 'No internet connection' }),
+      ).toBeNull(),
+    )
+    expect(screen.getByLabelText('Event title')).toHaveValue('Unfinished draft')
+    view.unmount()
+  })
 })

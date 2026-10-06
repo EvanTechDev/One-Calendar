@@ -11,8 +11,9 @@ pub async fn desktop_connection(app: AppHandle) -> Result<bool, String> {
     let auth = app.state::<DesktopAuth>();
     let client = reqwest::Client::builder().timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::none()).build().map_err(|e| e.to_string())?;
-    Ok(client.get(auth.origin.join("/api/connection").unwrap()).send().await
-        .map(|response| response.status().is_success()).unwrap_or(false))
+    // An HTTP error still proves reachability. API/version errors are displayed
+    // by their own surfaces, rather than disguising them as a lost connection.
+    Ok(client.get(auth.origin.join("/api/connection").unwrap()).send().await.is_ok())
 }
 
 #[derive(serde::Deserialize)]

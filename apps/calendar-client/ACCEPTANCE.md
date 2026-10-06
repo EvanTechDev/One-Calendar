@@ -52,6 +52,13 @@ It passed installed Windows startup checks and targets the development backend.
 
 ## Automated gate
 
+The current requested layout is `packages/ui/src/calendar` with the host port in
+`packages/utils/src/calendar-host`. The window is now 1320×880 logical outer
+pixels, with fullscreen available and edge resizing disabled. Sign-in, sign-up,
+password recovery and account settings are embedded in the client; `/account`
+has been removed. The earlier evidence above describes earlier revisions, not
+acceptance of these changes.
+
 Run Workspace Checks with the implementation branch, `desktop_environment=dev`
 and `production_ui=true`. It runs workspace type checks, lint and tests,
 including the desktop authentication contract against an isolated PostgreSQL
@@ -62,7 +69,8 @@ production environment isolation after the dev run passes.
 The production UI check takes stylesheets and font classes from the built Next
 root layout, then applies them to a deterministic calendar with Vite's calendar
 CSS explicitly disabled. It asserts the populated month has seven columns and
-captures the 1280px/1200px layouts and desktop entry/settings/error states. The
+captures the 1280px/1200px Web layouts and 1320×880 sign-in, sign-up, recovery,
+settings, offline and error states. The
 separate `visual_baseline` input is a Vite-only reference and cannot establish
 production Web appearance on its own.
 
@@ -75,26 +83,35 @@ file import/export, search, AI streaming/cancellation and natural-language creat
 
 For Windows x64, Linux x64 and both macOS architectures:
 
-1. Install the matching artifact. Log in through the system browser, verify the
-   callback returns to the existing window and real calendar data is editable.
-   Cancel/retry sign-in and reject an expired or repeated callback.
+1. Install the matching artifact. Sign-in appears inside the existing window.
+   Switch to sign-up and password recovery, complete email verification/TOTP as
+   applicable, and verify real calendar data becomes editable. Retry sign-in and
+   reject an expired or repeated callback. The embedded official-origin document
+   must generate BotID proofs without receiving native IPC permissions.
 2. Quit and restart: login persists. Browser logout preserves desktop login;
    desktop logout preserves browser login. Restart after desktop logout remains
    signed out. A revoked desktop session cannot keep reading calendar data.
-3. Open Account and an invite from the client with a signed-out browser, then
-   with a different browser account. The latter must retain its own account.
+3. Open Settings and Account inside the client. Verify profile/security changes
+   and both account-panel and native sign-out clear the correct desktop session.
+   Opening other settings tabs must not create a hidden account WebView. Open an
+   invite with a signed-out browser, then with a different browser account. The
+   latter must retain its own account.
    Check ordinary links, new-window links and programmatic external navigation.
 4. Close the window: the process and tray remain. Open from the tray and reopen
    through the application shortcut: one window returns. Quit ends the process.
-   Check fixed outer sizing on normal, high-DPI and smaller screens.
+   Check 1320×880 logical outer sizing on normal/high-DPI screens and clamping on
+   smaller screens. Enter/exit fullscreen with an embedded identity view present;
+   exit restores fixed sizing and edge dragging cannot resize the window.
 5. Create a reminder outside the visible calendar range. Close to tray and wait
    for it. Verify one sound and one notification. Edit/delete before delivery;
    check a recurrence override, reconnect catch-up, wake-from-sleep catch-up,
    restart deduplication and account switching. Denied OS notifications must not
    repeatedly replay the same reminder.
-6. Disconnect while editing and while AI is streaming; confirm visible failure,
-   cancellation and successful retry after reconnection. No offline write queue
-   or stale success indication should appear.
+6. Disconnect while editing, with a modal/popover open, and while AI is streaming.
+   The shared No Internet screen must remain usable; retry/reconnection must
+   retain the same calendar, session, selected view and unsaved draft instead of
+   returning to sign-in or remounting the app. Verify this on Web and desktop.
+   No offline write queue or stale success indication should appear.
 
 ## Signed two-version update
 
