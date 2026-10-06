@@ -30,6 +30,7 @@
     }
   },
   "plugins": {
+    "updater": { "pubkey": "" },
     "deep-link": { "desktop": { "schemes": ["app.zntr.calendar"] } }
   },
   "bundle": {

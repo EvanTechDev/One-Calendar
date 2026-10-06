@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { spawn, execFileSync } from 'node:child_process'
-import { mkdirSync, readdirSync, copyFileSync, chmodSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  readdirSync,
+  copyFileSync,
+  chmodSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,7 +15,10 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const target = process.env.BUILD_TARGET
 const environment = process.env.ZENTRA_DESKTOP_ENV
 assert(target, 'BUILD_TARGET is required')
-assert(['dev', 'production'].includes(environment), 'Choose a desktop environment')
+assert(
+  ['dev', 'production'].includes(environment),
+  'Choose a desktop environment',
+)
 const bundle = join(root, 'src-tauri', 'target', target, 'release', 'bundle')
 const artifacts = join(root, 'native-smoke-artifacts')
 mkdirSync(artifacts, { recursive: true })
@@ -24,12 +33,17 @@ function install() {
   const destination = join(tmpdir(), `zentra-native-smoke-${environment}`)
   mkdirSync(destination, { recursive: true })
   if (process.platform === 'win32') {
-    execFileSync(singleFile(join(bundle, 'nsis'), '.exe'), ['/S', `/D=${destination}`], {
-      timeout: 120_000,
-      stdio: 'pipe',
-    })
+    execFileSync(
+      singleFile(join(bundle, 'nsis'), '.exe'),
+      ['/S', `/D=${destination}`],
+      {
+        timeout: 120_000,
+        stdio: 'pipe',
+      },
+    )
     const executable = readdirSync(destination).filter(
-      (name) => name.endsWith('.exe') && !name.toLowerCase().includes('uninstall'),
+      (name) =>
+        name.endsWith('.exe') && !name.toLowerCase().includes('uninstall'),
     )
     assert.equal(executable.length, 1, 'Installed app executable is ambiguous')
     return join(destination, executable[0])
@@ -38,8 +52,12 @@ function install() {
     const mount = join(destination, 'mounted')
     mkdirSync(mount, { recursive: true })
     execFileSync('hdiutil', [
-      'attach', singleFile(join(bundle, 'dmg'), '.dmg'),
-      '-readonly', '-nobrowse', '-mountpoint', mount,
+      'attach',
+      singleFile(join(bundle, 'dmg'), '.dmg'),
+      '-readonly',
+      '-nobrowse',
+      '-mountpoint',
+      mount,
     ])
     let installed
     try {
@@ -49,10 +67,18 @@ function install() {
     } finally {
       execFileSync('hdiutil', ['detach', mount, '-quiet'])
     }
-    const executable = execFileSync('plutil', [
-      '-extract', 'CFBundleExecutable', 'raw', '-o', '-',
-      join(installed, 'Contents', 'Info.plist'),
-    ], { encoding: 'utf8' }).trim()
+    const executable = execFileSync(
+      'plutil',
+      [
+        '-extract',
+        'CFBundleExecutable',
+        'raw',
+        '-o',
+        '-',
+        join(installed, 'Contents', 'Info.plist'),
+      ],
+      { encoding: 'utf8' },
+    ).trim()
     return join(installed, 'Contents', 'MacOS', executable)
   }
   const executable = join(destination, 'Zentra.AppImage')
@@ -64,7 +90,10 @@ function install() {
 function verify(report) {
   assert.equal(report.environment, environment)
   assert.equal(report.apiOrigin, new URL(process.env.ZENTRA_API_ORIGIN).origin)
-  assert.equal(report.identifier, environment === 'dev' ? 'app.zntr.calendar.dev' : 'app.zntr.calendar')
+  assert.equal(
+    report.identifier,
+    environment === 'dev' ? 'app.zntr.calendar.dev' : 'app.zntr.calendar',
+  )
   const window = report.window
   assert.equal(window.visible, true)
   assert.equal(window.resizable, false)
@@ -75,13 +104,33 @@ function verify(report) {
   }
   assert(window.workArea, 'No monitor work area was reported')
   assert(window.scaleFactor > 0)
-  for (const [dimension, logicalSize] of [['width', 1200], ['height', 720]]) {
-    const expected = Math.min(Math.round(logicalSize * window.scaleFactor), window.workArea[dimension])
-    assert(Math.abs(window.outer[dimension] - expected) <= 2,
-      `Outer ${dimension}: expected ${expected}, got ${window.outer[dimension]}`)
+  for (const [dimension, logicalSize] of [
+    ['width', 1200],
+    ['height', 720],
+  ]) {
+    const expected = Math.min(
+      Math.round(logicalSize * window.scaleFactor),
+      window.workArea[dimension],
+    )
+    assert(
+      Math.abs(window.outer[dimension] - expected) <= 2,
+      `Outer ${dimension}: expected ${expected}, got ${window.outer[dimension]}`,
+    )
     assert(window.inner[dimension] > 0)
     assert(window.inner[dimension] <= window.outer[dimension])
   }
+}
+
+async function waitForWindowState(windowId, expected) {
+  const deadline = Date.now() + 10_000
+  while (Date.now() < deadline) {
+    const info = execFileSync('xwininfo', ['-id', windowId], {
+      encoding: 'utf8',
+    })
+    if (info.includes(`Map State: ${expected}`)) return
+    await new Promise((settled) => setTimeout(settled, 100))
+  }
+  throw new Error(`Calendar did not reach window state ${expected}`)
 }
 
 async function launch(executable, label, extraEnvironment = {}) {
@@ -93,37 +142,114 @@ async function launch(executable, label, extraEnvironment = {}) {
   })
   try {
     const report = await new Promise((resolveReport, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Frontend IPC startup timed out')), 60_000)
+      const timeout = setTimeout(
+        () => reject(new Error('Frontend IPC startup timed out')),
+        60_000,
+      )
       const consume = (chunk) => {
         output += chunk.toString()
         const match = output.match(/ZENTRA_DESKTOP_SMOKE (\{[^\r\n]+\})\r?\n/)
         if (match) {
           clearTimeout(timeout)
-          try { resolveReport(JSON.parse(match[1])) } catch (error) { reject(error) }
+          try {
+            resolveReport(JSON.parse(match[1]))
+          } catch (error) {
+            reject(error)
+          }
         }
       }
       child.stdout.on('data', consume)
       child.stderr.on('data', consume)
-      child.on('error', (error) => { clearTimeout(timeout); reject(error) })
+      child.on('error', (error) => {
+        clearTimeout(timeout)
+        reject(error)
+      })
       child.on('exit', (code) => {
         clearTimeout(timeout)
         reject(new Error(`Desktop exited before IPC startup: ${code}`))
       })
     })
     verify(report)
-    writeFileSync(join(artifacts, `${label}.json`), JSON.stringify(report, null, 2))
+    writeFileSync(
+      join(artifacts, `${label}.json`),
+      JSON.stringify(report, null, 2),
+    )
     if (process.platform === 'linux') {
       await new Promise((settled) => setTimeout(settled, 500))
-      const title = environment === 'dev' ? 'Zentra Calendar Dev' : 'Zentra Calendar'
+      const title =
+        environment === 'dev' ? 'Zentra Calendar Dev' : 'Zentra Calendar'
       const windows = execFileSync('wmctrl', ['-l'], { encoding: 'utf8' })
       const entry = windows.split('\n').find((line) => line.endsWith(title))
-      assert(entry, 'Installed calendar window is missing from the window manager')
+      assert(
+        entry,
+        'Installed calendar window is missing from the window manager',
+      )
       const windowId = entry.split(/\s+/)[0]
-      execFileSync('wmctrl', ['-i', '-r', windowId, '-b', 'add,maximized_vert,maximized_horz'])
+      execFileSync('wmctrl', [
+        '-i',
+        '-r',
+        windowId,
+        '-b',
+        'add,maximized_vert,maximized_horz',
+      ])
       await new Promise((settled) => setTimeout(settled, 250))
-      const state = execFileSync('xprop', ['-id', windowId, '_NET_WM_STATE'], { encoding: 'utf8' })
-      assert(!state.includes('_NET_WM_STATE_MAXIMIZED_'), 'Calendar remained maximized')
+      const state = execFileSync('xprop', ['-id', windowId, '_NET_WM_STATE'], {
+        encoding: 'utf8',
+      })
+      assert(
+        !state.includes('_NET_WM_STATE_MAXIMIZED_'),
+        'Calendar remained maximized',
+      )
       execFileSync('scrot', ['-o', join(artifacts, `${label}.png`)])
+      execFileSync('wmctrl', ['-i', '-c', windowId])
+      await waitForWindowState(windowId, 'IsUnMapped')
+      assert.equal(
+        child.exitCode,
+        null,
+        'Closing the window terminated the app',
+      )
+      const second = spawn(executable, [], {
+        env: { ...process.env, ...extraEnvironment },
+        stdio: 'ignore',
+      })
+      try {
+        await new Promise((settled, reject) => {
+          const timeout = setTimeout(
+            () => reject(new Error('Second instance did not exit')),
+            15_000,
+          )
+          second.once('error', (error) => {
+            clearTimeout(timeout)
+            reject(error)
+          })
+          second.once('exit', (code) => {
+            clearTimeout(timeout)
+            if (code === 0) settled()
+            else reject(new Error(`Second instance exited with ${code}`))
+          })
+        })
+        await waitForWindowState(windowId, 'IsViewable')
+        assert.equal(
+          child.exitCode,
+          null,
+          'Reopening replaced the existing process',
+        )
+        writeFileSync(
+          join(artifacts, `${label}-lifecycle.json`),
+          JSON.stringify(
+            {
+              closeHidesWindow: true,
+              reopenRestoresSameWindow: true,
+              originalProcess: child.pid,
+              windowId,
+            },
+            null,
+            2,
+          ),
+        )
+      } finally {
+        if (second.exitCode === null) second.kill()
+      }
     }
     console.log(`Native installation and IPC startup passed: ${label}`)
   } finally {
@@ -131,11 +257,15 @@ async function launch(executable, label, extraEnvironment = {}) {
     if (child.pid) {
       try {
         if (process.platform === 'win32') {
-          execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+          execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+            stdio: 'ignore',
+          })
         } else {
           process.kill(-child.pid, 'SIGTERM')
         }
-      } catch { /* The owned child may already have exited. */ }
+      } catch {
+        /* The owned child may already have exited. */
+      }
     }
   }
 }
@@ -147,7 +277,14 @@ const linuxEnvironment = {
   LIBGL_ALWAYS_SOFTWARE: '1',
   GDK_BACKEND: 'x11',
 }
-await launch(executable, 'default-display', process.platform === 'linux' ? linuxEnvironment : {})
+await launch(
+  executable,
+  'default-display',
+  process.platform === 'linux' ? linuxEnvironment : {},
+)
 if (process.platform === 'linux') {
-  await launch(executable, 'scaled-display', { ...linuxEnvironment, GDK_SCALE: '2' })
+  await launch(executable, 'scaled-display', {
+    ...linuxEnvironment,
+    GDK_SCALE: '2',
+  })
 }
