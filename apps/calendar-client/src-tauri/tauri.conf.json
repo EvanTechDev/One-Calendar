@@ -5,21 +5,27 @@
   "identifier": "app.zntr.calendar",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "devUrl": "https://calendar.xyehr.cn/app",
+    "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
-    "frontendDist": "https://calendar.xyehr.cn/app"
+    "frontendDist": "../dist"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Zentra Calendar",
-        "width": 1920,
-        "height": 1200,
-        "url": "https://calendar.xyehr.cn/app"
+        "label": "main",
+        "width": 1200,
+        "height": 720,
+        "resizable": false,
+        "maximizable": false,
+        "visible": false,
+        "url": "index.html"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https://calendar.xyehr.cn https://*.xyehr.cn; script-src 'self' https://calendar.xyehr.cn; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'",
+      "devCsp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1420 ws://localhost:1421 ws://127.0.0.1:1420; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'"
     }
   },
   "bundle": {

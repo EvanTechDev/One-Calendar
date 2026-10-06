@@ -214,6 +214,9 @@ importers:
 
   apps/calendar-client:
     dependencies:
+      '@zntr/calendar-host':
+        specifier: workspace:*
+        version: link:../../packages/calendar-host
       react:
         specifier: ^19.1.0
         version: 19.2.7

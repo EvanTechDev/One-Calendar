@@ -21,11 +21,88 @@ on:
         required: false
         default: false
         type: boolean
+      desktop_environment:
+        description: Optionally build the four desktop installer targets
+        required: false
+        default: none
+        type: choice
+        options:
+          - none
+          - dev
+          - production
 
 permissions:
   contents: read
 
 jobs:
+  desktop-build:
+    if: ${{ inputs.desktop_environment != 'none' && inputs.desktop_environment != '' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundle: appimage
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundle: nsis
+          - os: macos-14
+            target: x86_64-apple-darwin
+            bundle: dmg
+          - os: macos-14
+            target: aarch64-apple-darwin
+            bundle: dmg
+    runs-on: ${{ matrix.os }}
+    env:
+      ZENTRA_DESKTOP_ENV: ${{ inputs.desktop_environment }}
+      ZENTRA_API_ORIGIN: ${{ inputs.desktop_environment == 'dev' && (vars.ZENTRA_DEV_API_ORIGIN || 'https://precal.xyehr.cn') || (vars.ZENTRA_API_ORIGIN || 'https://calendar.xyehr.cn') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: 'pnpm'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/calendar-client/src-tauri -> target
+          key: ${{ matrix.target }}
+      - name: Install Linux desktop libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf
+      - run: pnpm install --frozen-lockfile
+      - name: Build native installer
+        shell: bash
+        working-directory: apps/calendar-client
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+          BUILD_BUNDLE: ${{ matrix.bundle }}
+        run: |
+          config_args=()
+          if [ "$ZENTRA_DESKTOP_ENV" = "dev" ]; then
+            config_args=(--config src-tauri/tauri.dev.conf.json)
+          fi
+          pnpm tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" "${config_args[@]}"
+      - name: Verify window sizing rules
+        if: runner.os == 'Linux'
+        working-directory: apps/calendar-client/src-tauri
+        run: cargo test --locked --release --lib --target x86_64-unknown-linux-gnu
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zentra-${{ inputs.desktop_environment }}-${{ matrix.target }}-${{ github.sha }}
+          path: apps/calendar-client/src-tauri/target/${{ matrix.target }}/release/bundle/**
+          if-no-files-found: error
   visual-baseline:
     if: ${{ inputs.visual_baseline }}
     runs-on: ubuntu-latest

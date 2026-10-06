@@ -26,6 +26,7 @@ apps/
   calendar-client/ Tauri + React + Vite desktop client
   web/             Astro 7 marketing/site app (@astrojs/react + Tailwind v4)
 packages/
+  calendar-host/  @zntr/calendar-host — shared frontend request/session/navigation port
   agent/           @zntr/agent — AI calendar copilot: eve tool defs + AI SDK adapter
   auth/            @zntr/auth — Better Auth adapter, schema, client/server helpers
   meetings/        @zntr/meetings — meeting/session/attendance/chat schema + operations
@@ -255,7 +256,10 @@ Conventional commits enforced by commitlint (commit-msg hook): `feat`, `fix`, `d
 - `tsconfig.json` at root extends to apps; `apps/calendar/tsconfig.json` adds path aliases (`@/*`, `@zntr/*`).
 - Vitest config lives in `apps/calendar/vitest.config.ts` (root = the app) but includes top-level `tests/calendar/`. Bare imports from there resolve via the committed symlink `tests/node_modules` → `apps/calendar/node_modules` (pnpm doesn't hoist to the repo root).
 - Component UI library (`@zntr/ui`) uses single-file components at `packages/ui/src/*.tsx` with barrel `index.ts`.
-- `calendar-client` is a Tauri desktop app; its `build:tauri` script runs `tsc && vite build`.
+- `calendar-client` is a Tauri desktop app: `build` checks and bundles its frontend,
+  while `build:tauri` runs the native Tauri bundler. The manual Workspace Checks
+  workflow can build the four desktop targets with `desktop_environment` set to
+  `dev` or `production`; the dev configuration has a separate application ID.
 - knip config in root `package.json` tracks known dead-code exceptions.
 - Vercel crons run via `apps/calendar/vercel.json`: `GET /api/blob/check` at midnight UTC (which runs every job in `apps/calendar/lib/maintenance/jobs.ts` — table health, MCP audit retention, expired OAuth state, expired meetings) and `GET /api/reminders/topup` at 2am UTC. `/api/blob/check?jobs=<name>[,<name>]` runs a subset by hand. apps/meet registers no crons: it sweeps expired meetings from the calendar's maintenance run, since the rows are in the same database.
 - Recurrence expansion has exactly ONE owner: `apps/calendar/lib/recurrence/engine.ts`. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.

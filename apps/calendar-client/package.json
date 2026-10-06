@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:check": "tsc && vite build",
-    "build:tauri": "tsc && vite build",
+    "build:tauri": "tauri build",
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
@@ -15,6 +15,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@zntr/calendar-host": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
