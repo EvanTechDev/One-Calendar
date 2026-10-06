@@ -200,6 +200,18 @@ async function launch(executable, label, extraEnvironment = {}) {
       identity,
       'Embedded identity document/fullscreen verification timed out',
     )
+    writeFileSync(
+      join(artifacts, `${label}-identity.json`),
+      JSON.stringify(identity, null, 2),
+    )
+    if (process.platform === 'linux') {
+      execFileSync('scrot', ['-o', join(artifacts, `${label}-identity.png`)])
+    } else if (process.platform === 'darwin') {
+      execFileSync('screencapture', [
+        '-x',
+        join(artifacts, `${label}-identity.png`),
+      ])
+    }
     assert.equal(identity.path, '/oauth/sign-in')
     assert.equal(identity.enteredFullscreen, true)
     assert.equal(identity.window.fullscreen, false)
@@ -207,6 +219,7 @@ async function launch(executable, label, extraEnvironment = {}) {
     const { inner, scaleFactor } = identity.window
     const position = identity.identityPosition
     const size = identity.identitySize
+    const requested = identity.requested
     for (const dimension of ['width', 'height']) {
       assert(
         Math.abs(identity.mainSize[dimension] - inner[dimension]) <= 2,
@@ -219,17 +232,32 @@ async function launch(executable, label, extraEnvironment = {}) {
     )
     assert(Math.abs(position.x) <= 2, 'Sign-in view must align with the window')
     assert(
-      Math.abs(size.width - inner.width) <= 2,
+      Math.abs(size.width - requested.viewportWidth * scaleFactor) <= 2,
       'Sign-in view must fill the content width',
     )
     assert(
-      Math.abs(position.y + size.height - inner.height) <= 2,
+      Math.abs(
+        position.y + size.height - requested.viewportHeight * scaleFactor,
+      ) <= 2,
       'Sign-in view is clipped or stacked below the local calendar view',
     )
-    writeFileSync(
-      join(artifacts, `${label}-identity.json`),
-      JSON.stringify(identity, null, 2),
+    // macOS's WKWebView viewport excludes the native title bar even when the
+    // native frame getter includes it. It must still occupy the whole content
+    // area, not a half-height view from accidental native stacking.
+    assert(inner.height - requested.viewportHeight * scaleFactor >= -2)
+    assert(
+      inner.height - requested.viewportHeight * scaleFactor <= 40 * scaleFactor,
     )
+    for (const [actual, expected] of [
+      [position.x, requested.x],
+      [position.y, requested.y],
+      [size.width, requested.width],
+      [size.height, requested.height],
+    ])
+      assert(
+        Math.abs(actual - expected * scaleFactor) <= 2,
+        'Native identity does not match its DOM slot',
+      )
     if (process.platform === 'linux') {
       assert(
         process.env.DBUS_SESSION_BUS_ADDRESS,

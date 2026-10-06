@@ -51,3 +51,22 @@ pub async fn place(view: &Webview, x: i32, y: i32, width: i32, height: i32, visi
     }).map_err(|e| e.to_string())?;
     receive.await.map_err(|_| "Identity view layout was interrupted".to_string())?
 }
+
+/// Wry's GTK bounds getter leaves position at (0, 0). Read the actual widget
+/// allocation relative to our overlay instead, including the display scale.
+pub async fn measure(view: &Webview) -> Result<serde_json::Value, String> {
+    let (send, receive) = tokio::sync::oneshot::channel();
+    view.with_webview(move |platform| {
+        let result: Result<serde_json::Value, String> = (|| {
+            let widget = platform.inner();
+            let parent = widget.parent().ok_or("Identity container missing")?;
+            let (x, y) = widget.translate_coordinates(&parent, 0, 0).ok_or("Identity coordinates unavailable")?;
+            let size = widget.allocation();
+            let scale = widget.scale_factor();
+            Ok(serde_json::json!({"position":{"x":x*scale,"y":y*scale},
+                "size":{"width":size.width()*scale,"height":size.height()*scale}}))
+        })();
+        let _ = send.send(result);
+    }).map_err(|e| e.to_string())?;
+    receive.await.map_err(|_| "Identity measurement interrupted".to_string())?
+}

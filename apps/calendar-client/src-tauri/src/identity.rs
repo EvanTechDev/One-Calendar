@@ -8,13 +8,15 @@ pub const LABEL: &str = "identity";
 pub struct Identity {
     operation: tokio::sync::Mutex<()>,
     owner: Mutex<Option<(String, String)>>,
+    bounds: Mutex<Option<Bounds>>,
 }
 
-#[derive(Clone, serde::Deserialize)]
-pub struct Bounds { x: f64, y: f64, width: f64, height: f64 }
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Bounds { x: f64, y: f64, width: f64, height: f64, viewport_width: f64, viewport_height: f64 }
 impl Bounds {
     fn valid(&self) -> bool {
-        [self.x, self.y, self.width, self.height].iter().all(|n| n.is_finite() && *n >= 0.0)
+        [self.x, self.y, self.width, self.height, self.viewport_width, self.viewport_height].iter().all(|n| n.is_finite() && *n >= 0.0)
             && self.width >= 1.0 && self.height >= 1.0 && self.width <= 10000.0 && self.height <= 10000.0
     }
 }
@@ -84,6 +86,7 @@ pub async fn desktop_identity_open(app: AppHandle, owner: String, mode: String, 
         .add_child(builder, LogicalPosition::new(bounds.x, bounds.y), LogicalSize::new(bounds.width, bounds.height))
         .map_err(|e| e.to_string())?;
     place(&view, &bounds, true).await?;
+    *state.bounds.lock().map_err(|_| "Identity layout unavailable")? = Some(bounds);
     Ok(())
 }
 
@@ -114,9 +117,16 @@ fn smoke_loaded(app: &AppHandle, path: &str) {
             }
             let identity = app.get_webview(LABEL).ok_or("Identity view missing")?;
             let main = app.get_webview("main").ok_or("Calendar view missing")?;
+            let requested = app.state::<Identity>().bounds.lock().map_err(|_| "Identity layout unavailable")?.clone();
+            #[cfg(target_os = "linux")]
+            let actual = crate::identity_layout::measure(&identity).await?;
+            #[cfg(not(target_os = "linux"))]
+            let actual = serde_json::json!({"position": identity.position().map_err(|e| e.to_string())?,
+                "size": identity.size().map_err(|e| e.to_string())?});
             Ok(serde_json::json!({"path":path,"enteredFullscreen":entered,
-                "identityPosition": identity.position().map_err(|e| e.to_string())?,
-                "identitySize": identity.size().map_err(|e| e.to_string())?,
+                "identityPosition": actual["position"],
+                "identitySize": actual["size"],
+                "requested": requested,
                 "mainSize": main.size().map_err(|e| e.to_string())?,
                 "window":crate::desktop_diagnostics(&window).map_err(|e| e.to_string())?}))
         }.await;
@@ -150,6 +160,7 @@ pub async fn desktop_identity_bounds(app: AppHandle, owner: String, bounds: Boun
     if !bounds.valid() || state.owner.lock().map_err(|_| "Identity view unavailable")?.as_ref().map(|v| &v.0) != Some(&owner) { return Ok(()); }
     if let Some(view) = app.get_webview(LABEL) {
         place(&view, &bounds, visible).await?;
+        *state.bounds.lock().map_err(|_| "Identity layout unavailable")? = Some(bounds);
     }
     Ok(())
 }

@@ -45,6 +45,8 @@ export function IdentityPanel({
         y: Math.max(0, rect.y),
         width: Math.max(1, rect.width),
         height: Math.max(1, rect.height),
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
       }
     }
     const resize = () => {
@@ -114,6 +116,8 @@ export function IdentityPanel({
         y: Math.max(0, rect.y),
         width: Math.max(1, rect.width),
         height: Math.max(1, rect.height),
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
       },
       visible: !disconnected && !error && !sessionError,
     }).catch(() => {})
