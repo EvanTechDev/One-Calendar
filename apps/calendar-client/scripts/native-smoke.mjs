@@ -3,11 +3,12 @@ import { spawn, execFileSync } from 'node:child_process'
 import {
   mkdirSync,
   readdirSync,
+  readFileSync,
   copyFileSync,
   chmodSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -175,6 +176,32 @@ async function launch(executable, label, extraEnvironment = {}) {
       JSON.stringify(report, null, 2),
     )
     if (process.platform === 'linux') {
+      const handler = execFileSync(
+        'xdg-mime',
+        ['query', 'default', `x-scheme-handler/${report.identifier}`],
+        { encoding: 'utf8' },
+      ).trim()
+      assert.equal(
+        handler,
+        `${report.identifier}-handler.desktop`,
+        'Login callback registration is not isolated by environment',
+      )
+      const entryPath = join(
+        process.env.XDG_DATA_HOME || join(homedir(), '.local', 'share'),
+        'applications',
+        handler,
+      )
+      const registration = readFileSync(entryPath, 'utf8')
+      assert(
+        registration.includes(executable),
+        'Login callback does not use the installed AppImage',
+      )
+      const otherIdentifier =
+        environment === 'dev' ? 'app.zntr.calendar' : 'app.zntr.calendar.dev'
+      assert(
+        !registration.includes(`x-scheme-handler/${otherIdentifier};`),
+        'The other environment shares this login callback handler',
+      )
       await new Promise((settled) => setTimeout(settled, 500))
       const title =
         environment === 'dev' ? 'Zentra Calendar Dev' : 'Zentra Calendar'

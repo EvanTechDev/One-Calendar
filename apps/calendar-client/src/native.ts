@@ -12,6 +12,7 @@ export interface DesktopConfig {
 }
 
 export interface SessionView {
+  generation: number
   user: CalendarUser | null
   expiresAt: string | null
   pending: boolean

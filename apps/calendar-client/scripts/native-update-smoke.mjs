@@ -116,6 +116,32 @@ try {
   )
 } finally {
   writeFileSync(resolve(reports, 'application.log'), output)
+  if (process.platform === 'win32') {
+    // Explorer can restart the installer child with a fresh environment. Keep
+    // executable/version evidence even when B cannot write its rehearsal report.
+    try {
+      const state = execFileSync(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-Command',
+          `
+          $file = Get-Item -LiteralPath $env.ZENTRA_INSTALLED_EXECUTABLE
+          $running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $file.FullName })
+          @{ version = $file.VersionInfo.ProductVersion; path = $file.FullName; processes = @($running | Select-Object Id, Path) } | ConvertTo-Json -Depth 4
+          $running | Stop-Process -Force -ErrorAction SilentlyContinue
+        `,
+        ],
+        {
+          env: { ...process.env, ZENTRA_INSTALLED_EXECUTABLE: executable },
+          encoding: 'utf8',
+        },
+      )
+      writeFileSync(resolve(reports, 'windows-installation.json'), state)
+    } catch (error) {
+      writeFileSync(resolve(reports, 'windows-installation.log'), String(error))
+    }
+  }
   for (const pid of new Set(
     [child.pid, ...records.map((entry) => entry.pid)].filter(Boolean),
   )) {

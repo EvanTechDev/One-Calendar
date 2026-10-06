@@ -29,10 +29,12 @@ import '@fontsource-variable/inter'
 import '@fontsource-variable/geist'
 import '@fontsource-variable/instrument-sans'
 import { CalendarBoundary } from './calendar-boundary'
+import { receiveSession } from './session-state'
 import './App.css'
 
 const CalendarApp = lazy(() => import('@zntr/calendar-ui'))
 const initialSession: SessionView = {
+  generation: 0,
   user: null,
   expiresAt: null,
   pending: true,
@@ -58,14 +60,14 @@ export default function App() {
       setConfig(value)
       window.history.replaceState(null, '', '/app')
       dispose = await listen<SessionView>('desktop-session', ({ payload }) => {
-        if (active) setSession(payload)
+        if (active) setSession((current) => receiveSession(current, payload))
       })
       if (!active) {
         dispose()
         return
       }
       const restored = await invoke<SessionView>('desktop_session')
-      if (active) setSession(restored)
+      if (active) setSession((current) => receiveSession(current, restored))
     })().catch((error: unknown) => {
       if (active) setStartupError(String(error))
     })

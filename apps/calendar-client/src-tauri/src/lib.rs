@@ -5,6 +5,8 @@ use tauri_plugin_deep_link::DeepLinkExt;
 mod auth;
 mod transport;
 mod integrations;
+#[cfg(target_os = "linux")]
+mod protocol;
 mod updates;
 mod reminders;
 #[cfg(feature = "acceptance")]
@@ -50,10 +52,16 @@ struct DesktopConfig {
 }
 
 #[tauri::command]
-fn desktop_config(
+async fn desktop_config(
     window: tauri::WebviewWindow,
     config: tauri::State<'_, DesktopConfig>,
 ) -> Result<DesktopConfig, String> {
+    // X11 decoration extents can arrive after the first map without a content
+    // resize event. Reconcile on the live window, yielding for the WM to apply it.
+    for _ in 0..3 {
+        fit_window(&window, false).map_err(|error| error.to_string())?;
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
     // External CI can observe a real frontend -> IPC round trip without adding
     // test-only commands or exposing credentials. Ordinary launches stay quiet.
     if matches!(std::env::var("ZENTRA_SMOKE_TEST").as_deref(), Ok("1")) {
@@ -215,6 +223,7 @@ pub fn run() {
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("desktop-navigation")
                 .on_navigation(|webview, url| {
+                    startup_trace(&format!("navigation {} {} allowed={}", url.origin().ascii_serialization(), url.path(), bundled_page(url)));
                     if bundled_page(url) {
                         return true;
                     }
@@ -224,7 +233,7 @@ pub fn run() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            desktop_config, open_external,
+            desktop_config, desktop_startup_error, open_external,
             auth::desktop_session, auth::desktop_sign_in, auth::desktop_cancel_sign_in,
             auth::desktop_sign_out, transport::desktop_request, transport::desktop_cancel_request,
             integrations::desktop_open_page, integrations::desktop_save_file,
@@ -232,6 +241,7 @@ pub fn run() {
             updates::desktop_check_update, updates::desktop_install_update,
         ])
         .setup(|app| {
+            startup_trace("setup started");
             let environment = option_env!("ZENTRA_DESKTOP_ENV").unwrap_or("production");
             if !matches!(environment, "dev" | "production") {
                 return Err("ZENTRA_DESKTOP_ENV must be dev or production".into());
@@ -280,9 +290,13 @@ pub fn run() {
                     tauri::webview::NewWindowResponse::Deny
                 })
                 .build()?;
+            startup_trace("webview created");
             setup_tray(app)?;
+            startup_trace("tray created");
             reminders::start(app.handle().clone());
-            #[cfg(any(target_os = "linux", all(debug_assertions, target_os = "windows")))]
+            #[cfg(target_os = "linux")]
+            protocol::register(app.handle())?;
+            #[cfg(all(debug_assertions, target_os = "windows"))]
             app.deep_link().register_all().map_err(|error| {
                 std::io::Error::other(format!("Could not register desktop login links: {error}"))
             })?;
@@ -298,6 +312,7 @@ pub fn run() {
             window.set_title(&name)?;
             fit_window(&window, true)?;
             window.show()?;
+            startup_trace("window shown");
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -310,7 +325,8 @@ pub fn run() {
             }
             if matches!(
                 event,
-                WindowEvent::Moved(_)
+                WindowEvent::Focused(true)
+                    | WindowEvent::Moved(_)
                     | WindowEvent::Resized(_)
                     | WindowEvent::ScaleFactorChanged { .. }
             ) {
@@ -335,6 +351,18 @@ pub fn run() {
             show_main(_app);
         }
     });
+}
+
+fn startup_trace(message: &str) {
+    if std::env::var_os("ZENTRA_SMOKE_TEST").is_some()
+        || std::env::var_os("ZENTRA_UPDATE_ACCEPTANCE_REPORT").is_some() {
+        eprintln!("ZENTRA_STARTUP {:?}", message.chars().take(2000).collect::<String>());
+    }
+}
+
+#[tauri::command]
+fn desktop_startup_error(message: String) {
+    startup_trace(&format!("frontend import failed: {message}"));
 }
 
 #[cfg(test)]

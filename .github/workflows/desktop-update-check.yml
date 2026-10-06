@@ -35,10 +35,10 @@ jobs:
             bundle: nsis
           - os: macos-15-intel
             target: x86_64-apple-darwin
-            bundle: dmg
+            bundle: app,dmg
           - os: macos-14
             target: aarch64-apple-darwin
-            bundle: dmg
+            bundle: app,dmg
     runs-on: ${{ matrix.os }}
     env:
       BUILD_TARGET: ${{ matrix.target }}

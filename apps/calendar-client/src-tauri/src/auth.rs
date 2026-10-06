@@ -25,6 +25,7 @@ pub struct PublicUser {
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionView {
+    pub generation: u64,
     pub user: Option<PublicUser>,
     pub expires_at: Option<String>,
     pub pending: bool,
@@ -99,6 +100,7 @@ impl DesktopAuth {
 
     fn view(inner: &SessionInner) -> SessionView {
         SessionView {
+            generation: inner.generation,
             user: inner.user.clone(), expires_at: inner.expires_at.clone(),
             pending: inner.loading || inner.pending.is_some(), error: inner.error.clone(),
             signing_in: inner.pending.is_some(),

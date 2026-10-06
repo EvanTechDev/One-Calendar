@@ -36,6 +36,18 @@ Names, application IDs, deep-link schemes, credentials, application data and
 update channels are separate between environments. The runtime rejects a
 mismatched environment and application ID.
 
+Deploy the Calendar backend from the same implementation before distributing a
+client that points to it. Desktop sign-in needs the `/api/auth/desktop/*` routes
+and the official native OAuth registration; an older backend cannot complete the
+callback. The server selects dev for `precal.xyehr.cn` and production otherwise,
+or accepts an explicit matching `ZENTRA_DESKTOP_ENV`. Existing OAuth migrations
+must already be applied, including `0022_relax_legacy_account_issuer.sql`.
+
+Linux installations require WebKitGTK 4.1, the Secret Service credential store,
+an application-indicator provider, `desktop-file-utils` and `xdg-utils`. The last
+two packages register the browser login callback. A locked credential store is
+reported in the client; unlocking it and retrying saves the session.
+
 ## Remote checks and releases
 
 The manual Workspace Checks workflow runs the consolidated workspace checks and
@@ -66,10 +78,12 @@ macOS installers have no Developer ID notarization.
 
 ## Validation status
 
-This branch contains the desktop implementation for CORE-225 and its child tasks.
-Consolidated review, real database tests, four-platform installation and native
-OAuth/tray/reminder/two-version update acceptance are still pending. Earlier
-installer builds do not establish acceptance of the current source.
+The acceptance procedure is in [ACCEPTANCE.md](./ACCEPTANCE.md). Record results
+against their exact source revision in CORE-225 and its child issues. Workspace
+checks include the real PostgreSQL authentication contract; native startup,
+session restoration, tray/reminder delivery and signed updates each need their
+own evidence. Earlier installer builds do not establish acceptance of later
+source revisions.
 
 The current Termux machine is for source editing only. Run builds, development
 servers and checks in CI or on an external desktop. On those systems,

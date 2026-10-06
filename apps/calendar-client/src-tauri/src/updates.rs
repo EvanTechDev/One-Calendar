@@ -29,7 +29,7 @@ pub async fn desktop_check_update(app: AppHandle) -> Result<Option<UpdateInfo>, 
     let endpoint = format!("https://github.com/EvanTechDev/One-Calendar/releases/download/{channel}/latest.json")
         .parse().map_err(|_| "Invalid updater endpoint")?;
     #[cfg(feature = "acceptance")]
-    let endpoint = crate::acceptance::endpoint(endpoint)?;
+    let endpoint = crate::acceptance::endpoint(&app, endpoint)?;
     let updater = app.updater_builder().pubkey(key).endpoints(vec![endpoint])
         .map_err(|error| error.to_string())?.build().map_err(|error| error.to_string())?;
     let update = updater.check().await.map_err(|error| format!("Could not check for updates: {error}"))?;
