@@ -1,0 +1,140 @@
+import assert from 'node:assert/strict'
+import { spawn, execFileSync } from 'node:child_process'
+import { mkdirSync, readdirSync, copyFileSync, chmodSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const target = process.env.BUILD_TARGET
+const environment = process.env.ZENTRA_DESKTOP_ENV
+assert(target, 'BUILD_TARGET is required')
+assert(['dev', 'production'].includes(environment), 'Choose a desktop environment')
+const bundle = join(root, 'src-tauri', 'target', target, 'release', 'bundle')
+const artifacts = join(root, 'native-smoke-artifacts')
+mkdirSync(artifacts, { recursive: true })
+
+function singleFile(directory, suffix) {
+  const files = readdirSync(directory).filter((name) => name.endsWith(suffix))
+  assert.equal(files.length, 1, `Expected one ${suffix} file in ${directory}`)
+  return join(directory, files[0])
+}
+
+function install() {
+  const destination = join(tmpdir(), `zentra-native-smoke-${environment}`)
+  mkdirSync(destination, { recursive: true })
+  if (process.platform === 'win32') {
+    execFileSync(singleFile(join(bundle, 'nsis'), '.exe'), ['/S', `/D=${destination}`], {
+      timeout: 120_000,
+      stdio: 'pipe',
+    })
+    const executable = readdirSync(destination).filter(
+      (name) => name.endsWith('.exe') && !name.toLowerCase().includes('uninstall'),
+    )
+    assert.equal(executable.length, 1, 'Installed app executable is ambiguous')
+    return join(destination, executable[0])
+  }
+  if (process.platform === 'darwin') {
+    const mount = join(destination, 'mounted')
+    mkdirSync(mount, { recursive: true })
+    execFileSync('hdiutil', [
+      'attach', singleFile(join(bundle, 'dmg'), '.dmg'),
+      '-readonly', '-nobrowse', '-mountpoint', mount,
+    ])
+    let installed
+    try {
+      const application = singleFile(mount, '.app')
+      installed = join(destination, 'Zentra.app')
+      execFileSync('ditto', [application, installed])
+    } finally {
+      execFileSync('hdiutil', ['detach', mount, '-quiet'])
+    }
+    const executable = execFileSync('plutil', [
+      '-extract', 'CFBundleExecutable', 'raw', '-o', '-',
+      join(installed, 'Contents', 'Info.plist'),
+    ], { encoding: 'utf8' }).trim()
+    return join(installed, 'Contents', 'MacOS', executable)
+  }
+  const executable = join(destination, 'Zentra.AppImage')
+  copyFileSync(singleFile(join(bundle, 'appimage'), '.AppImage'), executable)
+  chmodSync(executable, 0o755)
+  return executable
+}
+
+function verify(report) {
+  assert.equal(report.environment, environment)
+  assert.equal(report.apiOrigin, new URL(process.env.ZENTRA_API_ORIGIN).origin)
+  assert.equal(report.identifier, environment === 'dev' ? 'app.zntr.calendar.dev' : 'app.zntr.calendar')
+  const window = report.window
+  assert.equal(window.visible, true)
+  assert.equal(window.resizable, false)
+  assert.equal(window.maximizable, false)
+  assert(window.workArea, 'No monitor work area was reported')
+  assert(window.scaleFactor > 0)
+  for (const [dimension, logicalSize] of [['width', 1200], ['height', 720]]) {
+    const expected = Math.min(Math.round(logicalSize * window.scaleFactor), window.workArea[dimension])
+    assert(Math.abs(window.outer[dimension] - expected) <= 2,
+      `Outer ${dimension}: expected ${expected}, got ${window.outer[dimension]}`)
+    assert(window.inner[dimension] > 0)
+    assert(window.inner[dimension] <= window.outer[dimension])
+  }
+}
+
+async function launch(executable, label, extraEnvironment = {}) {
+  let output = ''
+  const child = spawn(executable, [], {
+    env: { ...process.env, ...extraEnvironment, ZENTRA_SMOKE_TEST: '1' },
+    detached: process.platform !== 'win32',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  try {
+    const report = await new Promise((resolveReport, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Frontend IPC startup timed out')), 60_000)
+      const consume = (chunk) => {
+        output += chunk.toString()
+        const match = output.match(/ZENTRA_DESKTOP_SMOKE (\{[^\r\n]+\})\r?\n/)
+        if (match) {
+          clearTimeout(timeout)
+          try { resolveReport(JSON.parse(match[1])) } catch (error) { reject(error) }
+        }
+      }
+      child.stdout.on('data', consume)
+      child.stderr.on('data', consume)
+      child.on('error', (error) => { clearTimeout(timeout); reject(error) })
+      child.on('exit', (code) => {
+        clearTimeout(timeout)
+        reject(new Error(`Desktop exited before IPC startup: ${code}`))
+      })
+    })
+    verify(report)
+    writeFileSync(join(artifacts, `${label}.json`), JSON.stringify(report, null, 2))
+    if (process.platform === 'linux') {
+      await new Promise((settled) => setTimeout(settled, 500))
+      execFileSync('scrot', ['-o', join(artifacts, `${label}.png`)])
+    }
+    console.log(`Native installation and IPC startup passed: ${label}`)
+  } finally {
+    writeFileSync(join(artifacts, `${label}.log`), output)
+    if (child.pid) {
+      try {
+        if (process.platform === 'win32') {
+          execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+        } else {
+          process.kill(-child.pid, 'SIGTERM')
+        }
+      } catch { /* The owned child may already have exited. */ }
+    }
+  }
+}
+
+const executable = install()
+const linuxEnvironment = {
+  APPIMAGE_EXTRACT_AND_RUN: '1',
+  WEBKIT_DISABLE_DMABUF_RENDERER: '1',
+  LIBGL_ALWAYS_SOFTWARE: '1',
+  GDK_BACKEND: 'x11',
+}
+await launch(executable, 'default-display', process.platform === 'linux' ? linuxEnvironment : {})
+if (process.platform === 'linux') {
+  await launch(executable, 'scaled-display', { ...linuxEnvironment, GDK_SCALE: '2' })
+}

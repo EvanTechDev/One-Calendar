@@ -17,6 +17,12 @@ It builds Windows x64 (NSIS), Linux x64 (AppImage), macOS Intel and Apple Silico
 the native build matrix is needed. Public origins can be configured through the
 repository variables `ZENTRA_API_ORIGIN` and `ZENTRA_DEV_API_ORIGIN`.
 
+The matrix also installs/copies the produced package and launches it on its native
+runner architecture. An opt-in `ZENTRA_SMOKE_TEST=1` diagnostic records a real
+frontend IPC startup and native window properties; ordinary launches produce no
+such report. Linux additionally runs at two display scales under Xvfb and captures
+screenshots. Smoke reports and logs are retained as separate workflow artifacts.
+
 The current Termux environment is only for source editing and reading; builds,
 tests and native runtime acceptance happen in CI or an external desktop system.
 

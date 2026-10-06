@@ -12,8 +12,49 @@ struct DesktopConfig {
 }
 
 #[tauri::command]
-fn desktop_config(config: tauri::State<'_, DesktopConfig>) -> DesktopConfig {
-    config.inner().clone()
+fn desktop_config(
+    window: tauri::WebviewWindow,
+    config: tauri::State<'_, DesktopConfig>,
+) -> Result<DesktopConfig, String> {
+    // External CI can observe a real frontend -> IPC round trip without adding
+    // test-only commands or exposing credentials. Ordinary launches stay quiet.
+    if matches!(std::env::var("ZENTRA_SMOKE_TEST").as_deref(), Ok("1")) {
+        let diagnostics = desktop_diagnostics(&window).map_err(|error| {
+            eprintln!("ZENTRA_DESKTOP_SMOKE_ERROR {error}");
+            error.to_string()
+        })?;
+        eprintln!(
+            "ZENTRA_DESKTOP_SMOKE {}",
+            serde_json::json!({
+                "environment": config.environment,
+                "apiOrigin": config.api_origin,
+                "identifier": window.app_handle().config().identifier,
+                "window": diagnostics,
+            })
+        );
+    }
+    Ok(config.inner().clone())
+}
+
+fn desktop_diagnostics(window: &tauri::WebviewWindow) -> tauri::Result<serde_json::Value> {
+    let outer = window.outer_size()?;
+    let inner = window.inner_size()?;
+    let work = window
+        .current_monitor()?
+        .or(window.primary_monitor()?)
+        .map(|monitor| {
+            let work = monitor.work_area();
+            serde_json::json!({ "width": work.size.width, "height": work.size.height })
+        });
+    Ok(serde_json::json!({
+        "outer": { "width": outer.width, "height": outer.height },
+        "inner": { "width": inner.width, "height": inner.height },
+        "workArea": work,
+        "scaleFactor": window.scale_factor()?,
+        "resizable": window.is_resizable()?,
+        "maximizable": window.is_maximizable()?,
+        "visible": window.is_visible()?,
+    }))
 }
 
 #[tauri::command]
