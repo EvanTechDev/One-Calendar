@@ -211,6 +211,31 @@ async function launch(executable, label, extraEnvironment = {}) {
         '-x',
         join(artifacts, `${label}-identity.png`),
       ])
+    } else if (process.platform === 'win32') {
+      execFileSync(
+        'powershell.exe',
+        [
+          '-NoProfile',
+          '-Command',
+          `
+        Add-Type -AssemblyName System.Windows.Forms
+        Add-Type -AssemblyName System.Drawing
+        $bounds = [System.Windows.Forms.SystemInformation]::VirtualScreen
+        $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+        $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+        try {
+          $graphics.CopyFromScreen($bounds.Left, $bounds.Top, 0, 0, $bitmap.Size)
+          $bitmap.Save($env:ZENTRA_SCREENSHOT_PATH, [System.Drawing.Imaging.ImageFormat]::Png)
+        } finally { $graphics.Dispose(); $bitmap.Dispose() }
+      `,
+        ],
+        {
+          env: {
+            ...process.env,
+            ZENTRA_SCREENSHOT_PATH: join(artifacts, `${label}-identity.png`),
+          },
+        },
+      )
     }
     assert.equal(identity.path, '/oauth/sign-in')
     assert.equal(identity.enteredFullscreen, true)

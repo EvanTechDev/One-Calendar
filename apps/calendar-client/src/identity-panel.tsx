@@ -17,7 +17,7 @@ export function IdentityPanel({
   sessionError?: string | null
 }) {
   const container = useRef<HTMLDivElement>(null)
-  const owner = useRef<string | null>(null)
+  const updateBounds = useRef<(() => void) | null>(null)
   const disconnected = useCalendarDisconnected()
   const [attempt, setAttempt] = useState(0)
   const [loaded, setLoaded] = useState(false)
@@ -29,8 +29,10 @@ export function IdentityPanel({
     const element = container.current
     if (!element) return
     const id = crypto.randomUUID()
-    owner.current = id
     let active = true
+    let opened = false
+    let sending = false
+    let pending = false
     let dispose: (() => void) | undefined
     const timeout = window.setTimeout(() => {
       if (active && !ready.current)
@@ -50,12 +52,29 @@ export function IdentityPanel({
       }
     }
     const resize = () => {
-      void invoke('desktop_identity_bounds', {
-        owner: id,
-        bounds: bounds(),
-        visible: !hidden.current,
-      }).catch(() => {})
+      pending = true
+      if (!active || !opened || sending) return
+      sending = true
+      void (async () => {
+        // Native fullscreen transitions can produce several viewport sizes.
+        // Send one layout at a time and remeasure the latest DOM before the
+        // next send, instead of allowing older IPC replies to win the race.
+        while (active && pending) {
+          pending = false
+          await invoke('desktop_identity_bounds', {
+            owner: id,
+            bounds: bounds(),
+            visible: !hidden.current,
+          })
+        }
+      })()
+        .catch(() => {})
+        .finally(() => {
+          sending = false
+          if (active && pending) resize()
+        })
     }
+    updateBounds.current = resize
     setLoaded(false)
     ready.current = false
     setError(null)
@@ -81,6 +100,7 @@ export function IdentityPanel({
         section,
         bounds: bounds(),
       })
+      opened = true
       resize()
     })().catch((reason: unknown) => {
       if (active) setError(String(reason))
@@ -97,6 +117,7 @@ export function IdentityPanel({
     window.addEventListener('zentra-reconnected', reconnect)
     return () => {
       active = false
+      updateBounds.current = null
       window.clearTimeout(timeout)
       dispose?.()
       observer.disconnect()
@@ -107,20 +128,7 @@ export function IdentityPanel({
     }
   }, [mode, section, attempt])
   useEffect(() => {
-    const rect = container.current?.getBoundingClientRect()
-    if (!rect || !owner.current) return
-    void invoke('desktop_identity_bounds', {
-      owner: owner.current,
-      bounds: {
-        x: Math.max(0, rect.x),
-        y: Math.max(0, rect.y),
-        width: Math.max(1, rect.width),
-        height: Math.max(1, rect.height),
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-      },
-      visible: !disconnected && !error && !sessionError,
-    }).catch(() => {})
+    updateBounds.current?.()
   }, [disconnected, error, sessionError])
   return (
     <section

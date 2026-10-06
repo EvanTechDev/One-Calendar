@@ -111,9 +111,22 @@ fn smoke_loaded(app: &AppHandle, path: &str) {
                 if !window.is_fullscreen().unwrap_or(true) { break; }
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             }
-            for _ in 0..10 {
+            // Returning from fullscreen also asynchronously resizes the local
+            // renderer. Require its DOM viewport to catch up before sampling
+            // the child view, rather than assuming one second is sufficient.
+            for iteration in 0..60 {
                 crate::fit_window(&window, false).map_err(|e| e.to_string())?;
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                let main = app.get_webview("main").ok_or("Calendar view missing")?;
+                let scale = window.scale_factor().map_err(|e| e.to_string())?;
+                let size = main.size().map_err(|e| e.to_string())?;
+                let requested = app.state::<Identity>().bounds.lock().map_err(|_| "Identity layout unavailable")?.clone();
+                if let Some(requested) = requested {
+                    let difference = size.height as f64 / scale - requested.viewport_height;
+                    let max_inset = if cfg!(target_os = "macos") { 40.0 } else { 2.0 };
+                    if iteration >= 10 && difference >= -2.0 && difference <= max_inset
+                        && (size.width as f64 / scale - requested.viewport_width).abs() <= 2.0 { break; }
+                }
             }
             let identity = app.get_webview(LABEL).ok_or("Identity view missing")?;
             let main = app.get_webview("main").ok_or("Calendar view missing")?;
@@ -175,12 +188,24 @@ async fn place(view: &tauri::Webview, bounds: &Bounds, visible: bool) -> Result<
     {
         if visible {
             let offset = content_offset(view.app_handle(), bounds)?;
+            let (width, height) = clipped_size(view, bounds, offset)?;
             view.set_position(LogicalPosition::new(bounds.x, bounds.y + offset)).map_err(|e| e.to_string())?;
-            view.set_size(LogicalSize::new(bounds.width, bounds.height)).map_err(|e| e.to_string())?;
+            view.set_size(LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
             view.show().map_err(|e| e.to_string())?;
         } else { view.hide().map_err(|e| e.to_string())?; }
         Ok(())
     }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn clipped_size(view: &tauri::Webview, bounds: &Bounds, offset: f64) -> Result<(f64, f64), String> {
+    // Native bounds can settle before WebView2 delivers its resize event to
+    // React. Never let that previous viewport extend the child off-screen.
+    let main = view.app_handle().get_webview("main").ok_or("Calendar view missing")?;
+    let scale = main.window().scale_factor().map_err(|e| e.to_string())?;
+    let size = main.size().map_err(|e| e.to_string())?;
+    Ok((bounds.width.min((size.width as f64 / scale - bounds.x).max(1.0)),
+        bounds.height.min((size.height as f64 / scale - bounds.y - offset).max(1.0))))
 }
 
 /// WKWebView's native parent includes the title-bar inset, while CSS coordinates
