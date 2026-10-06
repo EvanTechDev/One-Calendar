@@ -1,7 +1,7 @@
 'use client'
 
 import { CircleUser, Settings, BarChart2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useCalendarHost } from '@zntr/calendar-host'
 import { Button } from '@zntr/ui/button'
 import {
   DropdownMenu,
@@ -16,7 +16,6 @@ import {
   TooltipTrigger,
 } from '@zntr/ui/tooltip'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
-import { authClient } from '@/lib/auth/client'
 import { cn } from '@zntr/utils'
 
 /**
@@ -41,14 +40,14 @@ export default function UserProfileButton({
 }: UserProfileButtonProps) {
   const [language] = useLanguage()
   const t = translations[language]
-  const { data: session, isPending } = authClient.useSession()
+  const { session: sessionState, navigation: router } = useCalendarHost()
+  const { data: session, isPending } = sessionState
   const user = session?.user
   const isSignedIn = Boolean(user)
   // The same three-state distinction the account panel needs: useSession returns
   // no user while it is in flight, so "no user yet" and "no account" are different
   // answers. Conflating them offered Sign in to a signed-in user for a beat.
   const isResolving = !user && isPending
-  const router = useRouter()
 
   return (
     <TooltipProvider delayDuration={300}>

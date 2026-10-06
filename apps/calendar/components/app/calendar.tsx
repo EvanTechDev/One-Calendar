@@ -116,8 +116,7 @@ import {
   DialogTitle,
 } from '@zntr/ui/dialog'
 
-import { useRouter } from 'next/navigation'
-import { authClient } from '@/lib/auth/client'
+import { useCalendarHost } from '@zntr/calendar-host'
 
 const loadDayView = () => import('@/components/app/views/day-view')
 const loadWeekView = () => import('@/components/app/views/week-view')
@@ -228,7 +227,11 @@ interface CalendarProps {
 }
 
 export default function Calendar({ className, ..._props }: CalendarProps) {
-  const router = useRouter()
+  const {
+    navigation: router,
+    session: sessionState,
+    request,
+  } = useCalendarHost()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   // Mobile Form only (ADR-0019): the left drawer holding the sidebar content.
   // Opened by the hamburger button, which exists only below the md breakpoint.
@@ -346,7 +349,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     /** Which occurrences the participants apply to, for a recurring event. */
     scope?: 'single' | 'following' | 'all'
   } | null>(null)
-  const { data: session } = authClient.useSession()
+  const { data: session } = sessionState
   const isSignedIn = Boolean(session?.user)
 
   const updateEvent = (updatedEvent: CalendarEvent) => {
@@ -1099,7 +1102,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     if (inviteToken) {
       // Session-authenticated: undoing a removal must work even after the
       // emailed link expired, because the grant outlives the link (ADR-0013).
-      await fetch('/api/invites/self', {
+      await request('/api/invites/self', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1147,7 +1150,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     })
 
     try {
-      await fetch(
+      await request(
         `/api/invites?eventId=${encodeURIComponent(targetEvent.id)}`,
         { method: 'DELETE' },
       )
@@ -1281,7 +1284,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const { eventId, emails, scope } = pendingInvites
     setPendingInvites(null)
     try {
-      const response = await fetch('/api/invites', {
+      const response = await request('/api/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId, emails, scope, timezone }),
@@ -1309,7 +1312,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const { eventId, emails, scope } = pendingInvites
     setPendingInvites(null)
     try {
-      const response = await fetch('/api/invites/create', {
+      const response = await request('/api/invites/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId, emails, scope, timezone }),
@@ -1323,7 +1326,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   const refreshEventInvites = async (eventId: string) => {
     try {
-      const response = await fetch(
+      const response = await request(
         `/api/invites?eventId=${encodeURIComponent(eventId)}`,
       )
       if (!response.ok) return
@@ -1676,11 +1679,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     ) : null}
                     <DropdownMenuItem
                       onClick={() =>
-                        window.open(
-                          APP_CONFIG.contact.statusPageUrl,
-                          '_blank',
-                          'noopener,noreferrer',
-                        )
+                        router.openExternal(APP_CONFIG.contact.statusPageUrl)
                       }
                     >
                       <ShieldCheck className="mr-2 h-4 w-4" />
@@ -1688,7 +1687,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => {
-                        window.location.href = `mailto:${APP_CONFIG.contact.feedbackEmail}`
+                        router.openExternal(
+                          `mailto:${APP_CONFIG.contact.feedbackEmail}`,
+                        )
                       }}
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
@@ -2150,7 +2151,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               // details before opening the preview or edit controls.
               goToEvent: async (hit) => {
                 try {
-                  const response = await fetch(
+                  const response = await request(
                     `/api/events?${new URLSearchParams({ id: hit.id, tz: timezone })}`,
                   )
                   if (!response.ok) throw new Error('Event unavailable')

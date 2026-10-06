@@ -12,7 +12,7 @@ import {
 } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import {
-  api,
+  api as webApi,
   type EventData,
   type CategoryData,
   type CountdownData,
@@ -102,7 +102,7 @@ interface DataContextValue {
   refreshSettings: () => Promise<void>
 
   upsertEvent: (
-    data: Parameters<typeof api.events.create>[0],
+    data: Parameters<typeof webApi.events.create>[0],
     oldSeriesIds?: Set<string>,
   ) => Promise<EventData>
   deleteEvent: (
@@ -112,17 +112,17 @@ interface DataContextValue {
   ) => Promise<void>
 
   createCategory: (
-    data: Parameters<typeof api.categories.create>[0],
+    data: Parameters<typeof webApi.categories.create>[0],
   ) => Promise<CategoryData>
   deleteCategory: (id: string) => Promise<void>
 
   createCountdown: (
-    data: Parameters<typeof api.countdowns.create>[0],
+    data: Parameters<typeof webApi.countdowns.create>[0],
   ) => Promise<CountdownData>
   deleteCountdown: (id: string) => Promise<void>
 
   createBookmark: (
-    data: Parameters<typeof api.bookmarks.create>[0],
+    data: Parameters<typeof webApi.bookmarks.create>[0],
   ) => Promise<void>
   deleteBookmark: (id: string) => Promise<void>
   deleteBookmarkByEvent: (eventId: string) => Promise<void>
@@ -132,7 +132,13 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | null>(null)
 
-export function DataProvider({ children }: { children: ReactNode }) {
+export function DataProvider({
+  children,
+  api = webApi,
+}: {
+  children: ReactNode
+  api?: typeof webApi
+}) {
   const { mutate } = useSWRConfig()
   /**
    * Held in a ref, not read directly, because every mutation below is a
@@ -321,7 +327,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     void migrateFromLocalStorage()
-  }, [loading, settings, refreshSettings])
+  }, [loading, settings, refreshSettings, api])
 
   const upsertEvent = useCallback(
     async (
@@ -463,7 +469,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [refreshEvents, mutate],
+    [refreshEvents, mutate, api],
   )
 
   const deleteEvent = useCallback(
@@ -517,7 +523,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [refreshEvents, mutate],
+    [refreshEvents, mutate, api],
   )
 
   const createCategory = useCallback(
@@ -541,7 +547,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   const deleteCategory = useCallback(
@@ -567,7 +573,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   const createCountdown = useCallback(
@@ -591,7 +597,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   const deleteCountdown = useCallback(
@@ -617,7 +623,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   const createBookmark = useCallback(
@@ -654,7 +660,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   const deleteBookmark = useCallback(
@@ -680,7 +686,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   const deleteBookmarkByEvent = useCallback(
@@ -706,7 +712,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   const updateSettings = useCallback(
@@ -726,7 +732,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw e
       }
     },
-    [mutate],
+    [mutate, api],
   )
 
   // The provider sits above the whole signed-in app, and every consumer reads
@@ -912,7 +918,7 @@ function replaceSeriesInstances(
 }
 
 export function optimisticSeries(
-  data: Parameters<typeof api.events.create>[0],
+  data: Parameters<typeof webApi.events.create>[0],
   current: EventData[],
 ): EventData[] | null {
   const target = current.find((e) => e.id === data.id)

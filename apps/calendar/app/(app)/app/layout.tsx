@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import type { Viewport } from 'next'
-import { DataProvider } from '@/components/providers/data-provider'
+import { CalendarDataHost } from '@/components/providers/calendar-data-host'
 import { CalendarProvider } from '@/components/providers/calendar-context'
 import { requireAppSession } from '@/lib/auth/require-session'
+import { CalendarWebHost } from '@/components/providers/calendar-web-host'
 
 export const viewport: Viewport = {
   themeColor: [
@@ -26,8 +27,10 @@ export default async function AppPageLayout({
   // app — public pages (landing, share, privacy, …) mount outside them and
   // make zero data requests.
   return (
-    <DataProvider>
-      <CalendarProvider>{children}</CalendarProvider>
-    </DataProvider>
+    <CalendarWebHost>
+      <CalendarDataHost>
+        <CalendarProvider>{children}</CalendarProvider>
+      </CalendarDataHost>
+    </CalendarWebHost>
   )
 }

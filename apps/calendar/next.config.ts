@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
     '@zntr/utils',
     '@zntr/i18n',
     '@zntr/auth',
+    '@zntr/calendar-host',
     '@zntr/meetings',
   ],
   typescript: {

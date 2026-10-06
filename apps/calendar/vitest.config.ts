@@ -11,6 +11,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      '@zntr/calendar-host': path.resolve(
+        __dirname,
+        '../../packages/calendar-host/src',
+      ),
       '@zntr/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@zntr/utils': path.resolve(__dirname, '../../packages/utils/src'),
       '@zntr/i18n': path.resolve(__dirname, '../../packages/i18n/src'),

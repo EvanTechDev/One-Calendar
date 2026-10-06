@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { authClient } from '@/lib/auth/client'
+import { useCalendarHost } from '@zntr/calendar-host'
 import Calendar, { CALENDAR_VIEW_CHUNKS } from '@/components/app/calendar'
 import { useSettings } from '@/components/providers/data-provider'
 import { isCalendarView } from '@/lib/calendar-types'
@@ -8,7 +8,8 @@ import AuthWaitingLoading from '@/components/app/auth-waiting-loading'
 import { WelcomeDialog } from '@/components/welcome/welcome-dialog'
 
 export default function Home() {
-  const { data: session, isPending } = authClient.useSession()
+  const { session: sessionState, request } = useCalendarHost()
+  const { data: session, isPending } = sessionState
   const { settings, loading: dataLoading } = useSettings()
   const [ready, setReady] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
@@ -19,7 +20,7 @@ export default function Home() {
     let active = true
     const run = async () => {
       try {
-        await fetch('/api/app-bootstrap', { cache: 'no-store' })
+        await request('/api/app-bootstrap', { cache: 'no-store' })
       } catch {
         // still let the user through
       }
@@ -29,11 +30,11 @@ export default function Home() {
     return () => {
       active = false
     }
-  }, [])
+  }, [request])
 
   useEffect(() => {
     if (ready && !isPending && session?.user) {
-      void fetch('/api/account/onboarding-complete')
+      void request('/api/account/onboarding-complete')
         .then((res) => res.json())
         .then((data) => {
           if (!data.onboardingCompleted) {
@@ -42,7 +43,7 @@ export default function Home() {
         })
         .catch(() => {})
     }
-  }, [ready, isPending, session])
+  }, [ready, isPending, session, request])
 
   /**
    * One loading screen for the whole of start-up, not one per stage.
@@ -97,7 +98,7 @@ export default function Home() {
         onOpenChange={setShowWelcome}
         onComplete={() => {
           setShowWelcome(false)
-          void fetch('/api/account/onboarding-complete')
+          void request('/api/account/onboarding-complete')
             .then((res) => res.json())
             .then((data) => {
               if (data.settings) {

@@ -90,6 +90,9 @@ importers:
       '@zntr/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@zntr/calendar-host':
+        specifier: workspace:*
+        version: link:../../packages/calendar-host
       '@zntr/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -523,6 +526,12 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@25.6.0)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@8.2.0(@types/node@26.6.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.5)(yaml@2.9.0))
+
+  packages/calendar-host:
+    dependencies:
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
 
   packages/i18n:
     dependencies:
