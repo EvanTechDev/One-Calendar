@@ -22,7 +22,7 @@ import {
   SelectItem,
 } from '@zntr/ui/select'
 import { Textarea } from '@zntr/ui/textarea'
-import { Calendar } from '@zntr/ui/calendar'
+import { Calendar } from '@zntr/ui/date-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
 import {
   Plus,

@@ -18,7 +18,7 @@ import {
 import { useCalendar } from '#calendar/components/providers/calendar-context'
 import { useData } from '#calendar/components/providers/data-provider'
 import { translations, type Language } from '@zntr/i18n/calendar'
-import { Calendar } from '@zntr/ui/calendar'
+import { Calendar } from '@zntr/ui/date-picker'
 import { Checkbox } from '@zntr/ui/checkbox'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'

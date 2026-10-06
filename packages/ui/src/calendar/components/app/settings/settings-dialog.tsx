@@ -702,7 +702,9 @@ export default function SettingsDialog({
                   <GeneralSettings {...general} />
                 </div>
                 <div hidden={section !== 'account'}>
-                  {host.renderAccount?.(focusSection)}
+                  {host.platform !== 'desktop' || section === 'account'
+                    ? host.renderAccount?.(focusSection)
+                    : null}
                 </div>
                 <div hidden={section !== 'mcp'}>
                   <MCPSettings />

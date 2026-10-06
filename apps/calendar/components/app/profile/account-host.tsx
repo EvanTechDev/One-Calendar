@@ -18,7 +18,13 @@ import { authClient } from '@/lib/auth/client'
  * client, the copy, and — most importantly — what deleting an account means are
  * supplied here (ADR 0022).
  */
-export function AccountHost({ children }: { children: ReactNode }) {
+export function AccountHost({
+  children,
+  embedded = false,
+}: {
+  children: ReactNode
+  embedded?: boolean
+}) {
   const router = useRouter()
   const [language] = useLanguage()
   const { data: session, isPending } = authClient.useSession()
@@ -52,7 +58,11 @@ export function AccountHost({ children }: { children: ReactNode }) {
         // replace, not push: after a sign-out or a deletion the previous entry
         // is a page the user can no longer see, and Back would land them on a
         // server-guarded route that only bounces them here again.
-        navigate: (to) => router.replace(to),
+        // The native identity surface observes full document navigation. Next's
+        // same-document router cannot signal that the independent app session
+        // must also be revoked after signing out of this temporary view.
+        navigate: (to) =>
+          embedded ? window.location.replace(to) : router.replace(to),
         // DELETE /api/account removes calendar_events, settings, categories,
         // countdowns and bookmarks alongside the user. That list is this app's
         // and nothing in the package should know it.

@@ -5,12 +5,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { WifiOff, LoaderCircle, ArrowRight } from 'lucide-react'
+import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Button } from '@zntr/ui/button'
 import {
   CalendarHostProvider,
@@ -49,10 +51,16 @@ export function NoInternet({
         <p className="text-muted-foreground mb-3 text-xs font-medium tracking-widest">
           {zh ? '连接已中断' : 'CONNECTION LOST'}
         </p>
-        <h1 className="mb-4 text-3xl font-semibold tracking-tight">
+        <h1
+          id="calendar-connection-title"
+          className="mb-4 text-3xl font-semibold tracking-tight"
+        >
           {zh ? '暂时无法连接' : 'No internet connection'}
         </h1>
-        <p className="text-muted-foreground mb-8 text-sm leading-7">
+        <p
+          id="calendar-connection-description"
+          className="text-muted-foreground mb-8 text-sm leading-7"
+        >
           {zh
             ? '请检查网络连接。当前日历会保留在这里，连接恢复后即可继续。'
             : 'Check your connection. Your calendar is staying right here, ready to continue when you reconnect.'}
@@ -95,7 +103,14 @@ export function ConnectionBoundary({
       try {
         return await host.request(input, init)
       } catch (error) {
-        if (!(error instanceof Error && error.name === 'AbortError'))
+        if (
+          !(
+            typeof error === 'object' &&
+            error !== null &&
+            'name' in error &&
+            error.name === 'AbortError'
+          )
+        )
           setDisconnected(true)
         throw error
       }
@@ -165,6 +180,22 @@ export function ConnectionBoundary({
     return () => window.clearInterval(interval)
   }, [disconnected])
   const connectedHost = useMemo(() => ({ ...host, request }), [host, request])
+  useLayoutEffect(() => {
+    if (!disconnected) return
+    // Existing editor/settings portals stay mounted. Their outside-interaction
+    // handlers must not interpret recovery controls as dismissing a draft.
+    const preserveOpenForms = (event: Event) => event.preventDefault()
+    const events = [
+      'dismissableLayer.pointerDownOutside',
+      'dismissableLayer.focusOutside',
+    ]
+    for (const name of events)
+      document.addEventListener(name, preserveOpenForms, true)
+    return () => {
+      for (const name of events)
+        document.removeEventListener(name, preserveOpenForms, true)
+    }
+  }, [disconnected])
   return (
     <ConnectionContext.Provider value={disconnected}>
       <CalendarHostProvider value={connectedHost}>
@@ -175,7 +206,19 @@ export function ConnectionBoundary({
           {children}
         </div>
         {disconnected ? (
-          <NoInternet retry={() => void retry()} checking={checking} />
+          <DialogPrimitive.Root open>
+            <DialogPrimitive.Portal>
+              <DialogPrimitive.Content
+                className="fixed inset-0 z-[1000] outline-none"
+                aria-labelledby="calendar-connection-title"
+                aria-describedby="calendar-connection-description"
+                onEscapeKeyDown={(event) => event.preventDefault()}
+                onInteractOutside={(event) => event.preventDefault()}
+              >
+                <NoInternet retry={() => void retry()} checking={checking} />
+              </DialogPrimitive.Content>
+            </DialogPrimitive.Portal>
+          </DialogPrimitive.Root>
         ) : null}
       </CalendarHostProvider>
     </ConnectionContext.Provider>

@@ -7,8 +7,14 @@ import {
   type CalendarHost,
 } from '@zntr/utils/calendar-host'
 import { ConnectionBoundary } from '@zntr/ui/calendar/components/connection-boundary'
+import { Dialog, DialogContent, DialogTitle } from '@zntr/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
 
-function fixture(request: typeof fetch, mounted: () => void) {
+function fixture(
+  request: typeof fetch,
+  mounted: () => void,
+  portal?: 'dialog' | 'popover',
+) {
   const host: CalendarHost = {
     platform: 'web',
     request,
@@ -36,16 +42,71 @@ function fixture(request: typeof fetch, mounted: () => void) {
       </>
     )
   }
+  function PortalledEditor() {
+    const [open, setOpen] = useState(true)
+    if (portal === 'dialog')
+      return (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Edit event</DialogTitle>
+            <Editor />
+          </DialogContent>
+        </Dialog>
+      )
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger>Edit event</PopoverTrigger>
+        <PopoverContent>
+          <Editor />
+        </PopoverContent>
+      </Popover>
+    )
+  }
   return render(
     <CalendarHostProvider value={host}>
       <ConnectionBoundary>
-        <Editor />
+        {portal ? <PortalledEditor /> : <Editor />}
       </ConnectionBoundary>
     </CalendarHostProvider>,
   )
 }
 
 describe('shared connection recovery', () => {
+  it.each(['dialog', 'popover'] as const)(
+    'keeps a portalled %s draft open while recovery takes focus',
+    async (portal) => {
+      let connected = false
+      const request = vi.fn(async () => {
+        if (!connected) throw new TypeError('Failed to fetch')
+        return new Response(null, { status: 204 })
+      })
+      const mounted = vi.fn()
+      const view = fixture(request, mounted, portal)
+      const input = await screen.findByLabelText('Event title')
+      fireEvent.change(input, { target: { value: 'Keep portalled draft' } })
+      fireEvent.click(screen.getByText('Load'))
+      const retry = await screen.findByRole('button', { name: 'Try again' })
+      act(() => {
+        retry.focus()
+      })
+      expect(retry).toHaveFocus()
+      // Real document-level Radix outside handlers receive these pointer events.
+      fireEvent.pointerDown(retry, { pointerType: 'mouse', button: 0 })
+      fireEvent.pointerUp(retry, { pointerType: 'mouse', button: 0 })
+      connected = true
+      fireEvent.click(retry)
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('heading', { name: 'No internet connection' }),
+        ).toBeNull(),
+      )
+      expect(screen.getByLabelText('Event title')).toBe(input)
+      expect(input).toHaveValue('Keep portalled draft')
+      expect(mounted).toHaveBeenCalledTimes(1)
+      view.unmount()
+    },
+  )
+
   it('preserves the mounted editor and identity across failed requests and reconnect', async () => {
     let connected = false
     const request = vi.fn(async () => {

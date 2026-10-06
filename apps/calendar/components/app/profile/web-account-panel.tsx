@@ -5,11 +5,13 @@ import { AccountHost } from './account-host'
 
 export default function WebAccountPanel({
   section,
+  embedded = false,
 }: {
   section?: string | null
+  embedded?: boolean
 }) {
   return (
-    <AccountHost>
+    <AccountHost embedded={embedded}>
       <AccountPanel focusSection={section as AccountSection | null} />
     </AccountHost>
   )

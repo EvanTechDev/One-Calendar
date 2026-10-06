@@ -10,7 +10,7 @@ export default async function DesktopSettingsPage({
   const { section } = await searchParams
   return (
     <main className="bg-background min-h-dvh p-4">
-      <WebAccountPanel section={section} />
+      <WebAccountPanel section={section} embedded />
     </main>
   )
 }
