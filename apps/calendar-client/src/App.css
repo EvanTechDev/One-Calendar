@@ -2,7 +2,13 @@
   --font-sans: 'Inter Variable', sans-serif;
   --font-heading: 'Geist Variable', sans-serif;
   --font-instrument-sans: 'Instrument Sans Variable', sans-serif;
+  --desktop-blue: #3566c7;
+  --desktop-blue-foreground: #fff;
   font-synthesis: none;
+}
+.dark {
+  --desktop-blue: #8baaff;
+  --desktop-blue-foreground: #171c24;
 }
 body {
   font-family: var(--font-heading);
@@ -13,7 +19,6 @@ body {
 .desktop-state {
   --desktop-ink: #20262e;
   --desktop-muted: #69737e;
-  --desktop-blue: #3566c7;
   --desktop-line: #e1e6ed;
   --desktop-paper: #fff;
   --desktop-wash: #f2f5fa;
@@ -24,7 +29,6 @@ body {
 .dark .desktop-state {
   --desktop-ink: #e8edf5;
   --desktop-muted: #9ba8ba;
-  --desktop-blue: #8baaff;
   --desktop-line: #2e3948;
   --desktop-paper: #171c24;
   --desktop-wash: #1c2430;
@@ -92,12 +96,12 @@ body {
 .welcome-signin {
   min-width: 240px;
   justify-content: space-between;
-  background: #3566c7;
-  color: white;
+  background: var(--desktop-blue);
+  color: var(--desktop-blue-foreground);
   padding-inline: 18px;
 }
 .welcome-signin:hover {
-  background: #2958b4;
+  background: color-mix(in srgb, var(--desktop-blue), black 10%);
 }
 .welcome-hint {
   font-size: 12px;
@@ -186,8 +190,8 @@ body {
   font-size: 10px;
 }
 .welcome-today {
-  color: #fff;
-  background: #3566c7;
+  color: var(--desktop-blue-foreground);
+  background: var(--desktop-blue);
   border-radius: 50%;
 }
 .welcome-wait {
@@ -374,7 +378,7 @@ body {
   width: 100%;
   height: 4px;
   margin: 12px 0;
-  accent-color: #3566c7;
+  accent-color: var(--desktop-blue);
 }
 .desktop-update-notes {
   margin: 16px 0;

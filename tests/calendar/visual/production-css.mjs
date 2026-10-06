@@ -8,7 +8,8 @@ const nextOrigin = 'http://127.0.0.1:3000'
 const fixtureOrigin = 'http://127.0.0.1:4173'
 const artifacts = 'artifacts/calendar-ui'
 await mkdir(artifacts, { recursive: true })
-const htmlResponse = await fetch(`${nextOrigin}/sign-in`)
+// Privacy uses the same root layout/global CSS without requiring a database.
+const htmlResponse = await fetch(`${nextOrigin}/privacy`)
 assert.equal(htmlResponse.status, 200)
 const html = await htmlResponse.text()
 const styles = [...html.matchAll(/<link\b[^>]*>/g)]
@@ -32,6 +33,7 @@ assert(
 )
 await writeFile(`${artifacts}/production.css`, css)
 const bodyClasses = html.match(/<body\b[^>]*\bclass="([^"]+)"/)?.[1] ?? ''
+const rootClasses = html.match(/<html\b[^>]*\bclass="([^"]+)"/)?.[1] ?? ''
 const browser = await chromium.launch()
 const errors = []
 try {
@@ -63,9 +65,13 @@ try {
         ),
       'Vite CSS concealed the Next production stylesheet',
     )
-    await page.evaluate((classes) => {
-      document.body.className = classes
-    }, bodyClasses)
+    await page.evaluate(
+      ({ body, root }) => {
+        document.body.className = body
+        document.documentElement.className = `${root} light`
+      },
+      { body: bodyClasses, root: rootClasses },
+    )
     for (const href of styles)
       await page.addStyleTag({ url: new URL(href, fixtureOrigin).href })
     await page.evaluate(() => document.fonts.ready)

@@ -21,6 +21,10 @@ on:
         required: false
         default: false
         type: boolean
+      production_ui:
+        description: Build Next and verify its actual CSS against shared UI surfaces
+        type: boolean
+        default: false
       desktop_environment:
         description: Optionally build the four desktop installer targets
         required: false
@@ -52,7 +56,7 @@ jobs:
       checkout_ref: ${{ inputs.checkout_ref || github.sha }}
       desktop_linux_only: ${{ inputs.desktop_linux_only }}
   calendar-build:
-    if: ${{ !inputs.focused_only && inputs.desktop_environment != 'none' && inputs.desktop_environment != '' }}
+    if: ${{ inputs.production_ui || (!inputs.focused_only && inputs.desktop_environment != 'none' && inputs.desktop_environment != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -80,7 +84,7 @@ jobs:
           pnpm --filter zentra-calendar start >"$RUNNER_TEMP/zentra-next.log" 2>&1 &
           ZENTRA_VISUAL_PRODUCTION_CSS=1 pnpm exec vite --config tests/calendar/visual/vite.config.ts >"$RUNNER_TEMP/zentra-ui-fixture.log" 2>&1 &
           for attempt in {1..60}; do
-            if curl --fail --silent http://127.0.0.1:3000/sign-in >/dev/null && curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+            if curl --fail --silent http://127.0.0.1:3000/privacy >/dev/null && curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
               exit 0
             fi
             sleep 1

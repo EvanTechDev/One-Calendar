@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@source "../../../packages/ui";
+@source "../../../packages/ui/src";
 /* The auth forms and account panel live in @zntr/auth (ADR 0022). Tailwind v4
    scans only what it is told to: without this, every class in those components
    is absent from the stylesheet and the whole surface renders unstyled. */
