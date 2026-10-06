@@ -8,6 +8,24 @@ real-account checks.
 
 ## Recorded evidence
 
+### Embedded identity, fullscreen and offline preservation
+
+- `7f609365` / [37507282887](https://github.com/EvanTechDev/One-Calendar/actions/runs/37507282887): workspace type checks, lint and tests passed, including recovery without remounting the same draft in inline, dialog and popover editors, and retaining Web identity during session-fetch failure. Calendar and Meet production builds passed. Reviewed production-styled calendar, shared sign-in/sign-up, and light/dark No Internet captures.
+- The same run passed four installed identity-document/fullscreen checks, but its Linux screenshot exposed vertically stacked WebViews despite correct outer-window geometry. That run does **not** establish correct embedded layout. The follow-up adds native child-position/size assertions and a GTK overlay.
+- `9e751baf` / [37512722812](https://github.com/EvanTechDev/One-Calendar/actions/runs/37512722812): all four installed sign-in-document/fullscreen/geometry jobs passed. The inspected Linux screenshot confirms the GTK overlay now fills the intended content region. The macOS screenshot exposed a titlebar-origin offset that numerical bounds alone did not catch; the follow-up derives the native content offset from the actual viewport rather than hard-coding titlebar dimensions.
+- `9fa0644e` / [37517702032](https://github.com/EvanTechDev/One-Calendar/actions/runs/37517702032): the full workspace type-check/lint/test gate, Next production build and production-CSS visual captures passed. All four installed identity/fullscreen/bounds jobs passed. Inspected the Windows native screenshot after the fullscreen round trip: the toolbar and entire form fit the smaller CI display. Its 1024×720 work area correctly caps the requested 1320×880 outer window; the child occupies exactly the remaining 1008×628 content region below the 53px toolbar. Earlier inspected Linux and corrected macOS captures establish their platform layout evidence.
+
+Current Windows Dev trial: [artifact 11437697441](https://github.com/EvanTechDev/One-Calendar/actions/runs/37517702032/artifacts/11437697441),
+`Zentra Calendar Dev_0.1.0_x64-setup.exe`, revision `9fa0644e`.
+SHA-256: `ded39018ea4db8ae901b41014c353357bca9ecfdfbac9e4fbd0b8ce6f1517f9e`.
+
+These checks exercise a real installed remote identity document, not a completed
+account login. Vercel rejected the latest feature deployments, including
+`9fa0644e`, with "Deployment rate limited — retry in 24 hours." The official dev
+origin therefore has not been verified with the new embedded settings route and
+BotID changes. A Git push or native installer pass does not establish that this
+backend revision is live.
+
 ### Shared UI migration and visual repair
 
 - `7b74357d` / [37462106922](https://github.com/EvanTechDev/One-Calendar/actions/runs/37462106922): workspace type checks, lint, tests and all four installed native startup checks passed after moving the shared code to `packages/ui/calendar` and removing the Web forwarding modules. The initial screenshot job could not load its authenticated entry without a database; it did not establish visual acceptance.
