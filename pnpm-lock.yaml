@@ -218,11 +218,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/calendar-host
       react:
-        specifier: ^19.1.0
+        specifier: 19.2.7
         version: 19.2.7
       react-dom:
-        specifier: ^19.1.0
-        version: 19.2.8(react@19.2.7)
+        specifier: 19.2.7
+        version: 19.2.7(react@19.2.7)
     devDependencies:
       '@tauri-apps/cli':
         specifier: ^2
