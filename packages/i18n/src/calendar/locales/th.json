@@ -573,7 +573,7 @@
   "deleteEventConfirmRecurring": "กิจกรรมนี้เป็นส่วนหนึ่งของชุดกิจกรรมที่เกิดซ้ำ เลือกขอบเขตการลบ",
   "repeatDeleteThisOccurrence": "ลบเฉพาะกิจกรรมนี้",
   "repeatDeleteAllOccurrences": "ลบทั้งหมด",
-  "repeatEveryIntervalHint": "ทุก {interval}",
+  "repeatEveryIntervalHint": "ช่วงเวลาการเกิดซ้ำ",
   "repeatFrequencyDaily": "รายวัน",
   "repeatFrequencyMonthly": "รายเดือน",
   "repeatFrequencyWeekly": "รายสัปดาห์",

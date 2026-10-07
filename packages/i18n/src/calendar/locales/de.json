@@ -573,7 +573,7 @@
   "deleteEventConfirmRecurring": "Dieses Ereignis ist Teil einer wiederkehrenden Serie. Wählen Sie den Löumbereich aus.",
   "repeatDeleteThisOccurrence": "Nur dieses Ereignis löschen",
   "repeatDeleteAllOccurrences": "Alle Ereignisse löschen",
-  "repeatEveryIntervalHint": "alle {interval}",
+  "repeatEveryIntervalHint": "Wiederholungsintervall",
   "repeatFrequencyDaily": "Täglich",
   "repeatFrequencyMonthly": "Monatlich",
   "repeatFrequencyWeekly": "Wöchentlich",

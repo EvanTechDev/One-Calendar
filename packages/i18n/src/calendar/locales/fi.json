@@ -490,7 +490,7 @@
   "deleteEventConfirmRecurring": "Tämä tapahtuma kuuluu toistuvaan sarjaan. Valitse poistettava laajuus.",
   "repeatDeleteThisOccurrence": "Poista vain tämä tapahtuma",
   "repeatDeleteAllOccurrences": "Poista kaikki tapahtumat",
-  "repeatEveryIntervalHint": "joka {interval}",
+  "repeatEveryIntervalHint": "Toistoväli",
   "repeatFrequencyDaily": "Päivittäin",
   "repeatFrequencyMonthly": "Kuukausittain",
   "repeatFrequencyWeekly": "Viikoittain",

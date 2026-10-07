@@ -573,7 +573,7 @@
   "deleteEventConfirmRecurring": "이 events는 반복 series의 일부입니다. 삭제 범위를 선택하세요.",
   "repeatDeleteThisOccurrence": "이 events만 삭제",
   "repeatDeleteAllOccurrences": "모든 반복 삭제",
-  "repeatEveryIntervalHint": "매 {interval}",
+  "repeatEveryIntervalHint": "반복 간격",
   "repeatFrequencyDaily": "매일",
   "repeatFrequencyMonthly": "매월",
   "repeatFrequencyWeekly": "매주",

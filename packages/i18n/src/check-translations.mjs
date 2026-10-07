@@ -6,6 +6,49 @@ const errors = []
 const placeholders = (value) =>
   (value.match(/\{\{?[A-Za-z0-9_]+\}?\}|%[sd]/g) ?? []).sort().join('|')
 
+function validate(path, original, value) {
+  if (Array.isArray(original)) {
+    if (!Array.isArray(value) || value.length !== original.length) {
+      errors.push(`${path}: translation array length differs`)
+      return
+    }
+    original.forEach((item, index) =>
+      validate(`${path}[${index}]`, item, value[index]),
+    )
+    return
+  }
+  if (original !== null && typeof original === 'object') {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      errors.push(`${path}: missing translation object`)
+      return
+    }
+    for (const [key, item] of Object.entries(original)) {
+      validate(`${path}/${key}`, item, value[key])
+    }
+    return
+  }
+  if (typeof original !== 'string') {
+    if (value !== original) errors.push(`${path}: non-text value differs`)
+    return
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    errors.push(`${path}: missing translation`)
+    return
+  }
+  if (placeholders(original) !== placeholders(value)) {
+    errors.push(`${path}: placeholders differ`)
+  }
+  for (const literal of [
+    'Zentra Calendar',
+    'Zentra Meet',
+    'DELETE MY ACCOUNT',
+  ]) {
+    if (original.includes(literal) && !value.includes(literal)) {
+      errors.push(`${path}: required literal ${literal} changed`)
+    }
+  }
+}
+
 for (const pattern of config.buckets.json.include) {
   const readLocale = (locale) =>
     JSON.parse(
@@ -13,26 +56,7 @@ for (const pattern of config.buckets.json.include) {
     )
   const source = readLocale(config.locale.source)
   for (const locale of config.locale.targets) {
-    const translated = readLocale(locale)
-    for (const [key, original] of Object.entries(source)) {
-      const value = translated[key]
-      if (typeof value !== 'string' || !value.trim()) {
-        errors.push(`${locale}/${key}: missing translation`)
-        continue
-      }
-      if (placeholders(original) !== placeholders(value)) {
-        errors.push(`${locale}/${key}: placeholders differ`)
-      }
-      for (const literal of [
-        'Zentra Calendar',
-        'Zentra Meet',
-        'DELETE MY ACCOUNT',
-      ]) {
-        if (original.includes(literal) && !value.includes(literal)) {
-          errors.push(`${locale}/${key}: required literal ${literal} changed`)
-        }
-      }
-    }
+    validate(locale, source, readLocale(locale))
   }
   console.log(
     `Checked ${Object.keys(source).length} keys across ${config.locale.targets.length} locales`,

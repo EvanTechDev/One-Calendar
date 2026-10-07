@@ -581,7 +581,7 @@
   "deleteEventConfirmRecurring": "এটি একটি পুনরাবৃত্ত ইভেন্টের অংশ। মুছে ফেলার পরিধি নির্বাচন করুন।",
   "repeatDeleteThisOccurrence": "শুধুমাত্র এই ইভেন্টটি মুছুন",
   "repeatDeleteAllOccurrences": "সব ইভেন্ট মুছুন",
-  "repeatEveryIntervalHint": "প্রতি {interval}",
+  "repeatEveryIntervalHint": "পুনরাবৃত্তির ব্যবধান",
   "repeatFrequencyDaily": "প্রতিদিন",
   "repeatFrequencyMonthly": "প্রতি মাসে",
   "repeatFrequencyWeekly": "প্রতি সপ্তাহে",

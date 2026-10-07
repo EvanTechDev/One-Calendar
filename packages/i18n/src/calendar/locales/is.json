@@ -498,7 +498,7 @@
   "deleteEventConfirmRecurring": "Þetta er hluti af endurtekinni seríu. Veldu umfang til að eyða.",
   "repeatDeleteThisOccurrence": "Eyða aðeins þessari viðburð",
   "repeatDeleteAllOccurrences": "Eyða öllum viðburðum",
-  "repeatEveryIntervalHint": "hvert {interval}",
+  "repeatEveryIntervalHint": "Endurtekningarbil",
   "repeatFrequencyDaily": "Daglega",
   "repeatFrequencyMonthly": "Mánaðarlega",
   "repeatFrequencyWeekly": "Vikulega",

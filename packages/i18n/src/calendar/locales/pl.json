@@ -581,7 +581,7 @@
   "deleteEventConfirmRecurring": "To wydarzenie jest częścią serii powtarzających się wydarzeń. Wybierz zakres usuwania.",
   "repeatDeleteThisOccurrence": "Usuń tylko to wydarzenie",
   "repeatDeleteAllOccurrences": "Usuń wszystkie wystąpienia",
-  "repeatEveryIntervalHint": "co {interval}",
+  "repeatEveryIntervalHint": "Odstęp między powtórzeniami",
   "repeatFrequencyDaily": "Codziennie",
   "repeatFrequencyMonthly": "Miesięcznie",
   "repeatFrequencyWeekly": "Tygodniowo",
