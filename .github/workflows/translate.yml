@@ -6,6 +6,11 @@ on:
       - 'packages/i18n/i18n.json'
       - 'packages/i18n/src/calendar/locales/en.json'
   workflow_dispatch:
+    inputs:
+      diagnose:
+        description: Inspect API response structure without translating
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -28,7 +33,12 @@ jobs:
           TRANSLATION_BASE_URL: ${{ vars.TRANSLATION_BASE_URL || secrets.TRANSLATION_BASE_URL }}
           TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL || secrets.TRANSLATION_MODEL }}
           TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
-        run: pnpm translate
+        run: |
+          if [ "${{ inputs.diagnose }}" = "true" ]; then
+            node src/translation-probe.mjs
+          else
+            pnpm translate
+          fi
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
