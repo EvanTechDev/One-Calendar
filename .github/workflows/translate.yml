@@ -25,12 +25,14 @@ jobs:
       - name: Translate
         working-directory: packages/i18n
         env:
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        run: pnpm dlx lingo.dev run
+          TRANSLATION_BASE_URL: ${{ vars.TRANSLATION_BASE_URL || secrets.TRANSLATION_BASE_URL }}
+          TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL || secrets.TRANSLATION_MODEL }}
+          TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
+        run: pnpm translate
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add packages/i18n/src/calendar/locales packages/i18n/i18n.lock
           git diff --staged --quiet || git commit -m "feat: update translations via @LingoDotDev"
           git push

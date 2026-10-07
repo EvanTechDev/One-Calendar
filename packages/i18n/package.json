@@ -14,6 +14,7 @@
     "build": "tsc",
     "build:check": "tsc && tsc --noEmit",
     "generate": "node src/gen-locales.mjs",
+    "translate": "node src/translate.mjs",
     "cleanup": "node src/cleanup-i18n.mjs",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
