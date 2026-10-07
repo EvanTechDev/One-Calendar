@@ -68,7 +68,8 @@ if (checksumRef) {
       encoding: 'utf8',
     },
   )
-  JSON.parse(retryLock)
+  // i18n.lock is YAML. Pass the exact committed bytes back to Lingo, which
+  // owns its format and validates it when loading the translation checkpoint.
 }
 config.provider = {
   ...config.provider,

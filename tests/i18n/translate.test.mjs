@@ -27,7 +27,10 @@ function fixture(t) {
     locale: { targets: ['el', 'bn'] },
     provider: { id: 'mistral', prompt: 'Keep placeholders.' },
   })
-  const originalLock = '{"checkpoint":"current"}\n'
+  const originalLock = readFileSync(
+    new URL('../../packages/i18n/i18n.lock', import.meta.url),
+    'utf8',
+  )
   writeFileSync(join(directory, 'i18n.json'), originalConfig)
   writeFileSync(join(directory, 'i18n.lock'), originalLock)
   // Exercise the actual wrapper; only the external translator is replaced.
@@ -40,7 +43,7 @@ fs.writeFileSync('request.json', JSON.stringify({
   lock: fs.readFileSync('i18n.lock', 'utf8'), hasKey: !!process.env.OPENROUTER_API_KEY,
 }))
 fs.writeFileSync('completed-locale.json', '{"title":"Translated"}')
-fs.writeFileSync('i18n.lock', '{"checkpoint":"advanced"}')
+fs.writeFileSync('i18n.lock', 'version: 1\\nchecksums: {}\\n')
 process.exit(Number(process.env.FAKE_EXIT ?? 0))
 `,
     { mode: 0o755 },
@@ -87,7 +90,7 @@ test('successful full translation advances checksums and restores provider confi
   const result = f.run()
   assert.equal(result.status, 0, result.stderr)
   assert.equal(f.read('i18n.json'), f.originalConfig)
-  assert.deepEqual(JSON.parse(f.read('i18n.lock')), { checkpoint: 'advanced' })
+  assert.equal(f.read('i18n.lock'), 'version: 1\nchecksums: {}\n')
   const request = JSON.parse(f.read('request.json'))
   assert.equal(request.config.provider.baseUrl, 'https://api.example.com/v1')
   assert.equal(request.config.provider.prompt, 'Keep placeholders.')
@@ -106,7 +109,9 @@ test('partial failure retains completed output without advancing global checksum
 test('targeted retry uses historic checksums and preserves the current checkpoint', (t) => {
   const f = fixture(t)
   f.git('init')
-  f.writeLock('{"checkpoint":"before-failure"}')
+  const historicLock =
+    '# Before the failed translation\nversion: 1\nchecksums: {}\n'
+  f.writeLock(historicLock)
   f.git('add', 'packages/i18n/i18n.lock')
   f.git('commit', '-m', 'fixture')
   const ref = f.git('rev-parse', 'HEAD')
@@ -117,7 +122,7 @@ test('targeted retry uses historic checksums and preserves the current checkpoin
   })
   assert.equal(result.status, 0, result.stderr)
   const request = JSON.parse(f.read('request.json'))
-  assert.equal(JSON.parse(request.lock).checkpoint, 'before-failure')
+  assert.equal(request.lock, historicLock)
   assert.deepEqual(request.args, [
     'exec',
     'lingo.dev',
