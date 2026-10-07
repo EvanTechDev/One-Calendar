@@ -19,8 +19,14 @@ configuration stops the workflow instead of falling back to Mistral.
 
 Run **Actions → Translate → Run workflow → Branch: dev** to translate dev
 without merging into main. Automatic runs still follow main's existing English
-locale/config changes. Successful runs commit the locale files and `i18n.lock`
-back to the selected branch.
+locale/config changes. Runs commit generated locale files and `i18n.lock`
+back to the selected branch, including completed work when another locale fails.
+Partial failures still mark the workflow as failed. The output is also uploaded
+as an artifact, so it remains recoverable if the commit or push fails.
+
+Translations use three concurrent jobs by default. Set the optional repository
+variable `TRANSLATION_CONCURRENCY` (1–10) to match the service's capacity. Runs
+on the same branch are serialized to avoid competing translation commits.
 
 `pnpm --filter @zntr/i18n translate` runs the same wrapper when the three
 environment variables are provided. It preserves the locales and translation

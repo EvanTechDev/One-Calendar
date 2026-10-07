@@ -13,9 +13,13 @@ on:
         default: false
 permissions:
   contents: write
+concurrency:
+  group: translate-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   translate:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -28,18 +32,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Translate
+        id: translate
         working-directory: packages/i18n
         env:
           TRANSLATION_BASE_URL: ${{ vars.TRANSLATION_BASE_URL || secrets.TRANSLATION_BASE_URL }}
           TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL || secrets.TRANSLATION_MODEL }}
           TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
+          TRANSLATION_CONCURRENCY: ${{ vars.TRANSLATION_CONCURRENCY || '3' }}
         run: |
           if [ "${{ inputs.diagnose }}" = "true" ]; then
             node src/translation-probe.mjs
           else
             pnpm translate
           fi
+      - name: Preserve translation output
+        if: ${{ !cancelled() && !inputs.diagnose && (steps.translate.outcome == 'success' || steps.translate.outcome == 'failure') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: translations-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            packages/i18n/src/calendar/locales/*.json
+            packages/i18n/i18n.lock
       - name: Commit changes
+        if: ${{ !cancelled() && !inputs.diagnose && (steps.translate.outcome == 'success' || steps.translate.outcome == 'failure') }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

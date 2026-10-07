@@ -12,6 +12,11 @@ if (missing.length) {
   throw new Error(`Missing translation configuration: ${missing.join(', ')}`)
 }
 
+const concurrency = Number(process.env.TRANSLATION_CONCURRENCY ?? 3)
+if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 10) {
+  throw new Error('TRANSLATION_CONCURRENCY must be an integer between 1 and 10')
+}
+
 const baseUrl = new URL(process.env.TRANSLATION_BASE_URL.trim())
 if (
   !['https:', 'http:'].includes(baseUrl.protocol) ||
@@ -43,14 +48,18 @@ config.provider = {
 
 try {
   writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`)
-  const result = spawnSync('pnpm', ['exec', 'lingo.dev', 'run'], {
-    cwd: directory,
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      OPENROUTER_API_KEY: process.env.TRANSLATION_API_KEY.trim(),
+  const result = spawnSync(
+    'pnpm',
+    ['exec', 'lingo.dev', 'run', '--concurrency', String(concurrency)],
+    {
+      cwd: directory,
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        OPENROUTER_API_KEY: process.env.TRANSLATION_API_KEY.trim(),
+      },
     },
-  })
+  )
   if (result.error) throw result.error
   process.exitCode = result.status ?? 1
 } finally {
