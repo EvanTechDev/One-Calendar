@@ -23,10 +23,20 @@ locale/config changes. Runs commit generated locale files and `i18n.lock`
 back to the selected branch, including completed work when another locale fails.
 Partial failures still mark the workflow as failed. The output is also uploaded
 as an artifact, so it remains recoverable if the commit or push fails.
+The wrapper restores the previous `i18n.lock` on failure: completed locale files
+are saved, but failed locales are not incorrectly marked current.
 
 Translations use three concurrent jobs by default. Set the optional repository
 variable `TRANSLATION_CONCURRENCY` (1–10) to match the service's capacity. Runs
 on the same branch are serialized to avoid competing translation commits.
+
+For a partial retry, enter comma-separated `locales` (for example
+`bn,el,zh-HK`) and optionally `concurrency: 1` in Run workflow. Only those
+locales are processed. If an older workflow already advanced `i18n.lock` during
+a partial failure, set `checksum_ref` to that run's source commit SHA to include
+changed existing strings as well as missing keys. The current lockfile is
+restored after every targeted retry. The equivalent local environment settings
+are `TRANSLATION_LOCALES` and `TRANSLATION_CHECKSUM_REF`.
 
 `pnpm --filter @zntr/i18n translate` runs the same wrapper when the three
 environment variables are provided. It preserves the locales and translation

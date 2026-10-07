@@ -11,6 +11,18 @@ on:
         description: Inspect API response structure without translating
         type: boolean
         default: false
+      locales:
+        description: Comma-separated target locales; empty translates all
+        type: string
+        default: ''
+      concurrency:
+        description: Override translation concurrency (1–10)
+        type: string
+        default: ''
+      checksum_ref:
+        description: Prior commit SHA for retrying a partially checkpointed run
+        type: string
+        default: ''
 permissions:
   contents: write
 concurrency:
@@ -22,6 +34,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 11.5.2
@@ -38,7 +52,9 @@ jobs:
           TRANSLATION_BASE_URL: ${{ vars.TRANSLATION_BASE_URL || secrets.TRANSLATION_BASE_URL }}
           TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL || secrets.TRANSLATION_MODEL }}
           TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
-          TRANSLATION_CONCURRENCY: ${{ vars.TRANSLATION_CONCURRENCY || '3' }}
+          TRANSLATION_CONCURRENCY: ${{ inputs.concurrency || vars.TRANSLATION_CONCURRENCY || '3' }}
+          TRANSLATION_LOCALES: ${{ inputs.locales }}
+          TRANSLATION_CHECKSUM_REF: ${{ inputs.checksum_ref }}
         run: |
           if [ "${{ inputs.diagnose }}" = "true" ]; then
             node src/translation-probe.mjs

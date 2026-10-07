@@ -18,7 +18,8 @@
     "cleanup": "node src/cleanup-i18n.mjs",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "node --test ../../tests/i18n/*.test.mjs"
   },
   "dependencies": {
     "react": "19.2.7"
