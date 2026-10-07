@@ -29,3 +29,7 @@ and restores the original configuration after the pinned Lingo CLI finishes.
 The key is passed only through the environment. Lingo's OpenRouter adapter is
 used for its Chat Completions transport and custom `baseUrl` support; an
 OpenRouter account is not required.
+
+The CLI is installed from the frozen workspace lockfile. Its provider is pinned
+to the AI SDK 6-compatible stable adapter because the upstream alpha adapter
+rejects otherwise valid Chat Completions responses from custom services.

@@ -43,7 +43,7 @@ config.provider = {
 
 try {
   writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`)
-  const result = spawnSync('pnpm', ['dlx', 'lingo.dev@0.138.9', 'run'], {
+  const result = spawnSync('pnpm', ['exec', 'lingo.dev', 'run'], {
     cwd: directory,
     stdio: 'inherit',
     env: {

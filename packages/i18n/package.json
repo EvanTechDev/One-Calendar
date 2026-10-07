@@ -24,6 +24,7 @@
     "react": "19.2.7"
   },
   "devDependencies": {
+    "lingo.dev": "0.138.9",
     "vitest": "^4.1.10"
   }
 }
