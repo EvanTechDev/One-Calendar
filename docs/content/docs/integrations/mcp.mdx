@@ -40,6 +40,13 @@ A planning assistant may need events and categories, while a read-only agenda cl
 
 Copy the address from your Calendar instance before configuring the client.
 
+Use a client that supports **Streamable HTTP**. Calendar handles initialization,
+tool lists, and tool calls through `POST /api/mcp`; it does not keep a separate
+idle server-push connection open. An authenticated `GET /api/mcp` returns
+`405 Method Not Allowed` with `Allow: POST`. This is a supported Streamable HTTP
+response, not an authorization failure. Unauthenticated requests still receive
+the OAuth discovery challenge. Legacy SSE-only clients are not supported.
+
 <Steps>
 <Step>
 ### Enable MCP and copy the endpoint

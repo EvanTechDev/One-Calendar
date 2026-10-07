@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   getApiKey: vi.fn(),
   getOAuth: vi.fn(),
-  handle: vi.fn(async () => new Response('mcp', { status: 200 })),
+  handle: vi.fn(async (request: Request) =>
+    request.method === 'GET'
+      ? new Response(null, { status: 405, headers: { Allow: 'POST' } })
+      : new Response('mcp', { status: 200 }),
+  ),
 }))
 
 vi.mock('@zntr/auth/server', () => ({
@@ -98,10 +102,23 @@ describe('MCP route authentication dispatch', () => {
     )
   })
 
-  it('keeps authenticated GET available for compatible SSE clients', async () => {
+  it("authenticates GET before forwarding the handler's unsupported-stream response", async () => {
     const response = await GET(getRequest('ey.jwt.token'))
 
-    expect(response.status).toBe(200)
-    expect(mocks.handle).toHaveBeenCalled()
+    expect(response.status).toBe(405)
+    expect(response.headers.get('allow')).toBe('POST')
+    expect(mocks.handle).toHaveBeenCalledWith(
+      expect.any(Request),
+      expect.objectContaining({ user, token: 'ey.jwt.token' }),
+    )
+  })
+
+  it('preserves API-key authentication for the GET capability probe', async () => {
+    mocks.getApiKey.mockResolvedValue({ user, token: 'zc_secret' })
+    const response = await GET(getRequest('zc_secret'))
+
+    expect(response.status).toBe(405)
+    expect(mocks.getApiKey).toHaveBeenCalled()
+    expect(mocks.getOAuth).not.toHaveBeenCalled()
   })
 })

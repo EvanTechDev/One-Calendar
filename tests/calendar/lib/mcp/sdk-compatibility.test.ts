@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/server'
 import { handleMcpRequest } from '@/lib/mcp/handler'
+import type { McpAuthUser } from '@zntr/ui/calendar/lib/mcp/types'
 
 // Keep the real transport, registration, JSON Schema conversion and tool
 // dispatch. Only storage/rate-limit boundaries are replaced.
@@ -24,7 +25,23 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllEnvs())
 
-async function rpc(method: string, params: Record<string, unknown> = {}) {
+const AUTH = {
+  token: 'test-token',
+  user: {
+    userId: 'test-user',
+    email: 'test@example.com',
+    name: 'Test',
+    authType: 'api_key',
+    scopes: ['countdowns:read'],
+    keyId: 'test-key',
+  } satisfies McpAuthUser,
+}
+
+async function rpc(
+  method: string,
+  params: Record<string, unknown> = {},
+  notification = false,
+) {
   return handleMcpRequest(
     new Request('https://calendar.example/api/mcp', {
       method: 'POST',
@@ -34,23 +51,46 @@ async function rpc(method: string, params: Record<string, unknown> = {}) {
         accept: 'application/json, text/event-stream',
         'mcp-protocol-version': SUPPORTED_PROTOCOL_VERSIONS[0],
       },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        ...(notification ? {} : { id: 1 }),
+        method,
+        params,
+      }),
     }),
-    {
-      token: 'test-token',
-      user: {
-        userId: 'test-user',
-        email: 'test@example.com',
-        name: 'Test',
-        authType: 'api_key',
-        scopes: ['countdowns:read'],
-        keyId: 'test-key',
-      },
-    },
+    AUTH,
   )
 }
 
-it('lists the real tool schemas and dispatches an authenticated call on a fresh stateless request', async () => {
+it('initializes and calls real tools after the optional idle GET stream is declined', async () => {
+  const initialized = await rpc('initialize', {
+    protocolVersion: SUPPORTED_PROTOCOL_VERSIONS[0],
+    capabilities: {},
+    clientInfo: { name: 'streamable-http-compatibility', version: '1.0.0' },
+  })
+  expect(initialized.status).toBe(200)
+  expect((await initialized.json()).result.protocolVersion).toBe(
+    SUPPORTED_PROTOCOL_VERSIONS[0],
+  )
+
+  const acknowledged = await rpc('notifications/initialized', {}, true)
+  expect(acknowledged.status).toBe(202)
+  expect(acknowledged.body).toBeNull()
+
+  const idle = await handleMcpRequest(
+    new Request('https://calendar.example/api/mcp', {
+      headers: {
+        host: 'calendar.example',
+        accept: 'text/event-stream',
+        'mcp-protocol-version': SUPPORTED_PROTOCOL_VERSIONS[0],
+      },
+    }),
+    AUTH,
+  )
+  expect(idle.status).toBe(405)
+  expect(idle.headers.get('allow')).toBe('POST')
+  expect(idle.body).toBeNull()
+
   const listed = await rpc('tools/list')
   expect(listed.status).toBe(200)
   const catalogue = await listed.json()

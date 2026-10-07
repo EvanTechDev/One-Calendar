@@ -55,6 +55,17 @@ export async function handleMcpRequest(
       return Response.json({ error: 'host_not_allowed' }, { status: 403 })
     }
 
+    // This stateless server replies to client POSTs and sends no unsolicited
+    // notifications. Decline the optional GET stream instead of holding an
+    // idle function open until the hosting timeout. Authentication still runs
+    // in the route first, preserving its 401 OAuth discovery challenge.
+    if (request.method === 'GET') {
+      return new Response(null, {
+        status: 405,
+        headers: { Allow: 'POST', 'Cache-Control': 'no-store' },
+      })
+    }
+
     const settings = await getMcpSettings(auth.user.userId)
     if (!settings.enabled) {
       return Response.json(

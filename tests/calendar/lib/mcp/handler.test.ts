@@ -54,9 +54,9 @@ const AUTH = {
   },
 }
 
-function req(headers: Record<string, string> = {}) {
+function req(headers: Record<string, string> = {}, method = 'POST') {
   return new Request('https://app.example.com/api/mcp', {
-    method: 'POST',
+    method,
     headers: { host: 'app.example.com', ...headers },
   })
 }
@@ -73,6 +73,32 @@ describe('handleMcpRequest', () => {
     mocks.handleRequest.mockResolvedValue(new Response('ok', { status: 200 }))
     mocks.connect.mockResolvedValue(undefined)
   })
+
+  it('declines the optional GET stream without opening a transport or spending tool-call budget', async () => {
+    const res = await handleMcpRequest(
+      req({ accept: 'text/event-stream' }, 'GET'),
+      AUTH,
+    )
+
+    expect(res.status).toBe(405)
+    expect(res.headers.get('allow')).toBe('POST')
+    expect(res.headers.get('cache-control')).toBe('no-store')
+    expect(res.body).toBeNull()
+    expect(mocks.getMcpSettings).not.toHaveBeenCalled()
+    expect(mocks.checkRateLimit).not.toHaveBeenCalled()
+    expect(mocks.connect).not.toHaveBeenCalled()
+    expect(mocks.handleRequest).not.toHaveBeenCalled()
+    expect(mocks.logAudit).not.toHaveBeenCalled()
+  })
+
+  it.each([{ host: 'evil.example' }, { origin: 'https://evil.example' }])(
+    'still rejects an invalid GET origin or host: %j',
+    async (headers) => {
+      const res = await handleMcpRequest(req(headers, 'GET'), AUTH)
+      expect(res.status).toBe(403)
+      expect(mocks.connect).not.toHaveBeenCalled()
+    },
+  )
 
   it('rejects a request when MCP is disabled for the account', async () => {
     mocks.getMcpSettings.mockResolvedValue({ enabled: false, rateLimitRpm: 60 })
