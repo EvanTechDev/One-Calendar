@@ -7,6 +7,10 @@ on:
       - 'packages/i18n/src/calendar/locales/en.json'
   workflow_dispatch:
     inputs:
+      lockfile_only:
+        description: Validate completed translations and refresh the Lingo lockfile without API calls
+        type: boolean
+        default: false
       diagnose:
         description: Inspect API response structure without translating
         type: boolean
@@ -58,6 +62,9 @@ jobs:
         run: |
           if [ "${{ inputs.diagnose }}" = "true" ]; then
             node src/translation-probe.mjs
+          elif [ "${{ inputs.lockfile_only }}" = "true" ]; then
+            node src/check-translations.mjs
+            pnpm exec lingo.dev lockfile --force
           else
             pnpm translate
           fi

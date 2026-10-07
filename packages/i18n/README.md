@@ -30,6 +30,11 @@ Translations use three concurrent jobs by default. Set the optional repository
 variable `TRANSLATION_CONCURRENCY` (1–10) to match the service's capacity. Runs
 on the same branch are serialized to avoid competing translation commits.
 
+After completing translations manually, select **lockfile_only** in Run
+workflow. Actions checks all target locales for missing keys, placeholders and
+protected names, then runs `lingo.dev lockfile --force`. Lingo generates its own
+checksums without contacting the translation API or rewriting locale content.
+
 For a partial retry, enter comma-separated `locales` (for example
 `bn,el,zh-HK`) and optionally `concurrency: 1` in Run workflow. Only those
 locales are processed. If an older workflow already advanced `i18n.lock` during
