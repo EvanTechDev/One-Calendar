@@ -14,7 +14,7 @@ import {
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
-import { rejectBotRequest } from '@zntr/auth/bot-id'
+import { botIdIsGuarded } from '@zntr/auth/bot-policy'
 import { eq } from 'drizzle-orm'
 import {
   checkFixedWindowLimit,
@@ -175,6 +175,22 @@ async function resolveAuthSubject(
   }
 }
 
+/** The captcha plugin answers 403 VERIFICATION_FAILED or 500 UNKNOWN_ERROR. */
+async function botVerificationFailed(
+  method: string,
+  path: string,
+  response: Response,
+) {
+  if (!botIdIsGuarded(method, path)) return false
+  if (response.status !== 403 && response.status !== 500) return false
+  try {
+    const { code } = (await response.clone().json()) as { code?: string }
+    return code === 'VERIFICATION_FAILED' || code === 'UNKNOWN_ERROR'
+  } catch {
+    return false
+  }
+}
+
 async function handleAuth(request: Request) {
   const pathname = new URL(request.url).pathname
   const path = authRoutePath(request.url)
@@ -193,22 +209,21 @@ async function handleAuth(request: Request) {
   const action = authAction(pathname)
   const body = await readAuthBody(request)
 
-  const rejected = await rejectBotRequest(request.method, path)
-  if (rejected) {
+  const email = typeof body?.email === 'string' ? body.email : undefined
+  let subject = action ? await resolveAuthSubject(request, email) : null
+  const response =
+    await authHandlers[request.method as keyof typeof authHandlers](request)
+
+  if (await botVerificationFailed(request.method, path, response)) {
     log.audit?.({
       action: 'bot.verification.fail',
       actor: anonymousAuditActor,
       target: { type: 'auth_endpoint', id: path },
       outcome: 'failure',
-      reason: `BotID verification failed with status ${rejected.status}`,
+      reason: `BotID verification failed with status ${response.status}`,
     })
-    return rejected
+    return response
   }
-
-  const email = typeof body?.email === 'string' ? body.email : undefined
-  let subject = action ? await resolveAuthSubject(request, email) : null
-  const response =
-    await authHandlers[request.method as keyof typeof authHandlers](request)
 
   if (action === 'auth.logout' && response.status < 400) {
     const token = sessionTokenFromCookieHeader(request.headers.get('cookie'))

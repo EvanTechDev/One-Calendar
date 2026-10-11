@@ -87,6 +87,8 @@ export interface PluginOptions {
   desktop?: DesktopAuthOptions
   twoFactor?: boolean | TwoFactorOptions
   sentinel?: boolean | SentinelOptions
+  /** Vercel BotID through Better Auth's captcha plugin. */
+  botId?: boolean
   emailOTP?: boolean | EmailOTPOptions
   mcpOAuth?: McpOAuthOptions
 }
@@ -137,6 +139,7 @@ export interface CreateAuthOptions {
 export type EnabledPlugins = {
   twoFactor?: boolean
   sentinel?: boolean
+  botId?: boolean
   emailOTP?: boolean
   mcpOAuth?: boolean
 }

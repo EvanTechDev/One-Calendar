@@ -9,6 +9,7 @@ import {
   oauthDeviceAuthorization,
   oauthProviderAuthServerMetadata as providerAuthServerMetadata,
 } from '@better-auth/oauth-provider'
+import { botIdPlugin } from './bot-id'
 import { fetchCimdResource } from './cimd-fetch'
 import { createDrizzleAdapter } from './adapter'
 import {
@@ -197,6 +198,11 @@ export function createAuth(options: CreateAuthOptions): {
   if (sentinelFn) {
     resolvedPlugins.push(sentinelFn())
     enabledPlugins.sentinel = true
+  }
+
+  if (plugins.botId) {
+    resolvedPlugins.push(botIdPlugin())
+    enabledPlugins.botId = true
   }
 
   const emailOTPFn = resolveEmailOTPPlugin(plugins)

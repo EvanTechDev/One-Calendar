@@ -59,6 +59,7 @@ export function getAuth(): AuthInstance {
         send: resendSender(),
       }),
       plugins: {
+        botId: true,
         twoFactor: {
           issuer: 'Zentra Meet',
           trustDeviceMaxAge: 60 * 60 * 24 * 7, // 7 days, in seconds

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { toNextJsHandler } from '@zntr/auth'
 import { authRouteIsExposed, authRoutePath } from '@zntr/auth/route-policy'
-import { rejectBotRequest } from '@zntr/auth/bot-id'
 import type { NextRequest } from 'next/server'
 import { getAuth } from '@/lib/auth'
 import { checkFixedWindowLimit, clientAddress } from '@/lib/rate-limit'
@@ -14,8 +13,8 @@ import { checkFixedWindowLimit, clientAddress } from '@/lib/rate-limit'
  * mounts the shared forms (ADR 0022), so it needs the same protections rather than
  * the same narrow allowlist:
  *
- * - **BotID**, from `@zntr/auth/bot-id` — the identical check the calendar
- *   runs, on the identical set of paths.
+ * - **BotID**, via the shared Better Auth captcha plugin (`botId: true`) — the
+ *   identical check the calendar runs, on the identical set of paths.
  * - **Rate limiting** on the credential and mail-sending endpoints, so this app
  *   is not the cheap way to guess passwords or to send mail on our sending
  *   reputation.
@@ -78,9 +77,6 @@ export async function POST(request: NextRequest) {
 
   const throttled = await rateLimited(request, path)
   if (throttled) return throttled
-
-  const rejected = await rejectBotRequest(request.method, path)
-  if (rejected) return rejected
 
   return toNextJsHandler(getAuth()).POST(request)
 }

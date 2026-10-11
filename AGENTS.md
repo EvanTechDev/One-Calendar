@@ -142,9 +142,13 @@ in application code. The intra-package relations (`meeting_session`,
 Better Auth with drizzle adapter. Config at `apps/calendar/lib/auth.ts` + `lib/auth/`.  
 Env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Optional: `BETTER_AUTH_API_KEY`.
 Browser credential and mail-sending routes use Vercel BotID Basic. Both apps
-initialize its client in `instrumentation-client.ts` and verify in the auth API
-through `@zntr/auth/bot-id`; shared routes live in `@zntr/auth/bot-policy`.
-Verification errors return 503 and detected bots return 403. Production requires
+initialize its client in `instrumentation-client.ts`. Auth routes are verified
+by Better Auth's `captcha` plugin (`vercel-botid` provider), enabled with
+`plugins.botId` in `createAuth` (`botIdPlugin` in `@zntr/auth/bot-id`); shared
+paths live in `@zntr/auth/bot-policy` (`BOT_ID_ENDPOINTS` for the plugin,
+`BOT_ID_ROUTES` for `initBotId`). Detected bots or inconclusive verdicts return
+403, verification errors 500 (`UNKNOWN_ERROR`). App-owned non-auth API routes
+use `rejectBotRequest()` (403 bot / 503 unavailable). Production requires
 Vercel's request/OIDC context; there is no missing-key bypass. OAuth token exchange
 and native desktop requests do not require browser BotID instrumentation.
 

@@ -40,10 +40,6 @@ vi.mock('@/lib/evlog', () => ({
   useLogger: () => ({ audit: vi.fn() }),
 }))
 
-vi.mock('@zntr/auth/bot-id', () => ({
-  rejectBotRequest: async () => null,
-}))
-
 vi.mock('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: mocks.limiter,
   clientIpFrom: () => '203.0.113.8',

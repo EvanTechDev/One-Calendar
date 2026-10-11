@@ -1,14 +1,30 @@
+import { captcha } from 'better-auth/plugins'
 import { checkBotId } from 'botid/server'
-import { BOT_ID_OPTIONS, botIdIsGuarded } from './bot-policy'
+import { BOT_ID_ENDPOINTS, BOT_ID_OPTIONS } from './bot-policy'
 
-/** An outage or missing deployment configuration cannot disable the API gate. */
-export async function rejectBotRequest(
-  method: string,
-  path: string,
-): Promise<Response | null> {
-  if (!botIdIsGuarded(method, path)) return null
+const verifyBotId = () => checkBotId({ advancedOptions: BOT_ID_OPTIONS })
+
+/**
+ * Better Auth's captcha plugin with the Vercel BotID provider, guarding the
+ * shared browser credential and mail-sending endpoints. Only an explicit
+ * `isBot: false` verdict passes; a bot gets 403 and an unavailable check fails
+ * closed with the plugin's error response.
+ */
+export function botIdPlugin() {
+  return captcha({
+    provider: 'vercel-botid',
+    endpoints: BOT_ID_ENDPOINTS,
+    checkBotId: verifyBotId,
+  })
+}
+
+/**
+ * BotID for app-owned API routes outside Better Auth. Returns a response to
+ * send instead of handling the request, or null when the caller is human.
+ */
+export async function rejectBotRequest(): Promise<Response | null> {
   try {
-    const result = await checkBotId({ advancedOptions: BOT_ID_OPTIONS })
+    const result = await verifyBotId()
     if (result.isBot === true) {
       return Response.json(
         {
@@ -20,11 +36,10 @@ export async function rejectBotRequest(
       )
     }
     // The SDK can resolve an upstream JSON error without a classification.
-    // Only an explicit human verdict may reach the auth handler.
     if (result.isBot !== false) throw new Error('Missing BotID verdict')
     return null
   } catch {
-    console.error('[auth] BotID verification unavailable', { path })
+    console.error('[bot-id] BotID verification unavailable')
     return Response.json(
       {
         error: 'BOT_VERIFICATION_UNAVAILABLE',
