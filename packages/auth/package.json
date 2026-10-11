@@ -17,6 +17,8 @@
     "./email": "./src/email.ts",
     "./bot-id": "./src/bot-id.ts",
     "./bot-policy": "./src/bot-policy.ts",
+    "./rate-limit": "./src/rate-limit.ts",
+    "./rate-limit-table": "./src/rate-limit-table.ts",
     "./better-auth-cookies": "./src/better-auth-cookies.ts",
     "./forms": "./src/forms/index.ts",
     "./account": "./src/account/index.ts",

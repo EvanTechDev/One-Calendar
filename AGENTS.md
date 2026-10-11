@@ -107,6 +107,28 @@ Run single file: `pnpm --filter zentra-calendar vitest run ../../tests/calendar/
 shape it does not recognise** — that is a deliberate stop signal, not a bug to
 silence.
 
+### Database-backed tests
+
+`tests/auth/` talks to a real Postgres. Without a URL the suite skips, so
+`databaseIsAvailable()` decides the run at collection time — condition a
+`describe` on that, never on a connection opened in `beforeAll`, or it skips
+unconditionally on every machine.
+
+`tests/auth/db-harness.ts` confines every statement to the `auth_test` schema by
+**wrapping the `pg.Client`** in a `Proxy` whose `query` runs the statement
+between `begin; set local search_path …` and `commit`, serialised through a
+promise chain. Pin at the client boundary rather than at each call site:
+drizzle holds the client, so a call-site wrapper leaves `db.query` unpinned.
+Holding a transaction is what pins the backend, which is why this works against
+the transaction-mode pooler the app itself uses — a session `SET` belongs to the
+backend and the next client gets it back unset. The cost is three round trips
+per statement, which is why these tests take minutes rather than seconds.
+
+Point `AUTH_TEST_POSTGRES_URL` at a **disposable** database. The harness
+truncates the tables it owns and `connectUnpinned` is free to poison its own
+path; the schema it creates is `auth_test`, but nothing stops a test from
+reaching past it if the pin is ever removed.
+
 ## i18n
 
 `packages/i18n/` — source locale JSON + Node scripts `src/gen-locales.mjs` / `src/cleanup-i18n.mjs`.  
@@ -136,6 +158,44 @@ the package must not import the calendar's schema, so that cascade is performed
 in application code. The intra-package relations (`meeting_session`,
 `meeting_attendance`, `meeting_chat_message`) DO have real FKs with
 `ON DELETE CASCADE` — the no-FK rule is only about the cross-app reference.
+
+### Rate limiting
+
+There is no Redis. Fixed-window budgets are counted in the `rate_limit_counters`
+table, one row per `(budget, subject, window start)`, incremented by a single
+`INSERT … ON CONFLICT DO UPDATE`. The primary key IS the atomicity guarantee:
+a read-then-write would lose increments under concurrency, which is exactly the
+bug the Redis implementation had. `count` is set to `1` on insert **and**
+incremented on conflict — the insert branch is the first request of a window, so
+leaving it at the column default makes every budget one request too generous.
+
+Table: `packages/auth/src/rate-limit-table.ts` (it is in `@zntr/auth` because the
+two apps share one database and cannot import each other's schema). Logic:
+`@zntr/auth/rate-limit`. Each app binds it to its own handle in
+`lib/rate-limit.ts`; the MCP limiter keeps counting `mcp_audit_logs` rows
+instead. Rows are swept by the `rateLimitCounters` maintenance job, not by TTL.
+
+`bucket_key` is `name|subject|windowStart` and the separator is load-bearing.
+Names are already composite (`auth:sign-in/email:global`) and subjects are
+attacker-controlled on the IP-keyed budgets, so a colon would let
+`auth:sign-in/email` + `global:all` and `auth:sign-in/email:global` + `all`
+address one row — one client spending the shared sign-in budget. Build a key
+through `bucketKey()` in `@zntr/auth/rate-limit`, never by hand.
+
+### Typing a database handle
+
+**Never write `ReturnType<typeof drizzle>`.** `drizzle`'s schema parameter
+defaults to `Record<string, never>`, which trips drizzle's own guard in
+`PgDatabase` and makes the handle's `query` a `DrizzleTypeError`. The result is
+that the "loose" type is the only one a real schema-bound handle is _not_
+assignable to, so every call site fails to type-check.
+
+Write `NodePgDatabase<Record<string, unknown>>` (plus
+`NodePgTransaction<Record<string, unknown>, Record<string, never>>` where a
+transaction is also accepted) instead — see `Db` in `@zntr/meetings/src/db.ts`,
+`Db` in `@zntr/auth/rate-limit.ts`, and `EventWriteDb` in
+`apps/calendar/lib/event-write.ts`. Widening the schema argument to `unknown`
+keeps `query` real while still accepting every handle.
 
 ## Auth
 
@@ -275,3 +335,12 @@ Conventional commits enforced by commitlint (commit-msg hook): `feat`, `fix`, `d
 - Vercel crons run via `apps/calendar/vercel.json`: `GET /api/blob/check` at midnight UTC (which runs every job in `apps/calendar/lib/maintenance/jobs.ts` — table health, MCP audit retention, expired OAuth state, expired meetings) and `GET /api/reminders/topup` at 2am UTC. `/api/blob/check?jobs=<name>[,<name>]` runs a subset by hand. apps/meet registers no crons: it sweeps expired meetings from the calendar's maintenance run, since the rows are in the same database.
 - Recurrence expansion has exactly ONE owner: `packages/ui/src/calendar/lib/recurrence/engine.ts`. Server consumers import the package directly. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.
 - `apps/meet` needs the calendar's `SALT` to read encrypted event titles. Its `readEventTitle` is a deliberate read-only copy of the calendar's format; if `lib/field-crypto.ts` ever changes, update it in lockstep.
+- Node-postgres, not postgres-js. `Pool` + `attachDatabasePool(pool)` for Fluid
+  compute, and `db.execute(sql)` returns a pg `QueryResult` — read `.rows`, it is
+  not the array postgres-js returned. `stripSslParams()` in each app's drizzle
+  client removes `sslmode`/`sslcert`/`sslkey`/`sslrootcert` from the URL because
+  any of them silently overwrites the `ssl` object built by `resolveDbSsl()`.
+- Session reads are uncached. `getServerSession()` calls `auth.api.getSession`
+  directly; there is no event or session cache, and no `invalidate*Cache` call
+  survives anywhere in the tree. Do not reintroduce a cache without measuring
+  it against the round trip it replaces.

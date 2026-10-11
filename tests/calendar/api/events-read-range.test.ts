@@ -12,12 +12,6 @@ vi.mock('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'owner', email: 'owner@example.com' }),
   decryptEvent: (event: unknown) => event,
 }))
-vi.mock('@/lib/cache/events', async (original) => ({
-  ...(await original<typeof import('@/lib/cache/events')>()),
-  getCachedEvents: async () => null,
-  setCachedEvents: async () => {},
-  invalidateEventCache: async () => {},
-}))
 vi.mock('@zntr/meetings', () => ({
   getMeetingsForEvents: async () => new Map(),
 }))

@@ -29,6 +29,11 @@ const oauth = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/mcp/oauth-cleanup', () => oauth)
 
+const rateLimits = vi.hoisted(() => ({
+  cleanupRateLimitCounters: vi.fn(async () => 0),
+}))
+vi.mock('@zntr/auth/rate-limit', () => rateLimits)
+
 vi.mock('@/lib/drizzle/client', () => ({
   getDb: () => ({
     execute: () => Promise.resolve({ rows: [{ table_name: 'User' }] }),
@@ -51,6 +56,7 @@ beforeEach(() => {
   }))
   oauth.cleanupExpiredOAuthState.mockClear()
   meetings.deleteExpiredMeetings.mockClear()
+  rateLimits.cleanupRateLimitCounters.mockClear()
 })
 
 describe('runMaintenance', () => {
@@ -118,6 +124,15 @@ describe('runMaintenance', () => {
     ])
     const results = await runMaintenance(['expiredMeetings'])
     expect(results.expiredMeetings.detail).toEqual({ deleted: 2 })
+  })
+
+  it('sweeps the rate-limit counters the limiter wrote', async () => {
+    // Counters are an upsert against a primary key, so no write ever notices a
+    // window closing. If this job stops running the table grows by one row per
+    // subject per window forever, which is one row per API call.
+    rateLimits.cleanupRateLimitCounters.mockResolvedValueOnce(12)
+    const results = await runMaintenance(['rateLimitCounters'])
+    expect(results.rateLimitCounters.detail).toEqual({ deleted: 12 })
   })
 })
 

@@ -8,7 +8,6 @@ const state = vi.hoisted(() => ({
 
 const mocks = vi.hoisted(() => ({
   handler: vi.fn(async () => new Response('delegated', { status: 200 })),
-  invalidate: vi.fn(async () => {}),
   limiter: vi.fn(async () => ({ allowed: true, retryAfter: 0 })),
   getSession: vi.fn(async () => null),
 }))
@@ -19,11 +18,6 @@ vi.mock('@zntr/auth', () => ({
 
 vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: mocks.getSession } },
-}))
-
-vi.mock('@/lib/cache/session', () => ({
-  invalidateCachedSession: mocks.invalidate,
-  sessionTokenFromCookieHeader: () => 'session-token',
 }))
 
 vi.mock('@/lib/drizzle/client', () => ({
@@ -65,7 +59,6 @@ function request(method: 'GET' | 'POST', path: string) {
 
 beforeEach(() => {
   mocks.handler.mockClear()
-  mocks.invalidate.mockClear()
   mocks.getSession.mockClear()
   mocks.limiter.mockReset()
   mocks.limiter.mockImplementation(async () => ({
@@ -179,10 +172,10 @@ describe('calendar auth surface', () => {
     expect(mocks.limiter).not.toHaveBeenCalled()
   })
 
-  it('invalidates the session cache after successful sign-out', async () => {
+  it('delegates sign-out, which deletes the session row inside Better Auth', async () => {
     const response = await POST(request('POST', '/api/auth/sign-out'))
 
     expect(response.status).toBe(200)
-    expect(mocks.invalidate).toHaveBeenCalledWith('session-token')
+    expect(mocks.handler).toHaveBeenCalled()
   })
 })

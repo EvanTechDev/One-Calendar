@@ -50,14 +50,7 @@ vi.mock('@/lib/field-crypto', () => ({
   looksLikeEnvelope: () => true,
 }))
 
-vi.mock('@/lib/cache/events', () => ({
-  getCachedEvents: async () => null,
-  setCachedEvents: async () => {},
-  invalidateEventCache: async () => {},
-  groupByMonth: () => ({}),
-}))
-
-vi.mock('@/lib/cache/keys', () => ({ fullMonthRange: () => [] }))
+vi.mock('@/lib/months', () => ({ fullMonthRange: () => [] }))
 
 import { POST, DELETE } from '@/app/api/events/route'
 

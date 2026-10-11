@@ -40,14 +40,7 @@ vi.mock('@/lib/field-crypto', () => ({
   looksLikeEnvelope: () => true,
 }))
 
-vi.mock('@/lib/cache/events', () => ({
-  getCachedEvents: async () => null,
-  setCachedEvents: async () => {},
-  invalidateEventCache: async () => {},
-  groupByMonth: () => new Map(),
-}))
-
-vi.mock('@/lib/cache/keys', () => ({
+vi.mock('@/lib/months', () => ({
   fullMonthRange: () => ({ start: new Date(0), end: new Date(0) }),
 }))
 

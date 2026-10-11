@@ -1,21 +1,15 @@
 import { headers } from 'next/headers'
-import { getSessionCookie } from '@zntr/auth'
 import { auth } from '@/lib/auth'
-import { getCachedSession, setCachedSession } from '@/lib/cache/session'
 
+/**
+ * The session for the current request.
+ *
+ * Reads through Better Auth to the database on every call. A Redis-backed
+ * session cache once sat in front of this and was removed: when the cache was
+ * unreachable it blocked for ioredis' full 10s connect timeout on the way to
+ * the fallback, so every authenticated request paid for the cache that was
+ * supposed to save it.
+ */
 export async function getServerSession() {
-  const hdrs = await headers()
-
-  const sessionCookie = getSessionCookie(hdrs)
-  if (sessionCookie) {
-    const cached = await getCachedSession(sessionCookie)
-    if (cached) return cached
-  }
-
-  const session = await auth.api.getSession({ headers: hdrs })
-  if (session) {
-    await setCachedSession(session)
-  }
-
-  return session
+  return auth.api.getSession({ headers: await headers() })
 }

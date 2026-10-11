@@ -142,9 +142,6 @@ importers:
       geist:
         specifier: latest
         version: 1.7.2(next@16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
-      ioredis:
-        specifier: ^5.11.1
-        version: 5.11.1
       lucide-react:
         specifier: 1.48.0
         version: 1.48.0(react@19.2.7)
@@ -329,16 +326,13 @@ importers:
         version: 3.0.3
       botid:
         specifier: 1.5.11
-        version: 1.5.11(next@16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+        version: 1.5.11(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(kysely@0.29.4)(pg@8.23.1)(postgres@3.4.9)
       geist:
         specifier: latest
-        version: 1.7.2(next@16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
-      ioredis:
-        specifier: ^5.11.1
-        version: 5.11.1
+        version: 1.7.2(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
       livekit-client:
         specifier: 2.22.3
         version: 2.22.3(@types/dom-mediacapture-record@1.0.22)
@@ -11055,7 +11049,8 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.6.2
 
-  '@ioredis/commands@1.10.0': {}
+  '@ioredis/commands@1.10.0':
+    optional: true
 
   '@isaacs/cliui@9.0.0': {}
 
@@ -13929,7 +13924,8 @@ snapshots:
 
   clsx@2.1.1: {}
 
-  cluster-key-slot@1.1.1: {}
+  cluster-key-slot@1.1.1:
+    optional: true
 
   cmdk@1.1.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
@@ -14218,7 +14214,8 @@ snapshots:
 
   delayed-stream@1.0.0: {}
 
-  denque@2.1.0: {}
+  denque@2.1.0:
+    optional: true
 
   depd@2.0.0: {}
 
@@ -14965,6 +14962,10 @@ snapshots:
     dependencies:
       next: 16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
+  geist@1.7.2(next@16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)):
+    dependencies:
+      next: 16.3.8(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+
   gensync@1.0.0-beta.2: {}
 
   get-caller-file@2.0.5: {}
@@ -15342,6 +15343,7 @@ snapshots:
       standard-as-callback: 2.1.0
     transitivePeerDependencies:
       - supports-color
+    optional: true
 
   ip-address@10.4.0: {}
 
@@ -16540,7 +16542,6 @@ snapshots:
       - '@babel/core'
       - '@types/node'
       - babel-plugin-macros
-    optional: true
 
   nlcst-to-string@4.0.0:
     dependencies:
@@ -17235,11 +17236,13 @@ snapshots:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
-  redis-errors@1.2.0: {}
+  redis-errors@1.2.0:
+    optional: true
 
   redis-parser@3.0.0:
     dependencies:
       redis-errors: 1.2.0
+    optional: true
 
   redux-thunk@3.1.0(redux@5.0.1):
     dependencies:
@@ -17884,7 +17887,8 @@ snapshots:
 
   stackback@0.0.2: {}
 
-  standard-as-callback@2.1.0: {}
+  standard-as-callback@2.1.0:
+    optional: true
 
   standardwebhooks@1.0.0:
     dependencies:

@@ -9,7 +9,6 @@ import {
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
-import { invalidateEventCache } from '@/lib/cache/events'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { isEventViewableBy } from '@/lib/bookmarks'
 import { importSchema, firstZodMessage } from '@/lib/validation'
@@ -176,10 +175,6 @@ export const POST = async function POST(request: NextRequest) {
         })
     }
   })
-
-  for (const evt of body.events ?? []) {
-    await invalidateEventCache(user.id, evt.startDate, evt.endDate)
-  }
 
   return NextResponse.json({
     success: true,

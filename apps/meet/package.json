@@ -28,7 +28,6 @@
     "botid": "1.5.11",
     "drizzle-orm": "^0.45.2",
     "geist": "latest",
-    "ioredis": "^5.11.1",
     "livekit-client": "2.22.3",
     "livekit-server-sdk": "2.19.1",
     "lucide-react": "1.21.0",

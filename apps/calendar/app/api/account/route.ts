@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
 import { getServerSession } from '@/lib/auth/server'
-import {
-  invalidateCachedSession,
-  sessionTokenFromCookieHeader,
-} from '@/lib/cache/session'
 import { getDb } from '@/lib/drizzle/client'
 import {
   user as userTable,
@@ -22,11 +18,11 @@ import { deleteMeetingsForOrganiser } from '@zntr/meetings'
 
 export const runtime = 'nodejs'
 
-export const DELETE = withEvlog(async function DELETE(request: Request) {
+// No `request` parameter: the handler identifies the user from the session,
+// and withEvlog still reads the Request off the call args to log the actor.
+export const DELETE = withEvlog(async function DELETE() {
   try {
     const log = useLogger()
-    const cookieHeader = request.headers.get('cookie')
-    const sessionToken = sessionTokenFromCookieHeader(cookieHeader)
     const session = await getServerSession()
     const user = session?.user
     if (!user) {
@@ -62,8 +58,6 @@ export const DELETE = withEvlog(async function DELETE(request: Request) {
       await tx.delete(twoFactorTable).where(eq(twoFactorTable.userId, user.id))
       await tx.delete(userTable).where(eq(userTable.id, user.id))
     })
-
-    if (sessionToken) await invalidateCachedSession(sessionToken)
 
     log.audit?.({
       action: 'account.delete',

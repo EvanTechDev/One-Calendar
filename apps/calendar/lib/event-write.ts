@@ -1,4 +1,8 @@
 import { and, eq, inArray } from 'drizzle-orm'
+import type {
+  NodePgDatabase,
+  NodePgTransaction,
+} from 'drizzle-orm/node-postgres'
 import { calendarEvents } from '@/lib/drizzle/schema'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import {
@@ -7,7 +11,6 @@ import {
   translateStampsByDays,
   isValidRrule as isSupportedRrule,
 } from '@zntr/ui/calendar/lib/recurrence/engine'
-import { getDb } from '@/lib/drizzle/client'
 import type { InstanceChangePlan } from '@/lib/event-service'
 
 /**
@@ -32,10 +35,16 @@ import type { InstanceChangePlan } from '@/lib/event-service'
  * this can join a caller's transaction unchanged — which the series remap
  * paths need, so that a re-stamped override and the master that displaced it
  * commit or roll back together.
+ *
+ * The transaction arm is spelled `NodePgTransaction` rather than derived from
+ * `getDb()` because a derived `ReturnType<typeof getDb>['transaction']` only
+ * names this app's schema, and the shared packages type their ports schema-
+ * erased. Naming one instance's transaction and the other's database made the
+ * two mutually unassignable.
  */
 export type EventWriteDb =
-  | ReturnType<typeof getDb>
-  | Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0]
+  | NodePgDatabase<Record<string, unknown>>
+  | NodePgTransaction<Record<string, unknown>, Record<string, never>>
 
 /**
  * Whether `RRule` can parse `rule`. Absent means "not recurring", so both

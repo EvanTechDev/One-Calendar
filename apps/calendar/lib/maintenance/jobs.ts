@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { deleteExpiredMeetings } from '@zntr/meetings'
+import { cleanupRateLimitCounters } from '@zntr/auth/rate-limit'
 import { getDb } from '@/lib/drizzle/client'
 import { cleanupAuditLogs } from '@/lib/mcp/audit'
 import { cleanupExpiredOAuthState } from '@/lib/mcp/oauth-cleanup'
@@ -85,6 +86,18 @@ export const MAINTENANCE_JOBS = {
     run: async () => ({
       deleted: (await deleteExpiredMeetings(getDb())).length,
     }),
+  },
+  /**
+   * Rate-limit counters past their window.
+   *
+   * Nothing expires these rows by itself — the counter is an upsert against a
+   * primary key, so there is no write that would notice a window closing. Left
+   * alone the table grows by one row per subject per window forever, which is
+   * one row per API call across every limit this app and the meet app enforce.
+   */
+  rateLimitCounters: {
+    name: 'rateLimitCounters',
+    run: async () => ({ deleted: await cleanupRateLimitCounters(getDb()) }),
   },
 } satisfies Record<string, MaintenanceJob>
 

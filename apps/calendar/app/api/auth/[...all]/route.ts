@@ -7,10 +7,6 @@ import {
   desktopRouteIsExposed,
 } from '@zntr/auth/route-policy'
 import { auth } from '@/lib/auth'
-import {
-  invalidateCachedSession,
-  sessionTokenFromCookieHeader,
-} from '@/lib/cache/session'
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'
@@ -27,7 +23,6 @@ const authHandlers = toNextJsHandler(auth)
 type AuthLimit = {
   limit: number
   windowSeconds: number
-  failClosed?: boolean
   globalLimit?: number
 }
 
@@ -69,14 +64,12 @@ function notFound() {
 async function authRateLimit(request: Request, path: string) {
   const budget = LIMITS[path]
   if (!budget) return null
-  const failClosed = budget.failClosed && process.env.NODE_ENV === 'production'
 
   const result = await checkFixedWindowLimit({
     name: `auth:${path}`,
     subject: clientIpFrom(request),
     limit: budget.limit,
     windowSeconds: budget.windowSeconds,
-    ...(failClosed ? { failClosed: true } : {}),
   })
   if (!result.allowed) return rateLimitedResponse(result.retryAfter)
 
@@ -86,7 +79,6 @@ async function authRateLimit(request: Request, path: string) {
       subject: 'all',
       limit: budget.globalLimit,
       windowSeconds: budget.windowSeconds,
-      ...(failClosed ? { failClosed: true } : {}),
     })
     if (!global.allowed) return rateLimitedResponse(global.retryAfter)
   }
@@ -223,11 +215,6 @@ async function handleAuth(request: Request) {
       reason: `BotID verification failed with status ${response.status}`,
     })
     return response
-  }
-
-  if (action === 'auth.logout' && response.status < 400) {
-    const token = sessionTokenFromCookieHeader(request.headers.get('cookie'))
-    if (token) await invalidateCachedSession(token)
   }
 
   if (action) {

@@ -41,10 +41,10 @@ The port also makes the agent testable with an in-memory toolkit:
 - `GROQ_MODEL` — optional, defaults to `openai/gpt-oss-120b` (the strongest
   tool-calling model on Groq's free tier; Llama 3.3 70B is Enterprise-only)
 
-## Rate limiting caveat
+## Rate limiting
 
 The chat route limits each user to 20 requests / 5 minutes and the
-parse-event route to 15 requests / minute, through the calendar's
-Redis-backed fixed-window counter. Like the rest of that cache layer, it
-**fails open**: a self-hosted deployment without `REDIS_URL` effectively
-has no rate limit on the agent. Configure Redis in production.
+parse-event route to 15 requests / minute, counted in the calendar's
+`rate_limit_counters` table. The counter is an `INSERT … ON CONFLICT DO
+UPDATE`, so concurrent requests cannot lose an increment, and it does not
+fail open: a budget that cannot be read is an error, not a free pass.

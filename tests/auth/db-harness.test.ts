@@ -1,8 +1,10 @@
 import { describe, it, expect, afterAll } from 'vitest'
 import {
   TEST_SCHEMA,
+  assertConfinedTo,
   assertIsolated,
   connectIsolated,
+  connectUnpinned,
   databaseIsAvailable,
   truncateOwn,
   type Sql,
@@ -79,7 +81,7 @@ describe.skipIf(!available)('auth test database harness', () => {
   })
 
   it('rejects a connection whose search_path exposes public', async () => {
-    // The exact misconfiguration `assertIsolated` exists to catch: a
+    // The exact misconfiguration the confinement checks exist to catch: a
     // `search_path` of `auth_test, public` sets `current_schema` correctly while
     // leaving every real table one unqualified select away.
     //
@@ -87,24 +89,75 @@ describe.skipIf(!available)('auth test database harness', () => {
     // Once this schema holds its own `account` replica, a name probe resolves
     // `account` to the replica and the leak goes undetected — which is exactly
     // the blind spot this rehearsal exposed.
-    const leaky = (await connectIsolated())!
+    //
+    // Pointed at a deliberately leaky path rather than at a poisoned handle,
+    // because the harness's own handle pins every statement and so cannot be
+    // made to fail. A guard that has never rejected anything is untested.
+    const leaky = (await connectUnpinned())!
     try {
-      await leaky.unsafe(`SET search_path TO ${TEST_SCHEMA}, public`)
-      await expect(assertIsolated(leaky)).rejects.toThrow(
-        /search_path exposes public/,
-      )
+      await expect(
+        assertConfinedTo(leaky, [TEST_SCHEMA, 'public']),
+      ).rejects.toThrow(/search_path exposes public/)
     } finally {
       await leaky.end()
     }
   })
 
   it('rejects a connection pointed at public', async () => {
-    const wrong = (await connectIsolated())!
+    const wrong = (await connectUnpinned())!
     try {
-      await wrong`SET search_path TO public`
-      await expect(assertIsolated(wrong)).rejects.toThrow(/not isolated/)
+      await expect(assertConfinedTo(wrong, ['public'])).rejects.toThrow(
+        /not isolated/,
+      )
     } finally {
       await wrong.end()
+    }
+  })
+
+  it('confirms the path it is given when that path is confined', async () => {
+    // The counterpart to the two rejections above, so they are known to reject a
+    // LEAK and not simply anything at all.
+    const clean = (await connectUnpinned())!
+    try {
+      await expect(
+        assertConfinedTo(clean, [TEST_SCHEMA]),
+      ).resolves.toBeUndefined()
+    } finally {
+      await clean.end()
+    }
+  })
+
+  it('rejects a search path it cannot safely interpolate', async () => {
+    const client = (await connectUnpinned())!
+    try {
+      await expect(
+        assertConfinedTo(client, [`auth_test, public; drop table "user"`]),
+      ).rejects.toThrow(/refusing to search a path named/)
+    } finally {
+      await client.end()
+    }
+  })
+
+  it('holds the path against a sibling connection', async () => {
+    // The regression this harness exists to prevent. Under a transaction-mode
+    // pooler, a session `search_path` belongs to the backend rather than to the
+    // connection, so a second connection repointing the path used to leak into
+    // ours between two of our own statements — and the suite truncates tables.
+    const sql = connection ?? (await connectIsolated())!
+    const intruder = (await connectUnpinned())!
+
+    await intruder.query('set search_path to public')
+    try {
+      await assertIsolated(sql)
+      await sql`create table if not exists harness_sibling (id int)`
+      await sql`insert into harness_sibling values (1)`
+      const [row] = await sql<{ count: number }[]>`
+        select count(*)::int as count from harness_sibling
+      `
+      expect(row!.count).toBe(1)
+      await sql`drop table if exists harness_sibling`
+    } finally {
+      await intruder.end()
     }
   })
 

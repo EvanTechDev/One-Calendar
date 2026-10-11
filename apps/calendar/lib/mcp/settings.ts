@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 /**
  * Bounds for the account-wide MCP throttle.
  *
- * The limiter computes `allowed: count <= maxRpm` directly, so an unclamped
+ * The limiter compares the count it reads against this value, so an unclamped
  * value is a self-inflicted lockout at one end and no throttle at all at the
  * other — on the endpoint that can run a multi-step agent tool loop. Clamped
  * here rather than at the route so both callers and any future one get it.

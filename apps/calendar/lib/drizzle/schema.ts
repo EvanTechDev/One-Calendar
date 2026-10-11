@@ -19,8 +19,9 @@ import {
   verification,
   twoFactor,
 } from '@zntr/auth/schema'
+import { rateLimitCounters } from '@zntr/auth/rate-limit-table'
 
-export { user, session, account, verification, twoFactor }
+export { user, session, account, verification, twoFactor, rateLimitCounters }
 
 // ============================================================
 // APP TABLES

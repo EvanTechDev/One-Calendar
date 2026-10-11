@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import { eq, and, inArray } from 'drizzle-orm'
-import { getDb } from '@/lib/drizzle/client'
 import { eventInvites, eventInviteOccurrences } from '@/lib/drizzle/schema'
 import { shiftExdates } from '@zntr/ui/calendar/lib/recurrence/engine'
+import type { EventWriteDb } from '@/lib/event-write'
 import {
   decryptInviteToken,
   protectInviteToken,
@@ -11,11 +11,10 @@ import {
 /**
  * Either the singleton connection or a transaction executor. The split runs
  * inside a caller-supplied transaction in both implementations, so this must
- * never open one of its own.
+ * never open one of its own. Shared with the event write path so the two
+ * cannot disagree about what a transaction executor is.
  */
-type Dbx =
-  | ReturnType<typeof getDb>
-  | Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0]
+type Dbx = EventWriteDb
 
 export interface CarryInvitesParams {
   oldMasterId: string

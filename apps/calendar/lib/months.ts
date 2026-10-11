@@ -1,20 +1,3 @@
-import { createHash } from 'crypto'
-
-export const SESSION_PREFIX = 'session:token:'
-
-export function sessionKey(token: string): string {
-  const digest = createHash('sha256').update(token).digest('hex')
-  return `${SESSION_PREFIX}${digest}`
-}
-
-export function eventsMonthKey(userId: string, yearMonth: string): string {
-  return `events:overlap-v2:${userId}:${yearMonth}`
-}
-
-export function yearMonthFromDate(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
-}
-
 export function affectedMonths(startDate: string, endDate: string): string[] {
   const start = new Date(startDate)
   const end = new Date(endDate)
@@ -27,9 +10,7 @@ export function affectedMonths(startDate: string, endDate: string): string[] {
 
   // Walk the year/month pair, not the Date. `cursor.setUTCMonth(m + 1)`
   // overflows and normalises forward: from 31 January it lands on 3 March,
-  // skipping February entirely, and from 31 March it skips April. A write in
-  // January then never cleared February's cache, so everything written in that
-  // window stayed invisible until the entry expired on its own.
+  // skipping February entirely, and from 31 March it skips April.
   const months: string[] = []
   let year = start.getUTCFullYear()
   let month = start.getUTCMonth()
@@ -57,6 +38,13 @@ function monthBounds(yearMonth: string): { start: Date; end: Date } {
   }
 }
 
+/**
+ * Widens an arbitrary date range to the calendar months it touches.
+ *
+ * The events query filters on whole months rather than the caller's exact
+ * bounds: an event spanning a month boundary belongs to both months, and a
+ * range filter that excludes one of them returns the wrong answer.
+ */
 export function fullMonthRange(
   startDate: string,
   endDate: string,

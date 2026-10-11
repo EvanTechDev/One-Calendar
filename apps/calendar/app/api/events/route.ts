@@ -11,15 +11,7 @@ import { and, eq, gte, inArray, lte, or, desc, isNotNull } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
-import {
-  getCachedEvents,
-  setCachedEvents,
-  invalidateEventCache,
-  filterCachedByCategory,
-  resolveEventSource,
-  groupByMonth,
-} from '@/lib/cache/events'
-import { fullMonthRange, affectedMonths } from '@/lib/cache/keys'
+import { fullMonthRange } from '@/lib/months'
 import {
   eventSchema,
   firstZodMessage,
@@ -143,35 +135,9 @@ async function rejectForeignCategory(
   return !cat
 }
 
-async function invalidateMasterCache(
-  userId: string,
-  seriesId: string,
-): Promise<void> {
-  const [master] = await getDb()
-    .select({
-      startDate: calendarEvents.startDate,
-      endDate: calendarEvents.endDate,
-    })
-    .from(calendarEvents)
-    .where(
-      and(eq(calendarEvents.id, seriesId), eq(calendarEvents.userId, userId)),
-    )
-  if (master) {
-    await invalidateEventCache(
-      userId,
-      master.startDate.toISOString(),
-      master.endDate.toISOString(),
-    )
-  }
-}
-
-type Dbx =
-  | ReturnType<typeof getDb>
-  | Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0]
-
 async function fetchOverrides(
   seriesId: string,
-  dbx: Dbx = getDb(),
+  dbx: EventWriteDb = getDb(),
 ): Promise<EventRow[]> {
   const rows = await dbx
     .select()
@@ -190,7 +156,7 @@ async function fetchOverrides(
  */
 async function fetchOverridesFor(
   seriesIds: string[],
-  dbx: Dbx = getDb(),
+  dbx: EventWriteDb = getDb(),
 ): Promise<Map<string, EventRow[]>> {
   const unique = [...new Set(seriesIds)]
   const bySeries = new Map<string, EventRow[]>()
@@ -214,7 +180,7 @@ async function fetchOverridesFor(
 async function deleteRow(
   userId: string,
   row: EventRow,
-  dbx: Dbx = getDb(),
+  dbx: EventWriteDb = getDb(),
 ): Promise<void> {
   const rowIds = row.seriesId
     ? [row.id]
@@ -242,11 +208,6 @@ async function deleteRow(
         ),
       )
   }
-  await invalidateEventCache(
-    userId,
-    row.startDate.toISOString(),
-    row.endDate.toISOString(),
-  )
 }
 
 async function applySplitPlan(
@@ -376,19 +337,6 @@ async function applySplitPlan(
   const newMaster = opts?.db
     ? await writeSplit(opts.db)
     : await getDb().transaction(writeSplit)
-
-  await Promise.all([
-    invalidateEventCache(
-      userId,
-      master.startDate.toISOString(),
-      master.endDate.toISOString(),
-    ),
-    invalidateEventCache(
-      userId,
-      split.newSeries.startDate.toISOString(),
-      split.newSeries.endDate.toISOString(),
-    ),
-  ])
 
   // The response identifies both roots. The outer mutation boundary reconciles
   // the head then the tail AFTER commit, including reminders due before cron.
@@ -1005,68 +953,26 @@ export const GET = async function GET(request: NextRequest) {
 
   const filters = [eq(calendarEvents.userId, currentUser.id)]
 
-  let decrypted: ReturnType<typeof decryptEvent>[] = []
-  // Tracked separately from `decrypted.length`, which conflates a cache MISS
-  // with a cache hit on an empty month. Testing the length meant every request
-  // for an empty month queried the database -- and since the date filters are
-  // only pushed on the miss branch, that query ran UNFILTERED, reading the
-  // user's whole history and writing it back into per-month cache keys.
-  let source: 'cache' | 'database' = 'database'
-
   if (startDate && endDate) {
-    const cached = await getCachedEvents(currentUser.id, startDate, endDate)
-    source = resolveEventSource(cached)
-    if (cached) {
-      // The cache is keyed by user and month, so a cached month holds every
-      // category. The categoryId filter below only reaches the database query,
-      // so without this a category-filtered request got the whole month.
-      decrypted = filterCachedByCategory(
-        cached,
-        categoryIds ? categoryIds.split(',') : null,
-      ).map(decryptEvent)
-    } else {
-      const range = fullMonthRange(startDate, endDate)
-      filters.push(lte(calendarEvents.startDate, range.end))
-      filters.push(gte(calendarEvents.endDate, range.start))
-    }
+    const range = fullMonthRange(startDate, endDate)
+    filters.push(lte(calendarEvents.startDate, range.end))
+    filters.push(gte(calendarEvents.endDate, range.start))
   }
 
   if (categoryIds) {
     filters.push(inArray(calendarEvents.categoryId, categoryIds.split(',')))
   }
 
-  if (source === 'database') {
-    // The cache is keyed by user and month only, so a category filter must
-    // never reach the rows that get written into it: the filtered result was
-    // stored under the month key, and the next unfiltered read hit it as a
-    // complete month and silently omitted every event outside the requested
-    // category for the rest of the TTL. A category-filtered miss therefore
-    // skips the write — the read path already filters the cached month, so the
-    // next full read populates it correctly.
-    const writeBackToCache = !(startDate && endDate) || !categoryIds
+  const query = getDb()
+    .select()
+    .from(calendarEvents)
+    .where(and(...filters))
 
-    const query = getDb()
-      .select()
-      .from(calendarEvents)
-      .where(and(...filters))
-
-    if (!(startDate && endDate)) {
-      query.orderBy(desc(calendarEvents.startDate)).limit(1000)
-    }
-
-    const results = await query
-
-    if (startDate && endDate && writeBackToCache) {
-      const grouped = groupByMonth(results, fullMonthRange(startDate, endDate))
-      await Promise.all(
-        affectedMonths(startDate, endDate).map((ym) =>
-          setCachedEvents(currentUser.id, ym, grouped.get(ym) ?? []),
-        ),
-      )
-    }
-
-    decrypted = results.map(decryptEvent)
+  if (!(startDate && endDate)) {
+    query.orderBy(desc(calendarEvents.startDate)).limit(1000)
   }
+
+  const decrypted = (await query).map(decryptEvent)
 
   const windowStart =
     startDate && endDate
@@ -1361,11 +1267,6 @@ const postHandler = async function POST(request: NextRequest) {
         )
         return [row]
       })
-      await invalidateEventCache(
-        user.id,
-        masterRow.startDate.toISOString(),
-        masterRow.endDate.toISOString(),
-      )
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -1458,12 +1359,6 @@ const postHandler = async function POST(request: NextRequest) {
       return writeInstanceOverride(tx, user.id, upsert)
     })
 
-    await invalidateEventCache(
-      user.id,
-      masterRow.startDate.toISOString(),
-      masterRow.endDate.toISOString(),
-    )
-
     const storedDecrypted = stored
       ? (decryptEvent(stored) as unknown as EventRow)
       : null
@@ -1503,11 +1398,6 @@ const postHandler = async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   if (old) {
-    await invalidateEventCache(
-      user.id,
-      old.startDate.toISOString(),
-      old.endDate.toISOString(),
-    )
   }
 
   const fullOld = isUpdate ? old : undefined
@@ -1531,9 +1421,6 @@ const postHandler = async function POST(request: NextRequest) {
         ),
       )
       .returning()
-    if (overrideRow.seriesId !== null) {
-      await invalidateMasterCache(user.id, overrideRow.seriesId)
-    }
     const [withInvites] = await enrichEventsWithInvites(
       [decryptEvent(updated)],
       user.id,
@@ -1640,11 +1527,6 @@ const postHandler = async function POST(request: NextRequest) {
         }
         return [row]
       })
-      await invalidateEventCache(
-        user.id,
-        seriesRow.startDate.toISOString(),
-        seriesRow.endDate.toISOString(),
-      )
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -1758,12 +1640,6 @@ const postHandler = async function POST(request: NextRequest) {
         .returning()
     }
 
-    await invalidateEventCache(
-      user.id,
-      seriesRow.startDate.toISOString(),
-      seriesRow.endDate.toISOString(),
-    )
-
     const storedDecrypted = stored
       ? (decryptEvent(stored) as unknown as EventRow)
       : null
@@ -1846,8 +1722,6 @@ const postHandler = async function POST(request: NextRequest) {
       },
     })
     .returning()
-
-  await invalidateEventCache(user.id, body.startDate, body.endDate)
 
   // The event editor creates a Meeting the moment the organiser asks for one,
   // before this row exists, so its link is copyable immediately. Such a row is
@@ -1961,11 +1835,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
               ),
             )
         })
-        await invalidateEventCache(
-          user.id,
-          masterRow.startDate.toISOString(),
-          masterRow.endDate.toISOString(),
-        )
       } else {
         await getDb()
           .update(calendarEvents)
@@ -1981,11 +1850,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
               eq(calendarEvents.userId, user.id),
             ),
           )
-        await invalidateEventCache(
-          user.id,
-          masterRow.startDate.toISOString(),
-          masterRow.endDate.toISOString(),
-        )
       }
       return NextResponse.json({ success: true })
     }
@@ -2024,7 +1888,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
 
   if (old.seriesId !== null) {
     await deleteRow(user.id, old as unknown as EventRow)
-    await invalidateMasterCache(user.id, old.seriesId)
     return NextResponse.json({ success: true })
   }
 
@@ -2086,11 +1949,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
           ),
         )
     })
-    await invalidateEventCache(
-      user.id,
-      seriesRow.startDate.toISOString(),
-      seriesRow.endDate.toISOString(),
-    )
     const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
     return NextResponse.json({ success: true, seriesEvents })
   }

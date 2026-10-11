@@ -17,8 +17,19 @@ export default defineConfig({
     // eu-north-1; a TLS handshake from a phone does not fit the 5s default.
     // Kept as a per-suite budget rather than a global one so a genuinely hung
     // unit test still fails fast.
-    testTimeout: 30_000,
-    hookTimeout: 30_000,
+    //
+    // 180s rather than 30s, because the harness now spends THREE round trips on
+    // every statement: `begin; set local search_path …`, the statement, `commit`.
+    // That is what confines these tests to `auth_test` when the server is behind
+    // a transaction-mode pooler, where a session `SET` belongs to the backend and
+    // the next client gets it back unset. The migration rehearsals issue a dozen
+    // statements apiece, so at roughly half a second per round trip from a phone
+    // they land at 20s — uncomfortably close to a 30s ceiling that then fails on
+    // an unlucky network rather than on anything wrong with the code. A test that
+    // needs a fourth statement-level budget raises its own; this is the suite-wide
+    // floor that keeps a normal statement from ever timing out.
+    testTimeout: 180_000,
+    hookTimeout: 180_000,
     // One schema, several suites, and the migration rehearsals must use the REAL
     // table names -- that is what makes them rehearsals rather than tests of a
     // renamed copy. So they cannot run concurrently: two suites creating

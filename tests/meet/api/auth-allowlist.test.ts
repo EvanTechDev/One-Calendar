@@ -11,21 +11,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  * still an allowlist, and these tests hold the boundary: Better Auth mounts a
  * route per plugin, and a pass-through would hand this app a public endpoint every
  * time a dependency grew one.
+ *
+ * BotID is NOT tested here. It is verified by the shared Better Auth captcha
+ * plugin inside the delegated handler, on the same paths the calendar uses, and
+ * `tests/auth/bot-id.test.ts` drives that plugin's `onRequest` directly. A mock
+ * of `@zntr/auth` replaces the whole handler, so any bot assertion made through
+ * this route would only be asserting that the mock is not the real thing.
  */
-const { handled, checkBotId } = vi.hoisted(() => ({
+const { handled, limiter } = vi.hoisted(() => ({
   handled: vi.fn(() => new Response('delegated', { status: 200 })),
-  checkBotId: vi.fn(async () => ({ isBot: false })),
+  limiter: vi.fn(async () => ({ allowed: true, retryAfter: 11 })),
 }))
-
-vi.mock('botid/server', () => ({ checkBotId }))
 
 vi.mock('@zntr/auth', () => ({
   toNextJsHandler: () => ({ GET: handled, POST: handled }),
 }))
 vi.mock('@/lib/auth', () => ({ getAuth: () => ({}) }))
-// No Redis in tests; the limiter fails open, which is its documented posture.
 vi.mock('@/lib/rate-limit', () => ({
-  checkFixedWindowLimit: async () => ({ allowed: true, retryAfter: 0 }),
+  checkFixedWindowLimit: limiter,
   clientAddress: () => '203.0.113.1',
 }))
 
@@ -45,7 +48,10 @@ function req(path: string, body?: unknown) {
 
 beforeEach(() => {
   handled.mockClear()
-  checkBotId.mockReset().mockResolvedValue({ isBot: false })
+  limiter.mockReset().mockImplementation(async () => ({
+    allowed: true,
+    retryAfter: 11,
+  }))
 })
 
 describe('meet auth surface', () => {
@@ -53,7 +59,7 @@ describe('meet auth surface', () => {
     expect((await GET(req('/api/auth/get-session'))).status).toBe(200)
   })
 
-  it('allows sign-out', async () => {
+  it('allows sign-out, which deletes the session inside Better Auth', async () => {
     expect((await POST(req('/api/auth/sign-out', {}))).status).toBe(200)
   })
 
@@ -107,6 +113,9 @@ describe('meet auth surface', () => {
       expect(response.status).toBe(404)
     }
     expect(handled).not.toHaveBeenCalled()
+    // A route this app does not expose is not a route anyone can burn a budget
+    // on, so it must not reach the counter either.
+    expect(limiter).not.toHaveBeenCalled()
   })
 
   it('does not accept sign-out over GET', async () => {
@@ -120,33 +129,42 @@ describe('meet auth surface', () => {
   })
 })
 
-describe('BotID enforcement', () => {
-  it('rejects a request classified as a bot', async () => {
-    checkBotId.mockResolvedValue({ isBot: true })
-    const response = await POST(req('/api/auth/sign-in/email', {}))
-    expect(response.status).toBe(403)
+describe('rate limiting', () => {
+  it('counts a credential request against the address budget', async () => {
+    expect((await POST(req('/api/auth/sign-in/email', {}))).status).toBe(200)
+    expect(limiter).toHaveBeenCalledWith({
+      name: 'auth:sign-in/email',
+      subject: '203.0.113.1',
+      limit: 10,
+      windowSeconds: 60,
+    })
+  })
+
+  it('throttles before the request reaches Better Auth', async () => {
+    limiter.mockImplementation(async () => ({ allowed: false, retryAfter: 23 }))
+    const response = await POST(req('/api/auth/sign-up/email', {}))
+
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe('23')
     expect(handled).not.toHaveBeenCalled()
   })
 
-  it('delegates a verified human request', async () => {
-    const response = await POST(req('/api/auth/sign-in/email', {}))
-    expect(response.status).toBe(200)
-    expect(checkBotId).toHaveBeenCalledTimes(1)
-  })
-
-  it('fails closed when verification is unavailable', async () => {
-    checkBotId.mockRejectedValue(new Error('provider unavailable'))
+  it('throttles a mail-sending endpoint, which costs our domain reputation', async () => {
     expect(
       (await POST(req('/api/auth/request-password-reset', {}))).status,
-    ).toBe(503)
-    expect(handled).not.toHaveBeenCalled()
+    ).toBe(200)
+    expect(limiter).toHaveBeenCalledWith({
+      name: 'auth:request-password-reset',
+      subject: '203.0.113.1',
+      limit: 3,
+      windowSeconds: 300,
+    })
   })
 
-  it('does not guard a session-authenticated mutation', async () => {
+  it('does not spend a budget on an authenticated mutation', async () => {
     // The session is already the barrier; a challenge adds friction without
     // adding anything an attacker has to cross.
-    checkBotId.mockResolvedValue({ isBot: true })
     expect((await POST(req('/api/auth/change-password', {}))).status).toBe(200)
-    expect(checkBotId).not.toHaveBeenCalled()
+    expect(limiter).not.toHaveBeenCalled()
   })
 })

@@ -30,6 +30,11 @@ const oauth = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/mcp/oauth-cleanup', () => oauth)
 
+const rateLimits = vi.hoisted(() => ({
+  cleanupRateLimitCounters: vi.fn(async () => 0),
+}))
+vi.mock('@zntr/auth/rate-limit', () => rateLimits)
+
 vi.mock('@/lib/drizzle/client', () => ({
   getDb: () => ({ execute: () => Promise.resolve({ rows: [] }) }),
 }))
@@ -53,6 +58,7 @@ beforeEach(() => {
   }))
   meetings.deleteExpiredMeetings.mockClear()
   oauth.cleanupExpiredOAuthState.mockClear()
+  rateLimits.cleanupRateLimitCounters.mockClear()
   process.env.CRON_SECRET = 'correct-horse'
   delete process.env.MCP_AUDIT_RETENTION_DAYS
 })
@@ -82,6 +88,7 @@ describe('GET /api/blob/check jobs', () => {
       'auditLogs',
       'expiredMeetings',
       'oauthState',
+      'rateLimitCounters',
       'tables',
     ])
   })

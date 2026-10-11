@@ -15,7 +15,6 @@ import {
 } from '@zntr/ui/calendar/lib/event-colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
-import { invalidateEventCache } from '@/lib/cache/events'
 import {
   expandRows,
   resolveMasterEditStamp,
@@ -60,6 +59,7 @@ import {
   remapSeriesOverrideStamps,
   shiftOverrideStamps,
   writeInstanceOverride,
+  type EventWriteDb,
 } from '@/lib/event-write'
 import crypto from 'crypto'
 
@@ -572,31 +572,6 @@ function mcpFieldsToEventRow(data: {
   return fields
 }
 
-/**
- * Drops the cached month buckets a series touches. MCP mutations previously
- * skipped this, so a tool-driven edit left the web UI serving stale months
- * from Redis until the TTL expired. Never throws: a cache miss is safe, a
- * failed tool call is not.
- */
-async function invalidateSeriesCache(
-  userId: string,
-  rows: Array<
-    { startDate: Date | string; endDate: Date | string } | null | undefined
-  >,
-): Promise<void> {
-  for (const row of rows) {
-    if (!row) continue
-    try {
-      const start = new Date(row.startDate)
-      const end = new Date(row.endDate)
-      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue
-      await invalidateEventCache(userId, start.toISOString(), end.toISOString())
-    } catch {
-      // Cache invalidation is best-effort.
-    }
-  }
-}
-
 async function resolveUserTimeZone(userId: string): Promise<string> {
   try {
     const settings = (await getSettings(userId)) as Record<string, unknown>
@@ -608,11 +583,11 @@ async function resolveUserTimeZone(userId: string): Promise<string> {
   }
 }
 
-type BaseDb = Awaited<ReturnType<typeof getDb>>
-type TxDb = Parameters<Parameters<BaseDb['transaction']>[0]>[0]
 /** Either the singleton connection or a transaction executor — helpers that
- * take this can participate in a caller's transaction unchanged. */
-type Db = BaseDb | TxDb
+ * take this can participate in a caller's transaction unchanged. Shared with the
+ * REST write path via `EventWriteDb`, because the two must accept the same
+ * transactions: a meeting cascade is driven from both. */
+type Db = EventWriteDb
 
 async function deleteCalendarEventRow(
   db: Db,
@@ -1176,10 +1151,6 @@ export async function createEvent(
     .returning()
 
   const created = decryptEvent(event)
-  // Keep the web UI's cached months in step with tool-driven creates.
-  await invalidateSeriesCache(userId, [
-    { startDate: created.startDate, endDate: created.endDate },
-  ])
   // An agent that set email_reminder must actually get scheduled emails, and a
   // quota refusal must reach it — otherwise the checkbox appears set with no
   // emails behind it, and a quota refusal must reach the agent rather than
@@ -1786,20 +1757,24 @@ async function deleteEventImpl(
 }
 
 /**
- * Snapshot of the rows a mutation may touch, used to drop the right cached
- * month buckets afterwards. Reads the master (or the instance's series) plus
- * its overrides so a split/day-move invalidates both the old and new spans.
+ * The series roots whose scheduled reminders a mutation may have disturbed,
+ * read BEFORE the mutation runs. Reads the master (or the instance's series)
+ * plus its overrides, so a split or series move surfaces the old root as well
+ * as the new one.
+ *
+ * This is the before-image: after a split, the rows that carried the old root
+ * have already been reassigned, so the root that needs its reminders cleared
+ * is no longer discoverable from the table.
  */
-async function seriesCacheSpans(
+async function seriesReminderRoots(
   userId: string,
   eventId: string,
-): Promise<Array<{ startDate: Date; endDate: Date; reminderRoot: string }>> {
+): Promise<string[]> {
   try {
-    const db = await getDb()
     const parsed = isInstanceId(eventId) ? parseInstanceId(eventId) : null
     const rootId = parsed?.seriesId ?? eventId
-    const rows = await db
-      .select()
+    const rows = await getDb()
+      .select({ id: calendarEvents.id, seriesId: calendarEvents.seriesId })
       .from(calendarEvents)
       .where(
         and(
@@ -1810,11 +1785,7 @@ async function seriesCacheSpans(
           eq(calendarEvents.userId, userId),
         ),
       )
-    return rows.map((r) => ({
-      startDate: new Date(r.startDate),
-      endDate: new Date(r.endDate),
-      reminderRoot: r.seriesId ?? r.id,
-    }))
+    return rows.map((r) => r.seriesId ?? r.id)
   } catch {
     return []
   }
@@ -1854,10 +1825,8 @@ export async function updateEvent(
   ...args: Parameters<typeof updateEventImpl>
 ): ReturnType<typeof updateEventImpl> {
   const [userId, eventId, data] = args
-  const before = await seriesCacheSpans(userId, eventId)
+  const before = await seriesReminderRoots(userId, eventId)
   const result = await updateEventImpl(...args)
-  const after = await seriesCacheSpans(userId, eventId)
-  await invalidateSeriesCache(userId, [...before, ...after])
   await reconcileReminders(
     userId,
     eventId,
@@ -1865,7 +1834,7 @@ export async function updateEvent(
   )
   const originalRoot = parseInstanceId(eventId)?.seriesId ?? eventId
   const changedRoots = new Set([
-    ...before.map((r) => r.reminderRoot),
+    ...before,
     ...(result
       ? [result.seriesId ?? parseInstanceId(result.id)?.seriesId ?? result.id]
       : []),
@@ -1880,11 +1849,10 @@ export async function deleteEvent(
   ...args: Parameters<typeof deleteEventImpl>
 ): Promise<void> {
   const [userId, eventId] = args
-  const before = await seriesCacheSpans(userId, eventId)
+  const before = await seriesReminderRoots(userId, eventId)
   await deleteEventImpl(...args)
-  await invalidateSeriesCache(userId, before)
   await reconcileReminders(userId, eventId, false)
-  for (const root of new Set(before.map((r) => r.reminderRoot))) {
+  for (const root of new Set(before)) {
     if (root !== (parseInstanceId(eventId)?.seriesId ?? eventId))
       await reconcileReminders(userId, root, false)
   }

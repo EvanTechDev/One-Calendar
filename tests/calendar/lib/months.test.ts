@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { affectedMonths } from '@/lib/cache/keys'
+import { affectedMonths } from '@/lib/months'
 
 /**
- * The set of month-cache keys a write has to clear.
+ * The months a requested range touches.
  *
- * This decides what the user sees after a save or an import. A month missing
- * from the list keeps serving its cached rows, so anything just written there
- * is invisible until the entry expires on its own — up to ten minutes.
+ * This decides which rows the events query has to look at. A month missing from
+ * the list is excluded by the range filter, so an event stored in it is invisible
+ * to a request that should have found it.
  */
 describe('affectedMonths', () => {
   it('covers the months a range spans', () => {
@@ -23,7 +23,7 @@ describe('affectedMonths', () => {
 
   it('does not skip the month after a 31st', () => {
     // setUTCMonth from 31 January normalises to 3 March, because February has
-    // 28 days — so February was never added and its cache was never cleared.
+    // 28 days — so February was never added and its rows were never read.
     expect(
       affectedMonths('2026-01-31T00:00:00Z', '2026-01-31T23:00:00Z'),
     ).toEqual(['2026-01'])
