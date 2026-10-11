@@ -31,7 +31,7 @@ const oauth = vi.hoisted(() => ({
 vi.mock('@/lib/mcp/oauth-cleanup', () => oauth)
 
 vi.mock('@/lib/drizzle/client', () => ({
-  getDb: () => ({ execute: () => Promise.resolve([]) }),
+  getDb: () => ({ execute: () => Promise.resolve({ rows: [] }) }),
 }))
 
 import { GET } from '@/app/api/blob/check/route'

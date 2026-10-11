@@ -5,8 +5,8 @@ import {
   connectIsolated,
   databaseIsAvailable,
   truncateOwn,
+  type Sql,
 } from './db-harness'
-import type { Sql } from 'postgres'
 
 /**
  * The harness that protects real user data is itself the first thing tested.

@@ -4,10 +4,10 @@
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
-    "dev": "next dev",
-    "build": "pnpm generate:i18n && pnpm mdx && next build",
+    "dev": "bun run --bun next dev",
+    "build": "pnpm generate:i18n && pnpm mdx && bun run --bun next build",
     "build:check": "pnpm build && pnpm type-check",
-    "start": "next start",
+    "start": "bun run --bun next start",
     "generate:i18n": "pnpm --filter @zntr/i18n generate",
     "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
     "mdx": "fumadocs-mdx",
@@ -18,13 +18,13 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "botid": "1.5.11",
     "@ai-sdk/groq": "4.0.54",
     "@ai-sdk/react": "4.0.130",
     "@mdx-js/loader": "^3.1.0",
     "@mdx-js/react": "^3.1.0",
     "@modelcontextprotocol/server": "2.3.0",
     "@types/mdx": "^2.0.13",
+    "@vercel/functions": "^3.9.11",
     "@zntr/agent": "workspace:*",
     "@zntr/auth": "workspace:*",
     "@zntr/i18n": "workspace:*",
@@ -33,6 +33,7 @@
     "@zntr/utils": "workspace:*",
     "ai": "7.0.127",
     "bcryptjs": "latest",
+    "botid": "1.5.11",
     "date-fns": "4.4.0",
     "drizzle-orm": "^0.45.2",
     "evlog": "2.19.2",
@@ -45,8 +46,8 @@
     "motion": "^12.41.0",
     "next": "16.3.8",
     "next-themes": "latest",
+    "pg": "^8.23.1",
     "postcss": "8.5.28",
-    "postgres": "^3.4.9",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-icons": "5.6.0",
@@ -65,6 +66,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/pg": "^8.23.1",
     "jsdom": "^29.1.1",
     "vitest": "^4.1.10"
   }

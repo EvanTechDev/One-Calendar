@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveDbSsl } from '@/lib/drizzle'
+import { resolveDbSsl, stripSslParams } from '@/lib/drizzle'
 
 describe('meet database TLS policy', () => {
   const pem = [
@@ -9,23 +9,33 @@ describe('meet database TLS policy', () => {
   ].join('\n')
 
   it('requires an encrypted connection by default', () => {
-    expect(resolveDbSsl({})).toBe('require')
+    expect(resolveDbSsl({})).toEqual({ rejectUnauthorized: false })
   })
 
   it('supports explicit verification and local development exceptions', () => {
-    expect(resolveDbSsl({ DATABASE_SSL: 'verify-full' })).toBe('verify-full')
-    expect(resolveDbSsl({ DATABASE_SSL: 'require' })).toBe('require')
-    expect(resolveDbSsl({ DATABASE_SSL: 'no-verify' })).toBe('require')
+    expect(resolveDbSsl({ DATABASE_SSL: 'verify-full' })).toEqual({
+      rejectUnauthorized: true,
+    })
+    expect(resolveDbSsl({ DATABASE_SSL: 'require' })).toEqual({
+      rejectUnauthorized: false,
+    })
+    expect(resolveDbSsl({ DATABASE_SSL: 'no-verify' })).toEqual({
+      rejectUnauthorized: false,
+    })
     expect(resolveDbSsl({ DATABASE_SSL: 'disable' })).toBe(false)
   })
 
   it('normalizes case and whitespace', () => {
-    expect(resolveDbSsl({ DATABASE_SSL: '  NO-VERIFY  ' })).toBe('require')
+    expect(resolveDbSsl({ DATABASE_SSL: '  NO-VERIFY  ' })).toEqual({
+      rejectUnauthorized: false,
+    })
     expect(resolveDbSsl({ DATABASE_SSL: ' DISABLE ' })).toBe(false)
   })
 
   it('uses the deployment-compatible default for unknown values', () => {
-    expect(resolveDbSsl({ DATABASE_SSL: 'anything-else' })).toBe('require')
+    expect(resolveDbSsl({ DATABASE_SSL: 'anything-else' })).toEqual({
+      rejectUnauthorized: false,
+    })
   })
 
   it('uses an explicit CA without disabling peer verification', () => {
@@ -45,5 +55,16 @@ describe('meet database TLS policy', () => {
     expect(() =>
       resolveDbSsl({ DATABASE_SSL_CA: 'not a certificate' }),
     ).toThrow(/PEM certificate/)
+  })
+
+  it('leaves TLS to DATABASE_SSL by dropping URL ssl parameters', () => {
+    expect(
+      stripSslParams(
+        'postgres://u:p@db.example:5432/app?sslmode=require&application_name=x',
+      ),
+    ).toBe('postgres://u:p@db.example:5432/app?application_name=x')
+    expect(stripSslParams('postgres://u:p@db.example/app')).toBe(
+      'postgres://u:p@db.example/app',
+    )
   })
 })

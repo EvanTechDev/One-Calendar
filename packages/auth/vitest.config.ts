@@ -89,10 +89,7 @@ export default defineConfig({
         __dirname,
         'node_modules/botid/dist/next/config/index.mjs',
       ),
-      postgres: path.resolve(
-        __dirname,
-        '../../apps/calendar/node_modules/postgres',
-      ),
+      pg: path.resolve(__dirname, '../../apps/calendar/node_modules/pg'),
     },
   },
   server: {

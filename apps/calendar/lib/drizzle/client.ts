@@ -1,13 +1,13 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
+import { attachDatabasePool } from '@vercel/functions'
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
 import * as schema from './schema'
 
-let _db: ReturnType<typeof drizzle> | null = null
+let _db: NodePgDatabase<typeof schema> | null = null
 
 type DbSsl =
-  | 'verify-full'
-  | 'require'
   | false
+  | { rejectUnauthorized: boolean }
   | { ca: string; rejectUnauthorized: true }
 
 function configuredCa(env: Record<string, string | undefined>): string | null {
@@ -29,21 +29,36 @@ export function resolveDbSsl(
   if (ca) return { ca, rejectUnauthorized: true }
 
   const mode = env.DATABASE_SSL?.trim().toLowerCase()
-  if (mode === 'verify-full') return 'verify-full'
-  if (mode === 'no-verify' || mode === 'require') return 'require'
+  if (mode === 'verify-full') return { rejectUnauthorized: true }
   if (mode === 'disable') return false
-  return 'require'
+  return { rejectUnauthorized: false }
+}
+
+// pg lets ssl parameters in the URL replace the `ssl` option entirely, and it
+// reads `sslmode=require` as full verification. DATABASE_SSL owns TLS here.
+const URL_SSL_PARAMS = ['sslmode', 'sslcert', 'sslkey', 'sslrootcert', 'ssl']
+
+export function stripSslParams(connectionString: string): string {
+  let url: URL
+  try {
+    url = new URL(connectionString)
+  } catch {
+    return connectionString
+  }
+  for (const param of URL_SSL_PARAMS) url.searchParams.delete(param)
+  return url.toString()
 }
 
 export function getDb() {
   if (!_db) {
     const connectionString =
       process.env.POSTGRES_URL || process.env.DATABASE_URL!
-    const client = postgres(connectionString, {
-      prepare: false,
+    const pool = new Pool({
+      connectionString: stripSslParams(connectionString),
       ssl: resolveDbSsl(),
     })
-    _db = drizzle(client, { schema })
+    attachDatabasePool(pool)
+    _db = drizzle({ client: pool, schema })
   }
   return _db
 }

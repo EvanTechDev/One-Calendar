@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { drizzle } from 'drizzle-orm/postgres-js'
+import { drizzle } from 'drizzle-orm/node-postgres'
 import { createDrizzleAdapter } from '@zntr/auth/adapter'
 import { authSchema } from '@zntr/auth/schema'
 import { assertIsolated, connectIsolated } from './db-harness'
@@ -81,7 +81,9 @@ export async function desktopDatabase() {
     throw error
   }
   return {
-    database: createDrizzleAdapter(drizzle(sql, { schema: authSchema })),
+    database: createDrizzleAdapter(
+      drizzle({ client: sql.client, schema: authSchema }),
+    ),
     async reset() {
       await assertIsolated(sql)
       await sql.unsafe(`truncate table ${quoted}`)

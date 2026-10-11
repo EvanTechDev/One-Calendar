@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { Sql } from 'postgres'
+import type { Sql } from './db-harness'
 import { connectIsolated, databaseIsAvailable } from './db-harness'
 
 const available = databaseIsAvailable()

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { connectIsolated, databaseIsAvailable } from './db-harness'
-import type { Sql } from 'postgres'
+import type { Sql } from './db-harness'
 
 /**
  * Runs the REAL migration file against a replica of the real table, in the

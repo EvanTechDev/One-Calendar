@@ -49,7 +49,7 @@ export const MAINTENANCE_JOBS = {
   tables: {
     name: 'tables',
     run: async () => {
-      const rows = await getDb().execute(sql<{ table_name: string }>`
+      const { rows } = await getDb().execute(sql<{ table_name: string }>`
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema = 'public'

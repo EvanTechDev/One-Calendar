@@ -1,14 +1,16 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
+import { attachDatabasePool } from '@vercel/functions'
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
 import { authSchema } from '@zntr/auth'
 import { meetingsSchema } from '@zntr/meetings'
 
-let _db: ReturnType<typeof drizzle> | null = null
+const schema = { ...authSchema, ...meetingsSchema }
+
+let _db: NodePgDatabase<typeof schema> | null = null
 
 type DbSsl =
-  | 'verify-full'
-  | 'require'
   | false
+  | { rejectUnauthorized: boolean }
   | { ca: string; rejectUnauthorized: true }
 
 function configuredCa(env: Record<string, string | undefined>): string | null {
@@ -30,29 +32,44 @@ export function resolveDbSsl(
   if (ca) return { ca, rejectUnauthorized: true }
 
   const mode = env.DATABASE_SSL?.trim().toLowerCase()
-  if (mode === 'verify-full') return 'verify-full'
-  if (mode === 'no-verify' || mode === 'require') return 'require'
+  if (mode === 'verify-full') return { rejectUnauthorized: true }
   if (mode === 'disable') return false
-  return 'require'
+  return { rejectUnauthorized: false }
+}
+
+// pg lets ssl parameters in the URL replace the `ssl` option entirely, and it
+// reads `sslmode=require` as full verification. DATABASE_SSL owns TLS here.
+const URL_SSL_PARAMS = ['sslmode', 'sslcert', 'sslkey', 'sslrootcert', 'ssl']
+
+export function stripSslParams(connectionString: string): string {
+  let url: URL
+  try {
+    url = new URL(connectionString)
+  } catch {
+    return connectionString
+  }
+  for (const param of URL_SSL_PARAMS) url.searchParams.delete(param)
+  return url.toString()
 }
 
 export function getDb() {
   if (!_db) {
     const connectionString =
       process.env.POSTGRES_URL || process.env.DATABASE_URL
-    // Checked rather than asserted: `DATABASE_URL!` handed `undefined` to
-    // postgres(), which fails deep inside the driver with a message that says
-    // nothing about the missing variable.
+    // Checked rather than asserted: `DATABASE_URL!` handed `undefined` to the
+    // driver, which fails deep inside it with a message that says nothing
+    // about the missing variable.
     if (!connectionString) {
       throw new Error(
         'POSTGRES_URL or DATABASE_URL must be set (see apps/meet/.env.example)',
       )
     }
-    const client = postgres(connectionString, {
-      prepare: false,
+    const pool = new Pool({
+      connectionString: stripSslParams(connectionString),
       ssl: resolveDbSsl(),
     })
-    _db = drizzle(client, { schema: { ...authSchema, ...meetingsSchema } })
+    attachDatabasePool(pool)
+    _db = drizzle({ client: pool, schema })
   }
   return _db
 }

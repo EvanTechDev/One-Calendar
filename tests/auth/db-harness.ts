@@ -1,7 +1,45 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import postgres from 'postgres'
-import type { Sql } from 'postgres'
+import pg from 'pg'
+
+type Row = Record<string, unknown>
+
+/**
+ * A tagged-template query handle over one node-postgres client.
+ *
+ * Interpolated values become bind parameters, never SQL text; `unsafe` runs a
+ * raw (possibly multi-statement) script through the simple query protocol.
+ */
+export interface Sql {
+  <T extends readonly Row[] = Row[]>(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<T>
+  unsafe(text: string): Promise<Row[]>
+  end(): Promise<void>
+  readonly client: pg.Client
+}
+
+function wrapClient(client: pg.Client): Sql {
+  const query = async <T extends readonly Row[]>(
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ): Promise<T> => {
+    const text = strings.reduce((acc, part, index) => `${acc}$${index}${part}`)
+    const result = await client.query(text, values)
+    return result.rows as unknown as T
+  }
+  return Object.assign(query, {
+    async unsafe(text: string) {
+      const result = await client.query(text)
+      // A multi-statement script yields one result per statement.
+      const last = Array.isArray(result) ? result.at(-1) : result
+      return (last?.rows ?? []) as Row[]
+    },
+    end: () => client.end(),
+    client,
+  })
+}
 
 /**
  * A real Postgres connection for the auth integration tests, pinned to an
@@ -134,16 +172,23 @@ export async function connectIsolated(): Promise<Sql | null> {
     )
   }
 
-  const sql = postgres(url, {
-    ssl: disableTLS ? false : 'require',
-    max: 1,
+  const connectionUrl = new URL(url)
+  // URL ssl parameters would replace the `ssl` option below.
+  for (const param of ['sslmode', 'sslcert', 'sslkey', 'sslrootcert', 'ssl']) {
+    connectionUrl.searchParams.delete(param)
+  }
+  const client = new pg.Client({
+    connectionString: connectionUrl.toString(),
+    ssl: disableTLS ? false : { rejectUnauthorized: false },
     // Excluding `public` is the isolation. Postgres resolves unqualified names
     // against this list only, so a stray query fails rather than finding a real
     // table.
-    connection: { search_path: TEST_SCHEMA },
+    options: `-c search_path=${TEST_SCHEMA}`,
     // Integration tests should fail fast rather than hang a suite.
-    connect_timeout: 20,
+    connectionTimeoutMillis: 20_000,
   })
+  await client.connect()
+  const sql = wrapClient(client)
 
   try {
     await assertIsolated(sql)

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { betterAuth } from 'better-auth'
-import { drizzle } from 'drizzle-orm/postgres-js'
+import { drizzle } from 'drizzle-orm/node-postgres'
 import { createDrizzleAdapter } from '@zntr/auth/adapter'
 import { authSchema } from '@zntr/auth/schema'
 
