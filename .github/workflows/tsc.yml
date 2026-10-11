@@ -105,9 +105,6 @@ jobs:
         with:
           node-version: 25
           cache: pnpm
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter ${{ matrix.app }} build
   installed-update:
@@ -138,9 +135,6 @@ jobs:
         with:
           node-version: 25
           cache: pnpm
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter zentra-calendar build
       - run: pnpm exec playwright install --with-deps --only-shell chromium

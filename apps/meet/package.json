@@ -4,10 +4,10 @@
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
-    "dev": "bun run --bun next dev -p 3001",
-    "build": "bun run --bun next build",
+    "dev": "next dev -p 3001",
+    "build": "next build",
     "build:check": "pnpm build && pnpm type-check",
-    "start": "bun run --bun next start -p 3001",
+    "start": "next start -p 3001",
     "lint": "oxlint --fix --config ../../config/oxlint.json app components hooks lib",
     "lint:check": "oxlint --config ../../config/oxlint.json app components hooks lib",
     "type-check": "tsc --noEmit",
