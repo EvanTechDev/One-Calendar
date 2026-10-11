@@ -9,6 +9,8 @@ const baseUrl = new URL(
 const appDirectory = path.join(process.cwd(), 'app')
 const fallbackDate = new Date()
 
+export const revalidate = 86400
+
 type SitemapRoute = {
   pathname: string
   filePath: string[]
