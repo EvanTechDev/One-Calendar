@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { site } from './site'
 import Link from 'next/link'
-import { BookOpen, CodeXml, MessageCircle } from 'lucide-react'
+import { BookOpen, CodeXml, History, MessageCircle } from 'lucide-react'
 import { DocsSearch } from '@/components/docs-toolbar'
 
 export function baseOptions(): BaseLayoutProps {
@@ -35,6 +35,10 @@ export function SidebarResources() {
       <Link href="/docs">
         <BookOpen aria-hidden />
         Docs
+      </Link>
+      <Link href="/changelog">
+        <History aria-hidden />
+        Changelog
       </Link>
       <a href={site.repository}>
         <CodeXml aria-hidden />

@@ -1,5 +1,3 @@
-'use client'
-
 import { LegalPageShell } from '@/components/landing/legal-page-shell'
 
 const termsContent = {
@@ -20,7 +18,18 @@ const termsContent = {
       content: [
         'The Zentra Calendar source code is distributed under the MIT License.',
         'If you redistribute modified versions, you must comply with the MIT License obligations.',
-        "License details are available at <a href='https://github.com/EvanTechDev/One-Calendar/blob/main/LICENSE' target='_blank' class='text-blue-600 hover:underline'>https://github.com/EvanTechDev/One-Calendar/blob/main/LICENSE</a>.",
+        <>
+          License details are available at{' '}
+          <a
+            href="https://github.com/EvanTechDev/One-Calendar/blob/main/LICENSE"
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            the project license
+          </a>
+          .
+        </>,
       ],
     },
     {
@@ -81,5 +90,5 @@ const termsContent = {
 }
 
 export default function TermsOfService() {
-  return <LegalPageShell {...termsContent} allowHtml />
+  return <LegalPageShell {...termsContent} />
 }

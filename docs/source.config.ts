@@ -1,4 +1,9 @@
-import { defineConfig, defineDocs } from 'fumadocs-mdx/config'
+import {
+  defineCollections,
+  defineConfig,
+  defineDocs,
+  frontmatterSchema,
+} from 'fumadocs-mdx/config'
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema'
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins'
 import { shikiTokenClassTransformer } from './lib/shiki-token-classes'
@@ -31,6 +36,16 @@ export const docs = defineDocs({
   meta: {
     schema: metaSchema,
   },
+})
+
+export const changelog = defineCollections({
+  type: 'doc',
+  dir: 'content/changelog',
+  schema: frontmatterSchema.extend({
+    date: z.string(),
+    tags: z.array(z.string()).optional(),
+    version: z.string().optional(),
+  }),
 })
 
 export default defineConfig({

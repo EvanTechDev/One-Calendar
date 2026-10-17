@@ -1,6 +1,5 @@
-'use client'
-
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { Footer } from './footer'
 import { Header } from './header'
 import { SiGithub } from 'react-icons/si'
@@ -9,11 +8,10 @@ type LegalPageShellProps = {
   title: string
   lastUpdated: string
   intro: string
-  sections: Array<{ heading: string; content: string[] }>
+  sections: Array<{ heading: string; content: ReactNode[] }>
   cta: string
   github: string
   home: string
-  allowHtml?: boolean
 }
 
 export function LegalPageShell({
@@ -24,7 +22,6 @@ export function LegalPageShell({
   cta,
   github,
   home,
-  allowHtml = false,
 }: LegalPageShellProps) {
   return (
     <main className="relative min-h-screen overflow-x-hidden noise-overlay">
@@ -48,22 +45,14 @@ export function LegalPageShell({
                 <h2 className="text-2xl font-semibold tracking-tight">
                   {section.heading}
                 </h2>
-                {section.content.map((item, j) =>
-                  allowHtml ? (
-                    <p
-                      key={j}
-                      className="text-base leading-relaxed text-foreground/80"
-                      dangerouslySetInnerHTML={{ __html: item }}
-                    />
-                  ) : (
-                    <p
-                      key={j}
-                      className="text-base leading-relaxed text-foreground/80"
-                    >
-                      {item}
-                    </p>
-                  ),
-                )}
+                {section.content.map((item, j) => (
+                  <p
+                    key={j}
+                    className="text-base leading-relaxed text-foreground/80"
+                  >
+                    {item}
+                  </p>
+                ))}
               </article>
             ))}
           </div>

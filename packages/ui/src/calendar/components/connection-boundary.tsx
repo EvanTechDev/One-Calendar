@@ -94,8 +94,11 @@ export function ConnectionBoundary({
   onReconnect?: () => void | Promise<void>
 }) {
   const host = useCalendarHost()
-  const [disconnected, setDisconnected] = useState(false)
+  const [disconnected, setDisconnected] = useState(Boolean(checkConnection))
   const [checking, setChecking] = useState(false)
+  const [initialConnectionCheck, setInitialConnectionCheck] = useState(
+    Boolean(checkConnection),
+  )
   const inFlight = useRef(false)
   const retryRef = useRef<() => Promise<void>>(async () => {})
   const request = useMemo<typeof fetch>(
@@ -158,16 +161,20 @@ export function ConnectionBoundary({
     // A failed reachability probe covers this case without resetting identity.
     if (!checkConnection) return
     let active = true
-    const probe = () => {
-      void checkConnection()
-        .then((ok) => {
-          if (active && !ok) setDisconnected(true)
-        })
-        .catch(() => {
-          if (active) setDisconnected(true)
-        })
+    let firstProbe = true
+    const probe = async () => {
+      try {
+        const connected = await checkConnection()
+        if (active && firstProbe) setDisconnected(!connected)
+        else if (active && !connected) setDisconnected(true)
+      } catch {
+        if (active) setDisconnected(true)
+      } finally {
+        if (active && firstProbe) setInitialConnectionCheck(false)
+        firstProbe = false
+      }
     }
-    probe()
+    void probe()
     const interval = window.setInterval(probe, 30_000)
     return () => {
       active = false
@@ -217,7 +224,10 @@ export function ConnectionBoundary({
                 onEscapeKeyDown={(event) => event.preventDefault()}
                 onInteractOutside={(event) => event.preventDefault()}
               >
-                <NoInternet retry={() => void retry()} checking={checking} />
+                <NoInternet
+                  retry={() => void retry()}
+                  checking={checking || initialConnectionCheck}
+                />
               </DialogPrimitive.Content>
             </DialogPrimitive.Portal>
           </DialogPrimitive.Root>

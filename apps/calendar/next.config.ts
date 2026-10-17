@@ -3,10 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { NextConfig } from 'next'
-import { createMDX } from 'fumadocs-mdx/next'
 import { withBotId } from 'botid/next/config'
-
-const withMDX = createMDX()
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(
@@ -67,4 +64,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withBotId(withMDX(nextConfig))
+export default withBotId(nextConfig)

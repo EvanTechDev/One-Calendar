@@ -26,8 +26,8 @@ const footerLinks: FooterSection[] = [
   {
     label: 'Resources',
     links: [
-      { title: 'Docs', href: '#' },
-      { title: 'Changelog', href: '/changelog' },
+      { title: 'Docs', href: 'https://xyehr.cn/docs' },
+      { title: 'Changelog', href: 'https://xyehr.cn/changelog' },
       { title: 'Brand', href: '#' },
       { title: 'Help', href: 'mailto:evan.huang000@proton.me' },
       { title: 'Status', href: 'https://calendarstatus.xyehr.cn' },

@@ -1,11 +1,10 @@
 import { Button } from '@zntr/ui/button'
 import { CircleAlert, LoaderCircle, RefreshCw } from 'lucide-react'
-import appIcon from '../src-tauri/icons/128x128.png'
 
 export function DesktopBrand() {
   return (
     <div className="desktop-brand">
-      <img src={appIcon} width={36} height={36} alt="" />
+      <img src="/product-logo.svg" width={36} height={36} alt="" />
       <span>
         Zentra <span className="desktop-brand-subtitle">Calendar</span>
       </span>

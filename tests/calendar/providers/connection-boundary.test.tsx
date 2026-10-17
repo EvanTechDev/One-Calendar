@@ -14,6 +14,7 @@ function fixture(
   request: typeof fetch,
   mounted: () => void,
   portal?: 'dialog' | 'popover',
+  checkConnection?: () => Promise<boolean>,
 ) {
   const host: CalendarHost = {
     platform: 'web',
@@ -64,7 +65,7 @@ function fixture(
   }
   return render(
     <CalendarHostProvider value={host}>
-      <ConnectionBoundary>
+      <ConnectionBoundary checkConnection={checkConnection}>
         {portal ? <PortalledEditor /> : <Editor />}
       </ConnectionBoundary>
     </CalendarHostProvider>,
@@ -72,6 +73,51 @@ function fixture(
 }
 
 describe('shared connection recovery', () => {
+  it('shows the offline screen while the initial desktop connection probe is pending', async () => {
+    let resolveProbe: (connected: boolean) => void = () => {}
+    const checkConnection = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveProbe = resolve
+        }),
+    )
+    const view = fixture(vi.fn(), vi.fn(), undefined, checkConnection)
+
+    expect(
+      screen.getByRole('heading', { name: 'No internet connection' }),
+    ).toBeVisible()
+    expect(view.container.querySelector('[inert]')).toHaveStyle({
+      visibility: 'hidden',
+    })
+
+    await act(async () => resolveProbe(false))
+    expect(
+      screen.getByRole('heading', { name: 'No internet connection' }),
+    ).toBeVisible()
+    view.unmount()
+  })
+
+  it('reveals desktop content after the initial connection probe succeeds', async () => {
+    let resolveProbe: (connected: boolean) => void = () => {}
+    const checkConnection = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveProbe = resolve
+        }),
+    )
+    const view = fixture(vi.fn(), vi.fn(), undefined, checkConnection)
+
+    expect(
+      screen.getByRole('heading', { name: 'No internet connection' }),
+    ).toBeVisible()
+    await act(async () => resolveProbe(true))
+    expect(
+      screen.queryByRole('heading', { name: 'No internet connection' }),
+    ).toBeNull()
+    expect(view.container.querySelector('[inert]')).toBeNull()
+    view.unmount()
+  })
+
   it.each(['dialog', 'popover'] as const)(
     'keeps a portalled %s draft open while recovery takes focus',
     async (portal) => {

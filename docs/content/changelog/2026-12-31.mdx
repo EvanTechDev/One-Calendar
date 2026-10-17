@@ -1,0 +1,44 @@
+---
+title: '3.0.0 - Smarter, Faster, AI-Ready'
+description: 'Zentra Calendar 3.0.0 introduces AI assistant integration via MCP, a Redis caching layer, field-level encryption, a new DataProvider architecture, and a revamped event experience.'
+date: '2026-12-31'
+tags: ['AI', 'MCP', 'Performance', 'Security', 'UI']
+version: '3.0.0'
+---
+
+This major release turns Zentra Calendar into an AI-ready, faster, and more secure scheduling tool. It ships an MCP server so AI assistants can read and manage your calendar, a Redis cache layer for snappier loads, field-level encryption for your data, and a fully migrated data layer that keeps every view in sync in real time.
+
+## Features
+
+- feat: add MCP server with all calendar tools plus rate limiting and audit logging
+- feat: implement OAuth Device Code Grant and Authorization Code Grant with PKCE for AI clients
+- feat: add OAuth dynamic client registration to the MCP server
+- feat: show redirect URI and scopes on the OAuth authorize page, validate HTTPS redirect
+- feat: add MCP settings UI components and management API routes
+- feat: add Redis cache layer for sessions and events with automatic invalidation
+- feat: add field-level encryption and CRUD APIs
+- feat: add DataProvider + API client frontend layer, migrating all data from localStorage
+- feat: add Astro web marketing site with theme-aware logo favicon
+- feat: redirect unauthenticated /app users to /sign-up
+- feat: make month-view remaining events clickable with year-view popover scroll
+- feat: add new data refresh callbacks and update import paths in locales
+
+## Bug Fixes
+
+- fix: restrict MCP tool colors to a strict enum with clear English descriptions
+- fix: support application/x-www-form-urlencoded in OAuth token/authorize/device endpoints
+- fix: cache all events by month regardless of date params and decrypt on cache hit
+- fix: harden redis client and event cache date handling
+- fix: improve event preview positioning, bookmarks/search navigation, and search UI
+- fix: replace manual portal popovers with Radix Popover for modal + smart positioning
+- fix: resolve year view popover/countdown bugs and remove mini calendar sheet
+- fix: prevent analytics lag on sidebar toggle by deferring chart renders
+- fix: use BarStack clipPath for rounded stacked bar corners
+- fix: category reorder and drag-drop persisting to DB
+- fix: delete event toast slow and undo not persisting to DB
+- fix: validate timezone before using with Intl API to prevent RangeError
+- fix: resolve circular dependency and Turbopack TDZ errors in API route builds
+- fix: align Session type nullability with better-auth return types
+- fix: wrap useSearchParams in Suspense boundary on /oauth/authorize
+- fix: decrypt event fields before embedding in share payload
+- test: add 22 tests for field-crypto, share-crypto, api-helpers, and migration logic

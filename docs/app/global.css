@@ -647,6 +647,39 @@ aside p.inline-flex {
     height: 44px;
     padding: 11px;
   }
+  .docs-menu,
+  .docs-search,
+  .docs-theme {
+    position: relative;
+    border-color: transparent;
+    background: transparent;
+    padding: 0;
+  }
+  .docs-menu:hover,
+  .docs-search:hover,
+  .docs-theme:hover {
+    background: transparent;
+  }
+  .docs-menu::before,
+  .docs-search::before,
+  .docs-theme::before {
+    position: absolute;
+    inset: 4px;
+    border: 1px solid var(--color-fd-border);
+    border-radius: 50%;
+    content: '';
+    pointer-events: none;
+  }
+  .docs-menu:hover::before,
+  .docs-search:hover::before,
+  .docs-theme:hover::before {
+    background: var(--color-fd-accent);
+  }
+  .docs-menu svg,
+  .docs-search svg,
+  .docs-theme svg {
+    position: relative;
+  }
   .docs-search svg,
   .docs-theme svg {
     width: 18px;

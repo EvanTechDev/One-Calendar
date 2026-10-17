@@ -2,7 +2,7 @@ import { cn } from '@zntr/utils'
 
 const links = [
   { label: 'Code', href: 'https://github.com/EvanTechDev/One-Calendar' },
-  { label: 'Changelog', href: '/changelog' },
+  { label: 'Changelog', href: 'https://xyehr.cn/changelog' },
   { label: 'Contact', href: 'mailto:evan.huang000@proton.me' },
 ]
 
