@@ -63,21 +63,22 @@ function renderCalendarData() {
   return { pending, data: () => data }
 }
 
-it('shares one four-year request across rapid month and year navigation, including before it resolves', async () => {
+it('loads a bounded quarter window and requests a larger year only when needed', async () => {
   const { pending, data } = renderCalendarData()
   const initial = pending[0].range
   expect(Date.parse(initial.startDate)).toBeLessThanOrEqual(
-    new Date(2024, 9, 1).getTime(),
+    new Date(2026, 8, 1).getTime(),
   )
   expect(Date.parse(initial.endDate)).toBeGreaterThanOrEqual(
-    new Date(2028, 10, 1).getTime(),
+    new Date(2027, 1, 1).getTime(),
   )
+  expect(
+    Date.parse(initial.endDate) - Date.parse(initial.startDate),
+  ).toBeLessThan(160 * 86400000)
 
   for (const [year, month, view] of [
     [2026, 10, 'month'],
     [2026, 11, 'month'],
-    [2027, 5, 'year'],
-    [2025, 3, 'month'],
   ] as const) {
     await act(async () =>
       data().setEventsRange(
@@ -90,11 +91,20 @@ it('shares one four-year request across rapid month and year navigation, includi
   expect(screen.getByText('preloaded')).toBeInTheDocument()
   await act(async () =>
     data().setEventsRange(
-      calendarLoadRange(new Date(2028, 6, 4), 'month', initial.timezone),
+      calendarLoadRange(new Date(2026, 6, 4), 'year', initial.timezone),
     ),
   )
-  expect(mock.list).toHaveBeenCalledTimes(1)
-  expect(screen.getByText('preloaded')).toBeInTheDocument()
+  expect(mock.list).toHaveBeenCalledTimes(2)
+  expect(Date.parse(pending[1].range.startDate)).toBeLessThanOrEqual(
+    new Date(2025, 11, 1).getTime(),
+  )
+  expect(Date.parse(pending[1].range.endDate)).toBeGreaterThanOrEqual(
+    new Date(2027, 1, 1).getTime(),
+  )
+  expect(
+    Date.parse(pending[1].range.endDate) -
+      Date.parse(pending[1].range.startDate),
+  ).toBeLessThan(440 * 86400000)
 })
 
 it('loads uncovered periods and never lets an old range response overwrite a newer one', async () => {
@@ -171,4 +181,27 @@ it('invalidates previously visited windows after a deletion instead of restoring
   expect(pending[3].range).toEqual(initial)
   await act(async () => pending[3].resolve({ events: [] }))
   expect(data().events).toEqual([])
+})
+
+it('keeps displayed data during refresh and resolves only after revalidation', async () => {
+  const { pending, data } = renderCalendarData()
+  await act(async () => pending[0].resolve({ events: [{ id: 'visible' }] }))
+  let finished = false
+  let refreshing!: Promise<void>
+  await act(async () => {
+    refreshing = data()
+      .refreshEvents()
+      .then(() => {
+        finished = true
+      })
+  })
+  expect(pending).toHaveLength(2)
+  expect(screen.getByText('visible')).toBeInTheDocument()
+  expect(finished).toBe(false)
+  await act(async () => {
+    pending[1].resolve({ events: [{ id: 'fresh' }] })
+    await refreshing
+  })
+  expect(finished).toBe(true)
+  expect(screen.getByText('fresh')).toBeInTheDocument()
 })

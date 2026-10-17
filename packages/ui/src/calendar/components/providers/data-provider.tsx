@@ -233,14 +233,17 @@ export function DataProvider({
       // Revalidation must not replace a pending write's SWR mutation marker.
       // Queue full invalidation until writes settle, including inactive keys.
       eventWrites.current.needsRefresh = true
-      void mutate(isEventRangeKey).catch(() => {})
-    } else {
-      // Clearing data also invalidates visited windows with no mounted hook;
-      // revalidation alone would leave their stale cached rows intact.
-      void mutate(isEventRangeKey, undefined, { revalidate: true }).catch(
-        () => {},
-      )
+      return
     }
+    const activeKey = eventsKeyRef.current
+    // Keep the visible/optimistic rows during revalidation. Inactive windows
+    // must be cleared, not merely revalidated: they have no mounted fetcher.
+    await Promise.all([
+      mutate((key) => isEventRangeKey(key) && key !== activeKey, undefined, {
+        revalidate: false,
+      }),
+      mutate(activeKey),
+    ])
   }, [mutate])
   const finishEventWrite = useCallback(
     async (needsRefresh: boolean) => {
@@ -249,7 +252,9 @@ export function DataProvider({
       writes.needsRefresh ||= needsRefresh
       if (writes.pending === 0 && writes.needsRefresh) {
         writes.needsRefresh = false
-        await refreshEvents()
+        // The write already returned authoritative rows. Reconcile other
+        // windows in the background, without delaying a successful save.
+        void refreshEvents().catch(() => {})
       }
     },
     [refreshEvents],

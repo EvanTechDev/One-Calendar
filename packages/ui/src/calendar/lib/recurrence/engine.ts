@@ -472,7 +472,8 @@ export function expandSeries(
   }
   // Slot dates and instants can straddle opposite UTC days. Filter by the
   // reconstructed instant below, rather than losing boundary occurrences.
-  const slotStart = windowFrom - 2 * DAY_MS
+  // An occurrence can start before the window and still overlap it.
+  const slotStart = windowFrom - Math.max(0, duration) - 2 * DAY_MS
   const slotEnd = Math.min(8.64e15, windowTo + 2 * DAY_MS)
   const slotsPerDay =
     rule.options.byhour.length *
@@ -500,7 +501,11 @@ export function expandSeries(
   const include = (date: Date) => {
     const dayParts = toDayParts(date)
     const startDate = toOccurrence(date)
-    if (startDate.getTime() < windowFrom || startDate.getTime() > windowTo)
+    if (
+      (startDate.getTime() < windowFrom &&
+        startDate.getTime() + duration <= windowFrom) ||
+      startDate.getTime() > windowTo
+    )
       return
     const recurrenceId = isAllDay
       ? dayStamp(dayParts)
@@ -683,9 +688,11 @@ export function expandSeriesView<T extends SeriesViewInput>(
         const overrideStart = new Date(
           override.startDate as unknown as string | Date,
         )
+        const overrideEnd = new Date(override.endDate as string | Date)
         if (
           !Number.isNaN(overrideStart.getTime()) &&
-          (overrideStart.getTime() < windowStart.getTime() ||
+          ((overrideStart.getTime() < windowStart.getTime() &&
+            overrideEnd.getTime() <= windowStart.getTime()) ||
             overrideStart.getTime() > windowEnd.getTime())
         ) {
           continue

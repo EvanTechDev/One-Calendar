@@ -7,11 +7,15 @@ import {
   settings,
   user,
 } from '@/lib/drizzle/schema'
-import { and, eq, gte, inArray, lte, or, desc, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, or } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
-import { fullMonthRange } from '@/lib/months'
+import {
+  getSharedEvents,
+  loadEventWindow,
+  type ViewEvent,
+} from '@/lib/event-read'
 import {
   eventSchema,
   firstZodMessage,
@@ -27,7 +31,6 @@ import {
   type InstanceChangePlan,
 } from '@/lib/event-service'
 import {
-  DEFAULT_EXPANSION_WINDOW_MS,
   adaptRuleToStart,
   defaultExpansionWindow,
   expandSeriesViewInRange,
@@ -38,7 +41,6 @@ import {
   parseRfcStamp,
   addWallClockDays,
   canTranslateRuleByDays,
-  describeRecurrence,
   shiftExdates,
   shiftToAnchorClock,
   translateRuleByDays,
@@ -74,7 +76,6 @@ import {
 } from '@zntr/meetings'
 import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
-import { dedupeById } from '@zntr/ui/calendar/lib/array-mutations'
 import { isValidTimezone } from '@zntr/ui/calendar/lib/timezone'
 import { MAX_CALENDAR_RANGE_MS } from '@zntr/ui/calendar/lib/calendar-range'
 import {
@@ -144,37 +145,6 @@ async function fetchOverrides(
     .from(calendarEvents)
     .where(eq(calendarEvents.seriesId, seriesId))
   return rows as unknown as EventRow[]
-}
-
-/**
- * Every override belonging to any of `seriesIds`, indexed by series.
- *
- * One statement for the whole set, for the same reason
- * `deleteSeriesOccurrences` deletes in one statement: a caller with N series
- * would otherwise pay N queries where the table has one index on `series_id`
- * and can answer all of them at once.
- */
-async function fetchOverridesFor(
-  seriesIds: string[],
-  dbx: EventWriteDb = getDb(),
-): Promise<Map<string, EventRow[]>> {
-  const unique = [...new Set(seriesIds)]
-  const bySeries = new Map<string, EventRow[]>()
-  if (unique.length === 0) return bySeries
-
-  const rows = (await dbx
-    .select()
-    .from(calendarEvents)
-    .where(inArray(calendarEvents.seriesId, unique))) as unknown as EventRow[]
-
-  for (const row of rows) {
-    const key = row.seriesId
-    if (!key) continue
-    const existing = bySeries.get(key)
-    if (existing) existing.push(row)
-    else bySeries.set(key, [row])
-  }
-  return bySeries
 }
 
 async function deleteRow(
@@ -475,6 +445,34 @@ async function enrichEventsWithInvites<
   ])
 
   const viewerEmailLower = viewerEmail?.toLowerCase()
+  const now = new Date()
+  // A series may expand into hundreds of instances. Token decryption and
+  // invite-level fields belong to the invite, not to each generated instance.
+  const inviteDetails = new Map(
+    allInvites.map((invite) => {
+      const emailLower = invite.email.toLowerCase()
+      return [
+        invite.id,
+        {
+          id: invite.id,
+          email: invite.email,
+          inviteToken:
+            eventOwners.get(invite.eventId) === viewerId ||
+            emailLower === viewerEmailLower
+              ? readInviteToken(invite)
+              : '',
+          emailSent: invite.emailSent,
+          addedToCalendar: invite.addedToCalendar,
+          userName: userMap[emailLower]?.name ?? null,
+          userImage: userMap[emailLower]?.image ?? null,
+          inviteExpired:
+            !invite.addedToCalendar &&
+            !!invite.expiresAt &&
+            invite.expiresAt <= now,
+        },
+      ] as const
+    }),
+  )
 
   const invitesByEvent = allInvites.reduce(
     (acc: Record<string, typeof allInvites>, invite) => {
@@ -501,33 +499,15 @@ async function enrichEventsWithInvites<
         )
       })
       .map((invite) => {
-        const emailLower = invite.email.toLowerCase()
-        const isOwnInvite = emailLower === viewerEmailLower
         const exceptions = occurrencesByInvite.get(invite.id) ?? []
         const enriched: EnrichedInvite = {
-          id: invite.id,
-          email: invite.email,
+          ...inviteDetails.get(invite.id)!,
           // RSVP is per-occurrence for a series; the invite row's own status
           // only answers for a non-recurring event.
           status:
             stamp === null
               ? (invite.status as EnrichedInvite['status'])
               : rsvpForOccurrence(exceptions, stamp),
-          // Only the organiser or the invitee themselves get a usable token.
-          inviteToken:
-            eventOwners.get(invite.eventId) === viewerId || isOwnInvite
-              ? readInviteToken(invite)
-              : '',
-          emailSent: invite.emailSent,
-          addedToCalendar: invite.addedToCalendar,
-          userName: userMap[emailLower]?.name ?? null,
-          userImage: userMap[emailLower]?.image ?? null,
-          // Dead link and no permanent grant: the participant cannot act
-          // until the organiser resends (ADR-0013).
-          inviteExpired:
-            !invite.addedToCalendar &&
-            !!invite.expiresAt &&
-            invite.expiresAt <= new Date(),
         }
         return enriched
       })
@@ -536,210 +516,10 @@ async function enrichEventsWithInvites<
   })
 }
 
-async function getSharedEvents(
-  currentUser: { email: string },
-  window?: { windowStart: Date; windowEnd: Date },
-): Promise<
-  Array<
-    ReturnType<typeof decryptEvent> & {
-      viewOnly: boolean
-      organizer: {
-        name: string
-        email: string
-        image: string | null
-      } | null
-    }
-  >
-> {
-  // `expiresAt` is deliberately not checked, matching isEventViewableBy: it
-  // bounds the emailed link, not the grant. `addedToCalendar` IS the grant,
-  // permanent until revoked (ADR-0013).
-  const liveInvites = await getDb()
-    .select()
-    .from(eventInvites)
-    .where(
-      and(
-        eq(eventInvites.email, currentUser.email.toLowerCase()),
-        eq(eventInvites.addedToCalendar, true),
-      ),
-    )
-  if (liveInvites.length === 0) return []
-
-  const inviteByEvent = new Map(liveInvites.map((i) => [i.eventId, i]))
-  const occurrencesByInvite = await getOccurrencesForInvites(
-    liveInvites.map((i) => i.id),
-  )
-
-  const sharedIds = liveInvites.map((i) => i.eventId)
-  const sharedResults = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(inArray(calendarEvents.id, sharedIds))
-
-  const ownerIds = [...new Set(sharedResults.map((e) => e.userId))]
-  const owners = ownerIds.length
-    ? await getDb()
-        .select({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        })
-        .from(user)
-        .where(inArray(user.id, ownerIds))
-    : []
-
-  const ownerMap = new Map(owners.map((u) => [u.id, u]))
-
-  // Everything the loop below needs that is not already in hand, fetched up
-  // front: the participants' own series overrides and their organisers' time
-  // zones. Both were queries issued from inside the loop or one after another,
-  // so a participant invited to N recurring events paid N+1 round-trips before
-  // the first occurrence was even expanded.
-  const [overridesBySeries, organiserTimeZones] = await Promise.all([
-    fetchOverridesFor(sharedResults.map((r) => r.id)),
-    organiserTimeZonesFor(ownerIds),
-  ])
-
-  const out: Array<
-    ReturnType<typeof decryptEvent> & {
-      viewOnly: boolean
-      organizer: {
-        name: string
-        email: string
-        image: string | null
-      } | null
-    }
-  > = []
-
-  for (const row of sharedResults) {
-    const invite = inviteByEvent.get(row.id)
-    if (!invite) continue
-
-    const owner = row.userId ? ownerMap.get(row.userId) : null
-    const organizer = owner
-      ? { name: owner.name, email: owner.email, image: owner.image }
-      : null
-    const categoryId = invite.categoryId ?? row.categoryId
-    const decrypted = decryptEvent(row)
-
-    const isSeries = !!row.rrule && row.rrule.trim().length > 0
-    if (!isSeries) {
-      out.push({ ...decrypted, categoryId, viewOnly: true, organizer })
-      continue
-    }
-
-    // A series is expanded and filtered HERE, and the rule is withheld from the
-    // response. Handing a participant an rrule lets their client generate
-    // occurrences they were never granted — see
-    // ADR-0006 (participants never receive the recurrence rule).
-    const exceptions = occurrencesByInvite.get(invite.id) ?? []
-    const baseline = baselineOf(invite)
-    const overrides = overridesBySeries.get(row.id) ?? []
-    const instances = expandSeriesViewInRange(
-      [decrypted as unknown as SeriesViewInput],
-      overrides.map(decryptEvent) as unknown as SeriesViewInput[],
-      window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
-      window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
-      // The organiser's timezone, so the participant sees the occurrences the
-      // organiser actually scheduled rather than a UTC-shifted set.
-      organiserTimeZones.get(row.userId),
-    ) as Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>
-
-    const recurrenceSummary = describeRecurrence(row.rrule!, false)
-
-    for (const instance of instances) {
-      const stamp = instance.recurrenceId
-      if (
-        stamp === null ||
-        !canParticipantSeeOccurrence(baseline, exceptions, stamp)
-      ) {
-        continue
-      }
-      out.push({
-        ...instance,
-        categoryId,
-        // Withheld deliberately. Do not "restore" these.
-        rrule: null,
-        exdate: null,
-        recurrenceSummary,
-        viewOnly: true,
-        organizer,
-      } as (typeof out)[number])
-    }
-  }
-
-  return out
-}
-
-/**
- * Timezones of the given users, from their settings blob. A series must be
- * expanded in its organiser's timezone or a participant sees occurrences at the
- * wrong wall-clock time.
- */
-async function organiserTimeZonesFor(
-  userIds: string[],
-): Promise<Map<string, string | undefined>> {
-  const map = new Map<string, string | undefined>()
-  if (userIds.length === 0) return map
-
-  const rows = await getDb()
-    .select({ userId: settings.userId, data: settings.data })
-    .from(settings)
-    .where(inArray(settings.userId, userIds))
-
-  for (const row of rows) {
-    const tz = (row.data as { timezone?: unknown } | null)?.timezone
-    map.set(row.userId, typeof tz === 'string' && tz ? tz : undefined)
-  }
-  return map
-}
-
-type MergedViewEvent = ReturnType<typeof decryptEvent> & {
-  instanceId?: string
+type MergedViewEvent = ViewEvent & {
   invites?: EnrichedInvite[]
   /** The event's Meeting, resolved by lookup — no column on the row (ADR-0019). */
   meeting?: { id: string; url: string } | null
-  viewOnly?: boolean
-  organizer?: {
-    name: string
-    email: string
-    image: string | null
-  } | null
-}
-
-async function loadMergedView(
-  user: { id: string; email: string },
-  baseRows: ReturnType<typeof decryptEvent>[],
-  window?: { windowStart?: Date; windowEnd?: Date },
-  timeZone?: string,
-): Promise<MergedViewEvent[]> {
-  const recurringRows = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(
-        eq(calendarEvents.userId, user.id),
-        or(isNotNull(calendarEvents.rrule), isNotNull(calendarEvents.seriesId)),
-      ),
-    )
-  const all = dedupeById([...baseRows, ...recurringRows.map(decryptEvent)])
-  const windowStart =
-    window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS)
-  const windowEnd =
-    window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
-  const expanded = expandSeriesViewInRange(
-    all.filter((e) => e.seriesId === null) as SeriesViewInput[],
-    all.filter((e) => e.seriesId !== null) as SeriesViewInput[],
-    windowStart,
-    windowEnd,
-    timeZone,
-  ) as MergedViewEvent[]
-  const withShared = [
-    ...expanded,
-    ...(await getSharedEvents(user, { windowStart, windowEnd })),
-  ] as MergedViewEvent[]
-  return enrichEventsWithInvites(withShared, user.id, user.email)
 }
 
 async function loadSeriesView(
@@ -824,8 +604,6 @@ export const GET = async function GET(request: NextRequest) {
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
   const categoryIds = searchParams.get('categoryIds')
-  const timeZone = await resolveUserTz(currentUser.id, searchParams.get('tz'))
-
   if (
     Boolean(startDate) !== Boolean(endDate) ||
     (startDate &&
@@ -837,6 +615,9 @@ export const GET = async function GET(request: NextRequest) {
   ) {
     return NextResponse.json({ error: 'Invalid date range' }, { status: 400 })
   }
+  // Reject invalid ranges before a settings lookup. An explicit valid timezone
+  // avoids that lookup altogether.
+  const timeZone = await resolveUserTz(currentUser.id, searchParams.get('tz'))
 
   if (id) {
     const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
@@ -865,9 +646,9 @@ export const GET = async function GET(request: NextRequest) {
             windowEnd: new Date(override.endDate.getTime() + 1),
           }
       }
-      const shared = (await getSharedEvents(currentUser, window)).find(
-        (event) => event.id === id,
-      )
+      const shared = (
+        await getSharedEvents(currentUser, window, parsedId?.seriesId ?? id)
+      ).find((event) => event.id === id)
       if (!shared)
         return NextResponse.json({ error: 'Event not found' }, { status: 404 })
       const [event] = await enrichEventsWithInvites(
@@ -951,50 +732,21 @@ export const GET = async function GET(request: NextRequest) {
     return NextResponse.json({ event: withInvites })
   }
 
-  const filters = [eq(calendarEvents.userId, currentUser.id)]
-
-  if (startDate && endDate) {
-    const range = fullMonthRange(startDate, endDate)
-    filters.push(lte(calendarEvents.startDate, range.end))
-    filters.push(gte(calendarEvents.endDate, range.start))
-  }
-
-  if (categoryIds) {
-    filters.push(inArray(calendarEvents.categoryId, categoryIds.split(',')))
-  }
-
-  const query = getDb()
-    .select()
-    .from(calendarEvents)
-    .where(and(...filters))
-
-  if (!(startDate && endDate)) {
-    query.orderBy(desc(calendarEvents.startDate)).limit(1000)
-  }
-
-  const decrypted = (await query).map(decryptEvent)
-
-  const windowStart =
+  const window =
     startDate && endDate
-      ? fullMonthRange(startDate, endDate).start
-      : new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS)
-  const windowEnd =
-    startDate && endDate
-      ? fullMonthRange(startDate, endDate).end
-      : new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
-
-  const eventsWithInvites = await loadMergedView(
-    currentUser,
-    decrypted,
-    {
-      windowStart,
-      windowEnd,
-    },
+      ? { windowStart: new Date(startDate), windowEnd: new Date(endDate) }
+      : defaultExpansionWindow()
+  const selected = await loadEventWindow(currentUser, {
+    ...window,
     timeZone,
-  )
+    categoryIds: categoryIds ? categoryIds.split(',') : undefined,
+    legacy: !(startDate && endDate),
+  })
 
   if (reminderFeed) {
-    const reminders = eventsWithInvites.flatMap((event) => {
+    // Delivery only needs event/reminder fields. Do not load participants,
+    // avatars, invite tokens or meetings for this independent polling feed.
+    const reminders = selected.flatMap((event) => {
       const candidate = { ...event, notification: event.notificationMinutes }
       const dueAt = getReminderTime(candidate)
       if (dueAt === null || dueAt > now + 3600_000) return []
@@ -1016,28 +768,15 @@ export const GET = async function GET(request: NextRequest) {
     )
   }
 
-  if (categoryIds) {
-    const ids = categoryIds.split(',')
-    eventsWithInvites.splice(
-      0,
-      eventsWithInvites.length,
-      ...eventsWithInvites.filter(
-        (e) => e.categoryId && ids.includes(e.categoryId),
-      ),
-    )
-  }
-
-  if (startDate && endDate) {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    return NextResponse.json({
-      events: eventsWithInvites.filter(
-        (e) => e.startDate < end && e.endDate > start,
-      ),
-    })
-  }
-
-  return NextResponse.json({ events: eventsWithInvites })
+  const events = await enrichEventsWithInvites(
+    selected,
+    currentUser.id,
+    currentUser.email,
+  )
+  return NextResponse.json(
+    { events },
+    { headers: { 'Cache-Control': 'private, no-store' } },
+  )
 }
 
 const postHandler = async function POST(request: NextRequest) {

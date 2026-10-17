@@ -1,6 +1,6 @@
 import { fromCalendarDate, toCalendarDate } from './zoned-date'
 
-// Two years on either side, including the anchor month and timezone padding.
+// API safety ceiling, not the default preload size. Keep older clients valid.
 export const MAX_CALENDAR_RANGE_MS = 1500 * 86400000
 
 export interface CalendarLoadRange {
@@ -24,7 +24,7 @@ export function calendarLoadRange(
   return civilRange(start, end, timezone)
 }
 
-/** A stable, four-year preload window centered on the requested view. */
+/** Reuse a five-month quarter window, never shrinking a larger requested view. */
 export function calendarPreloadRange(
   visible: CalendarLoadRange,
 ): CalendarLoadRange {
@@ -32,11 +32,21 @@ export function calendarPreloadRange(
     new Date((Date.parse(visible.startDate) + Date.parse(visible.endDate)) / 2),
     visible.timezone,
   )
-  return civilRange(
-    new Date(middle.getFullYear() - 2, middle.getMonth(), 1),
-    new Date(middle.getFullYear() + 2, middle.getMonth() + 1, 1),
+  const quarter = Math.floor(middle.getMonth() / 3) * 3
+  const nearby = civilRange(
+    new Date(middle.getFullYear(), quarter - 1, 1),
+    new Date(middle.getFullYear(), quarter + 4, 1),
     visible.timezone,
   )
+  return {
+    startDate: new Date(
+      Math.min(Date.parse(visible.startDate), Date.parse(nearby.startDate)),
+    ).toISOString(),
+    endDate: new Date(
+      Math.max(Date.parse(visible.endDate), Date.parse(nearby.endDate)),
+    ).toISOString(),
+    timezone: visible.timezone,
+  }
 }
 
 export function containsCalendarRange(
