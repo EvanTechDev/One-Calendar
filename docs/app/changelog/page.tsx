@@ -60,53 +60,48 @@ export default function ChangelogPage() {
               No releases have been published yet.
             </p>
           ) : (
-            <div className="relative">
+            <div className="not-prose relative">
+              <span
+                aria-hidden="true"
+                className="absolute bottom-0 left-[5.5px] top-1 w-px bg-fd-border"
+              />
               {releases.map((release) => {
                 const Body = release.data.body
+                const id = release.url.split('/').at(-1) ?? ''
 
                 return (
                   <article
                     key={release.url}
-                    className="relative grid gap-5 pb-12 md:grid-cols-[10rem_minmax(0,1fr)] md:gap-8"
+                    className="relative grid grid-cols-[12px_minmax(0,1fr)] gap-4 pb-12 last:pb-0 md:gap-6"
                   >
-                    <div className="md:sticky md:top-8 md:self-start">
-                      <time
-                        className="mb-3 block text-sm text-fd-muted-foreground"
-                        dateTime={release.data.date}
-                      >
-                        {dateFormatter.format(new Date(release.data.date))}
-                      </time>
-                      {release.data.version ? (
-                        <span className="inline-flex min-h-9 items-center rounded-lg border border-fd-border px-3 text-sm font-semibold">
-                          {release.data.version}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="relative min-w-0 md:border-l md:border-fd-border md:pl-8">
+                    <div className="relative">
                       <span
                         aria-hidden="true"
-                        className="absolute -left-[6px] top-1 hidden size-3 rounded-full bg-fd-primary md:block"
+                        className="absolute left-0 top-1 size-3 rounded-full bg-fd-primary"
                       />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <time
+                          className="text-sm text-fd-muted-foreground"
+                          dateTime={release.data.date}
+                        >
+                          {dateFormatter.format(new Date(release.data.date))}
+                        </time>
+                        {release.data.version ? (
+                          <span className="rounded-md border border-fd-border px-2 py-0.5 text-xs font-medium text-fd-muted-foreground">
+                            {release.data.version}
+                          </span>
+                        ) : null}
+                      </div>
                       <h2
-                        id={release.url.split('/').at(-1)}
-                        className="text-2xl font-semibold tracking-tight"
+                        id={id}
+                        className="m-0 text-xl font-semibold tracking-tight text-fd-foreground"
                       >
                         {release.data.title}
                       </h2>
-                      {release.data.tags?.length ? (
-                        <ul className="mt-3 flex flex-wrap gap-2">
-                          {release.data.tags.map((tag) => (
-                            <li
-                              key={tag}
-                              className="rounded-full border border-fd-border bg-fd-muted px-2 py-1 text-xs text-fd-muted-foreground"
-                            >
-                              {tag}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      <div className="mt-6">
+                      <div className="prose mt-4 max-w-none">
                         <Body />
                       </div>
                     </div>

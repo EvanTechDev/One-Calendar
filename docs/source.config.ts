@@ -43,7 +43,6 @@ export const changelog = defineCollections({
   dir: 'content/changelog',
   schema: frontmatterSchema.extend({
     date: z.string(),
-    tags: z.array(z.string()).optional(),
     version: z.string().optional(),
   }),
 })
