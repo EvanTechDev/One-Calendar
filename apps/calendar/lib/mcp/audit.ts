@@ -27,6 +27,7 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
     userId: entry.userId,
     authType: entry.authType,
     keyId: entry.keyId ?? null,
+    identityName: entry.identityName ?? null,
     action: entry.action,
     entryType: entry.entryType ?? 'request',
     toolName: entry.toolName ?? null,
@@ -92,6 +93,7 @@ function auditFilterConditions(userId: string, filters: AuditLogFilters = {}) {
       ilike(mcpAuditLogs.resourceType, needle),
       ilike(mcpAuditLogs.resourceId, needle),
       ilike(mcpAuditLogs.errorMessage, needle),
+      ilike(mcpAuditLogs.identityName, needle),
     )
     if (searchCondition) conditions.push(searchCondition)
   }

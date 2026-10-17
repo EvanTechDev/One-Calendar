@@ -23,6 +23,7 @@ import {
 } from '#calendar/lib/event-colors'
 import { isMobileViewport } from '#calendar/lib/mobile-viewport'
 import { isChildOverlayInteraction } from '#calendar/lib/popover-nesting'
+import { getHorizontalPopoverPlacement } from '@zntr/ui/calendar/lib/popover-placement'
 import type { ViewConfig } from '#calendar/lib/calendar-types'
 import {
   isBannerEvent,
@@ -45,6 +46,8 @@ import { RemoveScroll } from 'react-remove-scroll'
 interface RemainingPopoverState {
   key: string
   anchorRect: DOMRect
+  side: 'left' | 'right'
+  anchorX: number
 }
 
 interface MonthViewProps {
@@ -236,9 +239,12 @@ export default function MonthView({
         ? cell.getBoundingClientRect()
         : e.currentTarget.getBoundingClientRect()
       const key = format(day, 'yyyy-MM-dd')
+      const placement = getHorizontalPopoverPlacement(rect, window.innerWidth)
       setRemainingPopover({
         key,
         anchorRect: rect,
+        side: placement.side,
+        anchorX: placement.anchorX,
       })
     },
     [],
@@ -595,7 +601,7 @@ export default function MonthView({
           <div
             style={{
               position: 'fixed',
-              left: remainingPopover ? remainingPopover.anchorRect.right : 0,
+              left: remainingPopover ? remainingPopover.anchorX : 0,
               top: remainingPopover
                 ? remainingPopover.anchorRect.top +
                   remainingPopover.anchorRect.height / 2
@@ -608,7 +614,7 @@ export default function MonthView({
         </PopoverAnchor>
         {remainingPopover && (
           <PopoverContent
-            side="right"
+            side={remainingPopover.side}
             align="center"
             sideOffset={8}
             collisionPadding={20}

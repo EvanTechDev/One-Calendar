@@ -53,6 +53,7 @@ import {
   CalendarRange,
   ChartNoAxesColumn,
   ChevronDown,
+  CircleStop,
   Columns4,
   Grid3x3,
   LoaderCircle,
@@ -64,7 +65,7 @@ import {
   Sun,
   Terminal,
   X,
-  Square,
+  ArrowUp,
 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 // Type-only, so the client bundle never pulls in the agent's tool schemas.
@@ -734,13 +735,17 @@ export function AiCommandPalette({
                 />
                 <Button
                   size="icon-sm"
-                  variant={chatBusy ? 'secondary' : 'default'}
+                  variant={chatBusy ? 'destructive' : 'default'}
                   className="absolute bottom-2 right-2"
                   aria-label={chatBusy ? t.commandPaletteStop : t.send}
                   disabled={!chatBusy && !input.trim()}
                   onClick={() => (chatBusy ? void chat.stop() : sendToChat())}
                 >
-                  {chatBusy ? <Square /> : <ArrowRight />}
+                  {chatBusy ? (
+                    <CircleStop data-testid="ai-chat-stop-icon" />
+                  ) : (
+                    <ArrowUp data-testid="ai-chat-send-icon" />
+                  )}
                 </Button>
               </div>
             </>

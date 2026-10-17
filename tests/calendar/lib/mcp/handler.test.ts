@@ -51,6 +51,7 @@ const AUTH = {
     scopes: ['events:read'],
     authType: 'api_key' as const,
     keyId: 'key-1',
+    identityName: 'Personal laptop',
   },
 }
 
@@ -144,6 +145,7 @@ describe('handleMcpRequest', () => {
     expect(passed.authInfo.extra).toMatchObject({
       userId: 'user-1',
       keyId: 'key-1',
+      identityName: 'Personal laptop',
       ipAddress: '203.0.113.7',
       userAgent: 'test-agent',
     })
@@ -158,6 +160,7 @@ describe('handleMcpRequest', () => {
     expect(mocks.logAudit.mock.calls[0]?.[0]).toMatchObject({
       entryType: 'request',
       action: 'mcp_request',
+      identityName: 'Personal laptop',
     })
   })
 

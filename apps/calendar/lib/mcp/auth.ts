@@ -43,6 +43,7 @@ export async function verifyApiKey(key: string): Promise<McpAuthUser | null> {
       scopes: row.scopes as string[],
       authType: 'api_key',
       keyId: row.id,
+      identityName: row.name,
     }
   }
 

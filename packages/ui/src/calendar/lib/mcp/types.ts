@@ -5,6 +5,7 @@ export interface McpAuthUser {
   scopes: string[]
   authType: 'api_key' | 'oauth'
   keyId?: string
+  identityName?: string
 }
 
 export const MCP_SCOPE_GROUPS = [
@@ -120,6 +121,7 @@ export interface AuditEntry {
   userId: string
   authType: 'api_key' | 'oauth'
   keyId?: string
+  identityName?: string
   action: string
   entryType?: AuditEntryType
   toolName?: string

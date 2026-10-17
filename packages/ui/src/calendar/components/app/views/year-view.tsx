@@ -26,6 +26,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@zntr/ui/sheet'
 import { RemoveScroll } from 'react-remove-scroll'
 import { isMobileViewport } from '#calendar/lib/mobile-viewport'
 import { isChildOverlayInteraction } from '#calendar/lib/popover-nesting'
+import { getHorizontalPopoverPlacement } from '@zntr/ui/calendar/lib/popover-placement'
 import { useScrollLock } from '#calendar/hooks/use-scroll-lock'
 import {
   DEFAULT_ACCENT,
@@ -72,6 +73,8 @@ interface PopoverState {
   key: string
   anchorRect: DOMRect
   day: Date
+  side: 'left' | 'right'
+  anchorX: number
 }
 
 export default function YearView({
@@ -153,7 +156,14 @@ export default function YearView({
         return
       }
       const key = `${day.getMonth()}-${dayKey}`
-      setPopover({ key, anchorRect: rect, day })
+      const placement = getHorizontalPopoverPlacement(rect, window.innerWidth)
+      setPopover({
+        key,
+        anchorRect: rect,
+        day,
+        side: placement.side,
+        anchorX: placement.anchorX,
+      })
     },
     [],
   )
@@ -256,7 +266,7 @@ export default function YearView({
             <div
               style={{
                 position: 'fixed',
-                left: popover ? popover.anchorRect.right : 0,
+                left: popover ? popover.anchorX : 0,
                 top: popover
                   ? popover.anchorRect.top + popover.anchorRect.height / 2
                   : 0,
@@ -268,7 +278,7 @@ export default function YearView({
           </PopoverAnchor>
           {popover && (
             <PopoverContent
-              side="right"
+              side={popover.side}
               align="center"
               sideOffset={8}
               collisionPadding={20}

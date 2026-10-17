@@ -113,6 +113,27 @@ it('does not expose incomplete or failed suggestion tool output as chat actions'
   expect(screen.queryByRole('button')).not.toBeInTheDocument()
 })
 
+it('uses the concise Chinese label for continuing an unfinished chat', () => {
+  render(
+    <ChatTranscript
+      t={translations['zh-CN']}
+      messages={[
+        {
+          id: 'a1',
+          role: 'assistant',
+          parts: [{ type: 'text', text: '完成' }],
+        },
+      ]}
+      busy={false}
+      error={null}
+      onApproval={vi.fn()}
+      onContinue={vi.fn()}
+    />,
+  )
+  expect(screen.getByRole('button', { name: '继续' })).toBeInTheDocument()
+  expect(screen.queryByText('继续未完成的任务')).not.toBeInTheDocument()
+})
+
 function transcript(
   parts: UIMessage['parts'],
   busy = false,

@@ -463,6 +463,7 @@ export const mcpAuditLogs = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     authType: text('auth_type').notNull(),
     keyId: text('key_id'),
+    identityName: text('identity_name'),
     action: text('action').notNull(),
     /**
      * 'request' = one row per HTTP request (transport level, also what the

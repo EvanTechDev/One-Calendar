@@ -146,6 +146,7 @@ type AuditEntryType = 'request' | 'tool_call'
 interface AuditLog {
   id: string
   authType: string
+  identityName: string | null
   action: string
   entryType: AuditEntryType
   toolName: string | null
@@ -1375,7 +1376,15 @@ function MCPAuditLogs() {
                   </p>
                 ) : null}
                 <span className="text-xs text-muted-foreground">
-                  {fill(t.mcpLogVia, { authType: log.authType })}
+                  {fill(t.mcpLogVia, {
+                    authType:
+                      log.authType === 'api_key'
+                        ? 'API key'
+                        : log.authType === 'oauth'
+                          ? 'OAuth'
+                          : log.authType,
+                  })}
+                  {log.identityName ? ` · ${log.identityName}` : ''}
                   {typeof log.durationMs === 'number'
                     ? ` · ${log.durationMs}ms`
                     : ''}

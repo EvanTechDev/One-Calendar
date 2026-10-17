@@ -2,7 +2,7 @@
 
 import { CommandGroup, CommandItem, CommandList } from '@zntr/ui/command'
 import { Skeleton } from '@zntr/ui/skeleton'
-import { LoaderCircle, RotateCcw } from 'lucide-react'
+import { CalendarSearch, LoaderCircle, RotateCcw, Search } from 'lucide-react'
 import { getEventAccentColor } from '#calendar/lib/event-colors'
 import type { translations } from '@zntr/i18n/calendar'
 import type { PaletteSearchHit } from './ai-command-palette'
@@ -38,9 +38,14 @@ export function PaletteSearchResults({
   return (
     <CommandList className="min-h-48 max-h-[min(24rem,calc(100dvh-13rem))]">
       {status === 'idle' && (
-        <p className="px-6 py-12 text-center text-sm text-muted-foreground">
-          {t.commandPaletteSearchPlaceholder}
-        </p>
+        <div className="flex min-h-48 flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+          <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Search className="size-5" aria-hidden="true" />
+          </span>
+          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+            {t.commandPaletteSearchPlaceholder}
+          </p>
+        </div>
       )}
       {status === 'loading' && (
         <div className="space-y-1 px-3 py-2" role="status">
@@ -61,9 +66,17 @@ export function PaletteSearchResults({
         </div>
       )}
       {status === 'ready' && hits.length === 0 && (
-        <p className="px-6 py-12 text-center text-sm text-muted-foreground">
-          {t.noMatchingEvents}
-        </p>
+        <div className="flex min-h-48 flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+          <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <CalendarSearch className="size-5" aria-hidden="true" />
+          </span>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{t.noMatchingEvents}</p>
+            <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+              {t.commandPaletteSearchPlaceholder}
+            </p>
+          </div>
+        </div>
       )}
       {status === 'ready' && hits.length > 0 && (
         <CommandGroup

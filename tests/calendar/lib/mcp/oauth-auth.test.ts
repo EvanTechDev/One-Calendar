@@ -30,7 +30,12 @@ const claims = {
 beforeEach(() => {
   getFakeDb().reset()
   getFakeDb().seed(
-    { id: 'client-row', clientId: 'client-1', disabled: false },
+    {
+      id: 'client-row',
+      clientId: 'client-1',
+      name: 'Calendar Desktop',
+      disabled: false,
+    },
     'oauthClient',
   )
   getFakeDb().seed(
@@ -54,13 +59,19 @@ describe('Better Auth MCP token claims', () => {
       scopes: ['events:read', 'offline_access'],
       authType: 'oauth',
       keyId: 'client-1',
+      identityName: 'Calendar Desktop',
     })
   })
 
   it('rejects immediately after consent deletion', async () => {
     getFakeDb().reset()
     getFakeDb().seed(
-      { id: 'client-row', clientId: 'client-1', disabled: false },
+      {
+        id: 'client-row',
+        clientId: 'client-1',
+        name: 'Calendar Desktop',
+        disabled: false,
+      },
       'oauthClient',
     )
 

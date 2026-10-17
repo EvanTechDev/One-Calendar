@@ -80,6 +80,7 @@ export async function handleMcpRequest(
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         action: 'rate_limited',
         entryType: 'request',
         success: false,
@@ -116,6 +117,7 @@ export async function handleMcpRequest(
         // only receive `authInfo` — so the request-scoped identity and client
         // details have to travel with it.
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         ipAddress: clientIp,
         userAgent,
       },
@@ -139,6 +141,7 @@ export async function handleMcpRequest(
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         action: 'mcp_request',
         entryType: 'request',
         success: response.status < 400,
@@ -154,6 +157,7 @@ export async function handleMcpRequest(
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         action: 'mcp_request',
         entryType: 'request',
         success: false,

@@ -50,7 +50,7 @@ export async function getMcpOAuthAuth(
 
   const db = getDb()
   const [client] = await db
-    .select({ disabled: oauthClient.disabled })
+    .select({ disabled: oauthClient.disabled, name: oauthClient.name })
     .from(oauthClient)
     .where(eq(oauthClient.clientId, clientId))
   if (!client || client.disabled) return null
@@ -78,5 +78,6 @@ export async function getMcpOAuthAuth(
     scopes,
     authType: 'oauth',
     keyId: clientId,
+    identityName: client.name ?? clientId,
   }
 }

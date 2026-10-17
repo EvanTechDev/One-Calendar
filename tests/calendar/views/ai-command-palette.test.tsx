@@ -456,6 +456,32 @@ it('switching modes preserves the draft and aborts a pending semantic search', a
   expect(sendMessage).toHaveBeenCalledExactlyOnceWith({ text: 'find my trip' })
 })
 
+it('uses an upward send arrow and a destructive stop control in chat', () => {
+  const palette = (
+    <AiCommandPalette open initialMode="chat" onOpenChange={vi.fn()} />
+  )
+  const { rerender } = render(palette)
+  const composer = screen.getByRole('textbox', { name: 'Ask AI' })
+  fireEvent.change(composer, { target: { value: 'Find events' } })
+  const sendButton = screen.getByRole('button', { name: 'Send' })
+  expect(sendButton).toHaveAttribute('data-variant', 'default')
+  expect(
+    sendButton.querySelector('[data-testid="ai-chat-send-icon"]'),
+  ).toBeTruthy()
+  fireEvent.click(sendButton)
+  expect(sendMessage).toHaveBeenCalledExactlyOnceWith({ text: 'Find events' })
+
+  chatState.status = 'streaming'
+  rerender(<AiCommandPalette open initialMode="chat" onOpenChange={vi.fn()} />)
+  const stopButton = screen.getByRole('button', { name: 'Stop response' })
+  expect(stopButton).toHaveAttribute('data-variant', 'destructive')
+  expect(
+    stopButton.querySelector('[data-testid="ai-chat-stop-icon"]'),
+  ).toBeTruthy()
+  fireEvent.click(stopButton)
+  expect(stop).toHaveBeenCalledOnce()
+})
+
 it('renders the same event row in keyword and semantic search, with paging and Enter navigation', async () => {
   const hit = {
     id: 'e1',

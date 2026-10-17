@@ -117,6 +117,7 @@ interface ToolAuditContext {
   userId: string
   authType: 'api_key' | 'oauth'
   keyId?: string
+  identityName?: string
   ipAddress?: string
   userAgent?: string
 }
@@ -133,6 +134,8 @@ function auditContextFrom(
     userId,
     authType: authType as 'api_key' | 'oauth',
     keyId: typeof extra?.keyId === 'string' ? extra.keyId : undefined,
+    identityName:
+      typeof extra?.identityName === 'string' ? extra.identityName : undefined,
     ipAddress:
       typeof extra?.ipAddress === 'string' ? extra.ipAddress : undefined,
     userAgent:
@@ -164,6 +167,7 @@ async function logToolCall(options: {
       userId: ctx.userId,
       authType: ctx.authType,
       keyId: ctx.keyId,
+      identityName: ctx.identityName,
       action: toolName,
       entryType: 'tool_call',
       toolName,
