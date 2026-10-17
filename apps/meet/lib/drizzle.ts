@@ -67,6 +67,9 @@ export function getDb() {
     const pool = new Pool({
       connectionString: stripSslParams(connectionString),
       ssl: resolveDbSsl(),
+      // attachDatabasePool keeps the invocation alive until idle cleanup.
+      // pg's 10s default otherwise outlasts even millisecond responses.
+      idleTimeoutMillis: 1000,
     })
     attachDatabasePool(pool)
     _db = drizzle({ client: pool, schema })

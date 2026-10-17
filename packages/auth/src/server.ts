@@ -111,6 +111,9 @@ export function createMcpOAuthPlugins(
       fetchClientMetadataResource: fetchCimdResource,
       metadataProfile: 'mcp-2026-07-28',
       metadataRevalidationInterval: '60m',
+      // client_uri is an informational homepage, often on the parent domain.
+      // Keep logout origin binding; redirect matching and SSRF checks remain.
+      originBoundFields: ['post_logout_redirect_uris'],
       metadataFetchPolicy: {
         minimumFetchInterval: '1s',
         maximumConcurrentFetches: 16,

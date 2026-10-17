@@ -91,6 +91,7 @@ interface DataContextValue {
   eventsLoaded: boolean
   categoriesLoaded: boolean
   setEventsRange: (range: CalendarLoadRange) => void
+  eventsRange: CalendarLoadRange
   eventsLoading: boolean
   eventsError: Error | undefined
 
@@ -775,6 +776,7 @@ export function DataProvider({
       eventsLoaded,
       categoriesLoaded,
       setEventsRange,
+      eventsRange,
       eventsLoading: eventsReq.isLoading,
       eventsError: eventsReq.error,
       refresh,
@@ -807,6 +809,7 @@ export function DataProvider({
       eventsReq.isLoading,
       eventsReq.error,
       setEventsRange,
+      eventsRange,
       refresh,
       refreshEvents,
       refreshCategories,
@@ -843,6 +846,7 @@ export function useEvents() {
     deleteEvent,
     refreshEvents,
     setEventsRange,
+    eventsRange,
     eventsLoading,
     eventsError,
   } = useData()
@@ -853,6 +857,7 @@ export function useEvents() {
     deleteEvent,
     refreshEvents,
     setEventsRange,
+    eventsRange,
     eventsLoading,
     eventsError,
   }

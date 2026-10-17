@@ -42,6 +42,7 @@ import { translations, useLanguage } from '@zntr/i18n/calendar'
 interface TimeAnalyticsProps {
   events: CalendarEvent[]
   calendars?: CalendarCategory[]
+  now?: Date
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -58,12 +59,14 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export default function TimeAnalyticsComponent({
   events,
   calendars = [],
+  now: requestedNow,
 }: TimeAnalyticsProps) {
   const [language] = useLanguage()
   const t = translations[language]
   const [preset, setPreset] = useState<AnalyticsRangePreset>('month')
 
-  const now = useMemo(() => new Date(), [])
+  const [mountedAt] = useState(() => new Date())
+  const now = requestedNow ?? mountedAt
   const dateRange = useMemo(() => resolveDateRange(preset, now), [preset, now])
 
   const normalizedEvents = useMemo(

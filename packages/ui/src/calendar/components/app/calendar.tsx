@@ -28,6 +28,7 @@ import {
   Plus,
 } from 'lucide-react'
 import dynamic from '#calendar/lib/lazy-view'
+import CalendarViewLoading from '#calendar/components/app/calendar-view-loading'
 import UserProfileButton from '#calendar/components/app/profile/user-profile-button'
 import type { AccountSection } from '#calendar/lib/account-section'
 import {
@@ -139,11 +140,12 @@ import {
   optimisticFollowingSplit,
 } from '#calendar/lib/recurrence/engine'
 
-const DayView = dynamic(loadDayView)
-const WeekView = dynamic(loadWeekView)
-const MonthView = dynamic(loadMonthView)
-const YearView = dynamic(loadYearView)
-const AnalyticsView = dynamic(loadAnalyticsView)
+const viewLoading = { loading: CalendarViewLoading }
+const DayView = dynamic(loadDayView, viewLoading)
+const WeekView = dynamic(loadWeekView, viewLoading)
+const MonthView = dynamic(loadMonthView, viewLoading)
+const YearView = dynamic(loadYearView, viewLoading)
+const AnalyticsView = dynamic(loadAnalyticsView, viewLoading)
 const SettingsDialog = dynamic(loadSettingsDialog)
 // ssr: false — the palette carries the chat transport and is pure client
 // interaction; there is nothing meaningful to render on the server.
@@ -185,10 +187,8 @@ type IdleCapableWindow = Window & {
  */
 function warmEventSurfaceChunks() {
   const warm = () => {
-    // Both loaders are the same functions `dynamic()` was given, so warming
-    // here fills the module registry the wrapper will read from.
-    void loadEventPreview()
-    void loadEventEditor()
+    void EventPreview.preload().catch(() => {})
+    void EventEditor.preload().catch(() => {})
   }
 
   const idleWindow = window as IdleCapableWindow
@@ -208,20 +208,18 @@ function warmEventSurfaceChunks() {
  * grid with a different day count, so it shares its chunk).
  *
  * Exported so the app page can pull the saved default's chunk while it is
- * still showing the loading screen. A `next/dynamic` component that has not
- * resolved renders its loading fallback, which is `null` — so a chunk fetched
- * after the calendar mounts leaves the middle column empty, and black in dark
- * mode, for the length of the request. Preloading turns that into a microtask.
+ * still showing the loading screen. Use the wrappers' shared preload cache,
+ * not raw imports, so the first render can use the resolved component directly.
  */
 export const CALENDAR_VIEW_CHUNKS: Record<
   CalendarViewTypeValue,
   () => Promise<unknown>
 > = {
-  day: loadDayView,
-  week: loadWeekView,
-  'four-day': loadWeekView,
-  month: loadMonthView,
-  year: loadYearView,
+  day: DayView.preload,
+  week: WeekView.preload,
+  'four-day': WeekView.preload,
+  month: MonthView.preload,
+  year: YearView.preload,
 }
 
 interface CalendarProps {
@@ -647,18 +645,22 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   useEffect(() => {
     const prefetch = () => {
-      void loadDayView()
-      void loadWeekView()
-      void loadMonthView()
-      void loadYearView()
-      void loadAnalyticsView()
-      void loadSettingsDialog()
+      for (const view of [
+        DayView,
+        WeekView,
+        MonthView,
+        YearView,
+        AnalyticsView,
+        SettingsDialog,
+      ]) {
+        void view.preload().catch(() => {})
+      }
     }
 
     if (typeof window === 'undefined') return
 
     if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(prefetch)
+      const id = window.requestIdleCallback(prefetch, { timeout: 4000 })
       return () => window.cancelIdleCallback(id)
     }
 
@@ -1801,7 +1803,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
             )}
             {view === 'analytics' && (
               <AnalyticsView
-                events={events}
+                timezone={timezone}
                 onCreateEvent={(startDate) => {
                   setSelectedEvent(null)
                   // Route through the shared quick-create path: it switches
