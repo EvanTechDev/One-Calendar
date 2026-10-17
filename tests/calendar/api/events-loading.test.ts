@@ -282,3 +282,83 @@ it('selects the nearest plain events, includes boundary ties, and rejects invali
   )
   expect(invalid.status).toBe(400)
 })
+
+it.each([false, true])(
+  'loads a 1949 event in the background batch of a small calendar (recurring: %s)',
+  async (recurring) => {
+    // 199 occurrences this year and one in 1949. The initial past 150 can
+    // legitimately omit 1949; the background past 400 must not omit it.
+    const yearStart = Date.parse('2026-01-01T09:00:00Z')
+    for (let day = 0; day < 199; day++) {
+      const startDate = new Date(yearStart + day * 86400000)
+      seed(`recent-${day}`, {
+        startDate,
+        endDate: new Date(startDate.getTime() + 3600000),
+        rrule: recurring && day === 0 ? 'FREQ=DAILY;COUNT=1' : null,
+      })
+    }
+    seed('historical', {
+      startDate: new Date('1949-10-01T09:00:00Z'),
+      endDate: new Date('1949-10-01T10:00:00Z'),
+    })
+    const query = `${bounds}&anchorDate=2026-10-05T12:00:00Z`
+    const firstResponse = await GET(
+      new NextRequest(`http://localhost/api/events?${query}&batchSize=150`),
+    )
+    expect(firstResponse.status).toBe(200)
+    const first = await firstResponse.json()
+    expect(first.events).toHaveLength(150)
+    expect(first.complete).toBe(false)
+    const exclude = new URLSearchParams({
+      excludeStartDate: first.coverage.startDate,
+      excludeEndDate: first.coverage.endDate,
+    })
+    const response = await GET(
+      new NextRequest(
+        `http://localhost/api/events?${query}&batchSize=400&${exclude}`,
+      ),
+    )
+    expect(response.status).toBe(200)
+    const more = await response.json()
+    const retained = new Set(more.retainedIds)
+    const events = [
+      ...first.events.filter((event: { id: string }) => retained.has(event.id)),
+      ...more.events,
+    ]
+    expect(events).toHaveLength(200)
+    expect(events.some((event) => event.id === 'historical')).toBe(true)
+    expect(more.coverage.startDate <= '1949-10-01T09:00:00.000Z').toBe(true)
+  },
+)
+
+it('includes distant series anchors, shared events and moved overrides without a fixed year cutoff', async () => {
+  seed('old-series', {
+    startDate: new Date('1949-10-01T09:00:00Z'),
+    endDate: new Date('1949-10-01T10:00:00Z'),
+    rrule: 'FREQ=DAILY;COUNT=1',
+  })
+  seed('series', { rrule: 'FREQ=DAILY;COUNT=1' })
+  seed('moved', {
+    seriesId: 'series',
+    recurrenceId: '20261005T090000Z',
+    startDate: new Date('2100-01-01T09:00:00Z'),
+    endDate: new Date('2100-01-01T10:00:00Z'),
+  })
+  seed('shared-old', {
+    userId: 'organiser',
+    startDate: new Date('1949-09-01T09:00:00Z'),
+    endDate: new Date('1949-09-01T10:00:00Z'),
+  })
+  grant('shared-old')
+  const events = await list(
+    `${bounds}&anchorDate=2026-10-05T12:00:00Z&batchSize=150`,
+  )
+  expect(events.map((event) => event.id).sort()).toEqual([
+    'old-series_19491001T090000Z',
+    'series_20261005T090000Z',
+    'shared-old',
+  ])
+  expect(
+    events.find((event) => event.id === 'series_20261005T090000Z'),
+  ).toHaveProperty('startDate', '2100-01-01T09:00:00.000Z')
+})

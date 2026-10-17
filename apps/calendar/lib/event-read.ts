@@ -38,7 +38,7 @@ type Viewer = { id: string; email: string }
 type Batch = { anchor: Date; size: number }
 type SharedReader = ((window?: EventWindow) => ViewEvent[]) & {
   hasRecurring: boolean
-  plainEvents: Event[]
+  candidates: Event[]
 }
 
 // Date-only probes find bounded plain-event candidates without decrypting them.
@@ -182,7 +182,7 @@ async function prepareSharedEvents(
       ),
     )
   if (grants.length === 0)
-    return Object.assign(() => [], { hasRecurring: false, plainEvents: [] })
+    return Object.assign(() => [], { hasRecurring: false, candidates: [] })
   const grantByEvent = new Map(grants.map((grant) => [grant.eventId, grant]))
   const scope = inArray(calendarEvents.id, [...grantByEvent.keys()])
   const readWindow =
@@ -202,7 +202,7 @@ async function prepareSharedEvents(
     getOccurrencesForInvites(grants.map((grant) => grant.id)),
   ])
   if (rows.length === 0)
-    return Object.assign(() => [], { hasRecurring: false, plainEvents: [] })
+    return Object.assign(() => [], { hasRecurring: false, candidates: [] })
 
   const ownerIds = [...new Set(rows.map((row) => row.userId))]
   const seriesIds = rows
@@ -242,10 +242,13 @@ async function prepareSharedEvents(
     }),
   )
   const overridesBySeries = new Map<string, SeriesViewInput[]>()
+  const candidates: Event[] = []
   for (const row of overrides) {
     if (!row.seriesId) continue
+    const event = decryptEvent(row)
+    candidates.push(event)
     const list = overridesBySeries.get(row.seriesId) ?? []
-    list.push(decryptEvent(row) as SeriesViewInput)
+    list.push(event as SeriesViewInput)
     overridesBySeries.set(row.seriesId, list)
   }
   const decrypted = rows.map((row) => ({ row, event: decryptEvent(row) }))
@@ -301,9 +304,7 @@ async function prepareSharedEvents(
     },
     {
       hasRecurring: seriesIds.length > 0,
-      plainEvents: decrypted
-        .filter(({ row }) => !row.rrule?.trim())
-        .map(({ event }) => event),
+      candidates: [...candidates, ...decrypted.map(({ event }) => event)],
     },
   )
 }
@@ -346,16 +347,16 @@ async function prepareEventWindow(
   ])
   const masters: SeriesViewInput[] = []
   const overrides: SeriesViewInput[] = []
-  const plainEvents: Event[] = [...shared.plainEvents]
+  const candidates: Event[] = [...shared.candidates]
   for (const row of owned) {
     const event = decryptEvent(row)
     if (row.seriesId === null) masters.push(event as SeriesViewInput)
     else overrides.push(event as SeriesViewInput)
-    if (!row.rrule?.trim() && row.seriesId === null) plainEvents.push(event)
+    candidates.push(event)
   }
   const categories = options.categoryIds ? new Set(options.categoryIds) : null
   const candidateWindow = { ...options }
-  for (const event of plainEvents) {
+  for (const event of candidates) {
     if (event.startDate < candidateWindow.windowStart)
       candidateWindow.windowStart = event.startDate
     if (event.endDate > candidateWindow.windowEnd)
@@ -422,8 +423,19 @@ export async function loadEventBatch(
   const anchor = options.anchor.getTime()
   const day = 86400000
   // Do not scan forever for 150 occurrences of a very sparse/infinite rule.
-  // This is a search bound, NOT a claim that no later events exist.
+  // The speculative horizon must never hide known rows, including old plain
+  // events, series anchors and moved overrides. Extend toward those candidates
+  // only while that side is still short of the count target.
   const horizon = 50 * 365 * day
+  const pastLimit = Math.min(
+    anchor - horizon,
+    read.candidateWindow.windowStart.getTime(),
+  )
+  const futureLimit = Math.max(
+    anchor + horizon,
+    read.candidateWindow.windowEnd.getTime(),
+  )
+  const searchRadius = Math.max(anchor - pastLimit, futureLimit - anchor)
   let radius = 7 * day
   let window = read.hasRecurring
     ? { windowStart: options.windowStart, windowEnd: options.windowEnd }
@@ -453,7 +465,7 @@ export async function loadEventBatch(
     if (
       !read.hasRecurring ||
       (enoughBefore && enoughAfter) ||
-      radius >= horizon
+      radius >= searchRadius
     ) {
       const coverage = {
         // Fewer plain events than the target exhausts that side. Reuse empty
@@ -494,17 +506,23 @@ export async function loadEventBatch(
         complete: !read.hasRecurring && !enoughBefore && !enoughAfter,
       }
     }
-    radius = Math.min(horizon, radius * 4)
+    radius = Math.min(searchRadius, radius * 4)
     window = {
       windowStart: new Date(
         enoughBefore
           ? start
-          : Math.min(options.windowStart.getTime(), anchor - radius),
+          : Math.min(
+              options.windowStart.getTime(),
+              Math.max(pastLimit, anchor - radius),
+            ),
       ),
       windowEnd: new Date(
         enoughAfter
           ? end
-          : Math.max(options.windowEnd.getTime(), anchor + radius),
+          : Math.max(
+              options.windowEnd.getTime(),
+              Math.min(futureLimit, anchor + radius),
+            ),
       ),
     }
   }
