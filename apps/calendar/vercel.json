@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "app/api/agent/chat/route.ts": { "supportsCancellation": true }
+    "app/api/agent/chat/route.ts": {
+      "supportsCancellation": true
+    }
   },
   "crons": [
     {
@@ -12,5 +14,6 @@
       "path": "/api/reminders/topup",
       "schedule": "0 2 * * *"
     }
-  ]
+  ],
+  "bunVersion": "1.4.x"
 }

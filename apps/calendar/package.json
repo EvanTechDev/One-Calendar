@@ -4,10 +4,10 @@
   "private": true,
   "packageManager": "pnpm@11.5.2",
   "scripts": {
-    "dev": "next dev",
-    "build": "pnpm generate:i18n && pnpm mdx && next build",
+    "dev": "bun run --bun next dev",
+    "build": "pnpm generate:i18n && pnpm mdx && bun run --bun next build",
     "build:check": "pnpm build && pnpm type-check",
-    "start": "next start",
+    "start": "bun run --bun next start",
     "generate:i18n": "pnpm --filter @zntr/i18n generate",
     "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
     "mdx": "fumadocs-mdx",
