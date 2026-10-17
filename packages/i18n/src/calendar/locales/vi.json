@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Tiếp tục",
+  "aiAssistantContinue": "Tiếp tục công việc chưa hoàn thành",
   "aiAssistantContinuePrompt": "Tiếp tục các phần chưa hoàn thành của yêu cầu của tôi. Trước tiên hãy kiểm tra kết quả hiện có và trạng thái lịch hiện tại; không lặp lại các thao tác ghi đã thành công. Báo cáo những gì đã hoàn thành và những gì còn lại.",
   "aiAssistantTimedOut": "Phản hồi đã hết thời gian chờ. Các thay đổi đã hoàn thành được giữ lại. Bạn có thể tiếp tục sau khi kiểm tra trạng thái hiện tại.",
   "calendar": "Lịch",

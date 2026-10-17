@@ -700,10 +700,6 @@ export function AiCommandPalette({
                 busy={chatBusy}
                 error={chat.error ?? null}
                 timedOut={chatTimedOut}
-                onContinue={() => {
-                  setChatTimedOut(false)
-                  void chat.sendMessage({ text: t.aiAssistantContinuePrompt })
-                }}
                 onApproval={chat.addToolApprovalResponse}
                 onSuggestion={(text) => {
                   if (chatBusy) return

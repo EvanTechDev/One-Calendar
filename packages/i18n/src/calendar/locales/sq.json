@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Vazhdo",
+  "aiAssistantContinue": "Vazhdo punën e papërfunduar",
   "aiAssistantContinuePrompt": "Vazhdo pjesët e papërfunduara të kërkesës sime. Së pari kontrollo rezultatet ekzistuese dhe gjendjen aktuale të kalendarit; mos i përsërit shkrimet e suksesshme. Raporto çfarë është përfunduar dhe çfarë mbetet.",
   "aiAssistantTimedOut": "Përgjigjja kaloi afatin kohor. Ndryshimet e përfunduara ruhen. Mund të vazhdoni pasi të kontrolloni gjendjen aktuale.",
   "calendar": "Kalendari",

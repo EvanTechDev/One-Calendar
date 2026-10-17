@@ -526,7 +526,7 @@
   "copyInviteLink": "Kopioi kutsulinkki",
   "inviteLinkCopied": "Kutsulinkki kopioitu",
   "shortcutsDialogDesc": "Kalenterissa on käytettävissä pikanäppäimiä.",
-  "aiAssistantContinue": "Jatka",
+  "aiAssistantContinue": "Jatka keskeneräistä työtä",
   "aiAssistantContinuePrompt": "Jatka pyyntöni keskeneräisiä osia. Tarkista ensin aiemmat tulokset ja kalenterin nykyinen tila. Älä toista onnistuneita muutoksia. Kerro, mikä on valmista ja mitä on jäljellä.",
   "aiAssistantTimedOut": "Vastaus aikakatkaistiin. Valmiit muutokset on säilytetty. Voit jatkaa tarkistettuasi nykyisen tilan.",
   "commandPaletteTitle": "Komentovalikko",

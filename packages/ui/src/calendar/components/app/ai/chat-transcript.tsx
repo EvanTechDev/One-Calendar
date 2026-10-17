@@ -118,7 +118,6 @@ export function ChatTranscript({
   error,
   onApproval,
   timedOut = false,
-  onContinue,
   onSuggestion,
 }: {
   t: Translation
@@ -128,7 +127,6 @@ export function ChatTranscript({
   /** addToolApprovalResponse from useChat. */
   onApproval: (response: { id: string; approved: boolean }) => void
   timedOut?: boolean
-  onContinue?: () => void
   onSuggestion?: (prompt: string) => void
 }) {
   const awaitingApproval = messages.some((message) =>
@@ -210,13 +208,6 @@ export function ChatTranscript({
                 className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
               >
                 {timedOut ? t.aiAssistantTimedOut : t.aiAssistantError}
-              </MessageScrollerItem>
-            )}
-            {!busy && messages.length > 0 && onContinue && (
-              <MessageScrollerItem>
-                <Button size="sm" variant="ghost" onClick={onContinue}>
-                  {t.aiAssistantContinue}
-                </Button>
               </MessageScrollerItem>
             )}
           </MessageScrollerContent>

@@ -542,7 +542,7 @@
   "copyInviteLink": "Kopēt uzaicinājuma saiti",
   "inviteLinkCopied": "Uzaicinājuma saite nokopēta",
   "shortcutsDialogDesc": "Pieejami tastatūras saīsnes visā kalendārā.",
-  "aiAssistantContinue": "Turpināt",
+  "aiAssistantContinue": "Turpināt nepabeigto darbu",
   "aiAssistantContinuePrompt": "Turpini izpildīt mana pieprasījuma nepabeigtās daļas. Vispirms pārbaudi esošos rezultātus un kalendāra pašreizējo stāvokli. Neatkārto veiksmīgi veiktās izmaiņas. Norādi, kas ir pabeigts un kas vēl palicis.",
   "aiAssistantTimedOut": "Atbildes gaidīšanas laiks beidzās. Pabeigtās izmaiņas ir saglabātas. Vari turpināt pēc pašreizējā stāvokļa pārbaudes.",
   "commandPaletteTitle": "Komandu izvēlne",

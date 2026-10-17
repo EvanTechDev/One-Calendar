@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Fortsett",
+  "aiAssistantContinue": "Fortsett uferdig arbeid",
   "aiAssistantContinuePrompt": "Fortsett de uferdige delene av forespørselen min. Sjekk først eksisterende resultater og gjeldende kalenderstatus; ikke gjenta vellykkede skriveoperasjoner. Rapporter hva som er fullført og hva som gjenstår.",
   "aiAssistantTimedOut": "Svaret ble tidsavbrutt. Fullførte endringer beholdes. Du kan fortsette etter å ha sjekket gjeldende tilstand.",
   "calendar": "Kalender",

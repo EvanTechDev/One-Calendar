@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Tęsti",
+  "aiAssistantContinue": "Tęsti nebaigtą darbą",
   "aiAssistantContinuePrompt": "Tęskite nebaigtas mano užklausos dalis. Pirmiausia patikrinkite esamus rezultatus ir dabartinę kalendoriaus būseną; nekartokite sėkmingų įrašymų. Praneškite, kas atlikta ir kas liko.",
   "aiAssistantTimedOut": "Atsakymas užtruko per ilgai. Atlikti pakeitimai išsaugoti. Patikrinus dabartinę būseną, galite tęsti.",
   "calendar": "Kalendorius",

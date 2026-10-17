@@ -113,7 +113,7 @@ it('does not expose incomplete or failed suggestion tool output as chat actions'
   expect(screen.queryByRole('button')).not.toBeInTheDocument()
 })
 
-it('uses the concise Chinese label for continuing an unfinished chat', () => {
+it('does not show a continue action after an assistant response', () => {
   render(
     <ChatTranscript
       t={translations['zh-CN']}
@@ -127,11 +127,11 @@ it('uses the concise Chinese label for continuing an unfinished chat', () => {
       busy={false}
       error={null}
       onApproval={vi.fn()}
-      onContinue={vi.fn()}
     />,
   )
-  expect(screen.getByRole('button', { name: '继续' })).toBeInTheDocument()
-  expect(screen.queryByText('继续未完成的任务')).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('button', { name: /继续|continue/i }),
+  ).not.toBeInTheDocument()
 })
 
 function transcript(

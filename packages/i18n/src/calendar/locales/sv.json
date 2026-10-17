@@ -562,7 +562,7 @@
   "copyInviteLink": "Kopiera inbjudningslänk",
   "inviteLinkCopied": "Inbjudningslänk kopierad",
   "shortcutsDialogDesc": "Tangentbordsgenvägar tillgängliga i kalendern.",
-  "aiAssistantContinue": "Fortsätt",
+  "aiAssistantContinue": "Fortsätt med det som återstår",
   "aiAssistantContinuePrompt": "Fortsätt med de delar av min begäran som återstår. Kontrollera först tidigare resultat och kalenderns aktuella tillstånd. Upprepa inte ändringar som redan har lyckats. Redovisa vad som är klart och vad som återstår.",
   "aiAssistantTimedOut": "Svaret tog för lång tid. Slutförda ändringar har sparats. Du kan fortsätta efter att ha kontrollerat det aktuella tillståndet.",
   "commandPaletteTitle": "Kommandomeny",
