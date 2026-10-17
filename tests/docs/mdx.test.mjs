@@ -62,6 +62,13 @@ test('MCP guide uses explicit markup for emphasis', async () => {
   assert.match(code, /<strong>Streamable HTTP<\/strong>/)
 })
 
+test('changelog accordion content is not constrained to its measured height', async () => {
+  const file = resolve('components/accordion.tsx')
+  const source = await readFile(file, 'utf8')
+
+  assert.doesNotMatch(source, /h-\(--radix-accordion-content-height\)/)
+})
+
 test('every documentation page compiles through the production MDX loader', async () => {
   const contentDir = resolve('content/docs')
   const entries = await readdir(contentDir, { recursive: true })
