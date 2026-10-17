@@ -9,6 +9,46 @@ export interface CalendarLoadRange {
   timezone: string
 }
 
+export interface CalendarBatchRange extends CalendarLoadRange {
+  anchorDate: string
+  batchSize: 150 | 400
+  excludeStartDate?: string
+  excludeEndDate?: string
+}
+
+/** Complete visible grids, without forcing neighboring whole months to load. */
+export function calendarVisibleRange(
+  date: Date,
+  view: string,
+  timezone: string,
+): CalendarLoadRange {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  if (view === 'year')
+    return civilRange(
+      new Date(year, -1, 25),
+      new Date(year + 1, 0, 8),
+      timezone,
+    )
+  if (view === 'month')
+    return civilRange(
+      new Date(year, month, -6),
+      new Date(year, month + 1, 8),
+      timezone,
+    )
+  const start = new Date(year, month, date.getDate())
+  const end = new Date(year, month, date.getDate() + 1)
+  if (view === 'week' || view === 'four-day') {
+    start.setDate(start.getDate() - 7)
+    end.setDate(end.getDate() + 7)
+  }
+  return civilRange(start, end, timezone)
+}
+
+export function eventBatchKey(range: CalendarBatchRange) {
+  return `${eventRangeKey(range)}&${new URLSearchParams({ anchorDate: range.anchorDate, batchSize: String(range.batchSize) })}`
+}
+
 /** Whole visible period plus neighboring months. Dates here are civil UI dates. */
 export function calendarLoadRange(
   date: Date,

@@ -18,15 +18,16 @@ import {
   type CountdownData,
   type BookmarkData,
   type SettingsData,
+  type EventListResponse,
 } from '#calendar/lib/api-client'
 import { toast } from 'sonner'
 import {
-  calendarLoadRange,
-  calendarPreloadRange,
+  calendarVisibleRange,
   containsCalendarRange,
-  eventRangeKey,
+  eventBatchKey,
   isEventRangeKey,
   type CalendarLoadRange,
+  type CalendarBatchRange,
 } from '#calendar/lib/calendar-range'
 import {
   LANGUAGE_STORAGE_KEY,
@@ -152,37 +153,118 @@ export function DataProvider({
   const tRef = useRef(translations[language])
   tRef.current = translations[language]
 
+  const coverageByKey = useRef(new Map<string, CalendarLoadRange>())
   const [eventWindows, setEventWindows] = useState(() => {
-    const active = calendarPreloadRange(
-      calendarLoadRange(
-        new Date(),
+    const now = new Date()
+    const active: CalendarBatchRange = {
+      ...calendarVisibleRange(
+        now,
         'month',
         Intl.DateTimeFormat().resolvedOptions().timeZone,
       ),
-    )
+      anchorDate: now.toISOString(),
+      batchSize: 150,
+    }
     return { active, visited: [active] }
   })
   const setEventsRange = useCallback((visible: CalendarLoadRange) => {
     setEventWindows((current) => {
       // Reuse coverage even while its request is in flight. Flipping months
       // must not abandon the initial response and start another overlapping GET.
-      if (containsCalendarRange(current.active, visible)) return current
+      const coverage =
+        coverageByKey.current.get(eventBatchKey(current.active)) ??
+        current.active
+      if (containsCalendarRange(coverage, visible)) return current
       const known = current.visited.find((range) =>
-        containsCalendarRange(range, visible),
+        containsCalendarRange(
+          coverageByKey.current.get(eventBatchKey(range)) ?? range,
+          visible,
+        ),
       )
-      const active = known ?? calendarPreloadRange(visible)
+      const active: CalendarBatchRange = known ?? {
+        ...visible,
+        anchorDate: new Date(
+          Date.now() >= Date.parse(visible.startDate) &&
+            Date.now() < Date.parse(visible.endDate)
+            ? Date.now()
+            : (Date.parse(visible.startDate) + Date.parse(visible.endDate)) / 2,
+        ).toISOString(),
+        batchSize: 150,
+      }
       return {
         active,
         visited: known ? current.visited : [...current.visited, active],
       }
     })
   }, [])
-  const eventsRange = eventWindows.active
-  const eventsKey = eventRangeKey(eventsRange)
+  const eventsRequest = eventWindows.active
+  const eventsKey = eventBatchKey(eventsRequest)
+  const batchSizes = useRef(new Map<string, number>())
   const eventsKeyRef = useRef(eventsKey)
   eventsKeyRef.current = eventsKey
   const eventWrites = useRef({ pending: 0, needsRefresh: false })
-  const eventsReq = useSWR(eventsKey, () => api.events.list(eventsRange))
+  const eventsReq = useSWR(
+    eventsKey,
+    () =>
+      api.events.list({
+        ...eventsRequest,
+        batchSize: batchSizes.current.get(eventsKey) ?? 150,
+      }),
+    {
+      // A prefetched/visited key should paint immediately, not refetch on every
+      // navigation. Focus/reconnect and explicit refresh still revalidate it.
+      revalidateIfStale: false,
+    },
+  )
+  const eventsRange = eventsReq.data?.coverage ?? eventsRequest
+  if (eventsReq.data) coverageByKey.current.set(eventsKey, eventsRange)
+  if (eventsReq.data?.batchSize)
+    batchSizes.current.set(eventsKey, eventsReq.data.batchSize)
+  const attemptedBackground = useRef(new WeakSet<EventListResponse>())
+  useEffect(() => {
+    const initial = eventsReq.data
+    if (
+      !initial?.coverage ||
+      initial.batchSize !== 150 ||
+      initial.complete ||
+      attemptedBackground.current.has(initial)
+    )
+      return
+    const run = () => {
+      if (eventsKeyRef.current !== eventsKey || eventWrites.current.pending > 0)
+        return
+      attemptedBackground.current.add(initial)
+      // A scoped SWR mutation retains the visible data and discards this result
+      // if a newer refresh/write wins the race. Only enrich/transfer the delta.
+      void mutate<EventListResponse>(
+        eventsKey,
+        async (current) => {
+          if (current !== initial) return current
+          const more = await api.events.list({
+            ...eventsRequest,
+            batchSize: 400,
+            excludeStartDate: initial.coverage!.startDate,
+            excludeEndDate: initial.coverage!.endDate,
+          })
+          const retained = more.retainedIds ? new Set(more.retainedIds) : null
+          const merged = new Map(
+            initial.events
+              .filter((event) => !retained || retained.has(event.id))
+              .map((event) => [event.id, event]),
+          )
+          more.events.forEach((event) => merged.set(event.id, event))
+          return { ...more, events: [...merged.values()] }
+        },
+        { revalidate: false, throwOnError: false },
+      )
+    }
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(run, { timeout: 1500 })
+      return () => cancelIdleCallback(id)
+    }
+    const id = setTimeout(run, 200)
+    return () => clearTimeout(id)
+  }, [eventsReq.data, eventsKey, eventsRequest, mutate])
   const categoriesReq = useSWR(DATA_KEYS.categories, () =>
     api.categories.list(),
   )
@@ -242,8 +324,14 @@ export function DataProvider({
       mutate((key) => isEventRangeKey(key) && key !== activeKey, undefined, {
         revalidate: false,
       }),
-      mutate(activeKey),
+      // Close an older background mutation too; a bare revalidation can be
+      // discarded by SWR while that mutation is still pending.
+      mutate(activeKey, (current?: EventListResponse) => current, {
+        revalidate: false,
+      }),
     ])
+    // Await the actual GET, not only the synchronous cache mutation above.
+    await mutate(activeKey)
   }, [mutate])
   const finishEventWrite = useCallback(
     async (needsRefresh: boolean) => {
@@ -442,7 +530,8 @@ export function DataProvider({
         if (optimistic) {
           await mutate(
             eventKey,
-            (cur?: { events: EventData[] }) => ({
+            (cur?: EventListResponse) => ({
+              ...cur,
               events: replaceSeriesInstances(
                 cur?.events ?? [],
                 optimistic,
@@ -462,7 +551,8 @@ export function DataProvider({
         if (seriesEvents && seriesEvents.length > 0) {
           await mutate(
             eventKey,
-            (cur?: { events: EventData[] }) => ({
+            (cur?: EventListResponse) => ({
+              ...cur,
               events: replaceSeriesInstances(
                 cur?.events ?? [],
                 seriesEvents,
@@ -474,7 +564,8 @@ export function DataProvider({
         } else if (!res.event?.rrule) {
           await mutate(
             eventKey,
-            (cur?: { events: EventData[] }) => ({
+            (cur?: EventListResponse) => ({
+              ...cur,
               events: upsertById(cur?.events ?? [], res.event),
             }),
             { revalidate: false },
@@ -524,9 +615,10 @@ export function DataProvider({
         // started before/during the DELETE must not resurrect removed rows.
         await mutate(
           eventKey,
-          async () => {
+          async (current?: EventListResponse) => {
             const res = await api.events.delete(id, applyTo, timezone)
             return {
+              ...current,
               events: replaceSeriesInstances(
                 optimistic,
                 res.seriesEvents ?? [],
@@ -534,7 +626,10 @@ export function DataProvider({
             }
           },
           {
-            optimisticData: { events: optimistic },
+            optimisticData: (current?: EventListResponse) => ({
+              ...current,
+              events: optimistic,
+            }),
             rollbackOnError: true,
             revalidate: false,
           },

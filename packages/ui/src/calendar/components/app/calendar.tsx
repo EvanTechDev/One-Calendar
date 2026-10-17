@@ -26,6 +26,7 @@ import {
   Menu,
   CalendarCheck,
   Plus,
+  Loader2,
 } from 'lucide-react'
 import dynamic from '#calendar/lib/lazy-view'
 import CalendarViewLoading from '#calendar/components/app/calendar-view-loading'
@@ -44,7 +45,7 @@ import {
   eventDataToCalendarEvent,
 } from '#calendar/components/providers/calendar-context'
 import {
-  calendarLoadRange,
+  calendarVisibleRange,
   containsCalendarRange,
 } from '#calendar/lib/calendar-range'
 
@@ -298,12 +299,12 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     ),
   )
   const visibleRange = useMemo(
-    () => calendarLoadRange(date, view, timezone),
+    () => calendarVisibleRange(date, view, timezone),
     [date, view, timezone],
   )
   useEffect(() => {
     if (isCalendarView(view)) setEventsRange(visibleRange)
-  }, [view, visibleRange, setEventsRange])
+  }, [view, visibleRange, eventsRange, setEventsRange])
   const calendarDataReady =
     containsCalendarRange(eventsRange, visibleRange) && !eventsLoading
   const handleTimezoneChange = (tz: string) => {
@@ -1730,6 +1731,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
           <div
             className="relative flex-1 overflow-auto pr-14 max-md:pr-0"
             ref={calendarRef}
+            aria-busy={isCalendarView(view) && !calendarDataReady}
           >
             {isCalendarView(view) && eventsError && (
               <div
@@ -1742,9 +1744,18 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
               </div>
             )}
             {isCalendarView(view) && !calendarDataReady && !eventsError && (
-              <CalendarViewLoading />
+              <div
+                className="pointer-events-none absolute right-4 top-2 z-30 rounded-full bg-background/90 p-1.5"
+                role="status"
+              >
+                <Loader2
+                  className="h-4 w-4 animate-spin text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span className="sr-only">{t.loadingCalendar}</span>
+              </div>
             )}
-            {view === 'day' && calendarDataReady && (
+            {view === 'day' && (
               <DayView
                 date={date}
                 events={eventsByCategory}
@@ -1759,7 +1770,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 selection={createSelectionRange}
               />
             )}
-            {view === 'week' && calendarDataReady && (
+            {view === 'week' && (
               <WeekView
                 date={date}
                 events={eventsByCategory}
@@ -1774,7 +1785,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 selection={createSelectionRange}
               />
             )}
-            {view === 'four-day' && calendarDataReady && (
+            {view === 'four-day' && (
               <WeekView
                 date={date}
                 events={eventsByCategory}
@@ -1791,7 +1802,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 selection={createSelectionRange}
               />
             )}
-            {view === 'month' && calendarDataReady && (
+            {view === 'month' && (
               <MonthView
                 date={date}
                 events={eventsByCategory}
@@ -1803,7 +1814,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
                 scrollContainerRef={calendarRef}
               />
             )}
-            {view === 'year' && calendarDataReady && (
+            {view === 'year' && (
               <YearView
                 date={date}
                 events={eventsByCategory}

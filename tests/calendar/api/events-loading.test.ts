@@ -186,3 +186,99 @@ it('reads only the requested shared event and rejects an ungranted id', async ()
   )
   expect(denied.status).toBe(404)
 })
+
+it('counts rendered occurrences per side, keeps visible dates complete, and sends only the background delta', async () => {
+  seed('daily', {
+    startDate: new Date('2024-01-01T09:00:00Z'),
+    endDate: new Date('2024-01-01T10:00:00Z'),
+    rrule: 'FREQ=DAILY',
+  })
+  // No private event or ungranted shared event may enter either batch.
+  seed('private', { userId: 'stranger' })
+  const query = `${bounds}&anchorDate=2026-10-05T12:00:00Z`
+  const response = await GET(
+    new NextRequest(`http://localhost/api/events?${query}&batchSize=150`),
+  )
+  const first = await response.json()
+  expect(response.status).toBe(200)
+  expect(first.events).toHaveLength(300)
+  expect(
+    first.events.every(
+      (event: { seriesId: string }) => event.seriesId === 'daily',
+    ),
+  ).toBe(true)
+  expect(
+    first.events.filter(
+      (event: { startDate: string }) =>
+        Date.parse(event.startDate) < Date.parse('2026-10-05T12:00:00Z'),
+    ),
+  ).toHaveLength(150)
+  expect(first.coverage.startDate <= '2026-10-05T00:00:00.000Z').toBe(true)
+  expect(first.coverage.endDate >= '2026-10-06T00:00:00.000Z').toBe(true)
+  expect(reads.decrypt).toHaveBeenCalledTimes(1)
+  const deltaQuery = new URLSearchParams({
+    excludeStartDate: first.coverage.startDate,
+    excludeEndDate: first.coverage.endDate,
+  })
+  const moreResponse = await GET(
+    new NextRequest(
+      `http://localhost/api/events?${query}&batchSize=400&${deltaQuery}`,
+    ),
+  )
+  const more = await moreResponse.json()
+  expect(moreResponse.status).toBe(200)
+  expect(more.events).toHaveLength(500)
+  expect(new Set(more.retainedIds)).toEqual(
+    new Set(first.events.map((event: { id: string }) => event.id)),
+  )
+  expect(
+    new Set([...first.events, ...more.events].map((event) => event.id)).size,
+  ).toBe(800)
+  expect(
+    more.events.every(
+      (event: { id: string }) =>
+        !first.events.some((old: { id: string }) => old.id === event.id),
+    ),
+  ).toBe(true)
+  // Completeness wins over the target when the requested year has >150/side.
+  const year = await GET(
+    new NextRequest(
+      `http://localhost/api/events?startDate=2026-01-01T00:00:00Z&endDate=2027-01-01T00:00:00Z&tz=UTC&anchorDate=2026-10-05T12:00:00Z&batchSize=150`,
+    ),
+  )
+  const yearly = await year.json()
+  expect(
+    yearly.events.filter(
+      (event: { startDate: string }) =>
+        event.startDate >= '2026-01-01' && event.startDate < '2027-01-01',
+    ),
+  ).toHaveLength(365)
+})
+
+it('selects the nearest plain events, includes boundary ties, and rejects invalid batches', async () => {
+  const anchor = Date.parse('2026-10-05T12:00:00Z')
+  for (let day = -450; day <= 450; day++) {
+    const startDate = new Date(anchor + day * 86400000)
+    seed(`plain-${day}`, {
+      startDate,
+      endDate: new Date(startDate.getTime() + 3600000),
+    })
+  }
+  seed('boundary-tie', {
+    startDate: new Date(anchor - 150 * 86400000),
+    endDate: new Date(anchor - 150 * 86400000 + 3600000),
+  })
+  const events = await list(
+    `${bounds}&anchorDate=2026-10-05T12:00:00Z&batchSize=150`,
+  )
+  expect(events).toHaveLength(301)
+  expect(events.some((event) => event.id === 'plain--150')).toBe(true)
+  expect(events.some((event) => event.id === 'boundary-tie')).toBe(true)
+  expect(events.some((event) => event.id === 'plain--151')).toBe(false)
+  const invalid = await GET(
+    new NextRequest(
+      `http://localhost/api/events?${bounds}&anchorDate=bad&batchSize=1000000`,
+    ),
+  )
+  expect(invalid.status).toBe(400)
+})

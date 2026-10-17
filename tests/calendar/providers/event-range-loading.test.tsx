@@ -5,9 +5,18 @@ import {
   DataProvider,
   useData,
 } from '@zntr/ui/calendar/components/providers/data-provider'
-import { calendarLoadRange } from '@zntr/ui/calendar/lib/calendar-range'
+import {
+  calendarLoadRange,
+  calendarVisibleRange,
+  calendarPreloadRange,
+} from '@zntr/ui/calendar/lib/calendar-range'
 
-const mock = vi.hoisted(() => ({ list: vi.fn(), delete: vi.fn() }))
+const mock = vi.hoisted(() => ({
+  list: vi.fn(),
+  delete: vi.fn(),
+  idle: new Map<number, () => void>(),
+  nextIdle: 0,
+}))
 vi.mock('@zntr/ui/calendar/lib/api-client', () => ({
   api: {
     events: { list: mock.list, delete: mock.delete },
@@ -22,10 +31,19 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-10-05T12:00:00Z'))
   mock.list.mockReset()
   mock.delete.mockReset()
+  mock.idle.clear()
+  mock.nextIdle = 0
+  vi.stubGlobal('requestIdleCallback', (callback: () => void) => {
+    const id = ++mock.nextIdle
+    mock.idle.set(id, callback)
+    return id
+  })
+  vi.stubGlobal('cancelIdleCallback', (id: number) => mock.idle.delete(id))
 })
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  vi.unstubAllGlobals()
 })
 
 function renderCalendarData() {
@@ -63,18 +81,32 @@ function renderCalendarData() {
   return { pending, data: () => data }
 }
 
-it('loads a bounded quarter window and requests a larger year only when needed', async () => {
+it('starts with a 150-per-side batch centered on today and reuses its actual coverage', async () => {
   const { pending, data } = renderCalendarData()
   const initial = pending[0].range
   expect(Date.parse(initial.startDate)).toBeLessThanOrEqual(
-    new Date(2026, 8, 1).getTime(),
+    new Date(2026, 9, 1).getTime(),
   )
   expect(Date.parse(initial.endDate)).toBeGreaterThanOrEqual(
-    new Date(2027, 1, 1).getTime(),
+    new Date(2026, 10, 1).getTime(),
   )
   expect(
     Date.parse(initial.endDate) - Date.parse(initial.startDate),
-  ).toBeLessThan(160 * 86400000)
+  ).toBeLessThan(50 * 86400000)
+  expect(mock.list.mock.calls[0][0]).toMatchObject({
+    batchSize: 150,
+    anchorDate: '2026-10-05T12:00:00.000Z',
+  })
+  const coverage = calendarPreloadRange(
+    calendarLoadRange(new Date(2026, 9, 5), 'month', initial.timezone),
+  )
+  await act(async () =>
+    pending[0].resolve({
+      events: [{ id: 'preloaded' }],
+      coverage,
+      batchSize: 400,
+    }),
+  )
 
   for (const [year, month, view] of [
     [2026, 10, 'month'],
@@ -87,7 +119,6 @@ it('loads a bounded quarter window and requests a larger year only when needed',
     )
   }
   expect(mock.list).toHaveBeenCalledTimes(1)
-  await act(async () => pending[0].resolve({ events: [{ id: 'preloaded' }] }))
   expect(screen.getByText('preloaded')).toBeInTheDocument()
   await act(async () =>
     data().setEventsRange(
@@ -173,7 +204,7 @@ it('invalidates previously visited windows after a deletion instead of restoring
   })
   await act(async () =>
     data().setEventsRange(
-      calendarLoadRange(new Date(2026, 10, 4), 'month', initial.timezone),
+      calendarVisibleRange(new Date(2026, 9, 5), 'month', initial.timezone),
     ),
   )
   expect(data().events).toEqual([])
@@ -205,3 +236,135 @@ it('keeps displayed data during refresh and resolves only after revalidation', a
   expect(finished).toBe(true)
   expect(screen.getByText('fresh')).toBeInTheDocument()
 })
+
+it('extends 150 to 400 per side in the background and reuses the merged coverage without a loading gap', async () => {
+  const { pending, data } = renderCalendarData()
+  expect(mock.idle.size).toBe(0)
+  const initialCoverage = {
+    startDate: '2026-08-01T00:00:00Z',
+    endDate: '2027-02-01T00:00:00Z',
+    timezone: pending[0].range.timezone,
+  }
+  await act(async () =>
+    pending[0].resolve({
+      events: [{ id: 'current' }, { id: 'revoked' }],
+      coverage: initialCoverage,
+      batchSize: 150,
+    }),
+  )
+  expect(pending).toHaveLength(1)
+  await act(async () => {
+    const callbacks = [...mock.idle.values()]
+    mock.idle.clear()
+    callbacks.forEach((callback) => callback())
+  })
+  expect(pending).toHaveLength(2)
+  expect(mock.list.mock.calls[1][0]).toMatchObject({
+    batchSize: 400,
+    excludeStartDate: initialCoverage.startDate,
+    excludeEndDate: initialCoverage.endDate,
+  })
+  expect(screen.getByText('current,revoked')).toBeInTheDocument()
+  expect(data().eventsLoading).toBe(false)
+  const fullCoverage = {
+    ...initialCoverage,
+    startDate: '2026-01-01T00:00:00Z',
+    endDate: '2027-10-01T00:00:00Z',
+  }
+  await act(async () => {
+    pending[1].resolve({
+      events: [{ id: 'more' }],
+      retainedIds: ['current'],
+      coverage: fullCoverage,
+      batchSize: 400,
+    })
+  })
+  expect(screen.getByText('current,more')).toBeInTheDocument()
+  expect(pending).toHaveLength(2)
+  await act(async () =>
+    data().setEventsRange(
+      calendarVisibleRange(
+        new Date(2027, 2, 4),
+        'month',
+        pending[0].range.timezone,
+      ),
+    ),
+  )
+  expect(data().eventsLoading).toBe(false)
+  expect(screen.getByText('current,more')).toBeInTheDocument()
+  expect(pending).toHaveLength(2)
+  // Refresh keeps the enlarged batch, instead of shrinking back to 150.
+  let refreshing!: Promise<void>
+  await act(async () => {
+    refreshing = data().refreshEvents()
+  })
+  expect(mock.list.mock.calls[2][0].batchSize).toBe(400)
+  await act(async () =>
+    data().setEventsRange(
+      calendarVisibleRange(
+        new Date(2026, 6, 4),
+        'month',
+        pending[0].range.timezone,
+      ),
+    ),
+  )
+  expect(data().eventsLoading).toBe(false)
+  await act(async () => {
+    pending[2].resolve({
+      events: [{ id: 'fresh' }],
+      coverage: fullCoverage,
+      batchSize: 400,
+    })
+    await refreshing
+  })
+  expect(screen.getByText('fresh')).toBeInTheDocument()
+  expect(pending).toHaveLength(3)
+})
+
+it.each(['delete', 'refresh'] as const)(
+  'keeps a newer %s when an older background batch finishes',
+  async (action) => {
+    const { pending, data } = renderCalendarData()
+    mock.delete.mockResolvedValue({ success: true })
+    const coverage = { ...pending[0].range }
+    await act(async () =>
+      pending[0].resolve({
+        events: [{ id: 'deleted' }],
+        coverage,
+        batchSize: 150,
+      }),
+    )
+    await act(async () => {
+      const callbacks = [...mock.idle.values()]
+      mock.idle.clear()
+      callbacks.forEach((callback) => callback())
+    })
+    expect(pending).toHaveLength(2)
+    let refreshing: Promise<void> | undefined
+    await act(async () => {
+      if (action === 'delete') await data().deleteEvent('deleted')
+      else refreshing = data().refreshEvents()
+    })
+    if (action === 'delete') expect(data().events).toEqual([])
+    // The authoritative post-write request wins over the older background data.
+    expect(pending).toHaveLength(3)
+    await act(async () => {
+      pending[2].resolve({
+        events: [],
+        coverage,
+        batchSize: 150,
+        complete: true,
+      })
+      await refreshing
+    })
+    await act(async () =>
+      pending[1].resolve({
+        events: [{ id: 'deleted' }],
+        coverage,
+        batchSize: 400,
+      }),
+    )
+    expect(data().events).toEqual([])
+    expect(data().eventsRange).toMatchObject(coverage)
+  },
+)

@@ -3,6 +3,16 @@ import {
   fetchJson as webFetchJson,
 } from '#calendar/lib/fetch-json'
 import type { CalendarColor } from '#calendar/lib/calendar-colors'
+import type { CalendarLoadRange } from '#calendar/lib/calendar-range'
+
+export type EventListResponse = {
+  events: EventData[]
+  coverage?: CalendarLoadRange
+  batchSize?: number
+  searchLimited?: boolean
+  complete?: boolean
+  retainedIds?: string[]
+}
 
 type EventInviteData = {
   id: string
@@ -110,6 +120,10 @@ const bindCalendarApi = (fetchJson: typeof webFetchJson) => ({
       endDate?: string
       categoryIds?: string
       timezone?: string
+      anchorDate?: string
+      batchSize?: number
+      excludeStartDate?: string
+      excludeEndDate?: string
     }) => {
       const searchParams = new URLSearchParams()
       if (params?.startDate) searchParams.set('startDate', params.startDate)
@@ -117,10 +131,15 @@ const bindCalendarApi = (fetchJson: typeof webFetchJson) => ({
       if (params?.categoryIds)
         searchParams.set('categoryIds', params.categoryIds)
       if (params?.timezone) searchParams.set('tz', params.timezone)
+      if (params?.anchorDate) searchParams.set('anchorDate', params.anchorDate)
+      if (params?.batchSize)
+        searchParams.set('batchSize', String(params.batchSize))
+      if (params?.excludeStartDate)
+        searchParams.set('excludeStartDate', params.excludeStartDate)
+      if (params?.excludeEndDate)
+        searchParams.set('excludeEndDate', params.excludeEndDate)
       const qs = searchParams.toString()
-      return fetchJson<{ events: EventData[] }>(
-        `/api/events${qs ? `?${qs}` : ''}`,
-      )
+      return fetchJson<EventListResponse>(`/api/events${qs ? `?${qs}` : ''}`)
     },
     create: (data: {
       id?: string

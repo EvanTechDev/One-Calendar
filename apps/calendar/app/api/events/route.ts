@@ -14,6 +14,7 @@ import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
 import {
   getSharedEvents,
   loadEventWindow,
+  loadEventBatch,
   type ViewEvent,
 } from '@/lib/event-read'
 import {
@@ -604,6 +605,10 @@ export const GET = async function GET(request: NextRequest) {
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
   const categoryIds = searchParams.get('categoryIds')
+  const batchSize = searchParams.get('batchSize')
+  const anchorDate = searchParams.get('anchorDate')
+  const excludeStart = searchParams.get('excludeStartDate')
+  const excludeEnd = searchParams.get('excludeEndDate')
   if (
     Boolean(startDate) !== Boolean(endDate) ||
     (startDate &&
@@ -614,6 +619,38 @@ export const GET = async function GET(request: NextRequest) {
         Date.parse(endDate) - Date.parse(startDate) > MAX_CALENDAR_RANGE_MS))
   ) {
     return NextResponse.json({ error: 'Invalid date range' }, { status: 400 })
+  }
+  if (
+    batchSize !== null ||
+    anchorDate !== null ||
+    excludeStart !== null ||
+    excludeEnd !== null
+  ) {
+    if (
+      (batchSize !== '150' && batchSize !== '400') ||
+      !anchorDate ||
+      !Number.isFinite(Date.parse(anchorDate)) ||
+      !startDate ||
+      !endDate ||
+      id ||
+      categoryIds ||
+      Date.parse(anchorDate) < Date.parse(startDate) ||
+      Date.parse(anchorDate) >= Date.parse(endDate) ||
+      Boolean(excludeStart) !== Boolean(excludeEnd) ||
+      ((excludeStart || excludeEnd) &&
+        (batchSize !== '400' ||
+          !excludeStart ||
+          !excludeEnd ||
+          !Number.isFinite(Date.parse(excludeStart)) ||
+          !Number.isFinite(Date.parse(excludeEnd)) ||
+          Date.parse(excludeStart) > Date.parse(startDate) ||
+          Date.parse(excludeEnd) < Date.parse(endDate)))
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid event batch' },
+        { status: 400 },
+      )
+    }
   }
   // Reject invalid ranges before a settings lookup. An explicit valid timezone
   // avoids that lookup altogether.
@@ -736,6 +773,30 @@ export const GET = async function GET(request: NextRequest) {
     startDate && endDate
       ? { windowStart: new Date(startDate), windowEnd: new Date(endDate) }
       : defaultExpansionWindow()
+  if (batchSize && anchorDate) {
+    const batch = await loadEventBatch(currentUser, {
+      ...window,
+      timeZone,
+      anchor: new Date(anchorDate),
+      size: Number(batchSize),
+      exclude:
+        excludeStart && excludeEnd
+          ? {
+              windowStart: new Date(excludeStart),
+              windowEnd: new Date(excludeEnd),
+            }
+          : undefined,
+    })
+    const events = await enrichEventsWithInvites(
+      batch.events,
+      currentUser.id,
+      currentUser.email,
+    )
+    return NextResponse.json(
+      { ...batch, events },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
+  }
   const selected = await loadEventWindow(currentUser, {
     ...window,
     timeZone,
