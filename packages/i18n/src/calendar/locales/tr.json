@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Yarım kalan işe devam et",
+  "aiAssistantContinue": "Devam et",
   "aiAssistantContinuePrompt": "İsteğimin tamamlanmamış kısımlarına devam et. Önce mevcut sonuçları ve takvimin güncel durumunu kontrol et; başarılı yazma işlemlerini tekrarlama. Nelerin tamamlandığını ve nelerin kaldığını raporla.",
   "aiAssistantTimedOut": "Yanıt zaman aşımına uğradı. Tamamlanan değişiklikler korundu. Mevcut durumu kontrol ettikten sonra devam edebilirsiniz.",
   "calendar": "Takvim",

@@ -50,6 +50,13 @@
       "when": 1791158400000,
       "tag": "0022_relax_legacy_account_issuer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792278985010,
+      "tag": "0024_mcp_audit_identity_name",
+      "breakpoints": true
     }
   ]
 }

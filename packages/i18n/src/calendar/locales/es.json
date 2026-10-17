@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Continuar el trabajo sin terminar",
+  "aiAssistantContinue": "Continuar",
   "aiAssistantContinuePrompt": "Continúa las partes sin terminar de mi solicitud. Primero revisa los resultados existentes y el estado actual del calendario; no repitas las escrituras exitosas. Informa qué está completado y qué queda pendiente.",
   "aiAssistantTimedOut": "La respuesta agotó el tiempo de espera. Los cambios completados se conservan. Puedes continuar después de revisar el estado actual.",
   "calendar": "Calendario",

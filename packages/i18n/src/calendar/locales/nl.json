@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Ga verder met onafgemaakt werk",
+  "aiAssistantContinue": "Doorgaan",
   "aiAssistantContinuePrompt": "Ga verder met de onafgemaakte delen van mijn verzoek. Controleer eerst bestaande resultaten en de huidige agendastatus; herhaal geen geslaagde schrijfbewerkingen. Rapporteer wat is voltooid en wat er nog moet gebeuren.",
   "aiAssistantTimedOut": "Het antwoord duurde te lang. Voltooide wijzigingen blijven behouden. Je kunt doorgaan nadat je de huidige status hebt gecontroleerd.",
   "calendar": "Agenda",

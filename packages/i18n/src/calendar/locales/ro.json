@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Continuă lucrul neterminat",
+  "aiAssistantContinue": "Continuă",
   "aiAssistantContinuePrompt": "Continuă părțile neterminate ale solicitării mele. Verifică mai întâi rezultatele existente și starea curentă a calendarului; nu repeta scrierile reușite. Raportează ce este finalizat și ce rămâne de făcut.",
   "aiAssistantTimedOut": "Răspunsul a expirat. Modificările finalizate sunt păstrate. Poți continua după ce verifici starea curentă.",
   "calendar": "Calendar",

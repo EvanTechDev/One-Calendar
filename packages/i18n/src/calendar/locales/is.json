@@ -534,7 +534,7 @@
   "copyInviteLink": "Afrita boðsleinkun",
   "inviteLinkCopied": "Boðsleinkun afrituð",
   "shortcutsDialogDesc": "Stuttar lyklaaðgerðir eru tiltækar í gegnum dagatal.",
-  "aiAssistantContinue": "Halda áfram með ólokið verk",
+  "aiAssistantContinue": "Halda áfram",
   "aiAssistantContinuePrompt": "Haltu áfram með þá hluta beiðninnar sem eru óloknir. Athugaðu fyrst fyrri niðurstöður og núverandi stöðu dagatalsins. Ekki endurtaka breytingar sem hafa tekist. Greindu frá því sem er lokið og því sem er eftir.",
   "aiAssistantTimedOut": "Biðtími eftir svari rann út. Lokið hefur verið við að vista framkvæmdar breytingar. Þú getur haldið áfram eftir að hafa athugað núverandi stöðu.",
   "commandPaletteTitle": "Skipanavalmynd",

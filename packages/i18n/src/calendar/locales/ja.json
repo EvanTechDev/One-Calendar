@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "未完了の作業を続ける",
+  "aiAssistantContinue": "続ける",
   "aiAssistantContinuePrompt": "リクエストの未完了部分を続けてください。まず既存の結果と現在のカレンダーの状態を確認し、成功した書き込みは繰り返さないでください。完了した内容と残っている内容を報告してください。",
   "aiAssistantTimedOut": "応答がタイムアウトしました。完了した変更は保持されます。現在の状態を確認してから続行できます。",
   "calendar": "カレンダー",

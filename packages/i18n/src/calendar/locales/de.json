@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Nicht abgeschlossene Arbeit fortsetzen",
+  "aiAssistantContinue": "Fortsetzen",
   "aiAssistantContinuePrompt": "Setzen Sie die nicht abgeschlossenen Teile meiner Anfrage fort. Prüfen Sie zuerst vorhandene Ergebnisse und den aktuellen Kalenderstand; wiederholen Sie keine erfolgreichen Schreibvorgänge. Berichten Sie, was abgeschlossen ist und was noch aussteht.",
   "aiAssistantTimedOut": "Die Antwort hat das Zeitlimit überschritten. Abgeschlossene Änderungen bleiben erhalten. Sie können fortfahren, nachdem Sie den aktuellen Stand geprüft haben.",
   "calendar": "Kalender",

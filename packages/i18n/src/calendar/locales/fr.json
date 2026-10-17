@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Continuer le travail non terminé",
+  "aiAssistantContinue": "Continuer",
   "aiAssistantContinuePrompt": "Poursuivez les parties non terminées de ma demande. Vérifiez d'abord les résultats existants et l'état actuel du calendrier ; ne répétez pas les écritures réussies. Indiquez ce qui est terminé et ce qui reste à faire.",
   "aiAssistantTimedOut": "La réponse a expiré. Les modifications effectuées sont conservées. Vous pouvez continuer après avoir vérifié l'état actuel.",
   "calendar": "Calendrier",

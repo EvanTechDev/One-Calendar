@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Kontynuuj niedokończoną pracę",
+  "aiAssistantContinue": "Kontynuuj",
   "aiAssistantContinuePrompt": "Kontynuuj niedokończone części mojego żądania. Najpierw sprawdź istniejące wyniki i aktualny stan kalendarza; nie powtarzaj udanych zapisów. Poinformuj, co zostało ukończone, a co pozostało.",
   "aiAssistantTimedOut": "Odpowiedź przekroczyła limit czasu. Ukończone zmiany zostały zachowane. Możesz kontynuować po sprawdzeniu aktualnego stanu.",
   "calendar": "Kalendarz",

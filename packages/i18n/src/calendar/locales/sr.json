@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Nastavi nezavršeni posao",
+  "aiAssistantContinue": "Nastavi",
   "aiAssistantContinuePrompt": "Nastavi nezavršene delove mog zahteva. Prvo proveri postojeće rezultate i trenutno stanje kalendara; ne ponavljaj uspešne upise. Prijavi šta je završeno i šta preostaje.",
   "aiAssistantTimedOut": "Odgovor je istekao. Završene izmene su sačuvane. Možete nastaviti nakon provere trenutnog stanja.",
   "calendar": "Kalendar",

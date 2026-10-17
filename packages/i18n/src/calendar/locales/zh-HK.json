@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "繼續未完成的工作",
+  "aiAssistantContinue": "繼續",
   "aiAssistantContinuePrompt": "繼續完成我請求中未完成的部分。請先檢查現有結果及目前的日曆狀態;切勿重複已成功寫入的項目。報告已完成的事項及尚待完成的部分。",
   "aiAssistantTimedOut": "回應逾時。已完成的變更將會保留。你可以在檢查目前狀態後繼續。",
   "calendar": "日曆",

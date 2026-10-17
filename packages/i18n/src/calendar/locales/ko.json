@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "완료되지 않은 작업 이어하기",
+  "aiAssistantContinue": "계속하기",
   "aiAssistantContinuePrompt": "요청의 미완료 부분을 계속 진행해 주세요. 먼저 기존 결과와 현재 캘린더 상태를 확인하고, 성공한 쓰기 작업은 반복하지 마세요. 완료된 항목과 남은 항목을 보고해 주세요.",
   "aiAssistantTimedOut": "응답 시간이 초과되었습니다. 완료된 변경 사항은 유지됩니다. 현재 상태를 확인한 후 계속할 수 있습니다.",
   "calendar": "달력",

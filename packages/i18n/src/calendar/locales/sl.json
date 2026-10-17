@@ -1,5 +1,5 @@
 {
-  "aiAssistantContinue": "Nadaljuj nedokončano delo",
+  "aiAssistantContinue": "Nadaljuj",
   "aiAssistantContinuePrompt": "Nadaljuj nedokončane dele moje zahteve. Najprej preveri obstoječe rezultate in trenutno stanje koledarja; ne ponavljaj uspešnih zapisov. Poročaj, kaj je dokončano in kaj še ostaja.",
   "aiAssistantTimedOut": "Odziv je potekel. Dokončane spremembe so ohranjene. Po preverjanju trenutnega stanja lahko nadaljujete.",
   "calendar": "Koledar",
