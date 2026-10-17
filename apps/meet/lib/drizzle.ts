@@ -1,4 +1,3 @@
-import { attachDatabasePool } from '@vercel/functions'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { authSchema } from '@zntr/auth'
@@ -67,11 +66,10 @@ export function getDb() {
     const pool = new Pool({
       connectionString: stripSslParams(connectionString),
       ssl: resolveDbSsl(),
-      // attachDatabasePool keeps the invocation alive until idle cleanup.
-      // pg's 10s default otherwise outlasts even millisecond responses.
-      idleTimeoutMillis: 1000,
+      // Destroy each connection on release, after its query or transaction.
+      maxUses: 1,
     })
-    attachDatabasePool(pool)
+    // No idle connections to drain, so do not attach a Vercel idle wait timer.
     _db = drizzle({ client: pool, schema })
   }
   return _db
