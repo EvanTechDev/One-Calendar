@@ -18,12 +18,14 @@ export function DocsToolbar({
   sectionUrl,
   pageUrl,
   githubUrl,
+  showPageActions = true,
 }: {
   title: string
   section: string
   sectionUrl: string
   pageUrl: string
   githubUrl: string
+  showPageActions?: boolean
 }) {
   const home = pageUrl === '/docs'
 
@@ -46,7 +48,7 @@ export function DocsToolbar({
           <DocsSearch />
         </div>
         <ThemeSwitch mode="light-dark" className="docs-theme" />
-        {!home && (
+        {!home && showPageActions && (
           <PageActions
             key={pageUrl}
             markdownUrl={`${pageUrl}.mdx`}
