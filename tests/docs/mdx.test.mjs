@@ -53,6 +53,15 @@ test('production MDX preserves explicit emphasis elements in Markdown exports', 
   assert.match(code, /<em>italic text<\/em>/)
 })
 
+test('MCP guide uses explicit markup for emphasis', async () => {
+  const file = resolve('content/docs/integrations/mcp.mdx')
+  const source = await readFile(file, 'utf8')
+  assert.match(source, /<strong>Streamable HTTP<\/strong>/)
+
+  const code = await compile(file, source)
+  assert.match(code, /<strong>Streamable HTTP<\/strong>/)
+})
+
 test('every documentation page compiles through the production MDX loader', async () => {
   const contentDir = resolve('content/docs')
   const entries = await readdir(contentDir, { recursive: true })
