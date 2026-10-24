@@ -49,7 +49,6 @@
     "drizzle-kit": "latest",
     "husky": "9.1.7",
     "lint-staged": "17.0.8",
-    "next": "16.3.8",
     "oxlint": "1.71.0",
     "playwright": "1.63.0",
     "postcss": "8.5.15",
