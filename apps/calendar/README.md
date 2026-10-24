@@ -93,6 +93,22 @@ bun run dev
 
 Then open `http://localhost:3000`.
 
+### Vercel deployment
+
+Connect the full Git repository, not a copy of `apps/calendar` alone. In the
+Vercel project's **Settings → Build and Deployment**:
+
+- Set **Root Directory** to `apps/calendar`.
+- Enable **Include source files outside of the Root Directory in the Build Step**.
+- Use the install command from `apps/calendar/vercel.json`:
+  `bun install --frozen-lockfile --cwd ../..`.
+
+Installation uses the repository's root `package.json`, `bun.lock` and shared
+`packages/` workspaces. Errors such as `Workspace dependency "@zntr/auth" not
+found` or `"@zntr/i18n" not found` mean those workspace files are not visible to
+the installer. Keep the outside-root option enabled and redeploy after changing
+it; changing the install command cannot restore files omitted from the build.
+
 ### Environment variables
 
 Copy `.env.example` to `.env` and fill in the values:

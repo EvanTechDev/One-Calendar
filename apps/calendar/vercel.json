@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "bun install --frozen-lockfile --cwd ../..",
   "functions": {
     "app/api/agent/chat/route.ts": {
       "supportsCancellation": true
