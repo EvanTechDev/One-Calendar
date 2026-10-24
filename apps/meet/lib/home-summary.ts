@@ -5,10 +5,7 @@
  */
 
 export type Greeting =
-  | 'Good morning'
-  | 'Good afternoon'
-  | 'Good evening'
-  | 'Good night'
+  'Good morning' | 'Good afternoon' | 'Good evening' | 'Good night'
 
 /**
  * Time-of-day greeting in the VISITOR's local time. Bands follow the same

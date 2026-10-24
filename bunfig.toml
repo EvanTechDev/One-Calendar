@@ -1,0 +1,32 @@
+[install]
+# Match workspace package resolution in development and CI.
+linker = "hoisted"
+
+[test]
+root = "./tests"
+
+[fmt]
+semi = false
+singleQuote = true
+trailingComma = "all"
+printWidth = 80
+tabWidth = 2
+arrowParens = "always"
+sortImports = false
+sortTailwindcss = false
+sortPackageJson = false
+# Preserve the existing exclusions, including vendored UI and generated locales.
+ignorePatterns = [
+  "**/node_modules/**",
+  "**/.next/**",
+  "**/out/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/coverage/**",
+  "**/bun.lockb",
+  "**/package-lock.json",
+  "**/bun.lock",
+  "**/yarn.lock",
+  "packages/ui/src/**",
+  "**/locales/**",
+]

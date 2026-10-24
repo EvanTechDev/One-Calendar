@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * Characterization tests for the events REST route's series mutation layer
  * (POST with body.id = update, DELETE). They pin the CURRENT write behavior
@@ -9,50 +9,49 @@
  * NOTE: response bodies are deliberately not asserted (only the db op log);
  * see plan 001 maintenance notes.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
-const reminderCalls = vi.hoisted(() =>
+const reminderCalls = (() =>
   vi.fn(
     async (_params: {
       userId: string
       eventId: string
       strictQuota?: boolean
     }) => ({ scheduled: 0, cancelled: 0 }),
-  ),
-)
-vi.mock('@/lib/reminders/reconcile', () => ({
+  ))()
+moduleMock.module('@/lib/reminders/reconcile', () => ({
   reconcileEventReminders: reminderCalls,
   SendQuotaExceeded: class extends Error {},
 }))
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   const { drizzleOperatorsMock } = await import('./route-test-db')
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', async () => {
+moduleMock.module('@/lib/drizzle/client', async () => {
   const { getFakeDb } = await import('./route-test-db')
   return { getDb: () => getFakeDb().db }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'u1', email: 'u1@example.com' }),
   decryptEvent: (e: unknown) => e,
 }))
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
   decryptFieldStrict: (_id: string, v: unknown) => v,
   looksLikeEnvelope: () => true,
 }))
 
-vi.mock('@/lib/months', () => ({ fullMonthRange: () => [] }))
-
-import { POST, DELETE } from '@/app/api/events/route'
+moduleMock.module('@/lib/months', () => ({ fullMonthRange: () => [] }))
+const { POST, DELETE } = await import('@/app/api/events/route')
 
 const fake = getFakeDb()
 

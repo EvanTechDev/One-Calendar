@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
 /**
  * The end of the round-trip: a preference written by the settings dialog is
@@ -30,8 +33,8 @@ const processors = {
   })),
 }
 
-vi.mock('@livekit/krisp-noise-filter', () => krisp)
-vi.mock('@livekit/track-processors', () => processors)
+moduleMock.module('@livekit/krisp-noise-filter', () => krisp)
+moduleMock.module('@livekit/track-processors', () => processors)
 
 const { applyJoinPreferences } = await import('@/lib/join-preferences')
 const { loadUserChoices, saveUserChoices } = await import('@/lib/user-choices')
@@ -54,7 +57,7 @@ function stubImageLoads(ok: boolean) {
       queueMicrotask(() => (ok ? this.onload?.() : this.onerror?.()))
     }
   }
-  vi.stubGlobal('Image', StubImage)
+  stubGlobal('Image', StubImage)
 }
 
 beforeEach(() => {

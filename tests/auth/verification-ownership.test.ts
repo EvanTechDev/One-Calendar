@@ -1,4 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { describe, expect, it, vi, beforeEach } from 'bun:test'
 
 /**
  * Sign-up sent two verification emails: one link, one code.
@@ -14,25 +15,27 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
  * behaviour under test.
  */
 const captured: { config?: Record<string, any> } = {}
+const originalPlugins = { ...(await import('better-auth/plugins')) }
 
-vi.mock('better-auth', () => ({
+moduleMock.module('better-auth', () => ({
   betterAuth: (config: Record<string, any>) => {
     captured.config = config
     return { api: {} }
   },
 }))
 
-vi.mock('@better-auth/drizzle-adapter', () => ({
+moduleMock.module('@better-auth/drizzle-adapter', () => ({
   drizzleAdapter: () => ({}),
 }))
 
-vi.mock('better-auth/plugins', () => ({
+moduleMock.module('better-auth/plugins', () => ({
+  ...originalPlugins,
   twoFactor: (options?: unknown) => ({ id: 'two-factor', options }),
   emailOTP: (options?: unknown) => ({ id: 'email-otp', options }),
   jwt: (options?: unknown) => ({ id: 'jwt', options }),
 }))
 
-vi.mock('@better-auth/infra', () => ({
+moduleMock.module('@better-auth/infra', () => ({
   sentinel: (options?: unknown) => ({ id: 'sentinel', options }),
 }))
 

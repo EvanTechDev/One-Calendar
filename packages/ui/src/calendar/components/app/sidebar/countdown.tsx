@@ -364,10 +364,7 @@ export function CountdownBody() {
         name: newCountdown.name,
         targetDate: toDateString(selectedDate),
         repeat: (newCountdown.repeat || 'none') as
-          | 'none'
-          | 'weekly'
-          | 'monthly'
-          | 'yearly',
+          'none' | 'weekly' | 'monthly' | 'yearly',
         description: newCountdown.description || null,
         color: newCountdown.color,
         icon: newCountdown.icon || 'Clock',

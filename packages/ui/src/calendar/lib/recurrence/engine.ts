@@ -747,7 +747,7 @@ export function expandSeriesViewInRange<T extends SeriesViewInput>(
 ): T[] {
   const end = windowEnd.getTime()
   const result = new Map<string, T>()
-  for (let start = windowStart.getTime(); start <= end; ) {
+  for (let start = windowStart.getTime(); start <= end;) {
     const sliceEnd = Math.min(start + 365 * DAY_MS, end)
     const slice = expandSeriesView(
       rows,
@@ -1029,13 +1029,7 @@ function nthWeekdayTokenOf(date: Date, timeZone?: string): string {
 function weekdayNameOf(date: Date, timeZone?: string): string {
   return DAY_NAMES[
     ((dayOfWeek(partsOfDate(date, timeZone)) + 6) % 7) as
-      | 0
-      | 1
-      | 2
-      | 3
-      | 4
-      | 5
-      | 6
+      0 | 1 | 2 | 3 | 4 | 5 | 6
   ]
 }
 

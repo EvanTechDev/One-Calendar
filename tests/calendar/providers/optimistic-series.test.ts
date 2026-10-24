@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { optimisticSeries } from '@zntr/ui/calendar/components/providers/data-provider'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { optimisticSeries } =
+  await import('@zntr/ui/calendar/components/providers/data-provider')
 import type { EventData } from '@zntr/ui/calendar/lib/api-client'
 
 const weeklyRule = 'RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO'

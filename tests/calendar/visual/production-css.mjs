@@ -120,7 +120,9 @@ try {
     // The offline surface is fixed-position and does not give its <main>
     // wrapper a layout box. Assert the actual surface, not that wrapper.
     if (surface === 'offline') {
-      await page.getByRole('heading', { name: 'No internet connection' }).waitFor()
+      await page
+        .getByRole('heading', { name: 'No internet connection' })
+        .waitFor()
     } else {
       await page.locator('main').waitFor()
     }

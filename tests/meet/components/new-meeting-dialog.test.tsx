@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  render,
-  cleanup,
-  screen,
-  fireEvent,
-  waitFor,
-} from '@testing-library/react'
+import { mock as moduleMock } from 'bun:test'
+import { appModule } from '../../support/modules'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { render, cleanup, screen, fireEvent, waitFor } =
+  await import('@testing-library/react')
 
 /**
  * The New meeting dialog's start and join behaviour.
@@ -18,8 +17,12 @@ import {
  */
 
 const push = vi.fn()
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
-vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+moduleMock.module(appModule('meet', 'next/navigation'), () => ({
+  useRouter: () => ({ push }),
+}))
+moduleMock.module('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}))
 
 const { NewMeetingDialog } =
   await import('@/components/dashboard/new-meeting-dialog')
@@ -35,7 +38,7 @@ function mockCreate(body: Record<string, unknown>, ok = true) {
     ok,
     json: async () => body,
   }))
-  vi.stubGlobal('fetch', fetchMock)
+  stubGlobal('fetch', fetchMock)
   return fetchMock
 }
 
@@ -52,7 +55,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 describe('NewMeetingDialog', () => {

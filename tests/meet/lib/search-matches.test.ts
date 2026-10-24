@@ -1,11 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const {
   MATCH_SNIPPET_LENGTH,
   MIN_SEARCH_LENGTH,
   buildSnippet,
   describeMatches,
   shouldSearch,
-} from '../../../apps/meet/lib/search-matches'
+} = await import('../../../apps/meet/lib/search-matches')
 import type { MeetingMatch } from '../../../apps/meet/lib/search-matches'
 
 /**

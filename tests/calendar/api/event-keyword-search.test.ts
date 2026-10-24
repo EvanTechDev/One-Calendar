@@ -1,18 +1,23 @@
-// @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
-vi.mock('drizzle-orm', async (original) => ({
-  ...(await original<typeof import('drizzle-orm')>()),
+const nativeOriginal1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => ({
+  ...nativeOriginal1,
   ...(await import('./route-test-db')).drizzleOperatorsMock,
 }))
-vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
+  getDb: () => getFakeDb().db,
+}))
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'owner', email: 'owner@example.com' }),
   decryptEvent: vi.fn((row) => row),
 }))
-import { GET } from '@/app/api/events/search/route'
-import { decryptEvent } from '@/lib/api-helpers'
+const { GET } = await import('@/app/api/events/search/route')
+
+const { decryptEvent } = await import('@/lib/api-helpers')
+
 const fake = getFakeDb()
 const seed = (id: string, extra = {}) =>
   fake.seed({
@@ -64,18 +69,16 @@ describe('server keyword search across unloaded history', () => {
     const ids: string[] = []
     let pages = 0
     do {
-      const before = vi.mocked(decryptEvent).mock.calls.length
+      const before = decryptEvent.mock.calls.length
       const result = await page('needle', cursor)
-      expect(
-        vi.mocked(decryptEvent).mock.calls.length - before,
-      ).toBeLessThanOrEqual(200)
+      expect(decryptEvent.mock.calls.length - before).toBeLessThanOrEqual(200)
       ids.push(...result.results.map((e) => e.id))
       cursor = result.cursor
       pages++
     } while (cursor && pages < 20)
     expect(pages).toBe(7)
     expect(ids).toEqual(['event-1205'])
-    expect(vi.mocked(decryptEvent)).toHaveBeenCalledTimes(1206)
+    expect(decryptEvent).toHaveBeenCalledTimes(1206)
   })
   it('pages matches without duplicates or dropped rows and honors category filters', async () => {
     for (let i = 74; i >= 0; i--)

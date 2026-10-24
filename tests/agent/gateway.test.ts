@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { summarizeProviderError } from '@zntr/agent'
 
 /** Shape of the AI SDK's APICallError, which is what actually gets thrown. */

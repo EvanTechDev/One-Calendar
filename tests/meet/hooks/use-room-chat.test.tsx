@@ -1,5 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { act, renderHook } from '@testing-library/react'
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, expect, it, vi, beforeEach } from 'bun:test'
+const { act, renderHook } = await import('@testing-library/react')
 
 /**
  * The reported bug: "sometimes the message is sent but the other person does
@@ -9,18 +12,20 @@ import { act, renderHook } from '@testing-library/react'
  *
  * `useChat` is faked at module level so the test can deliver a message at a
  * chosen moment. The alias for `@livekit/components-react` in
- * apps/meet/vitest.config.ts is what makes this mock apply at all.
+ * The test tsconfig inherits the app's aliases so this mock targets its source.
  */
 const state = {
   messages: [] as { id: string; message: string; timestamp: number }[],
   sendToRoom: vi.fn(async () => {}),
 }
 
-vi.mock('@livekit/components-react', () => ({
+moduleMock.module('@livekit/components-react', () => ({
   useChat: () => ({ chatMessages: state.messages, send: state.sendToRoom }),
 }))
 
-vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+moduleMock.module('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}))
 
 const { useRoomChat } = await import('@/hooks/use-room-chat')
 
@@ -40,7 +45,7 @@ const options = {
 beforeEach(() => {
   state.messages = []
   state.sendToRoom = vi.fn(async () => {})
-  vi.stubGlobal(
+  stubGlobal(
     'fetch',
     vi.fn(async () => new Response('{}')),
   )

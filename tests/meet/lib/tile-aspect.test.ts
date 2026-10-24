@@ -1,9 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import {
-  fitCoverage,
-  targetCellAspect,
-  videoGridColumns,
-} from '../../../apps/meet/lib/video-layout'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { fitCoverage, targetCellAspect, videoGridColumns } =
+  await import('../../../apps/meet/lib/video-layout')
 
 /**
  * Camera video used `object-cover`, which scales the frame up and cuts its

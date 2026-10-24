@@ -50,7 +50,6 @@ export default function App() {
   const [config, setConfig] = useState<DesktopConfig | null>(null)
   const [session, setSession] = useState(initialSession)
   const [startupError, setStartupError] = useState<string | null>(null)
-  const [connectionError, setConnectionError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -165,26 +164,10 @@ export default function App() {
     }
   }, [session.user?.id, action])
 
-  const request = useMemo<typeof fetch>(() => {
-    const native = createNativeFetch(
-      config?.apiOrigin ?? 'https://calendar.xyehr.cn',
-    )
-    return async (input, init) => {
-      try {
-        const response = await native(input, init)
-        if (response.status >= 500)
-          setConnectionError('Zentra is temporarily unavailable.')
-        return response
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          setConnectionError(
-            'Cannot connect to Zentra. Check your connection and retry.',
-          )
-        }
-        throw error
-      }
-    }
-  }, [config?.apiOrigin])
+  const request = useMemo(
+    () => createNativeFetch(config?.apiOrigin ?? 'https://calendar.xyehr.cn'),
+    [config?.apiOrigin],
+  )
 
   const host = useMemo<CalendarHost>(
     () => ({
@@ -215,7 +198,6 @@ export default function App() {
 
   const retry = useCallback(async () => {
     await action('desktop_session')
-    setConnectionError(null)
   }, [action])
   const error = startupError ?? session.error
 
@@ -233,11 +215,11 @@ export default function App() {
         >
           {config && session.user ? (
             <>
-              {connectionError || error ? (
+              {error ? (
                 <div className="desktop-connection">
                   <DesktopNotice
-                    title="Connection needs attention"
-                    message={connectionError ?? error ?? ''}
+                    title="Session needs attention"
+                    message={error}
                     onRetry={() => void retry()}
                   />
                 </div>

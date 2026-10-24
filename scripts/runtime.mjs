@@ -117,7 +117,7 @@ function switchRuntime(mode, bunVersion) {
   )
   if (mode === 'bun')
     console.log(
-      'Local dev/build/start requires Bun; pnpm remains the package manager.',
+      'Local dev/build/start requires Bun; Bun remains the package manager in either runtime mode.',
     )
 }
 

@@ -13,7 +13,7 @@
  *   because isOrganiser needs either that user's session or a Creator Token
  *   (null for signed-in organisers).
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import {
   createMeeting,
   deleteMeetingsForEvent,

@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * Characterization tests for the MCP event tools' mutation layer
  * (updateEvent/deleteEvent). They pin the CURRENT write behavior — including
@@ -6,35 +6,35 @@
  * remap on 'all' updates) — so plan 002 can flip exactly the intended
  * assertions. Uses the same fake db harness as the route tests.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { getFakeDb } from '../../api/route-test-db'
 
-const reminderCalls = vi.hoisted(() =>
+const reminderCalls = (() =>
   vi.fn(
     async (_params: {
       userId: string
       eventId: string
       strictQuota?: boolean
     }) => ({ scheduled: 0, cancelled: 0 }),
-  ),
-)
-vi.mock('@/lib/reminders/reconcile', () => ({
+  ))()
+moduleMock.module('@/lib/reminders/reconcile', () => ({
   reconcileEventReminders: reminderCalls,
   SendQuotaExceeded: class extends Error {},
 }))
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   const { drizzleOperatorsMock } = await import('../../api/route-test-db')
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', async () => {
+moduleMock.module('@/lib/drizzle/client', async () => {
   const { getFakeDb } = await import('../../api/route-test-db')
   return { getDb: () => getFakeDb().db }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   decryptEvent: (e: Record<string, unknown>) => ({
     seriesId: null,
     recurrenceId: null,
@@ -44,25 +44,25 @@ vi.mock('@/lib/api-helpers', () => ({
   }),
 }))
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
+  decryptJsonField: (_id: string, v: unknown) => v,
   decryptFieldStrict: (_id: string, v: unknown) => v,
   looksLikeEnvelope: () => true,
 }))
 
-import {
-  updateEvent,
-  deleteEvent,
-  listEvents,
-  getEvent,
-} from '@/lib/mcp/event-tools'
-import { expandRows, type EventRow } from '@/lib/event-service'
+import type { EventRow } from '@/lib/event-service'
 
-vi.mock('@/lib/mcp/settings-tools', () => ({
+moduleMock.module('@/lib/mcp/settings-tools', () => ({
   getSettings: vi.fn(async () => ({ timezone: 'UTC' })),
 }))
-import { getSettings } from '@/lib/mcp/settings-tools'
+const { updateEvent, deleteEvent, listEvents, getEvent } =
+  await import('@/lib/mcp/event-tools')
+
+const { expandRows } = await import('@/lib/event-service')
+
+const { getSettings } = await import('@/lib/mcp/settings-tools')
 
 const fake = getFakeDb()
 
@@ -132,7 +132,7 @@ beforeEach(() => {
     fake.ops.push(`reminder:${eventId}`)
     return { scheduled: 0, cancelled: 0 }
   })
-  vi.mocked(getSettings).mockResolvedValue({ timezone: 'UTC' })
+  getSettings.mockResolvedValue({ timezone: 'UTC' })
 })
 
 describe('MCP event tool mutations (characterization)', () => {
@@ -253,7 +253,7 @@ describe('MCP event tool mutations (characterization)', () => {
   it.each([false, true])(
     'lists a single-edited occurrence with following split=%s',
     async (split) => {
-      vi.mocked(getSettings).mockResolvedValue({ timezone: 'Asia/Shanghai' })
+      getSettings.mockResolvedValue({ timezone: 'Asia/Shanghai' })
       seedMaster({
         startDate: new Date('2026-10-04T23:45:00Z'),
         endDate: new Date('2026-10-05T00:15:00Z'),
@@ -298,7 +298,7 @@ describe('MCP event tool mutations (characterization)', () => {
   )
 
   it('an all-day colour-only override retains the organiser midnight', async () => {
-    vi.mocked(getSettings).mockResolvedValue({ timezone: 'Asia/Shanghai' })
+    getSettings.mockResolvedValue({ timezone: 'Asia/Shanghai' })
     seedMaster({
       startDate: new Date('2026-10-04T16:00:00Z'),
       endDate: new Date('2026-10-05T16:00:00Z'),
@@ -321,7 +321,7 @@ describe('MCP event tool mutations (characterization)', () => {
   })
 
   it('MCP query then following colour edit preserves the dates shown in the user timezone', async () => {
-    vi.mocked(getSettings).mockResolvedValue({ timezone: 'Asia/Shanghai' })
+    getSettings.mockResolvedValue({ timezone: 'Asia/Shanghai' })
     seedMaster({
       startDate: new Date('2026-10-04T23:00:00Z'),
       endDate: new Date('2026-10-04T23:30:00Z'),

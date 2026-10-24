@@ -1,23 +1,18 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { SWRConfig } from 'swr'
-import {
-  DataProvider,
-  useData,
-} from '@zntr/ui/calendar/components/providers/data-provider'
-import {
-  calendarLoadRange,
-  calendarVisibleRange,
-  calendarPreloadRange,
-} from '@zntr/ui/calendar/lib/calendar-range'
+import { mock as moduleMock, setSystemTime } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+const { act, cleanup, render, screen, waitFor } =
+  await import('@testing-library/react')
+import { afterEach, beforeEach, expect, it, vi } from 'bun:test'
+const { SWRConfig } = await import('swr')
 
-const mock = vi.hoisted(() => ({
+const mock = (() => ({
   list: vi.fn(),
   delete: vi.fn(),
   idle: new Map<number, () => void>(),
   nextIdle: 0,
-}))
-vi.mock('@zntr/ui/calendar/lib/api-client', () => ({
+}))()
+moduleMock.module('@zntr/ui/calendar/lib/api-client', () => ({
   api: {
     events: { list: mock.list, delete: mock.delete },
     categories: { list: async () => ({ categories: [] }) },
@@ -26,24 +21,30 @@ vi.mock('@zntr/ui/calendar/lib/api-client', () => ({
     settings: { get: async () => ({ settings: { language: 'en' } }) },
   },
 }))
+const { DataProvider, useData } =
+  await import('@zntr/ui/calendar/components/providers/data-provider')
+
+const { calendarLoadRange, calendarVisibleRange, calendarPreloadRange } =
+  await import('@zntr/ui/calendar/lib/calendar-range')
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(new Date('2026-10-05T12:00:00Z'))
+  setSystemTime(new Date('2026-10-05T12:00:00Z'))
   mock.list.mockReset()
   mock.delete.mockReset()
   mock.idle.clear()
   mock.nextIdle = 0
-  vi.stubGlobal('requestIdleCallback', (callback: () => void) => {
+  stubGlobal('requestIdleCallback', (callback: () => void) => {
     const id = ++mock.nextIdle
     mock.idle.set(id, callback)
     return id
   })
-  vi.stubGlobal('cancelIdleCallback', (id: number) => mock.idle.delete(id))
+  stubGlobal('cancelIdleCallback', (id: number) => mock.idle.delete(id))
 })
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 function renderCalendarData() {

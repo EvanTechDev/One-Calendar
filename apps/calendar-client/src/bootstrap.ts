@@ -11,8 +11,6 @@ void import('./main').catch((error: unknown) => {
   if (!root) return
   const surface = document.createElement('main')
   surface.id = 'desktop-startup-failure'
-  const brand = document.createElement('header')
-  brand.textContent = 'Zentra Calendar'
   const section = document.createElement('section')
   section.setAttribute('role', 'alert')
   const heading = document.createElement('h1')
@@ -24,6 +22,6 @@ void import('./main').catch((error: unknown) => {
   retry.textContent = 'Reload calendar'
   retry.addEventListener('click', () => window.location.reload())
   section.append(heading, message, retry)
-  surface.append(brand, section)
+  surface.append(section)
   root.replaceChildren(surface)
 })

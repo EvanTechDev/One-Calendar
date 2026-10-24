@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   normalizePreset,
   resolvePreset,
   PRESET_NAMES,
-} from '@zntr/agent/presets'
+} from '../../packages/agent/src/presets'
 
 // Friday 2026-09-04 15:30 UTC — a fixed instant keeps boundaries exact.
 const now = new Date(Date.UTC(2026, 8, 4, 15, 30))

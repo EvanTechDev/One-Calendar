@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+const { render, screen } = await import('@testing-library/react')
+import { describe, expect, it, vi } from 'bun:test'
 
-vi.mock('next/navigation', () => ({
+moduleMock.module('next/navigation', () => ({
   useSearchParams: () =>
     new URLSearchParams(
       'client_id=https%3A%2F%2Fclient.example%2Fmetadata.json' +
@@ -10,7 +12,7 @@ vi.mock('next/navigation', () => ({
     ),
 }))
 
-vi.mock('@/lib/auth/oauth-client', () => ({
+moduleMock.module('@/lib/auth/oauth-client', () => ({
   oauthAuthClient: {
     signIn: { email: vi.fn() },
     signUp: { email: vi.fn() },
@@ -22,8 +24,8 @@ vi.mock('@/lib/auth/oauth-client', () => ({
     },
   },
 }))
-
-import { OAuthAuthFormHost } from '@/components/auth/oauth-auth-form-host'
+const { OAuthAuthFormHost } =
+  await import('@/components/auth/oauth-auth-form-host')
 
 describe('OAuth auth form continuation', () => {
   it('preserves the signed query across sign-up and recovery links', () => {

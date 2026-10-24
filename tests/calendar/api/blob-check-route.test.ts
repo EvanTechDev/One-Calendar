@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * The daily maintenance entry point.
  *
@@ -8,38 +8,37 @@
  * override that never reaches the job, and a subset that hides the job the
  * caller was trying to poke.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
-const audit = vi.hoisted(() => ({
+const audit = (() => ({
   cleanupAuditLogs: vi.fn(async () => ({
     deleted: 0,
     retentionDays: 30,
     cutoff: '2026-09-01T00:00:00.000Z',
   })),
-}))
+}))()
 
-vi.mock('@/lib/mcp/audit', () => audit)
+moduleMock.module('@/lib/mcp/audit', () => audit)
 
-const meetings = vi.hoisted(() => ({
+const meetings = (() => ({
   deleteExpiredMeetings: vi.fn(async () => []),
-}))
-vi.mock('@zntr/meetings', () => meetings)
+}))()
+moduleMock.module('@zntr/meetings', () => meetings)
 
-const oauth = vi.hoisted(() => ({
+const oauth = (() => ({
   cleanupExpiredOAuthState: vi.fn(async () => ({ deleted: 0 })),
-}))
-vi.mock('@/lib/mcp/oauth-cleanup', () => oauth)
+}))()
+moduleMock.module('@/lib/mcp/oauth-cleanup', () => oauth)
 
-const rateLimits = vi.hoisted(() => ({
+const rateLimits = (() => ({
   cleanupRateLimitCounters: vi.fn(async () => 0),
-}))
-vi.mock('@zntr/auth/rate-limit', () => rateLimits)
+}))()
+moduleMock.module('@zntr/auth/rate-limit', () => rateLimits)
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({ execute: () => Promise.resolve({ rows: [] }) }),
 }))
-
-import { GET } from '@/app/api/blob/check/route'
+const { GET } = await import('@/app/api/blob/check/route')
 
 function request(query = '', token = 'correct-horse'): Request {
   return new Request(`http://localhost/api/blob/check${query}`, {

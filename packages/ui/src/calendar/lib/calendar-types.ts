@@ -1,11 +1,7 @@
 import { getValidTimezone } from '#calendar/lib/timezone'
 
 export type CalendarViewTypeValue =
-  | 'day'
-  | 'week'
-  | 'four-day'
-  | 'month'
-  | 'year'
+  'day' | 'week' | 'four-day' | 'month' | 'year'
 
 export class CalendarViewType {
   constructor(public readonly value: CalendarViewTypeValue) {}

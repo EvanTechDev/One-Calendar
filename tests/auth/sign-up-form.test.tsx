@@ -1,11 +1,9 @@
-// @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  AuthFormProvider,
-  SignUpForm,
-  type AuthFormContextValue,
-} from '@zntr/auth/forms'
+await import('./../support/dom')
+const { fireEvent, render, screen, waitFor } =
+  await import('@testing-library/react')
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+const { AuthFormProvider, SignUpForm } = await import('@zntr/auth/forms')
+import type { AuthFormContextValue } from '@zntr/auth/forms'
 
 const signUp = vi.fn(async () => ({ data: {}, error: null }))
 const sendVerificationOtp = vi.fn(async () => ({ data: {}, error: null }))

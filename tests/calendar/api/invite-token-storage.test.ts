@@ -1,20 +1,22 @@
-// @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { drizzleOperatorsMock, getFakeDb } from './route-test-db'
 
 process.env.SALT = 'invite-token-test-key-material'
 
-vi.mock('drizzle-orm', async () => {
-  const actual =
-    await vi.importActual<typeof import('drizzle-orm')>('drizzle-orm')
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => getFakeDb().db,
 }))
 
-vi.mock('@/lib/auth/send-auth-email', () => ({ sendAuthEmail: vi.fn() }))
+moduleMock.module('@/lib/auth/send-auth-email', () => ({
+  sendAuthEmail: vi.fn(),
+}))
 
 const { createInvitesForEvent, getGrantsByToken, readInviteToken } =
   await import('@/lib/invites/invite-service')

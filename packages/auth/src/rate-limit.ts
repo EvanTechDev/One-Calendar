@@ -21,8 +21,7 @@ import { rateLimitCounters } from './rate-limit-table'
 type Database = NodePgDatabase<Record<string, unknown>>
 
 export type Db =
-  | Database
-  | Parameters<Parameters<Database['transaction']>[0]>[0]
+  Database | Parameters<Parameters<Database['transaction']>[0]>[0]
 
 export interface RateLimitResult {
   allowed: boolean

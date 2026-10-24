@@ -1,5 +1,5 @@
-// @vitest-environment node
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { setSystemTime } from 'bun:test'
+import { describe, it, expect, vi, afterEach } from 'bun:test'
 import { formatDeployAge } from '@/lib/deploy-age'
 
 /**
@@ -19,7 +19,7 @@ afterEach(() => vi.useRealTimers())
 
 const at = (iso: string) => {
   vi.useFakeTimers()
-  vi.setSystemTime(NOW)
+  setSystemTime(NOW)
   return formatDeployAge(iso)
 }
 

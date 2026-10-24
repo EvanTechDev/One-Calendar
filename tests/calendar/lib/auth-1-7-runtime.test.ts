@@ -1,7 +1,6 @@
-// @vitest-environment node
 import fs from 'node:fs'
 import path from 'node:path'
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll } from 'bun:test'
 
 /**
  * Lives in the calendar's suite rather than the auth package's, because it
@@ -39,7 +38,7 @@ if (!available) {
 beforeAll(() => {
   if (!available) return
   // The instance reads its configuration from the environment at construction,
-  // and vitest does not load .env.local.
+  // and the test runner does not load .env.local.
   const envPath = path.resolve(import.meta.dirname, '../../../.env.local')
   const contents = fs.readFileSync(envPath, 'utf8')
   for (const line of contents.split('\n')) {

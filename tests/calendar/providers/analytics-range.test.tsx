@@ -1,26 +1,12 @@
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
-import { SWRConfig } from 'swr'
-import {
-  DataProvider,
-  useEvents,
-} from '@zntr/ui/calendar/components/providers/data-provider'
-import AnalyticsView from '@zntr/ui/calendar/components/app/analytics/analytics-view'
-import { analyticsLoadRange } from '@zntr/ui/calendar/lib/analytics/load-range'
-import {
-  calendarLoadRange,
-  containsCalendarRange,
-} from '@zntr/ui/calendar/lib/calendar-range'
+import { mock as moduleMock, setSystemTime } from 'bun:test'
+await import('./../../support/dom')
+const { act, cleanup, fireEvent, render, screen, waitFor } =
+  await import('@testing-library/react')
+import { afterEach, expect, it, vi } from 'bun:test'
+const { SWRConfig } = await import('swr')
 
-const mock = vi.hoisted(() => ({ list: vi.fn() }))
-vi.mock('@zntr/ui/calendar/lib/api-client', () => ({
+const mock = (() => ({ list: vi.fn() }))()
+moduleMock.module('@zntr/ui/calendar/lib/api-client', () => ({
   api: {
     events: { list: mock.list },
     categories: { list: async () => ({ categories: [] }) },
@@ -29,7 +15,7 @@ vi.mock('@zntr/ui/calendar/lib/api-client', () => ({
     settings: { get: async () => ({ settings: {} }) },
   },
 }))
-vi.mock('@zntr/i18n/calendar', () => ({
+moduleMock.module('@zntr/i18n/calendar', () => ({
   LANGUAGE_STORAGE_KEY: 'zentra-language',
   useLanguage: () => ['en'],
   translations: {
@@ -41,17 +27,35 @@ vi.mock('@zntr/i18n/calendar', () => ({
     },
   },
 }))
-vi.mock('@zntr/ui/calendar/components/providers/calendar-context', () => ({
-  useCalendar: () => ({ calendars: [] }),
-  eventDataToCalendarEvent: (event: unknown) => event,
-}))
-vi.mock('@zntr/ui/calendar/components/app/analytics/time-analytics', () => ({
-  default: ({ events }: { events: { id: string }[] }) => (
-    <output>
-      {events.map((event) => event.id).join(',') || 'Empty report'}
-    </output>
-  ),
-}))
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/calendar-context',
+  () => ({
+    useCalendar: () => ({ calendars: [] }),
+    eventDataToCalendarEvent: (event: unknown) => event,
+  }),
+)
+moduleMock.module(
+  '@zntr/ui/calendar/components/app/analytics/time-analytics',
+  () => ({
+    default: ({ events }: { events: { id: string }[] }) => (
+      <output>
+        {events.map((event) => event.id).join(',') || 'Empty report'}
+      </output>
+    ),
+  }),
+)
+const { DataProvider, useEvents } =
+  await import('@zntr/ui/calendar/components/providers/data-provider')
+
+const { default: AnalyticsView } =
+  await import('@zntr/ui/calendar/components/app/analytics/analytics-view')
+
+const { analyticsLoadRange } =
+  await import('@zntr/ui/calendar/lib/analytics/load-range')
+
+const { calendarLoadRange, containsCalendarRange } =
+  await import('@zntr/ui/calendar/lib/calendar-range')
+
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
@@ -59,7 +63,7 @@ afterEach(() => {
 
 it('loads analytics independently of a distant bookmark, hiding stale and failed reports', async () => {
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(new Date('2026-10-05T12:00:00Z'))
+  setSystemTime(new Date('2026-10-05T12:00:00Z'))
   const pending: {
     range: ReturnType<typeof calendarLoadRange>
     resolve: (body: unknown) => void

@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * describeRecurrence must work in a route handler.
  *
@@ -11,7 +10,7 @@
  * The `node` environment above is the point of this file: the rest of the engine
  * suite runs in jsdom, which masked the problem.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { describeRecurrence } from '@zntr/ui/calendar/lib/recurrence/engine'
 
 describe('describeRecurrence in a server environment', () => {

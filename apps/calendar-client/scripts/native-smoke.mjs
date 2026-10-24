@@ -103,11 +103,11 @@ function verify(report) {
   )
   const window = report.window
   assert.equal(window.visible, true)
-  assert.equal(window.resizable, false)
+  assert.equal(window.resizable, true)
   if (process.platform === 'linux') {
     assert.equal(window.maximizable, null)
   } else {
-    assert.equal(window.maximizable, false)
+    assert.equal(window.maximizable, true)
   }
   assert(window.workArea, 'No monitor work area was reported')
   assert(window.scaleFactor > 0)
@@ -352,9 +352,67 @@ async function launch(executable, label, extraEnvironment = {}) {
         encoding: 'utf8',
       })
       assert(
-        !state.includes('_NET_WM_STATE_MAXIMIZED_'),
-        'Calendar remained maximized',
+        state.includes('_NET_WM_STATE_MAXIMIZED_'),
+        'Calendar cannot remain maximized',
       )
+      execFileSync('wmctrl', [
+        '-i',
+        '-r',
+        windowId,
+        '-b',
+        'remove,maximized_vert,maximized_horz',
+      ])
+      await new Promise((settled) => setTimeout(settled, 250))
+      const maximum = {
+        width:
+          identity.window.workArea.width -
+          (identity.window.outer.width - inner.width),
+        height:
+          identity.window.workArea.height -
+          (identity.window.outer.height - inner.height),
+      }
+      const minimum = {
+        width: Math.min(Math.round(900 * scaleFactor), maximum.width),
+        height: Math.min(Math.round(600 * scaleFactor), maximum.height),
+      }
+      for (const [width, height] of [
+        [minimum.width + 80, minimum.height + 60],
+        [300, 200],
+      ]) {
+        execFileSync('wmctrl', [
+          '-i',
+          '-r',
+          windowId,
+          '-e',
+          `0,-1,-1,${width},${height}`,
+        ])
+        await new Promise((settled) => setTimeout(settled, 500))
+        const geometry = execFileSync('xwininfo', ['-id', windowId], {
+          encoding: 'utf8',
+        })
+        for (const [dimension, requested] of [
+          ['width', width],
+          ['height', height],
+        ]) {
+          const actual = Number(
+            geometry.match(
+              new RegExp(
+                `\\b${dimension === 'width' ? 'Width' : 'Height'}:\\s+(\\d+)`,
+              ),
+            )?.[1],
+          )
+          assert(
+            Math.abs(
+              actual -
+                Math.min(
+                  maximum[dimension],
+                  Math.max(requested, minimum[dimension]),
+                ),
+            ) <= 2,
+            `Manual ${dimension} was reset or ignored: ${actual}`,
+          )
+        }
+      }
       execFileSync('scrot', ['-o', join(artifacts, `${label}.png`)])
       execFileSync('wmctrl', ['-i', '-c', windowId])
       await waitForWindowState(windowId, 'IsUnMapped')

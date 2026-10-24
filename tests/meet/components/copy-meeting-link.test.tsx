@@ -1,19 +1,23 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
-import { toast } from 'sonner'
-import { HomeSection } from '@/components/dashboard/home-section'
+import { mock as moduleMock } from 'bun:test'
+import { appModule } from '../../support/modules'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { afterEach, describe, expect, it, vi } from 'bun:test'
+const { cleanup, fireEvent, render, screen, waitFor } =
+  await import('@testing-library/react')
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+moduleMock.module(appModule('meet', 'next/navigation'), () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+moduleMock.module('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}))
+const { toast } = await import('sonner')
+
+const { HomeSection } = await import('@/components/dashboard/home-section')
 
 function renderHome(writeText: ReturnType<typeof vi.fn>) {
-  vi.stubGlobal(
+  stubGlobal(
     'navigator',
     Object.create(navigator, {
       clipboard: { value: { writeText } },
@@ -41,7 +45,7 @@ function renderHome(writeText: ReturnType<typeof vi.fn>) {
 
 afterEach(() => {
   cleanup()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
   vi.clearAllMocks()
 })
 

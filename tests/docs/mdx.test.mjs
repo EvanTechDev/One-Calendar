@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readdir, readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
-import { test } from 'node:test'
+import { test } from 'bun:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const docsDir = fileURLToPath(new URL('../../docs/', import.meta.url))

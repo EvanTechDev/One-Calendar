@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+await import('./../../support/dom')
+import { describe, it, expect, beforeAll } from 'bun:test'
 
 beforeAll(() => {
   process.env.SALT = 'test-salt-value-at-least-16-chars!!'

@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { parseDateQuery } from '@zntr/ui/calendar/lib/parse-date-query'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { parseDateQuery } =
+  await import('@zntr/ui/calendar/lib/parse-date-query')
 
 /** Pinned so a bare `1/1` cannot drift with the day the suite runs. */
 const TODAY = new Date(2026, 9, 3) // 3 October 2026, local

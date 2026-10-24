@@ -1,18 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  render,
-  cleanup,
-  fireEvent,
-  screen,
-  within,
-  waitFor,
-} from '@testing-library/react'
-import { ControlBar } from '@/components/room/control-bar'
-import {
-  MOBILE_CONTROL_COUNT,
-  mobileBarHeight,
-  portraitStageIsUsable,
-} from '@/lib/control-layout'
+import { mock as moduleMock } from 'bun:test'
+const { unstubAllGlobals, stubGlobal } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { render, cleanup, fireEvent, screen, within, waitFor } =
+  await import('@testing-library/react')
 
 /**
  * The phone bar was two rows of identically-sized circles: six secondary
@@ -32,7 +23,7 @@ const localParticipant = {
 
 const disconnect = vi.fn()
 
-vi.mock('@livekit/components-react', () => ({
+moduleMock.module('@livekit/components-react', () => ({
   useRoomContext: () => ({ disconnect }),
   useLocalParticipant: () => ({
     localParticipant,
@@ -42,9 +33,13 @@ vi.mock('@livekit/components-react', () => ({
   }),
 }))
 
-vi.mock('@/components/room/settings-dialog', () => ({
+moduleMock.module('@/components/room/settings-dialog', () => ({
   SettingsDialog: () => null,
 }))
+const { ControlBar } = await import('@/components/room/control-bar')
+
+const { MOBILE_CONTROL_COUNT, mobileBarHeight, portraitStageIsUsable } =
+  await import('@/lib/control-layout')
 
 const handlers = {
   onTogglePanel: vi.fn(),
@@ -84,7 +79,7 @@ beforeEach(() => {
   disconnect.mockClear()
 })
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => unstubAllGlobals())
 
 describe('the phone control row', () => {
   it('shows exactly the five controls lib/control-layout budgets for', () => {
@@ -124,7 +119,7 @@ describe('the phone control row', () => {
 describe('the More sheet', () => {
   it('lets the organiser end the meeting from the sheet', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
     renderBar({ organiser: true })
     openMore()
     fireEvent.click(

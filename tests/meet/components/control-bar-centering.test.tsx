@@ -1,13 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
-import { ControlBar } from '@/components/room/control-bar'
-import {
-  MOBILE_BAR_PADDING,
-  MOBILE_CONTROL_HEIGHT,
-  TAILWIND_STEP,
-  TOUCH_TARGET,
-  controlBarFits,
-} from '@/lib/control-layout'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
+const { render, cleanup } = await import('@testing-library/react')
+
 import type { RoomEventContext } from '@/lib/event-context'
 
 // The control bar only reads publish state and the Organiser flag off these
@@ -19,7 +14,7 @@ const localParticipant = {
   setScreenShareEnabled: vi.fn(),
 }
 
-vi.mock('@livekit/components-react', () => ({
+moduleMock.module('@livekit/components-react', () => ({
   useRoomContext: () => ({ disconnect: vi.fn() }),
   useLocalParticipant: () => ({
     localParticipant,
@@ -31,9 +26,18 @@ vi.mock('@livekit/components-react', () => ({
 
 // Pulls in the krisp filter and track processors, neither of which loads in
 // jsdom; the dialog is closed in every case here anyway.
-vi.mock('@/components/room/settings-dialog', () => ({
+moduleMock.module('@/components/room/settings-dialog', () => ({
   SettingsDialog: () => null,
 }))
+const { ControlBar } = await import('@/components/room/control-bar')
+
+const {
+  MOBILE_BAR_PADDING,
+  MOBILE_CONTROL_HEIGHT,
+  TAILWIND_STEP,
+  TOUCH_TARGET,
+  controlBarFits,
+} = await import('@/lib/control-layout')
 
 const eventContext: RoomEventContext = {
   title: 'A deliberately long weekly product sync title',

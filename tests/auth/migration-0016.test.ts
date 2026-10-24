@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test'
 import { connectIsolated, databaseIsAvailable } from './db-harness'
 import type { Sql } from './db-harness'
 

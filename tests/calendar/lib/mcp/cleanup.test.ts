@@ -1,9 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import {
-  parseRequestedRetentionDays,
-  parseRetentionDays,
-  secretMatches,
-} from '@/lib/mcp/cleanup-config'
+await import('./../../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { parseRequestedRetentionDays, parseRetentionDays, secretMatches } =
+  await import('@/lib/mcp/cleanup-config')
 
 describe('parseRetentionDays', () => {
   it('defaults to 30 when raw is null', () => {

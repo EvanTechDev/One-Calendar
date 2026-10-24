@@ -1,8 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import {
-  CHAT_GROUP_GAP_MS,
-  groupChatMessages,
-} from '../../../apps/meet/lib/chat-grouping'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { CHAT_GROUP_GAP_MS, groupChatMessages } =
+  await import('../../../apps/meet/lib/chat-grouping')
 import type { ChatMessageLike } from '../../../apps/meet/lib/chat-grouping'
 
 /**

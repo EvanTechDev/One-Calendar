@@ -1,13 +1,16 @@
-import { describe, expect, it } from 'vitest'
-import {
+await import('./../../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const {
   canParticipantSeeOccurrence,
   planParticipantChange,
   rsvpForOccurrence,
   isEmptyBaseline,
   visibleStamps,
   ParticipantScopeError,
-  type InviteVisibility,
-  type OccurrenceException,
+} = await import('@/lib/invites/visibility')
+import type {
+  InviteVisibility,
+  OccurrenceException,
 } from '@/lib/invites/visibility'
 
 // A daily series starting 1 Aug, timed. Stamps are lexicographically ordered,

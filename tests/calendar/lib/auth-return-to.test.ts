@@ -1,11 +1,13 @@
+await import('./../../support/dom')
 /**
  * Zentra Meet has no sign-in surface of its own, so it links to the calendar's
  * and expects the user back. That return URL is attacker-controllable input on
  * a page that is about to establish a session, which makes the allowlist the
  * entire security property here — not a nicety.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { DEFAULT_SIGNED_IN_PATH, resolveReturnTo } from '@/lib/auth/return-to'
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+const { DEFAULT_SIGNED_IN_PATH, resolveReturnTo } =
+  await import('@/lib/auth/return-to')
 
 const MEET = 'https://meet.zntr.app'
 

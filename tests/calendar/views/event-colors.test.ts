@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   EVENT_COLORS,
   EVENT_BG_TO_ACCENT,
   EVENT_BG_TO_DARK,
@@ -14,8 +15,8 @@ import {
   paletteColorName,
   getEventAccentColor,
   getEventBackgroundColor,
-  type ColorOption,
-} from '@zntr/ui/calendar/lib/event-colors'
+} = await import('@zntr/ui/calendar/lib/event-colors')
+import type { ColorOption } from '@zntr/ui/calendar/lib/event-colors'
 
 const HEX = /^#[0-9A-F]{6}$/
 

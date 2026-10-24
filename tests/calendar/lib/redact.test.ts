@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { redactLog, redactLogValue } from '@/lib/redact'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { redactLog, redactLogValue } = await import('@/lib/redact')
 
 describe('redactLogValue', () => {
   it('masks strings under sensitive keys', () => {

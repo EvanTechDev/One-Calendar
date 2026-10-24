@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * `PATCH /api/invite/:token` must record an RSVP against the occurrence it was
  * given, and must not silently fall back to a series-wide answer.
@@ -11,17 +11,17 @@
  * Seam: the public invite endpoint. This is where "which occurrence am I
  * answering?" is decided, so it is where the rule belongs.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 
-const store = vi.hoisted(() => ({
+const store = (() => ({
   invites: [] as Array<Record<string, unknown>>,
   occurrences: [] as Array<Record<string, unknown>>,
   events: [] as Array<Record<string, unknown>>,
   rsvpCalls: [] as Array<{ kind: 'invite' | 'occurrence'; payload: unknown }>,
-}))
+}))()
 
-vi.mock('@/lib/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   getInvitesByToken: async (token: string) =>
     store.invites.filter((i) => i.inviteToken === token),
   getInviteByToken: async (token: string) =>
@@ -50,7 +50,7 @@ vi.mock('@/lib/invites/invite-service', () => ({
   removeParticipantFromCalendar: async () => {},
 }))
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -70,8 +70,9 @@ function camel(s: string): string {
   return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     eq:
@@ -84,19 +85,22 @@ vi.mock('drizzle-orm', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   decryptField: (_id: string, v: unknown) => v,
 }))
-vi.mock('@/lib/api-helpers', () => ({ getAuthedUser: async () => null }))
-vi.mock('@zntr/meetings', () => ({ getMeetingForEvent: async () => null }))
+moduleMock.module('@/lib/api-helpers', () => ({
+  getAuthedUser: async () => null,
+}))
+moduleMock.module('@zntr/meetings', () => ({
+  getMeetingForEvent: async () => null,
+}))
 
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true, retryAfter: 0 }),
   clientIpFrom: () => '127.0.0.1',
   rateLimitedResponse: () => new Response(null, { status: 429 }),
 }))
-
-import { GET, PATCH } from '@/app/api/invite/[token]/route'
+const { GET, PATCH } = await import('@/app/api/invite/[token]/route')
 
 const MASTER = 'm-series'
 const DAY1 = '20260822T110000Z'

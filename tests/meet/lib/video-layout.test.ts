@@ -1,11 +1,12 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   maxFilmstripTiles,
   maxTilesPerPage,
   prefersCollapsedFilmstrip,
   stageTier,
   videoGridColumns,
-} from '@/lib/video-layout'
+} = await import('@/lib/video-layout')
 
 /** Representative stages, measured as the stage box rather than the window. */
 const PHONE_PORTRAIT = { width: 360, height: 560 }

@@ -14,13 +14,13 @@
     "./types": "./src/types.ts"
   },
   "scripts": {
-    "build": "tsc",
-    "build:check": "tsc && tsc --noEmit",
+    "build": "bun check",
+    "build:check": "bun check && bun check",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/agent/",
+    "test:watch": "bun test --isolate --watch ../../tests/agent/"
   },
   "dependencies": {
     "ai": "7.0.127",
@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@ai-sdk/groq": "4.0.54",
-    "@types/node": "25.6.0",
-    "vitest": "^4.1.10"
+    "@types/node": "25.6.0"
   }
 }

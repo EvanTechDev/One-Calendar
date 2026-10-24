@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { AccessToken } from 'livekit-server-sdk'
 
 /**

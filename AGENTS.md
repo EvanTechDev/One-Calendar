@@ -17,7 +17,7 @@ Use the single-context glossary and ADR layout. See `docs/agents/domain.md`.
 
 ## Monorepo structure
 
-pnpm workspace. Package manager: `pnpm@11.5.2`.
+Bun workspace. Package manager: `bun@1.4.4` (declared in `package.json`).
 
 ```
 apps/
@@ -42,65 +42,72 @@ Apps never import each other. Code shared between calendar and meet lives in
 
 ## Essential commands (run from root)
 
-| Command           | What it does                                             |
-| ----------------- | -------------------------------------------------------- |
-| `pnpm dev`        | Start all dev servers in parallel                        |
-| `pnpm build`      | Generate i18n, then build workspaces in dependency order |
-| `pnpm lint`       | Run oxlint in each workspace                             |
-| `pnpm type-check` | Run each workspace's type check                          |
-| `pnpm test`       | Run tests in workspaces that define a test script        |
+| Command              | What it does                                             |
+| -------------------- | -------------------------------------------------------- |
+| `bun run dev`        | Start all dev servers in parallel                        |
+| `bun run build`      | Generate i18n, then build workspaces in dependency order |
+| `bun run lint`       | Run oxlint in each workspace                             |
+| `bun run type-check` | Run each workspace's type check                          |
+| `bun run test`       | Run tests in workspaces that define a test script        |
 
-Root scripts use `pnpm -r run`; the workspace root is excluded to avoid
+Root scripts use `bun run --sequential --workspaces --if-present`; the root is excluded to avoid
 recursion. Builds and checks run one workspace at a time to bound resource use;
 development servers use `--parallel`. Workspaces without a script are skipped.
 The calendar's own build script generates i18n and MDX before `next build`.
+Builds use `scripts/workspaces.mjs` to visit dependencies first: Bun's
+`--sequential` runner alone orders by name, not dependency order.
 
-Single-package: use `pnpm --filter <name> <script>`, e.g. `pnpm --filter zentra-calendar dev`.
+Single-package: use `bun run --filter <name> <script>`, e.g. `bun run --filter zentra-calendar dev`.
 
-Docs: `pnpm --filter @zntr/docs type-check` generates MDX and route types before
+Docs: `bun run --filter @zntr/docs type-check` generates MDX and route types before
 checking TypeScript; `lint:check` uses the shared oxlint config. User-facing
 content lives in `docs/content/docs/`; keep behavior claims aligned with the
 source map in `docs/README.md` under Content guide.
 
-Focused verification: `pnpm lint:check` (no-fix mode) or `pnpm build:check` (build + type-check for one app).
+Focused verification: `bun run lint:check` (no-fix mode) or `bun run --filter <app> build:check`.
+
+Bun manages installation and workspace orchestration in both runtime modes.
+`bun run runtime:node` switches Calendar/Meet Next.js to Node without replacing
+Bun as the package manager; `bun run runtime:bun` switches them back. Keep Node
+25 available for Node-shebang framework tooling. Checks and tests use native
+`bun check` and `bun test --isolate`; there is no Vitest runner.
+Use `bun install --frozen-lockfile` in CI. Only sharp and esbuild are trusted to
+run dependency lifecycle scripts.
 
 ## Linting & formatting
 
-**oxlint** is the only linter (config at `config/oxlint.json`). Pre-commit runs `lint-staged` which does prettier → oxlint --fix.
+**oxlint** is the only linter (config at `config/oxlint.json`). Pre-commit runs `lint-staged` which does `bun fmt` → oxlint --fix.
 
-**Prettier** (root `package.json`): no semi, single quotes, trailing commas, 80 width.
+**Bun formatter** (`[fmt]` in root `bunfig.toml`): no semi, single quotes, trailing commas, 80 width.
+Run `bun run format` to write or `bun run format:check` to check without writing.
+Astro files are not supported by the native formatter and are left unchanged.
 
 ## TypeScript
 
-TypeScript **6.0.3**. `ignoreBuildErrors: true` is set in `next.config.ts` — build does **not** type-check. Run `pnpm type-check` separately.
+Bun's native TypeScript checker (`bun check`) follows the root project references.
+`ignoreBuildErrors: true` is set in `next.config.ts` — build does **not** type-check.
+Run `bun check` separately. Workspace checks also generate required framework types.
 
 **Checks are manually triggered.** `.github/workflows/tsc.yml` installs with the
-frozen lockfile and runs `pnpm type-check`, `pnpm lint:check`, and `pnpm test`.
+frozen lockfile and runs `bun run type-check`, `bun run lint:check`, and `bun run test`.
 Its only trigger is `workflow_dispatch` — no `push` or `pull_request`. An optional
 calendar test path and `focused_only` mode support remote red-green cycles.
-No tsconfig covers `tests/**`. Run `pnpm type-check`, `pnpm lint:check`, and
-`pnpm test` before committing anything that could reach `main`; a focused green
+Application project references do not cover `tests/**`. Run `bun run type-check`, `bun run lint:check`, and
+`bun run test` before committing anything that could reach `main`; a focused green
 run is not the full validation gate.
 The calendar's type-check command generates its MDX collections first.
 
 ## Testing
 
-Vitest. Each workspace owns a config; tests live in top-level `tests/<workspace>/`
-directories mirroring the source layout:
+Tests use `bun:test` and live in top-level `tests/<workspace>/` directories
+mirroring source layout. Run `bun test --isolate` to isolate globals and module
+mocks between files. Browser tests explicitly await `tests/support/dom.ts`
+before importing React or Testing Library; other tests keep Bun's native globals.
+The DOM setup retains native crypto, fetch and typed arrays for auth and API tests.
+Register `mock.module` before dynamically importing the module under test; Bun
+does not hoist mocks. Partial mocks capture the original module before registration.
 
-| Config                               | Tests             | Environment |
-| ------------------------------------ | ----------------- | ----------- |
-| `apps/calendar/vitest.config.ts`     | `tests/calendar/` | jsdom       |
-| `apps/meet/vitest.config.ts`         | `tests/meet/`     | jsdom       |
-| `packages/meetings/vitest.config.ts` | `tests/meetings/` | node        |
-| `packages/auth/vitest.config.ts`     | `tests/auth/`     | node        |
-
-Setup: `apps/calendar/vitest-setup.ts` / `apps/meet/vitest-setup.ts` load
-`@testing-library/jest-dom/vitest`. Add `// @vitest-environment node` at the top
-of a jsdom-config test that needs real Node globals (`jose` token signing, for
-instance, rejects jsdom's separate-realm `Uint8Array`).
-
-Run single file: `pnpm --filter zentra-calendar vitest run ../../tests/calendar/path/to/test`.
+Run one file: `bun test --isolate ./tests/calendar/path/to/test.test.ts`.
 
 `tests/meetings/fake-db.ts` is an in-memory fake of the drizzle surface
 `@zntr/meetings` uses. It evaluates real drizzle conditions and **throws on any
@@ -132,7 +139,7 @@ reaching past it if the pin is ever removed.
 ## i18n
 
 `packages/i18n/` — source locale JSON + Node scripts `src/gen-locales.mjs` / `src/cleanup-i18n.mjs`.  
-Generate: `pnpm generate:i18n` (must run before build).  
+Generate: `bun run generate:i18n` (must run before build).
 The root `build` script generates locales before building the workspaces. The
 calendar's build script also generates them when building that app directly.
 
@@ -145,8 +152,8 @@ Calendar schema at `apps/calendar/lib/drizzle/schema.ts`; meeting tables at
 `apps/calendar/drizzle/` — the single migration home (ADR-0017). Config at
 `apps/calendar/drizzle.config.ts`. Requires `POSTGRES_URL` or `DATABASE_URL`.
 
-Push schema: `pnpm dlx drizzle-kit push` (dev).  
-Apply: `pnpm dlx drizzle-kit migrate`.
+Push schema: `bun x --no-install drizzle-kit push` (dev).
+Apply: `bun x --no-install drizzle-kit migrate`.
 
 **`drizzle-kit generate` does not work in this repo** — the `meta/` snapshots
 only go to 0002 while 15+ migrations exist, so it prompts for table renames and
@@ -321,11 +328,11 @@ Conventional commits enforced by commitlint (commit-msg hook): `feat`, `fix`, `d
 
 ## Key quirks
 
-- `next.config.ts` sets `typescript.ignoreBuildErrors: true` — always run `pnpm type-check` separately.
+- `next.config.ts` sets `typescript.ignoreBuildErrors: true` — always run `bun run type-check` separately.
 - `tailwind.config.ts` is empty — Tailwind v4 uses `@tailwindcss/postcss` with CSS-based config.
-- `prettier` config lives in root `package.json` (no `.prettierrc`). Ignore list in `config/.prettierignore`.
+- Formatting options and ignore patterns live in the root `bunfig.toml` `[fmt]` section.
 - `tsconfig.json` at root extends to apps; `apps/calendar/tsconfig.json` adds path aliases (`@/*`, `@zntr/*`).
-- Vitest config lives in `apps/calendar/vitest.config.ts` (root = the app) but includes top-level `tests/calendar/`. Bare imports from there resolve via the committed symlink `tests/node_modules` → `apps/calendar/node_modules` (pnpm doesn't hoist to the repo root).
+- `tests/calendar/tsconfig.json` and `tests/meet/tsconfig.json` inherit app aliases so Bun resolves test mocks and source imports to the same files. Bun hoists dependencies to the root.
 - Component UI library (`@zntr/ui`) uses single-file components at `packages/ui/src/*.tsx` with barrel `index.ts`.
 - `calendar-client` is a Tauri desktop app: `build` checks and bundles its frontend,
   while `build:tauri` runs the native Tauri bundler. The manual Workspace Checks

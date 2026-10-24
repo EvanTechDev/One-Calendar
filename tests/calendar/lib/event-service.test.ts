@@ -1,13 +1,15 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   expandRows,
   firstStampOfSeries,
   planInstanceChange,
   resolveInstance,
   resolveMasterEditStamp,
-  type EventRow,
-} from '@/lib/event-service'
-import { parseRfcStamp } from '@zntr/ui/calendar/lib/recurrence/engine'
+} = await import('@/lib/event-service')
+import type { EventRow } from '@/lib/event-service'
+const { parseRfcStamp } =
+  await import('@zntr/ui/calendar/lib/recurrence/engine')
 
 function day(y: number, m: number, d: number, h = 0, min = 0, s = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, s))

@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * Authorization tests for participant visibility.
  *
@@ -7,13 +7,13 @@
  * occurrence could read every occurrence through /api/bookmarks and
  * /api/import. See ADR-0008 (visibility is decided in one place, shared by every reader).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
 const invites: Array<Record<string, unknown>> = []
 const occurrences: Array<Record<string, unknown>> = []
 const events: Array<Record<string, unknown>> = []
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: (table: { __name?: string }) => {
@@ -40,8 +40,9 @@ vi.mock('@/lib/drizzle/client', () => ({
 
 // Predicate-building stand-ins for the drizzle operators, so the fake above can
 // filter rows without a database.
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     eq:
@@ -62,8 +63,9 @@ function camel(snake: string): string {
   return snake.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-vi.mock('@/lib/drizzle/schema', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/drizzle/schema')>()
+const originalModule2 = { ...(await import('@/lib/drizzle/schema')) }
+moduleMock.module('@/lib/drizzle/schema', async () => {
+  const actual = originalModule2
   return {
     ...actual,
     calendarEvents: Object.assign({}, actual.calendarEvents, {
@@ -77,8 +79,7 @@ vi.mock('@/lib/drizzle/schema', async (importOriginal) => {
     }),
   }
 })
-
-import { isEventViewableBy } from '@/lib/bookmarks'
+const { isEventViewableBy } = await import('@/lib/bookmarks')
 
 const PARTICIPANT = { id: 'u2', email: 'c@example.com' }
 const DAY1 = '20260801T090000Z'

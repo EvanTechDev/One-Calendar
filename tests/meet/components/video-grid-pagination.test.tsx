@@ -1,7 +1,7 @@
-// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, cleanup, screen } from '@testing-library/react'
-import { maxTilesPerPage, videoGridColumns } from '@/lib/video-layout'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
+const { render, cleanup, screen } = await import('@testing-library/react')
+const { maxTilesPerPage, videoGridColumns } = await import('@/lib/video-layout')
 
 /**
  * The cap exists so off-screen tiles never mount, because an unmounted tile

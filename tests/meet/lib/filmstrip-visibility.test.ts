@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { filmstripIsOpen } from '../../../apps/meet/lib/video-layout'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { filmstripIsOpen } = await import('../../../apps/meet/lib/video-layout')
 
 /**
  * The reported bug: pin someone, collapse the strip, open chat, close chat, and

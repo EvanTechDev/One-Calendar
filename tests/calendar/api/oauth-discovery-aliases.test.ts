@@ -1,14 +1,13 @@
-// @vitest-environment node
-import { describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { describe, expect, it, vi } from 'bun:test'
 
-const metadata = vi.hoisted(() =>
-  vi.fn(() => Response.json({ issuer: 'https://calendar.example/api/auth' })),
-)
+const metadata = (() =>
+  vi.fn(() => Response.json({ issuer: 'https://calendar.example/api/auth' })))()
 
-vi.mock('@zntr/auth/server', () => ({
+moduleMock.module('@zntr/auth/server', () => ({
   oauthProviderAuthServerMetadata: () => metadata,
 }))
-vi.mock('@/lib/auth', () => ({ auth: {} }))
+moduleMock.module('@/lib/auth', () => ({ auth: {} }))
 
 const root = await import('@/app/.well-known/oauth-authorization-server/route')
 const issuerPath =

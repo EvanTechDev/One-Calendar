@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { matchSearchEvents } from '@zntr/agent/search-match'
 import type { AgentEventSummary } from '@zntr/agent/types'
 import type { SearchQuery } from '@zntr/agent/search'

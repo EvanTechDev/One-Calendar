@@ -1,14 +1,16 @@
-// @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { drizzleOperatorsMock, getFakeDb } from '../../api/route-test-db'
 
-vi.mock('drizzle-orm', async () => {
-  const actual =
-    await vi.importActual<typeof import('drizzle-orm')>('drizzle-orm')
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
+moduleMock.module('@/lib/drizzle/client', () => ({
+  getDb: () => getFakeDb().db,
+}))
 
 const { cleanupExpiredOAuthState } = await import('@/lib/mcp/oauth-cleanup')
 

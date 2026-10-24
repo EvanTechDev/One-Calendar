@@ -1,13 +1,10 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import {
-  render,
-  cleanup,
-  screen,
-  waitFor,
-  act,
-  fireEvent,
-} from '@testing-library/react'
-import { MeetingHistory } from '@/components/dashboard/meeting-history'
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, expect, it, vi, beforeEach, afterEach } from 'bun:test'
+const { render, cleanup, screen, waitFor, act, fireEvent } =
+  await import('@testing-library/react')
+
 import type { MeetingRow } from '@/components/dashboard/meeting-history'
 
 /**
@@ -18,7 +15,11 @@ import type { MeetingRow } from '@/components/dashboard/meeting-history'
  * that simply never stored chat as a failure (ADR 0020).
  */
 
-vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+moduleMock.module('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}))
+const { MeetingHistory } =
+  await import('@/components/dashboard/meeting-history')
 
 const rows: MeetingRow[] = [
   {
@@ -58,13 +59,12 @@ function respondWith(meetings: MeetingRow[]) {
 
 beforeEach(() => {
   cleanup()
-  vi.useFakeTimers({ shouldAdvanceTime: true })
-  vi.stubGlobal('fetch', respondWith([chatHit]))
+  stubGlobal('fetch', respondWith([chatHit]))
 })
 
 afterEach(() => {
   vi.useRealTimers()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 /** Types a whole query, one keystroke at a time. */
@@ -78,7 +78,9 @@ function type(text: string) {
 /** Waits out the debounce. */
 async function settle() {
   await act(async () => {
-    vi.advanceTimersByTime(400)
+    // Bun does not auto-advance fake clocks. Keep real timers for the async
+    // response/React lifecycle and wait past the actual debounce boundary.
+    await new Promise((resolve) => setTimeout(resolve, 400))
   })
 }
 
@@ -165,7 +167,7 @@ describe('MeetingHistory search', () => {
   })
 
   it('explains an empty result instead of implying a broken search', async () => {
-    vi.stubGlobal('fetch', respondWith([]))
+    stubGlobal('fetch', respondWith([]))
     render(<MeetingHistory rows={rows} />)
 
     type('nothing')
@@ -180,7 +182,7 @@ describe('MeetingHistory search', () => {
   })
 
   it('states the searchable fields honestly, without claiming event titles', async () => {
-    vi.stubGlobal('fetch', respondWith([]))
+    stubGlobal('fetch', respondWith([]))
     render(<MeetingHistory rows={rows} />)
 
     type('nothing')
@@ -192,7 +194,7 @@ describe('MeetingHistory search', () => {
   })
 
   it('reports a failed search in place of the list, with a retry', async () => {
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
       vi.fn(async () => new Response('nope', { status: 500 })),
     )
@@ -215,7 +217,7 @@ describe('MeetingHistory search', () => {
         headers: { 'Content-Type': 'application/json' },
       })
     })
-    vi.stubGlobal('fetch', deleteFetch)
+    stubGlobal('fetch', deleteFetch)
     render(<MeetingHistory rows={rows} />)
 
     type('budget')
@@ -231,7 +233,7 @@ describe('MeetingHistory search', () => {
 
   it('adds no match line when only the room code matched', async () => {
     // Nothing to explain: the code is already the row's heading.
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
       respondWith([{ ...rows[0]!, matches: [{ kind: 'code' }] }]),
     )
@@ -263,7 +265,7 @@ describe('MeetingHistory search', () => {
             headers: { 'Content-Type': 'application/json' },
           }),
       )
-    vi.stubGlobal('fetch', staged)
+    stubGlobal('fetch', staged)
     render(<MeetingHistory rows={rows} />)
 
     type('bu')

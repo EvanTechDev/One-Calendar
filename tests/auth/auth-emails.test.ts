@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 import { authEmailCallbacks } from '@zntr/auth/email'
 import { authEmailBrand } from '@zntr/auth/email-brand'
 

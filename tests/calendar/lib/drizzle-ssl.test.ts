@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { resolveDbSsl, stripSslParams } from '@/lib/drizzle/client'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { resolveDbSsl, stripSslParams } = await import('@/lib/drizzle/client')
 
 describe('calendar database TLS policy', () => {
   const pem = [

@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * A participant's RSVP must be per-occurrence everywhere, not just on the invite
  * page.
@@ -12,27 +12,28 @@
  * calendar renders from. That is the public boundary where the symptom is
  * observable, and it is where the per-occurrence RSVP has to arrive.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   const { drizzleOperatorsMock } = await import('./route-test-db')
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', async () => {
+moduleMock.module('@/lib/drizzle/client', async () => {
   const { getFakeDb } = await import('./route-test-db')
   return { getDb: () => getFakeDb().db }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'participant', email: 'c@example.com' }),
   decryptEvent: (e: unknown) => e,
 }))
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
   decryptField: (_id: string, v: unknown) => v,
@@ -40,11 +41,10 @@ vi.mock('@/lib/field-crypto', () => ({
   looksLikeEnvelope: () => true,
 }))
 
-vi.mock('@/lib/months', () => ({
+moduleMock.module('@/lib/months', () => ({
   fullMonthRange: () => ({ start: new Date(0), end: new Date(0) }),
 }))
-
-import { GET } from '@/app/api/events/route'
+const { GET } = await import('@/app/api/events/route')
 
 const fake = getFakeDb()
 const MASTER = 'm-series'
@@ -139,8 +139,7 @@ async function sharedInstances() {
  */
 function ownRsvp(instance: Record<string, unknown>): string | undefined {
   const invites = instance.invites as
-    | Array<{ email: string; status: string }>
-    | undefined
+    Array<{ email: string; status: string }> | undefined
   return invites?.find((i) => i.email === 'c@example.com')?.status
 }
 

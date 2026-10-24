@@ -1,11 +1,15 @@
-import { expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { expect, it, vi } from 'bun:test'
 import { betterAuth } from 'better-auth'
 import { memoryAdapter } from '@better-auth/memory-adapter'
-import { createMcpOAuthPlugins } from '@zntr/auth/server'
-import { authSchema } from '@zntr/auth/schema'
 
-const mock = vi.hoisted(() => ({ fetch: vi.fn() }))
-vi.mock('@zntr/auth/cimd-fetch', () => ({ fetchCimdResource: mock.fetch }))
+const mock = (() => ({ fetch: vi.fn() }))()
+moduleMock.module('@zntr/auth/cimd-fetch', () => ({
+  fetchCimdResource: mock.fetch,
+}))
+const { createMcpOAuthPlugins } = await import('@zntr/auth/server')
+
+const { authSchema } = await import('@zntr/auth/schema')
 
 it.each([
   { homepage: 'https://mira.top', logout: undefined, allowed: true },

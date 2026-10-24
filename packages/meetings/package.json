@@ -13,13 +13,13 @@
     "./db": "./src/db.ts"
   },
   "scripts": {
-    "build": "tsc",
-    "build:check": "tsc && tsc --noEmit",
+    "build": "bun check",
+    "build:check": "bun check && bun check",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/meetings/",
+    "test:watch": "bun test --isolate --watch ../../tests/meetings/"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2"
@@ -27,7 +27,6 @@
   "devDependencies": {
     "@types/node": "25.6.0",
     "@types/pg": "^8.23.1",
-    "pg": "^8.23.1",
-    "vitest": "^4.1.10"
+    "pg": "^8.23.1"
   }
 }

@@ -1,8 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import {
-  isJoinUrgent,
-  meetingTiming,
-} from '@zntr/ui/calendar/lib/meeting-timing'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { isJoinUrgent, meetingTiming } =
+  await import('@zntr/ui/calendar/lib/meeting-timing')
 
 const START = new Date('2026-08-26T14:00:00Z')
 const END = new Date('2026-08-26T15:00:00Z')

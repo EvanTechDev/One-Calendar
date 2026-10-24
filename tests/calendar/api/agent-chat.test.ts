@@ -1,20 +1,21 @@
-// @vitest-environment node
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { stubEnv, unstubAllEnvs } from './../../support/stubs'
+import { afterEach, beforeEach, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { convertToModelMessages, streamText } from 'ai'
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'u1' }),
 }))
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true }),
 }))
-vi.mock('@/lib/agent/toolkit', () => ({
+moduleMock.module('@/lib/agent/toolkit', () => ({
   createAppToolkit: () => ({ getTimezone: async () => 'Asia/Shanghai' }),
 }))
-vi.mock('@ai-sdk/groq', () => ({ createGroq: () => () => 'model' }))
-vi.mock('ai', async (original) => ({
-  ...(await original<typeof import('ai')>()),
+moduleMock.module('@ai-sdk/groq', () => ({ createGroq: () => () => 'model' }))
+const nativeOriginal1 = { ...(await import('ai')) }
+moduleMock.module('ai', async () => ({
+  ...nativeOriginal1,
   streamText: vi.fn(() => ({
     stream: new ReadableStream({
       start(controller) {
@@ -26,13 +27,15 @@ vi.mock('ai', async (original) => ({
   createUIMessageStreamResponse: ({ stream }: { stream: ReadableStream }) =>
     new Response(stream),
 }))
-import { POST } from '@/app/api/agent/chat/route'
+const { convertToModelMessages, streamText } = await import('ai')
+
+const { POST } = await import('@/app/api/agent/chat/route')
 
 beforeEach(() => {
-  vi.stubEnv('GROQ_API_KEY', 'test')
-  vi.mocked(streamText).mockClear()
+  stubEnv('GROQ_API_KEY', 'test')
+  streamText.mockClear()
 })
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => unstubAllEnvs())
 
 it('can continue a stopped tool call instead of rejecting the whole next turn', async () => {
   const messages = [
@@ -70,10 +73,10 @@ it('can continue a stopped tool call instead of rejecting the whole next turn', 
     }),
   )
   expect(response.status).toBe(200)
-  expect(
-    JSON.stringify(vi.mocked(streamText).mock.calls[0][0].messages),
-  ).not.toContain('call-1')
-  expect(vi.mocked(streamText).mock.calls[0][0].messages).toEqual(
+  expect(JSON.stringify(streamText.mock.calls[0][0].messages)).not.toContain(
+    'call-1',
+  )
+  expect(streamText.mock.calls[0][0].messages).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         role: 'user',
@@ -111,9 +114,7 @@ it('keeps approved destructive calls when cleaning an interrupted transcript', a
       }),
     }),
   )
-  const transcript = JSON.stringify(
-    vi.mocked(streamText).mock.calls[0][0].messages,
-  )
+  const transcript = JSON.stringify(streamText.mock.calls[0][0].messages)
   expect(transcript).toContain('delete-1')
   expect(transcript).toContain('approval-1')
 })
@@ -134,7 +135,7 @@ it('propagates cancellation and reserves a tool-free final response for unfinish
     }),
   })
   await POST(request)
-  const options = vi.mocked(streamText).mock.calls[0][0]
+  const options = streamText.mock.calls[0][0]
   controller.abort()
   expect(options.abortSignal?.aborted).toBe(true)
   const prepare = options.prepareStep as (input: {

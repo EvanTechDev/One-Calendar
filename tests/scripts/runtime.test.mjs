@@ -10,11 +10,17 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { test } from 'node:test'
+import { afterEach, test } from 'bun:test'
 
-function fixture(t) {
+const temporaryRoots = []
+afterEach(() => {
+  for (const root of temporaryRoots.splice(0))
+    rmSync(root, { recursive: true, force: true })
+})
+
+function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'zntr-runtime-'))
-  t.after(() => rmSync(root, { recursive: true, force: true }))
+  temporaryRoots.push(root)
   mkdirSync(join(root, 'scripts'))
   cpSync(
     new URL('../../scripts/runtime.mjs', import.meta.url),
@@ -31,10 +37,10 @@ function fixture(t) {
             dev: app === 'meet' ? 'next dev -p 3001' : 'next dev',
             build:
               app === 'calendar'
-                ? 'pnpm generate:i18n && pnpm mdx && next build'
+                ? 'bun run generate:i18n && bun run mdx && next build'
                 : 'next build',
             start: app === 'meet' ? 'next start -p 3001' : 'next start',
-            test: 'vitest run',
+            test: 'bun test --isolate',
           },
           dependencies: { next: '16.3.8' },
         },
@@ -77,8 +83,8 @@ function fixture(t) {
   }
 }
 
-test('switches both apps to Bun and back without losing app configuration', (t) => {
-  const f = fixture(t)
+test('switches both apps to Bun and back without losing app configuration', () => {
+  const f = fixture()
   const original = Object.fromEntries(
     ['calendar', 'meet'].map((app) => [
       app,
@@ -94,7 +100,7 @@ test('switches both apps to Bun and back without losing app configuration', (t) 
   assert.equal(JSON.parse(f.read('meet', 'vercel.json')).bunVersion, '1.x')
   assert.equal(
     JSON.parse(f.read('calendar', 'package.json')).scripts.build,
-    'pnpm generate:i18n && pnpm mdx && bun run --bun next build',
+    'bun run generate:i18n && bun run mdx && bun run --bun next build',
   )
   assert.equal(
     JSON.parse(f.read('meet', 'package.json')).scripts.start,
@@ -108,8 +114,8 @@ test('switches both apps to Bun and back without losing app configuration', (t) 
   }
 })
 
-test('status detects mixed configuration without modifying files', (t) => {
-  const f = fixture(t)
+test('status detects mixed configuration without modifying files', () => {
+  const f = fixture()
   const original = f.read('calendar', 'package.json')
   const node = f.run('status')
   assert.equal(node.status, 0, node.stderr)
@@ -123,10 +129,10 @@ test('status detects mixed configuration without modifying files', (t) => {
   assert.match(mixed.stdout, /Bun \(1.x\)/)
 })
 
-test('repeated switches are no-ops and preserve custom prerequisite commands', (t) => {
-  const f = fixture(t)
+test('repeated switches are no-ops and preserve custom prerequisite commands', () => {
+  const f = fixture()
   const pkg = JSON.parse(f.read('calendar', 'package.json'))
-  pkg.scripts.build = 'pnpm custom-prebuild && next build --webpack'
+  pkg.scripts.build = 'bun run custom-prebuild && next build --webpack'
   const compact = JSON.stringify(pkg) + '\n'
   f.write('calendar', 'package.json', compact)
   assert.equal(f.run('node').status, 0)
@@ -135,15 +141,15 @@ test('repeated switches are no-ops and preserve custom prerequisite commands', (
   const bun = f.read('calendar', 'package.json')
   assert.equal(
     JSON.parse(bun).scripts.build,
-    'pnpm custom-prebuild && bun run --bun next build --webpack',
+    'bun run custom-prebuild && bun run --bun next build --webpack',
   )
   assert.equal(f.run('bun').status, 0)
   assert.equal(f.read('calendar', 'package.json'), bun)
   assert.equal(f.run('status').status, 0)
 })
 
-test('unsupported commands or malformed JSON fail before either app is modified', (t) => {
-  const f = fixture(t)
+test('unsupported commands or malformed JSON fail before either app is modified', () => {
+  const f = fixture()
   const calendar = f.read('calendar', 'package.json')
   const vercel = f.read('calendar', 'vercel.json')
   const pkg = JSON.parse(f.read('meet', 'package.json'))
@@ -161,8 +167,8 @@ test('unsupported commands or malformed JSON fail before either app is modified'
   assert.equal(f.read('calendar', 'package.json'), calendar)
 })
 
-test('supports explicit Bun versions and rejects invalid arguments without changes', (t) => {
-  const f = fixture(t)
+test('supports explicit Bun versions and rejects invalid arguments without changes', () => {
+  const f = fixture()
   const original = f.read('calendar', 'vercel.json')
   for (const args of [
     [],

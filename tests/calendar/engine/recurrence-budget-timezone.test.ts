@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 import { RRule } from 'rrule'
 import {
   expandSeries,
@@ -158,6 +157,7 @@ describe('recurrence work budget', () => {
         {
           ...master,
           startDate: new Date('1800-01-01'),
+          endDate: new Date('1800-01-01T01:00:00Z'),
           rrule: 'FREQ=DAILY;COUNT=2',
         },
         new Date('2026-01-01'),

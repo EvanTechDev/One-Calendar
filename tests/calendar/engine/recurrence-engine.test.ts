@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   MAX_EXPANSION,
   adaptRuleToStart,
   buildInstanceId,
@@ -16,7 +17,7 @@ import {
   rruleToParts,
   toRfcStamp,
   withUntil,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+} = await import('@zntr/ui/calendar/lib/recurrence/engine')
 import type {
   RecurrenceEvent,
   RruleParts,
@@ -426,6 +427,7 @@ describe('expandSeries', () => {
   it('returns only occurrences inside a later window in order', () => {
     const series = makeSeries({
       startDate: day(2023, 12, 15),
+      endDate: day(2023, 12, 16),
       rrule: 'FREQ=DAILY',
     })
     const result = expandSeries(series, day(2023, 12, 29), day(2024, 1, 4))
@@ -438,6 +440,19 @@ describe('expandSeries', () => {
       '20240103',
       '20240104',
     ])
+  })
+
+  it('retains occurrences that start before the window but still overlap it', () => {
+    const series = makeSeries({
+      startDate: day(2023, 12, 15),
+      endDate: day(2023, 12, 18),
+      rrule: 'FREQ=DAILY;COUNT=2',
+    })
+    const result = expandSeries(series, day(2023, 12, 18), day(2023, 12, 19))
+    expect(result.map((instance) => instance.recurrenceId)).toEqual([
+      '20231216',
+    ])
+    expect(result[0].endDate).toEqual(day(2023, 12, 19))
   })
 
   it('returns empty for non-series events and inverted windows', () => {

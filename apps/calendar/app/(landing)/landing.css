@@ -41,7 +41,6 @@
   outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
 }
 
-
 @keyframes starDrift {
   from {
     transform: translateX(0);

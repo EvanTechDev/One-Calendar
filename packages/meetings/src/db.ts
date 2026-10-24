@@ -24,5 +24,4 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 type Database = NodePgDatabase<Record<string, unknown>>
 
 export type Db =
-  | Database
-  | Parameters<Parameters<Database['transaction']>[0]>[0]
+  Database | Parameters<Parameters<Database['transaction']>[0]>[0]

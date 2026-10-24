@@ -38,9 +38,6 @@ export function NoInternet({
       role="alert"
       aria-live="polite"
     >
-      <header className="text-sm font-semibold tracking-tight">
-        Zentra Calendar
-      </header>
       <div className="m-auto w-full max-w-md py-16">
         <div className="bg-muted mb-7 flex size-14 items-center justify-center rounded-2xl">
           <WifiOff
@@ -94,12 +91,14 @@ export function ConnectionBoundary({
   onReconnect?: () => void | Promise<void>
 }) {
   const host = useCalendarHost()
-  const [disconnected, setDisconnected] = useState(Boolean(checkConnection))
+  const [disconnected, setDisconnected] = useState(false)
   const [checking, setChecking] = useState(false)
   const [initialConnectionCheck, setInitialConnectionCheck] = useState(
     Boolean(checkConnection),
   )
   const inFlight = useRef(false)
+  const disconnectedRef = useRef(disconnected)
+  disconnectedRef.current = disconnected
   const retryRef = useRef<() => Promise<void>>(async () => {})
   const request = useMemo<typeof fetch>(
     () => async (input, init) => {
@@ -114,7 +113,9 @@ export function ConnectionBoundary({
             error.name === 'AbortError'
           )
         )
-          setDisconnected(true)
+          // Native failures include account changes and local validation errors.
+          // Only a separate reachability failure establishes a network outage.
+          void retryRef.current()
         throw error
       }
     },
@@ -132,8 +133,15 @@ export function ConnectionBoundary({
             .then(() => true)
       if (connected) {
         setDisconnected(false)
-        await onReconnect?.()
-        window.dispatchEvent(new Event('zentra-reconnected'))
+        if (disconnectedRef.current) {
+          // Session/API errors do not invalidate the successful network probe.
+          try {
+            await onReconnect?.()
+          } catch {
+            /* The host owns session errors. */
+          }
+          window.dispatchEvent(new Event('zentra-reconnected'))
+        }
       } else setDisconnected(true)
     } catch {
       setDisconnected(true)
@@ -161,18 +169,9 @@ export function ConnectionBoundary({
     // A failed reachability probe covers this case without resetting identity.
     if (!checkConnection) return
     let active = true
-    let firstProbe = true
     const probe = async () => {
-      try {
-        const connected = await checkConnection()
-        if (active && firstProbe) setDisconnected(!connected)
-        else if (active && !connected) setDisconnected(true)
-      } catch {
-        if (active) setDisconnected(true)
-      } finally {
-        if (active && firstProbe) setInitialConnectionCheck(false)
-        firstProbe = false
-      }
+      await retryRef.current()
+      if (active) setInitialConnectionCheck(false)
     }
     void probe()
     const interval = window.setInterval(probe, 30_000)

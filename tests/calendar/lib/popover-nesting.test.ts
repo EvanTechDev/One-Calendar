@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   CHILD_OVERLAY_ATTRIBUTE,
   childOverlayProps,
   isChildOverlayInteraction,
-} from '@zntr/ui/calendar/lib/popover-nesting'
+} = await import('@zntr/ui/calendar/lib/popover-nesting')
 
 describe('isChildOverlayInteraction', () => {
   function markup(html: string) {

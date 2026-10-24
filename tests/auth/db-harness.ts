@@ -1,6 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import pg from 'pg'
+import { setDefaultTimeout } from 'bun:test'
+
+// Pinned transactions intentionally take three round trips per statement.
+// Preserve the integration suite's existing timeout on remote disposable DBs.
+setDefaultTimeout(180_000)
 
 type Row = Record<string, unknown>
 
@@ -163,7 +168,7 @@ export const TEST_SCHEMA = 'auth_test'
 const FORBIDDEN_TABLES = ['user', 'session', 'account', 'verification']
 
 function readDatabaseUrl(): string | null {
-  // Read from .env.local rather than process.env: vitest does not load it, and
+  // Read from .env.local explicitly: the test runner does not load it, and
   // an explicitly-passed env var is the documented override.
   if (process.env.AUTH_TEST_POSTGRES_URL) {
     return process.env.AUTH_TEST_POSTGRES_URL
@@ -346,8 +351,7 @@ export async function assertConfinedTo(
     }
 
     const shown = (await client.query('show search_path')).rows[0] as
-      | { search_path: string }
-      | undefined
+      { search_path: string } | undefined
     assertPathNamesOnlyTestSchema(shown?.search_path ?? '')
 
     for (const table of FORBIDDEN_TABLES) {

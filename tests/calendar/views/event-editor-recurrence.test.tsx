@@ -1,39 +1,45 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, within, waitFor } from '../host-render'
-import EventEditor from '@zntr/ui/calendar/components/app/event/event-editor'
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { render, screen, fireEvent, within, waitFor } =
+  await import('../host-render')
+
 import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
-import {
-  Language,
-  FirstDayOfWeek,
-  ViewConfig,
-  TimeFormat,
-} from '@zntr/ui/calendar/lib/calendar-types'
-
-vi.hoisted(() => {
+;(() => {
   process.env.NEXT_PUBLIC_AI_ENABLED = '1'
-})
+})()
 
-vi.mock('@zntr/ui/calendar/components/providers/calendar-context', () => {
-  const state = { calendars: [], events: [] }
-  return { useCalendar: () => state }
-})
-vi.mock('@zntr/ui/calendar/hooks/use-event-meeting-draft', () => ({
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/calendar-context',
+  () => {
+    const state = { calendars: [], events: [] }
+    return { useCalendar: () => state }
+  },
+)
+moduleMock.module('@zntr/ui/calendar/hooks/use-event-meeting-draft', () => ({
   useEventMeetingDraft: () => ({ meeting: null, keep: vi.fn() }),
 }))
-vi.mock('@zntr/ui/calendar/components/app/event/event-meeting-field', () => ({
-  EventMeetingField: () => null,
-}))
-// jsdom has no layout. Keep the real form and scope dialogs, but freeze the
-// live positioning hook so Radix's layout effects cannot chase zero rects.
-vi.mock(
-  '@zntr/ui/calendar/hooks/use-anchored-popover',
-  async (importOriginal) => ({
-    ...(await importOriginal<
-      typeof import('@zntr/ui/calendar/hooks/use-anchored-popover')
-    >()),
-    useLiveAnchorRect: () => null,
+moduleMock.module(
+  '@zntr/ui/calendar/components/app/event/event-meeting-field',
+  () => ({
+    EventMeetingField: () => null,
   }),
 )
+// jsdom has no layout. Keep the real form and scope dialogs, but freeze the
+// live positioning hook so Radix's layout effects cannot chase zero rects.
+const originalModule1 = {
+  ...(await import('@zntr/ui/calendar/hooks/use-anchored-popover')),
+}
+moduleMock.module('@zntr/ui/calendar/hooks/use-anchored-popover', async () => ({
+  ...originalModule1,
+  useLiveAnchorRect: () => null,
+}))
+const { default: EventEditor } =
+  await import('@zntr/ui/calendar/components/app/event/event-editor')
+
+const { Language, FirstDayOfWeek, ViewConfig, TimeFormat } =
+  await import('@zntr/ui/calendar/lib/calendar-types')
 
 const start = new Date('2026-10-05T09:00:00Z')
 const config = ViewConfig.create({
@@ -49,7 +55,7 @@ beforeEach(() => {
     configurable: true,
     value: vi.fn(),
   })
-  vi.stubGlobal(
+  stubGlobal(
     'ResizeObserver',
     class {
       observe() {}
@@ -60,7 +66,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 function chooseOption(label: string, option: string) {
@@ -74,7 +80,7 @@ describe('editing recurrence from an occurrence', () => {
   it('projects an AI-filled instant into the editor timezone and preserves duration when saving', async () => {
     const onAdd = vi.fn()
     const initialDate = new Date('2026-10-06T08:00:00Z')
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,

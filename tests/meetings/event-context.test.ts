@@ -6,7 +6,7 @@
  * Presenting that as "this meeting's time" would be worse than showing no time
  * at all, so `isSeries` is what stops the room from claiming one.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import { getEventContextForMeeting, meeting } from '@zntr/meetings'
 import { readonlyCalendarEvents } from '@zntr/meetings/readonly-calendar'
 import { createFakeDb } from './fake-db'

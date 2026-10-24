@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { z } from 'zod'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { z } = await import('zod')
+const {
   eventSchema,
   categorySchema,
   countdownSchema,
@@ -9,7 +10,7 @@ import {
   invitePatchSchema,
   recurringFieldsSchema,
   RSVP_STATUSES,
-} from '@/lib/validation'
+} = await import('@/lib/validation')
 
 function validEvent() {
   return {

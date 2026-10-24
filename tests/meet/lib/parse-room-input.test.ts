@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { parseRoomInput } from '@/lib/room-code'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { parseRoomInput } = await import('@/lib/room-code')
 
 describe('parseRoomInput', () => {
   it('accepts a bare room code', () => {

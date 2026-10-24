@@ -1,12 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  render,
-  cleanup,
-  screen,
-  within,
-  fireEvent,
-} from '@testing-library/react'
-import { MeetShell } from '@/components/shell/meet-shell'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
+const { render, cleanup, screen, within, fireEvent } =
+  await import('@testing-library/react')
+const { MeetShell } = await import('@/components/shell/meet-shell')
 
 function renderShell(overrides?: {
   section?: 'home' | 'upcoming' | 'history'

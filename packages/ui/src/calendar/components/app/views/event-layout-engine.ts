@@ -195,8 +195,8 @@ export class EventLayoutEngine {
         const totalColumns =
           activeEvents.size > 0
             ? Math.max(
-                ...Array.from(activeEvents).map(
-                  (idx) => eventToColumn.get(idx)!,
+                ...Array.from(activeEvents).map((idx) =>
+                  eventToColumn.get(idx)!,
                 ),
               ) + 1
             : 0

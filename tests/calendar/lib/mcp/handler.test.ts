@@ -1,33 +1,34 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { handleMcpRequest } from '@/lib/mcp/handler'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../../support/dom')
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
 process.env.BETTER_AUTH_URL = 'https://app.example.com'
 
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   getMcpSettings: vi.fn(),
   checkRateLimit: vi.fn(),
   logAudit: vi.fn(),
   handleRequest: vi.fn(),
   connect: vi.fn(),
-}))
+}))()
 
-vi.mock('@/lib/mcp/settings', () => ({
+moduleMock.module('@/lib/mcp/settings', () => ({
   getMcpSettings: mocks.getMcpSettings,
 }))
 
-vi.mock('@/lib/mcp/rate-limiter', () => ({
+moduleMock.module('@/lib/mcp/rate-limiter', () => ({
   checkRateLimit: mocks.checkRateLimit,
 }))
 
-vi.mock('@/lib/mcp/audit', () => ({
+moduleMock.module('@/lib/mcp/audit', () => ({
   logAudit: mocks.logAudit,
 }))
 
-vi.mock('@/lib/mcp/server', () => ({
+moduleMock.module('@/lib/mcp/server', () => ({
   createServer: () => ({ connect: mocks.connect }),
 }))
 
-vi.mock('@modelcontextprotocol/server', () => ({
+moduleMock.module('@modelcontextprotocol/server', () => ({
   SUPPORTED_PROTOCOL_VERSIONS: ['2025-11-25', '2025-06-18'],
   validateHostHeader: (host: string | null, allowed: string[]) => {
     const hostname = host?.replace(/:\d+$/, '') ?? ''
@@ -41,6 +42,7 @@ vi.mock('@modelcontextprotocol/server', () => ({
     }
   },
 }))
+const { handleMcpRequest } = await import('@/lib/mcp/handler')
 
 const AUTH = {
   token: 'tok-123',

@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import crypto from 'node:crypto'
-import { readEventTitle } from '@/lib/event-title'
+await import('./../../support/dom')
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+const { default: crypto } = await import('node:crypto')
+const { readEventTitle } = await import('@/lib/event-title')
 
 const SALT = 'test-salt-at-least-16-chars'
 const ROW_ID = 'event-row-1'

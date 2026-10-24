@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const {
   DESTRUCTIVE_SEPARATION,
   MOBILE_CONTROL_HEIGHT,
   PRIMARY_GAP,
@@ -14,7 +15,7 @@ import {
   primaryRowFits,
   primaryRowWidth,
   secondaryRowFits,
-} from '../../../apps/meet/lib/control-layout'
+} = await import('../../../apps/meet/lib/control-layout')
 
 /**
  * The maintainer's two target viewports. The control bar has to work at both,

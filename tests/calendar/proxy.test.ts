@@ -1,8 +1,9 @@
-import crypto from 'crypto'
-import { describe, expect, it } from 'vitest'
-import { NextRequest } from 'next/server'
-import proxy, { getCsp, isCspExemptPath } from '@/proxy'
-import { BOT_ID_PROXY_PREFIX } from '@zntr/auth/bot-policy'
+await import('./../support/dom')
+const { default: crypto } = await import('crypto')
+import { describe, expect, it } from 'bun:test'
+const { NextRequest } = await import('next/server')
+const { default: proxy, getCsp, isCspExemptPath } = await import('@/proxy')
+const { BOT_ID_PROXY_PREFIX } = await import('@zntr/auth/bot-policy')
 
 // The contract under test: Next extracts the nonce from the request CSP header
 // with exactly this regex (see get-script-nonce-from-header.js).

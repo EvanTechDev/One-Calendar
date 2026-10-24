@@ -1,15 +1,15 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   getAuditLogs: vi.fn(async () => []),
   getAuditLogsCount: vi.fn(async () => 0),
   getAuditToolNames: vi.fn(async () => []),
-}))
+}))()
 
-vi.mock('@/lib/mcp/audit', () => mocks)
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/mcp/audit', () => mocks)
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'user-1', email: 'ada@example.com' }),
 }))
 

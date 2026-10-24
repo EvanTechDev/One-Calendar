@@ -77,7 +77,12 @@ const EXPOSED_OAUTH_POST = new Set([
  */
 export function authRouteIsExposed(method: string, path: string): boolean {
   const verb = method.toUpperCase()
-  if (verb === 'GET') return EXPOSED_GET.has(path)
+  // Better Auth validates the emailed token here before redirecting to the form.
+  // Match exactly one opaque token, not arbitrary plugin routes or traversal.
+  if (verb === 'GET')
+    return (
+      EXPOSED_GET.has(path) || /^reset-password\/[A-Za-z0-9_-]+$/.test(path)
+    )
   if (verb === 'POST') return EXPOSED_POST.has(path)
   return false
 }

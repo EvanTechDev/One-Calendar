@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
 describe('migration logic', () => {
   beforeEach(() => {

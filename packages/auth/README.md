@@ -4,7 +4,7 @@ Shared Better Auth configuration package for the zntr monorepo. Provides unified
 
 ## Installation
 
-This is a pnpm workspace internal package. Add it to your consumer's `package.json`:
+This is a Bun workspace internal package. Add it to your consumer's `package.json`:
 
 ```json
 {
@@ -294,10 +294,10 @@ import { user as baseUser } from '@zntr/auth/schema'
 
 ```bash
 # Generate migration
-pnpm dlx drizzle-kit generate
+bun x --no-install drizzle-kit generate
 
 # Apply to database
-pnpm dlx drizzle-kit migrate
+bun x --no-install drizzle-kit migrate
 ```
 
 The consumer's `drizzle.config.ts` should point to the schema file containing all tables (auth + app tables):
@@ -332,9 +332,7 @@ import {
 export { user, session, account, verification, twoFactor }
 
 // Define app tables
-export const calendarEvents = pgTable('calendar_events', {
-  /* ... */
-})
+export const calendarEvents = pgTable('calendar_events', {/* ... */})
 
 // Define relations (between auth tables and app tables)
 export const userRelations = relations(user, ({ many }) => ({
@@ -459,14 +457,14 @@ emailCallbacks: {
 
 ```bash
 # Type check
-pnpm --filter @zntr/auth type-check
+bun run --filter @zntr/auth type-check
 
 # Lint
-pnpm --filter @zntr/auth lint
+bun run --filter @zntr/auth lint
 
 # Build
-pnpm --filter @zntr/auth build
+bun run --filter @zntr/auth build
 
 # Test
-pnpm --filter @zntr/auth test
+bun run --filter @zntr/auth test
 ```

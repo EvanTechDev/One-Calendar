@@ -1,6 +1,8 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
-import lazyView from '@zntr/ui/calendar/lib/lazy-view'
+await import('./../../support/dom')
+const { act, cleanup, fireEvent, render, screen } =
+  await import('@testing-library/react')
+import { afterEach, expect, it, vi } from 'bun:test'
+const { default: lazyView } = await import('@zntr/ui/calendar/lib/lazy-view')
 
 afterEach(cleanup)
 

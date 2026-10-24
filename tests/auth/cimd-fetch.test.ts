@@ -1,11 +1,11 @@
-// @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
-const dns = vi.hoisted(() => ({
+const dns = (() => ({
   addresses: null as null | Array<{ address: string; family: 4 | 6 }>,
-}))
+}))()
 
-vi.mock('node:dns/promises', () => ({
+moduleMock.module('node:dns/promises', () => ({
   lookup: async (hostname: string) =>
     dns.addresses ?? [
       {
@@ -14,8 +14,7 @@ vi.mock('node:dns/promises', () => ({
       },
     ],
 }))
-
-import { fetchCimdResource } from '@zntr/auth/cimd-fetch'
+const { fetchCimdResource } = await import('@zntr/auth/cimd-fetch')
 
 beforeEach(() => {
   dns.addresses = null

@@ -1,6 +1,5 @@
-// @vitest-environment node
 import { createHash, createHmac, randomBytes } from 'node:crypto'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test'
 import { betterAuth, type BetterAuthOptions } from 'better-auth'
 import { memoryAdapter } from '@better-auth/memory-adapter'
 import { twoFactor } from 'better-auth/plugins'

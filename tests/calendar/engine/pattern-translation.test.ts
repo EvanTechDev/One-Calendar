@@ -1,3 +1,4 @@
+await import('./../../support/dom')
 /**
  * Pins the whole-pattern day-translation primitives behind the two edit
  * semantics:
@@ -10,15 +11,15 @@
  *
  * Covers every FREQ shape, not just weekly, plus DST safety.
  */
-import { describe, it, expect } from 'vitest'
-import {
+import { describe, it, expect } from 'bun:test'
+const {
   addWallClockDays,
   canTranslateRuleByDays,
   snapToPatternDay,
   translateRuleByDays,
   translateStampsByDays,
   wallClockDayDelta,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+} = await import('@zntr/ui/calendar/lib/recurrence/engine')
 
 function day(y: number, m: number, d: number, h = 0, min = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, 0))

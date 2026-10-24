@@ -1,5 +1,5 @@
-// @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
 /**
  * `/app` requires a session.
@@ -20,9 +20,11 @@ const redirect = vi.fn((to: string) => {
   throw new Error(`NEXT_REDIRECT:${to}`)
 })
 
-vi.mock('next/navigation', () => ({ redirect }))
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }))
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession } } }))
+moduleMock.module('next/navigation', () => ({ redirect }))
+moduleMock.module('next/headers', () => ({
+  headers: async () => new Headers(),
+}))
+moduleMock.module('@/lib/auth', () => ({ auth: { api: { getSession } } }))
 
 const { requireAppSession } = await import('@/lib/auth/require-session')
 

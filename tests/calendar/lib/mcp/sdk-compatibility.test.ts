@@ -1,29 +1,31 @@
-// @vitest-environment node
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { stubEnv, unstubAllEnvs } from './../../../support/stubs'
+import { afterEach, beforeEach, expect, it, vi } from 'bun:test'
 import { SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/server'
-import { handleMcpRequest } from '@/lib/mcp/handler'
+
 import type { McpAuthUser } from '@zntr/ui/calendar/lib/mcp/types'
 
 // Keep the real transport, registration, JSON Schema conversion and tool
 // dispatch. Only storage/rate-limit boundaries are replaced.
-vi.mock('@/lib/mcp/settings', () => ({
+moduleMock.module('@/lib/mcp/settings', () => ({
   getMcpSettings: async () => ({ enabled: true }),
 }))
-vi.mock('@/lib/mcp/rate-limiter', () => ({
+moduleMock.module('@/lib/mcp/rate-limiter', () => ({
   checkRateLimit: async () => ({ allowed: true }),
 }))
-vi.mock('@/lib/mcp/audit', () => ({ logAudit: vi.fn() }))
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/mcp/audit', () => ({ logAudit: vi.fn() }))
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => {
     throw new Error('This SDK compatibility test must not access the database')
   },
 }))
+const { handleMcpRequest } = await import('@/lib/mcp/handler')
 
 beforeEach(() => {
-  vi.stubEnv('BETTER_AUTH_URL', 'https://calendar.example')
-  vi.stubEnv('MCP_PUBLIC_BASE_URL', 'https://calendar.example')
+  stubEnv('BETTER_AUTH_URL', 'https://calendar.example')
+  stubEnv('MCP_PUBLIC_BASE_URL', 'https://calendar.example')
 })
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => unstubAllEnvs())
 
 const AUTH = {
   token: 'test-token',

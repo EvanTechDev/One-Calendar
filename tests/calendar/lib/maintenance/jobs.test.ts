@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * The job registry itself, one layer below the route.
  *
@@ -8,43 +8,39 @@
  * too — two unrelated chores sharing one blast radius, and a log line blaming
  * whichever rejected first.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
-const audit = vi.hoisted(() => ({
+const audit = (() => ({
   cleanupAuditLogs: vi.fn(async () => ({
     deleted: 0,
     retentionDays: 30,
     cutoff: '2026-09-01T00:00:00.000Z',
   })),
-}))
-vi.mock('@/lib/mcp/audit', () => audit)
+}))()
+moduleMock.module('@/lib/mcp/audit', () => audit)
 
-const meetings = vi.hoisted(() => ({
+const meetings = (() => ({
   deleteExpiredMeetings: vi.fn(async () => []),
-}))
-vi.mock('@zntr/meetings', () => meetings)
+}))()
+moduleMock.module('@zntr/meetings', () => meetings)
 
-const oauth = vi.hoisted(() => ({
+const oauth = (() => ({
   cleanupExpiredOAuthState: vi.fn(async () => ({ deleted: 0 })),
-}))
-vi.mock('@/lib/mcp/oauth-cleanup', () => oauth)
+}))()
+moduleMock.module('@/lib/mcp/oauth-cleanup', () => oauth)
 
-const rateLimits = vi.hoisted(() => ({
+const rateLimits = (() => ({
   cleanupRateLimitCounters: vi.fn(async () => 0),
-}))
-vi.mock('@zntr/auth/rate-limit', () => rateLimits)
+}))()
+moduleMock.module('@zntr/auth/rate-limit', () => rateLimits)
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     execute: () => Promise.resolve({ rows: [{ table_name: 'User' }] }),
   }),
 }))
-
-import {
-  MAINTENANCE_JOBS,
-  maintenanceSucceeded,
-  runMaintenance,
-} from '@/lib/maintenance/jobs'
+const { MAINTENANCE_JOBS, maintenanceSucceeded, runMaintenance } =
+  await import('@/lib/maintenance/jobs')
 
 beforeEach(() => {
   audit.cleanupAuditLogs.mockReset()

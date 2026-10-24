@@ -1,9 +1,9 @@
-// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { AccountPanel, AccountProvider } from '@zntr/auth/account'
+await import('./../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
+const { render, screen } = await import('@testing-library/react')
+const { AccountPanel, AccountProvider } = await import('@zntr/auth/account')
 import type { AccountContextValue } from '@zntr/auth/account'
-import { selectAuthCopy } from '@zntr/i18n/auth'
+const { selectAuthCopy } = await import('@zntr/i18n/auth')
 
 /**
  * "Loading" is not "signed out".

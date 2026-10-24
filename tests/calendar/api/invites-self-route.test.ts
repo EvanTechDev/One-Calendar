@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * `PATCH /api/invites/self` — a participant acting on their own grant from
  * inside the calendar, authenticated by session rather than by the emailed
@@ -10,10 +10,10 @@
  * went through the public token endpoint, so both silently died 7 days after
  * the invite email.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 
-const store = vi.hoisted(() => ({
+const store = (() => ({
   invites: [] as Array<Record<string, unknown>>,
   occurrences: [] as Array<Record<string, unknown>>,
   events: [] as Array<Record<string, unknown>>,
@@ -21,13 +21,13 @@ const store = vi.hoisted(() => ({
   rsvpCalls: [] as Array<{ kind: 'invite' | 'occurrence'; payload: unknown }>,
   addToCalendarCalls: [] as Array<{ token: string; categoryId: unknown }>,
   authedUser: null as { id: string; email: string } | null,
-}))
+}))()
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => store.authedUser,
 }))
 
-vi.mock('@/lib/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   // Grant semantics by contract: no expiry filter (ADR-0013).
   getGrantsByToken: async (token: string) =>
     store.invites.filter((i) => i.inviteToken === token),
@@ -55,7 +55,7 @@ vi.mock('@/lib/invites/invite-service', () => ({
   },
 }))
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -79,8 +79,9 @@ function camel(s: string): string {
   return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     eq:
@@ -92,8 +93,7 @@ vi.mock('drizzle-orm', async (importOriginal) => {
         ps.every((p) => p(row)),
   }
 })
-
-import { PATCH } from '@/app/api/invites/self/route'
+const { PATCH } = await import('@/app/api/invites/self/route')
 
 const MASTER = 'm-series'
 const DAY1 = '20260822T110000Z'

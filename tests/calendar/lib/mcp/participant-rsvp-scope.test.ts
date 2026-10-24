@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * The MCP mirror of `tests/calendar/api/invite-rsvp-scope.test.ts`.
  *
@@ -14,16 +14,30 @@
  *
  * Seam: `updateInviteRsvp` in lib/mcp/participant-tools.ts.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
-const store = vi.hoisted(() => ({
+const store = (() => ({
   invites: [] as Array<Record<string, unknown>>,
   occurrences: [] as Array<Record<string, unknown>>,
   events: [] as Array<Record<string, unknown>>,
   rsvpCalls: [] as Array<{ kind: 'invite' | 'occurrence'; payload: unknown }>,
-}))
+}))()
 
-vi.mock('@/lib/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
+  getOccurrencesForInvites: async (inviteIds: string[]) =>
+    new Map(
+      inviteIds.map((id) => [
+        id,
+        store.occurrences.filter((row) => row.inviteId === id),
+      ]),
+    ),
+  readInviteToken: (invite: Record<string, unknown>) => invite.inviteToken,
+  createInvitesForEvent: vi.fn(async () => {
+    throw new Error('RSVP must not create participant grants')
+  }),
+  applyParticipantChangePlan: vi.fn(async () => {
+    throw new Error('RSVP must not change participant grants')
+  }),
   getInvitesByToken: async (token: string) =>
     store.invites.filter((i) => i.inviteToken === token),
   // Grant semantics — no expiry filter (ADR-0013). These fakes hold no
@@ -59,7 +73,7 @@ vi.mock('@/lib/invites/invite-service', () => ({
   removeParticipantFromCalendar: async () => {},
 }))
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -79,8 +93,9 @@ function camel(s: string): string {
   return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     eq:
@@ -93,12 +108,12 @@ vi.mock('drizzle-orm', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   decryptEvent: (e: unknown) => e,
 }))
+const { updateInviteRsvp } = await import('@/lib/mcp/participant-tools')
 
-import { updateInviteRsvp } from '@/lib/mcp/participant-tools'
-import { ParticipantError } from '@/lib/mcp/errors'
+const { ParticipantError } = await import('@/lib/mcp/errors')
 
 const MASTER = 'm-series'
 const TAIL = 'm-tail'

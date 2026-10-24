@@ -1,14 +1,17 @@
-import { describe, expect, it, beforeEach, vi, afterEach } from 'vitest'
-import {
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, expect, it, beforeEach, vi, afterEach } from 'bun:test'
+
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
+
+moduleMock.module('sonner', () => ({ toast: vi.fn() }))
+const {
   getReminderTime,
   getReminderKey,
   isReminderDue,
   getPendingEvents,
   checkPendingNotifications,
-} from '@zntr/ui/calendar/lib/notifications'
-import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
-
-vi.mock('sonner', () => ({ toast: vi.fn() }))
+} = await import('@zntr/ui/calendar/lib/notifications')
 
 const T0 = new Date('2026-08-22T12:00:00.000Z').getTime()
 

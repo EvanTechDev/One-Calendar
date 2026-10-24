@@ -1,14 +1,14 @@
-// @vitest-environment node
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { unstubAllGlobals, stubGlobal } from './../../support/stubs'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 import { createCalendarApi } from '@zntr/ui/calendar/lib/api-client'
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 describe('calendar API host', () => {
   it('keeps concurrent calendar reads scoped to their host', async () => {
-    vi.stubGlobal('fetch', () => {
+    stubGlobal('fetch', () => {
       throw new Error('A hosted calendar must use its supplied transport')
     })
 

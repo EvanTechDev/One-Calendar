@@ -85,9 +85,10 @@ try {
   writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`)
   if (retryLock) writeFileSync(lockPath, retryLock)
   const result = spawnSync(
-    'pnpm',
+    'bun',
     [
-      'exec',
+      'x',
+      '--no-install',
       'lingo.dev',
       'run',
       '--concurrency',

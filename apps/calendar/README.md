@@ -80,15 +80,15 @@ Built for individuals and small teams who want an agent that works the calendar 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) v20 or later
-- [pnpm](https://pnpm.io)
+- [Bun 1.4.4](https://bun.sh)
 
 ### Quick start
 
 ```bash
 git clone https://github.com/EvanTechDev/One-Calendar.git
 cd One-Calendar
-pnpm install
-pnpm dev
+bun install
+bun run dev
 ```
 
 Then open `http://localhost:3000`.
@@ -129,13 +129,13 @@ system browser. Deep Analysis is not enabled by this configuration.
 The app uses Drizzle ORM. After setting `POSTGRES_URL`, push the schema:
 
 ```bash
-pnpm dlx drizzle-kit push
+bun x --no-install drizzle-kit push
 ```
 
 For production, use migrations instead:
 
 ```bash
-pnpm dlx drizzle-kit migrate
+bun x --no-install drizzle-kit migrate
 ```
 
 Do **not** run `drizzle-kit generate` to author a new migration. The snapshots in

@@ -64,7 +64,7 @@ async fn desktop_config(
     // X11 decoration extents can arrive after the first map without a content
     // resize event. Reconcile on the live window, yielding for the WM to apply it.
     for _ in 0..3 {
-        fit_window(&window, false).map_err(|error| error.to_string())?;
+        fit_window(&window, true).map_err(|error| error.to_string())?;
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
     // External CI can observe a real frontend -> IPC round trip without adding
@@ -145,7 +145,7 @@ fn content_size(
 }
 
 fn fit_window(window: &tauri::Window, center: bool) -> tauri::Result<()> {
-    if window.is_fullscreen()? { return Ok(()); }
+    if window.is_fullscreen()? || window.is_maximized()? { return Ok(()); }
     let Some(monitor) = window.current_monitor()?.or(window.primary_monitor()?) else {
         return Ok(());
     };
@@ -156,12 +156,21 @@ fn fit_window(window: &tauri::Window, center: bool) -> tauri::Result<()> {
         outer.height.saturating_sub(inner.height),
     );
     let work = monitor.work_area();
-    let desired = content_size(window.scale_factor()?, frame, work.size);
+    let scale = window.scale_factor()?;
+    let maximum = PhysicalSize::new(
+        work.size.width.saturating_sub(frame.width).max(1),
+        work.size.height.saturating_sub(frame.height).max(1),
+    );
+    let minimum = PhysicalSize::new(
+        ((900.0 * scale).round() as u32).min(maximum.width),
+        ((600.0 * scale).round() as u32).min(maximum.height),
+    );
+    window.set_min_size(Some(minimum))?;
+    let desired = if center { content_size(scale, frame, work.size) } else {
+        constrained_size(inner, minimum, maximum)
+    };
     if inner != desired {
-        // GTK clamps non-resizable windows to at least their default size
-        // (gtk_window_update_fixed_size). Tao's set_size only calls resize,
-        // so reducing the content area for mapped decorations also requires
-        // replacing that default. Keep the window non-resizable throughout.
+        // Keep GTK's default size consistent when adapting to a smaller monitor.
         #[cfg(target_os = "linux")]
         {
             let logical = desired.to_logical::<i32>(window.scale_factor()?);
@@ -173,7 +182,7 @@ fn fit_window(window: &tauri::Window, center: bool) -> tauri::Result<()> {
                         gtk.set_default_size(logical.width, logical.height);
                         gtk.resize(logical.width, logical.height);
                     }
-                    Err(error) => eprintln!("Could not adjust fixed GTK window size: {error}"),
+                    Err(error) => eprintln!("Could not adjust GTK window size: {error}"),
                 }
             })?;
         }
@@ -368,12 +377,7 @@ pub fn run() {
                     | WindowEvent::ScaleFactorChanged { .. }
             ) {
                 if window.is_fullscreen().unwrap_or(false) { return; }
-                if window.is_maximized().unwrap_or(false) {
-                    if let Err(error) = window.unmaximize() {
-                        eprintln!("Failed to restore the fixed-size window: {error}");
-                    }
-                    return;
-                }
+                if window.is_maximized().unwrap_or(false) { return; }
                 if let Err(error) = fit_window(window, false) {
                     eprintln!("Failed to adapt the desktop window: {error}");
                 }
@@ -387,6 +391,13 @@ pub fn run() {
             show_main(_app);
         }
     });
+}
+
+fn constrained_size(inner: PhysicalSize<u32>, minimum: PhysicalSize<u32>, maximum: PhysicalSize<u32>) -> PhysicalSize<u32> {
+    PhysicalSize::new(
+        inner.width.clamp(minimum.width.min(maximum.width), maximum.width),
+        inner.height.clamp(minimum.height.min(maximum.height), maximum.height),
+    )
 }
 
 fn startup_trace(message: &str) {
@@ -412,6 +423,17 @@ fn desktop_fullscreen(window: tauri::Window, enabled: Option<bool>) -> Result<()
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn preserves_user_resize_and_enforces_monitor_bounded_minimum() {
+        let minimum = PhysicalSize::new(900, 600);
+        let maximum = PhysicalSize::new(1920, 1040);
+        assert_eq!(constrained_size(PhysicalSize::new(1100, 700), minimum, maximum), PhysicalSize::new(1100, 700));
+        assert_eq!(constrained_size(PhysicalSize::new(500, 400), minimum, maximum), minimum);
+        assert_eq!(constrained_size(PhysicalSize::new(2500, 1600), minimum, maximum), maximum);
+        let small_monitor = PhysicalSize::new(800, 560);
+        assert_eq!(constrained_size(PhysicalSize::new(1100, 700), minimum, small_monitor), small_monitor);
+    }
 
     #[test]
     fn includes_window_decorations_in_the_logical_size() {

@@ -1,3 +1,4 @@
+await import('./../../support/dom')
 /**
  * The scroll lock behind the month and year popovers.
  *
@@ -11,18 +12,17 @@
  * These pin the missing half at the view level — the hook has its own unit
  * tests, but only a view knows whether the popover actually opens the lock.
  */
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import { useRef } from 'react'
-import MonthView from '@zntr/ui/calendar/components/app/views/month-view'
-import YearView from '@zntr/ui/calendar/components/app/views/year-view'
+import { describe, it, expect, vi } from 'bun:test'
+const { render, screen, fireEvent, act } =
+  await import('@testing-library/react')
+const { useRef } = await import('react')
+const { default: MonthView } =
+  await import('@zntr/ui/calendar/components/app/views/month-view')
+const { default: YearView } =
+  await import('@zntr/ui/calendar/components/app/views/year-view')
 import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
-import {
-  Language,
-  FirstDayOfWeek,
-  ViewConfig,
-  TimeFormat,
-} from '@zntr/ui/calendar/lib/calendar-types'
+const { Language, FirstDayOfWeek, ViewConfig, TimeFormat } =
+  await import('@zntr/ui/calendar/lib/calendar-types')
 
 const config = ViewConfig.create({
   date: new Date(2025, 0, 15),

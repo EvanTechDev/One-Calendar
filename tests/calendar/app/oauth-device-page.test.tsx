@@ -1,22 +1,24 @@
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+const { render, screen } = await import('@testing-library/react')
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
-const state = vi.hoisted(() => ({
+const state = (() => ({
   signedIn: false,
-}))
+}))()
 
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   device: Object.assign(vi.fn(), {
     approve: vi.fn(),
     deny: vi.fn(),
   }),
-}))
+}))()
 
-vi.mock('next/navigation', () => ({
+moduleMock.module('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams({ user_code: 'ABCD1234' }),
 }))
 
-vi.mock('@/lib/auth/client', () => ({
+moduleMock.module('@/lib/auth/client', () => ({
   authClient: {
     useSession: () => ({
       data: state.signedIn ? { user: { id: 'user-1' } } : null,
@@ -25,8 +27,7 @@ vi.mock('@/lib/auth/client', () => ({
     device: mocks.device,
   },
 }))
-
-import OAuthDevicePage from '@/app/oauth/device/page'
+const { default: OAuthDevicePage } = await import('@/app/oauth/device/page')
 
 beforeEach(() => {
   state.signedIn = false

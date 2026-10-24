@@ -1,14 +1,11 @@
-// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import {
-  LoginForm,
-  SignUpForm,
-  ResetPasswordForm,
-  AuthFormProvider,
-  type AuthFormClient,
-  type AuthFormContextValue,
-} from '@zntr/auth/forms'
+await import('./../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('../support/stubs')
+const { render, screen, waitFor, fireEvent } =
+  await import('@testing-library/react')
+const { LoginForm, SignUpForm, ResetPasswordForm, AuthFormProvider } =
+  await import('@zntr/auth/forms')
+import type { AuthFormClient, AuthFormContextValue } from '@zntr/auth/forms'
 
 /**
  * The shared auth forms.
@@ -67,6 +64,7 @@ const mount = (
 beforeEach(() => {
   vi.clearAllMocks()
 })
+afterEach(unstubAllGlobals)
 
 describe('the provider', () => {
   it('refuses to render a form without one', () => {
@@ -119,10 +117,12 @@ describe('LoginForm', () => {
     // returnTo may point at the sibling app, which the router cannot reach.
     // Already allowlisted server-side before it gets here.
     const assign = vi.fn()
-    Object.defineProperty(window, 'location', {
+    const navigationWindow = Object.create(window)
+    Object.defineProperty(navigationWindow, 'location', {
       value: { ...window.location, assign },
       writable: true,
     })
+    stubGlobal('window', navigationWindow)
     mount(<LoginForm returnTo="https://meettest.xyehr.cn/dashboard" />)
     fill()
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }))

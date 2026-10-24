@@ -1,32 +1,43 @@
-// @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock, setSystemTime } from 'bun:test'
+import { stubEnv, unstubAllEnvs } from './../../support/stubs'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
-import { searchQuerySchema, type RawSearchQuery } from '@zntr/agent/search'
+import type { RawSearchQuery } from '@zntr/agent/search'
 
-const auth = vi.hoisted(() => ({ id: 'owner' }))
-vi.mock('drizzle-orm', async (original) => ({
-  ...(await original<typeof import('drizzle-orm')>()),
+const auth = (() => ({ id: 'owner' }))()
+const nativeOriginal1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => ({
+  ...nativeOriginal1,
   ...(await import('./route-test-db')).drizzleOperatorsMock,
 }))
-vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
+  getDb: () => getFakeDb().db,
+}))
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => auth,
   decryptEvent: vi.fn((e: unknown) => e),
 }))
-vi.mock('@/lib/mcp/settings-tools', () => ({
+moduleMock.module('@/lib/mcp/settings-tools', () => ({
   getSettings: async () => ({ timezone: 'Asia/Shanghai' }),
 }))
-vi.mock('@/lib/mcp/category-tools', () => ({
+moduleMock.module('@/lib/mcp/category-tools', () => ({
   listCategories: async () => [{ id: 'travel', name: 'Travel' }],
 }))
-vi.mock('@/lib/rate-limit', () => ({
+const originalRateLimit = { ...(await import('@/lib/rate-limit')) }
+moduleMock.module('@/lib/rate-limit', () => ({
+  ...originalRateLimit,
   checkFixedWindowLimit: async () => ({ allowed: true }),
 }))
-vi.mock('ai', () => ({ generateObject: vi.fn() }))
-import { generateObject } from 'ai'
-import { POST } from '@/app/api/agent/search/route'
-import { decryptEvent } from '@/lib/api-helpers'
+const originalAi = { ...(await import('ai')) }
+moduleMock.module('ai', () => ({ ...originalAi, generateObject: vi.fn() }))
+const { searchQuerySchema } = await import('@zntr/agent/search')
+
+const { generateObject } = await import('ai')
+
+const { POST } = await import('@/app/api/agent/search/route')
+
+const { decryptEvent } = await import('@/lib/api-helpers')
 
 const fake = getFakeDb()
 function seed(id: string, title = id, extra = {}) {
@@ -65,23 +76,24 @@ function post(body: object) {
 }
 // Compiler fixture only: matching and pagination use the real application code.
 function model(query = plan) {
-  vi.mocked(generateObject)
+  generateObject
     .mockResolvedValueOnce({ object: query } as never)
     .mockResolvedValue({ object: { concepts: query.concepts } } as never)
 }
 beforeEach(() => {
   fake.reset()
   vi.resetAllMocks()
+  decryptEvent.mockImplementation((event: unknown) => event)
   vi.spyOn(console, 'info').mockImplementation(() => {})
   auth.id = 'owner'
-  vi.stubEnv('GROQ_API_KEY', 'test-key')
-  vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret')
+  stubEnv('GROQ_API_KEY', 'test-key')
+  stubEnv('BETTER_AUTH_SECRET', 'test-secret')
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(new Date('2026-10-03T00:00:00Z'))
+  setSystemTime(new Date('2026-10-03T00:00:00Z'))
 })
 afterEach(() => {
   vi.useRealTimers()
-  vi.unstubAllEnvs()
+  unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -127,7 +139,7 @@ describe('search route: one compilation, complete local retrieval', () => {
     },
   )
   it('returns provider 429 without scheduling retries or hiding it as 502', async () => {
-    vi.mocked(generateObject).mockRejectedValueOnce({
+    generateObject.mockRejectedValueOnce({
       statusCode: 429,
       responseHeaders: { 'retry-after': '42' },
       message: 'Provider quota exceeded',
@@ -136,10 +148,10 @@ describe('search route: one compilation, complete local retrieval', () => {
     expect(response.status).toBe(429)
     expect(response.headers.get('Retry-After')).toBe('42')
     expect(generateObject).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(generateObject).mock.calls[0][0].maxRetries).toBe(0)
+    expect(generateObject.mock.calls[0][0].maxRetries).toBe(0)
   })
   it('logs arrival and early rejection without exposing the question', async () => {
-    vi.stubEnv('GROQ_API_KEY', '')
+    stubEnv('GROQ_API_KEY', '')
     const response = await post({ text: 'private question' })
     expect(response.status).toBe(503)
     const requestId = response.headers.get('X-Search-Request-Id')
@@ -153,7 +165,7 @@ describe('search route: one compilation, complete local retrieval', () => {
       '[agent-search]',
       expect.objectContaining({ requestId, stage: 'finished', status: 503 }),
     )
-    expect(JSON.stringify(vi.mocked(console.info).mock.calls)).not.toContain(
+    expect(JSON.stringify(console.info.mock.calls)).not.toContain(
       'private question',
     )
     expect(generateObject).not.toHaveBeenCalled()
@@ -173,7 +185,7 @@ describe('search route: one compilation, complete local retrieval', () => {
     const body = await response.json()
     expect(body.results.map((e: any) => e.id)).toEqual(['flight', 'transfer'])
     expect(generateObject).toHaveBeenCalledTimes(1)
-    const options = vi.mocked(generateObject).mock.calls[0][0]
+    const options = generateObject.mock.calls[0][0]
     // All three candidate pages share one scan; foreign-user rows stay out.
     expect(decryptEvent).toHaveBeenCalledTimes(207)
     expect(options.schema).toBe(searchQuerySchema)
@@ -216,9 +228,9 @@ describe('search route: one compilation, complete local retrieval', () => {
     model()
     const first = await (await post({ text: '旅行' })).json()
     expect(first.results).toHaveLength(50)
-    const calls = vi.mocked(generateObject).mock.calls.length
+    const calls = generateObject.mock.calls.length
     expect(calls).toBe(1)
-    vi.stubEnv('GROQ_API_KEY', '')
+    stubEnv('GROQ_API_KEY', '')
     const response = await post({ page: 2, searchToken: first.searchToken })
     expect(response.status).toBe(200)
     const second = await response.json()
@@ -236,7 +248,7 @@ describe('search route: one compilation, complete local retrieval', () => {
       (await post({ page: 2, searchToken: first.searchToken })).status,
     ).toBe(400)
     auth.id = 'owner'
-    vi.setSystemTime(new Date('2026-10-03T00:16:00Z'))
+    setSystemTime(new Date('2026-10-03T00:16:00Z'))
     expect(
       (await post({ page: 2, searchToken: first.searchToken })).status,
     ).toBe(400)
@@ -246,13 +258,9 @@ describe('search route: one compilation, complete local retrieval', () => {
     model({ ...plan, concepts: [['咖啡', 'coffee', 'cafe']] })
     const first = await (await post({ text: '找喝咖啡的日程' })).json()
     await post({ text: '只要上个月', previousToken: first.searchToken })
-    const systems = vi
-      .mocked(generateObject)
-      .mock.calls.map(([o]: any) => o.system)
+    const systems = generateObject.mock.calls.map(([o]: any) => o.system)
     expect(systems.at(-1)).toContain(JSON.stringify(first.query))
-    expect(vi.mocked(generateObject).mock.calls.at(-1)?.[0].prompt).toBe(
-      '只要上个月',
-    )
+    expect(generateObject.mock.calls.at(-1)?.[0].prompt).toBe('只要上个月')
     expect(generateObject).toHaveBeenCalledTimes(2)
   })
   it('checks revised expressions before returning empty, with a bounded AI budget', async () => {
@@ -260,7 +268,7 @@ describe('search route: one compilation, complete local retrieval', () => {
     model()
     expect((await (await post({ text: '旅行' })).json()).results).toEqual([])
     expect(generateObject).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(generateObject).mock.calls[1][0].system).toContain(
+    expect(generateObject.mock.calls[1][0].system).toContain(
       'No events matched',
     )
   })
@@ -276,7 +284,7 @@ describe('search route: one compilation, complete local retrieval', () => {
       })
     seed('private-dog', 'Walk the dog', { userId: 'other' })
     model({ ...plan, concepts: [['遛狗']] })
-    vi.mocked(generateObject).mockResolvedValue({
+    generateObject.mockResolvedValue({
       object: { concepts: [['walk the dog', 'dog walking']] },
     } as never)
     const response = await post({ text: '找所有遛狗的日程' })
@@ -288,7 +296,7 @@ describe('search route: one compilation, complete local retrieval', () => {
     ])
     expect(first.query.start).toBeUndefined()
     expect(first.query.end).toBeUndefined()
-    const repair = vi.mocked(generateObject).mock.calls[1][0]
+    const repair = generateObject.mock.calls[1][0]
     expect(repair.maxRetries).toBe(0)
     expect(repair.system).toContain('261')
     expect(JSON.stringify(repair)).not.toContain('Morning routine')
@@ -328,7 +336,7 @@ describe('search route: one compilation, complete local retrieval', () => {
       categories: ['Travel'],
       preset: 'this_year',
     })
-    vi.mocked(generateObject).mockResolvedValue({
+    generateObject.mockResolvedValue({
       object: { concepts: [['Tokyo'], ['airport transfer']] },
     } as never)
     const result = await (
@@ -349,7 +357,7 @@ describe('search route: one compilation, complete local retrieval', () => {
   })
   it('propagates repair quota failures rather than declaring no matches', async () => {
     seed('dog', 'Walk the dog')
-    vi.mocked(generateObject)
+    generateObject
       .mockResolvedValueOnce({
         object: { ...plan, concepts: [['遛狗']] },
       } as never)

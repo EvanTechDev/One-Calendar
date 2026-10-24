@@ -1,22 +1,27 @@
-// @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock, setSystemTime } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
-vi.mock('drizzle-orm', async (original) => ({
-  ...(await original<typeof import('drizzle-orm')>()),
+const nativeOriginal1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => ({
+  ...nativeOriginal1,
   ...(await import('./route-test-db')).drizzleOperatorsMock,
 }))
-vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
+  getDb: () => getFakeDb().db,
+}))
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'owner', email: 'owner@example.com' }),
   decryptEvent: (event: unknown) => event,
 }))
-vi.mock('@zntr/meetings', () => ({
+const originalMeetings = { ...(await import('@zntr/meetings')) }
+moduleMock.module('@zntr/meetings', () => ({
+  ...originalMeetings,
   getMeetingsForEvents: async () => new Map(),
 }))
+const { GET } = await import('@/app/api/events/route')
 
-import { GET } from '@/app/api/events/route'
 const fake = getFakeDb()
 function seed(id: string, start: string, end: string, extra = {}) {
   fake.seed({
@@ -42,7 +47,7 @@ afterEach(() => vi.useRealTimers())
 describe('desktop reminder feed', () => {
   it('uses the server reminder horizon instead of the visible calendar or category', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date('2035-02-04T09:00:00Z'))
+    setSystemTime(new Date('2035-02-04T09:00:00Z'))
     seed('week-ahead', '2035-02-11T09:00:00Z', '2035-02-11T10:00:00Z', {
       notificationMinutes: 10080,
     })
@@ -68,7 +73,7 @@ describe('desktop reminder feed', () => {
   })
   it('uses expanded recurrence identities and keeps the five-minute catch-up window', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date('2035-02-05T09:03:00Z'))
+    setSystemTime(new Date('2035-02-05T09:03:00Z'))
     seed('daily', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {
       rrule: 'FREQ=DAILY;COUNT=3',
       notificationMinutes: 0,
@@ -191,7 +196,17 @@ describe('complete calendar date ranges', () => {
     const response = await GET(
       request('startDate=2035-02-01&endDate=2035-03-01'),
     )
-    expect((await response.json()).events).toHaveLength(3)
+    const { events } = await response.json()
+    expect(events).toHaveLength(3)
+    for (const event of events) {
+      expect(event.rrule).toBeNull()
+      expect(event.exdate).toBeNull()
+      expect(event.viewOnly).toBe(true)
+      // Bun 1.4.4 mutates fields matched by toMatchObject's asymmetric matchers.
+      expect(typeof event.recurrenceSummary).toBe('string')
+      expect(event.recurrenceSummary.trim()).not.toBe('')
+      expect(event.recurrenceSummary).not.toContain('FREQ=')
+    }
   })
   it('resolves distant shared search hits through the same occurrence permissions', async () => {
     seed('shared-series', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {

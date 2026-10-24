@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import { useE2EE } from '@/hooks/use-e2ee'
+const { stubGlobal } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
+const { renderHook } = await import('@testing-library/react')
+const { useE2EE } = await import('@/hooks/use-e2ee')
 
 // jsdom has no Worker; the hook only needs construction to succeed.
 class WorkerStub {
@@ -13,7 +15,7 @@ function setHash(hash: string) {
 
 describe('useE2EE', () => {
   beforeEach(() => {
-    vi.stubGlobal('Worker', WorkerStub)
+    stubGlobal('Worker', WorkerStub)
     setHash('')
   })
 
@@ -48,7 +50,7 @@ describe('useE2EE', () => {
   })
 
   it('reports when the crypto worker cannot be created', () => {
-    vi.stubGlobal(
+    stubGlobal(
       'Worker',
       class {
         constructor() {

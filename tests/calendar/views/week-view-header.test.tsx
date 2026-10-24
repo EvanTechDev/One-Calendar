@@ -1,13 +1,11 @@
-import { fireEvent, render } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-import WeekView from '@zntr/ui/calendar/components/app/views/week-view'
+await import('./../../support/dom')
+const { fireEvent, render } = await import('@testing-library/react')
+import { describe, expect, it, vi } from 'bun:test'
+const { default: WeekView } =
+  await import('@zntr/ui/calendar/components/app/views/week-view')
 import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
-import {
-  FirstDayOfWeek,
-  Language,
-  TimeFormat,
-  ViewConfig,
-} from '@zntr/ui/calendar/lib/calendar-types'
+const { FirstDayOfWeek, Language, TimeFormat, ViewConfig } =
+  await import('@zntr/ui/calendar/lib/calendar-types')
 
 /**
  * The week grid's day headers navigate to the day view.

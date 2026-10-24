@@ -30,11 +30,11 @@
     "#calendar/lib/*": "./src/calendar/lib/*.ts"
   },
   "scripts": {
-    "build": "tsc",
-    "build:check": "tsc && tsc --noEmit",
+    "build": "bun check",
+    "build:check": "bun check && bun check",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit"
+    "type-check": "bun check"
   },
   "dependencies": {
     "@ai-sdk/react": "4.0.130",
@@ -69,7 +69,6 @@
     "@types/node": "^26.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "typescript": "6.0.3",
-    "vitest": "^4.1.10"
+    "typescript": "6.0.3"
   }
 }

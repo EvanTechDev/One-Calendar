@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { importSchema } from '@/lib/validation'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { importSchema } = await import('@/lib/validation')
 
 /**
  * The `/api/import` request body, exactly as `import-export.tsx` builds it.

@@ -1,10 +1,9 @@
-import { describe, expect, it } from 'vitest'
-import {
-  expandSeriesView,
-  withUntil,
-  type SeriesViewInput,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
-import { planInstanceChange } from '@/lib/event-service'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { expandSeriesView, withUntil } =
+  await import('@zntr/ui/calendar/lib/recurrence/engine')
+import type { SeriesViewInput } from '@zntr/ui/calendar/lib/recurrence/engine'
+const { planInstanceChange } = await import('@/lib/event-service')
 
 /**
  * Repro: daily series starting Mon 9:00. Drag Wednesday's instance onto

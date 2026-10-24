@@ -1,15 +1,16 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
-const ipc = vi.hoisted(() => ({ invoke: vi.fn() }))
-vi.mock('@tauri-apps/api/core', () => ({
+const ipc = (() => ({ invoke: vi.fn() }))()
+moduleMock.module('@tauri-apps/api/core', () => ({
   invoke: ipc.invoke,
   Channel: class {
     onmessage?: (message: unknown) => void
   },
 }))
-vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn() }))
-
-import { createNativeFetch } from '../../apps/calendar-client/src/native'
+moduleMock.module('@tauri-apps/api/event', () => ({ listen: vi.fn() }))
+const { createNativeFetch } =
+  await import('../../apps/calendar-client/src/native')
 
 const fetchNative = createNativeFetch('https://calendar.example')
 type Bridge = {

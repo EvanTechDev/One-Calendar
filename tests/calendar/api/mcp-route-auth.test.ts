@@ -1,7 +1,7 @@
-// @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   getApiKey: vi.fn(),
   getOAuth: vi.fn(),
   handle: vi.fn(async (request: Request) =>
@@ -9,9 +9,9 @@ const mocks = vi.hoisted(() => ({
       ? new Response(null, { status: 405, headers: { Allow: 'POST' } })
       : new Response('mcp', { status: 200 }),
   ),
-}))
+}))()
 
-vi.mock('@zntr/auth/server', () => ({
+moduleMock.module('@zntr/auth/server', () => ({
   requireMcpAuth:
     (_auth: unknown, handler: (request: Request, claims: unknown) => unknown) =>
     (request: Request) =>
@@ -22,12 +22,14 @@ vi.mock('@zntr/auth/server', () => ({
       }),
 }))
 
-vi.mock('@/lib/auth', () => ({ auth: {} }))
-vi.mock('@/lib/mcp/auth-helpers', () => ({
+moduleMock.module('@/lib/auth', () => ({ auth: {} }))
+moduleMock.module('@/lib/mcp/auth-helpers', () => ({
   getMcpApiKeyAuth: mocks.getApiKey,
   getMcpOAuthAuth: mocks.getOAuth,
 }))
-vi.mock('@/lib/mcp/handler', () => ({ handleMcpRequest: mocks.handle }))
+moduleMock.module('@/lib/mcp/handler', () => ({
+  handleMcpRequest: mocks.handle,
+}))
 
 const { GET, POST } = await import('@/app/api/mcp/route')
 

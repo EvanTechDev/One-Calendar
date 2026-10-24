@@ -1,5 +1,6 @@
-import { act, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+await import('./../../support/dom')
+const { act, renderHook } = await import('@testing-library/react')
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 /**
  * The language store behind `useLanguage()`.
@@ -12,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  * flow dispatches — have to reach every subscriber.
  *
  * The store is module-level state, so each test re-imports it. Without
- * `resetModules` the first test would pin `currentLanguage` for the rest of
+ * a fresh module URL the first test would pin `currentLanguage` for the rest of
  * the file and the rest would pass for the wrong reason.
  */
 
@@ -24,11 +25,19 @@ type I18n = typeof import('@zntr/i18n/calendar')
 // second under load, which overruns the 5s default once a dozen of them are
 // running in parallel. It is also the reason shipping every locale is worth
 // revisiting: that work happens on the main thread of the real app too.
-vi.setConfig({ testTimeout: 30_000 })
 
+let importGeneration = 0
+const languageDescriptor = Object.getOwnPropertyDescriptor(
+  navigator,
+  'language',
+)
+function systemLanguage(value: string) {
+  Object.defineProperty(navigator, 'language', { configurable: true, value })
+}
 const loadI18n = async (): Promise<I18n> => {
-  vi.resetModules()
-  return (await import('@zntr/i18n/calendar')) as I18n
+  return (await import(
+    `../../../packages/i18n/src/i18n.ts?test=${++importGeneration}`
+  )) as I18n
 }
 
 describe('language store', () => {
@@ -38,6 +47,9 @@ describe('language store', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    if (languageDescriptor)
+      Object.defineProperty(navigator, 'language', languageDescriptor)
+    else delete (navigator as { language?: string }).language
   })
 
   it('reads the stored language on the first paint, not after an effect', async () => {
@@ -70,7 +82,7 @@ describe('language store', () => {
   })
 
   it('falls back to the system language when nothing is stored', async () => {
-    vi.spyOn(navigator, 'language', 'get').mockReturnValue('de-DE')
+    systemLanguage('de-DE')
     const { useLanguage } = await loadI18n()
 
     const { result } = renderHook(() => useLanguage())
@@ -80,7 +92,7 @@ describe('language store', () => {
 
   it('falls back to English when the stored value is not a supported language', async () => {
     localStorage.setItem('preferred-language', 'klingon')
-    vi.spyOn(navigator, 'language', 'get').mockReturnValue('en-US')
+    systemLanguage('en-US')
     const { useLanguage } = await loadI18n()
 
     const { result } = renderHook(() => useLanguage())
@@ -217,7 +229,7 @@ describe('language store', () => {
   })
 
   it('resolves getStoredLanguage to English with nothing stored and no navigator language', async () => {
-    vi.spyOn(navigator, 'language', 'get').mockReturnValue('')
+    systemLanguage('')
     const { getStoredLanguage } = await loadI18n()
 
     await expect(getStoredLanguage()).resolves.toBe('en')

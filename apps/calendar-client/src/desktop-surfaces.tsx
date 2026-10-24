@@ -1,5 +1,6 @@
 import { Button } from '@zntr/ui/button'
-import { CircleAlert, LoaderCircle, RefreshCw } from 'lucide-react'
+import { CircleAlert, RefreshCw } from 'lucide-react'
+import AuthWaitingLoading from '@zntr/ui/calendar/components/app/auth-waiting-loading'
 
 export function DesktopBrand() {
   return (
@@ -37,39 +38,23 @@ export function DesktopNotice({
 }
 
 export function DesktopState({ failed = false }: { failed?: boolean }) {
+  if (!failed) return <AuthWaitingLoading />
   return (
     <main className="desktop-state">
-      <DesktopBrand />
-      <section role={failed ? 'alert' : 'status'}>
-        {failed ? (
-          <CircleAlert
-            className="desktop-state-icon"
-            size={28}
-            aria-hidden="true"
-          />
-        ) : (
-          <LoaderCircle
-            className="desktop-spinner desktop-state-icon"
-            size={28}
-            aria-hidden="true"
-          />
-        )}
-        <h1>
-          {failed
-            ? 'Let’s reopen your calendar'
-            : 'Getting your calendar ready'}
-        </h1>
+      <section role="alert">
+        <CircleAlert
+          className="desktop-state-icon"
+          size={28}
+          aria-hidden="true"
+        />
+        <h1>Let’s reopen your calendar</h1>
         <p>
-          {failed
-            ? 'The calendar could not finish loading. Reload Zentra to try again.'
-            : 'Bringing your plans into view…'}
+          The calendar could not finish loading. Reload Zentra to try again.
         </p>
-        {failed ? (
-          <Button onClick={() => window.location.reload()}>
-            <RefreshCw size={16} aria-hidden="true" />
-            Reload calendar
-          </Button>
-        ) : null}
+        <Button onClick={() => window.location.reload()}>
+          <RefreshCw size={16} aria-hidden="true" />
+          Reload calendar
+        </Button>
       </section>
     </main>
   )

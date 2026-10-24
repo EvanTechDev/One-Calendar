@@ -13,7 +13,7 @@
  * - SEC-06: an unescaped LIKE term meant a query of `%` matched every meeting
  *   the user owns, and `_` matched any character.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import {
   getEventTitlesForMeetings,
   getMeetingSummaries,

@@ -1,11 +1,12 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   formatSelectionRange,
   defaultCreateRange,
   clampRangeToDay,
   selectionCoversDay,
   selectionInTimeZone,
-} from '@zntr/ui/calendar/components/app/views/selection-range'
+} = await import('@zntr/ui/calendar/components/app/views/selection-range')
 
 it('keeps all-day selections date-only while projecting timed drafts across midnight', () => {
   const allDay = {

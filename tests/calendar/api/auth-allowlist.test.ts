@@ -1,26 +1,27 @@
-// @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { unstubAllEnvs, stubEnv } from './../../support/stubs'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
-const state = vi.hoisted(() => ({
+const state = (() => ({
   rateAllowed: true,
   retryAfter: 17,
-}))
+}))()
 
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   handler: vi.fn(async () => new Response('delegated', { status: 200 })),
   limiter: vi.fn(async () => ({ allowed: true, retryAfter: 0 })),
   getSession: vi.fn(async () => null),
-}))
+}))()
 
-vi.mock('@zntr/auth', () => ({
+moduleMock.module('@zntr/auth', () => ({
   toNextJsHandler: () => ({ GET: mocks.handler, POST: mocks.handler }),
 }))
 
-vi.mock('@/lib/auth', () => ({
+moduleMock.module('@/lib/auth', () => ({
   auth: { api: { getSession: mocks.getSession } },
 }))
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({ where: () => ({ limit: async () => [] }) }),
@@ -28,13 +29,13 @@ vi.mock('@/lib/drizzle/client', () => ({
   }),
 }))
 
-vi.mock('@/lib/evlog', () => ({
+moduleMock.module('@/lib/evlog', () => ({
   anonymousAuditActor: { type: 'anonymous' },
   withEvlog: (handler: unknown) => handler,
   useLogger: () => ({ audit: vi.fn() }),
 }))
 
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: mocks.limiter,
   clientIpFrom: () => '203.0.113.8',
   rateLimitedResponse: (retryAfter: number) =>
@@ -70,7 +71,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  vi.unstubAllEnvs()
+  unstubAllEnvs()
 })
 
 describe('calendar auth surface', () => {
@@ -117,7 +118,7 @@ describe('calendar auth surface', () => {
   })
 
   it('rate limits dynamic client registration before delegation', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
+    stubEnv('NODE_ENV', 'production')
     state.rateAllowed = false
     const response = await POST(request('POST', '/api/auth/oauth2/register'))
 
@@ -132,7 +133,7 @@ describe('calendar auth surface', () => {
   })
 
   it('applies an additional global budget to persistent anonymous writes', async () => {
-    vi.stubEnv('NODE_ENV', 'production')
+    stubEnv('NODE_ENV', 'production')
     const response = await POST(request('POST', '/api/auth/device/code'))
 
     expect(response.status).toBe(200)

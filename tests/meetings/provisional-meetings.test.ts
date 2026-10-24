@@ -13,7 +13,7 @@
  *   the data-loss guard: closing the editor on an existing event whose meeting
  *   was saved long ago must not delete the link its participants hold.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import {
   commitMeetingForEvent,
   createMeeting,

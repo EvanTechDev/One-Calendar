@@ -2,45 +2,47 @@
   "name": "zntr",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.5.2",
+  "packageManager": "bun@1.4.4",
   "scripts": {
-    "build": "pnpm generate:i18n && pnpm -r --workspace-concurrency=1 run build",
-    "dev": "pnpm -r --parallel run dev",
-    "lint": "pnpm -r --workspace-concurrency=1 run lint",
-    "lint:check": "pnpm -r --workspace-concurrency=1 run lint:check",
-    "type-check": "pnpm -r --workspace-concurrency=1 run type-check",
-    "test": "pnpm test:runtime && pnpm -r --workspace-concurrency=1 run test",
-    "test:runtime": "node --test tests/scripts/runtime.test.mjs",
-    "runtime:bun": "node scripts/runtime.mjs bun",
-    "runtime:node": "node scripts/runtime.mjs node",
-    "runtime:status": "node scripts/runtime.mjs status",
-    "build:calendar": "pnpm --filter zentra-calendar build",
-    "dev:meet": "pnpm --filter zentra-meet dev",
-    "build:meet": "pnpm --filter zentra-meet build",
-    "lint:meet": "pnpm --filter zentra-meet lint",
-    "tc:meet": "pnpm --filter zentra-meet type-check",
-    "dev:web": "pnpm --filter web dev",
-    "build:web": "pnpm --filter web build",
-    "lint:web": "pnpm --filter web lint",
-    "tc:web": "pnpm --filter web type-check",
+    "build": "bun run generate:i18n && bun scripts/workspaces.mjs build",
+    "dev": "bun run --parallel --workspaces --if-present dev",
+    "lint": "bun run --sequential --workspaces --if-present lint",
+    "lint:check": "bun run --sequential --workspaces --if-present lint:check",
+    "type-check": "bun run --sequential --workspaces --if-present type-check",
+    "verify": "bun check && bun run lint:check && bun test --isolate",
+    "test": "bun test --isolate",
+    "test:runtime": "bun test ./tests/scripts/",
+    "runtime:bun": "bun scripts/runtime.mjs bun",
+    "runtime:node": "bun scripts/runtime.mjs node",
+    "runtime:status": "bun scripts/runtime.mjs status",
+    "build:calendar": "bun run --filter zentra-calendar build",
+    "dev:meet": "bun run --filter zentra-meet dev",
+    "build:meet": "bun run --filter zentra-meet build",
+    "lint:meet": "bun run --filter zentra-meet lint",
+    "tc:meet": "bun run --filter zentra-meet type-check",
+    "dev:web": "bun run --filter web dev",
+    "build:web": "bun run --filter web build",
+    "lint:web": "bun run --filter web lint",
+    "tc:web": "bun run --filter web type-check",
     "prepare": "husky",
-    "lint:calendar": "pnpm --filter zentra-calendar lint",
-    "tc:calendar": "pnpm --filter zentra-calendar type-check",
-    "lint:auth": "pnpm --filter @zntr/auth lint",
-    "tc:auth": "pnpm --filter @zntr/auth type-check",
-    "test:calendar": "pnpm --filter zentra-calendar test",
-    "test:calendar:watch": "pnpm --filter zentra-calendar test:watch",
-    "test:meet": "pnpm --filter zentra-meet test",
-    "test:meet:watch": "pnpm --filter zentra-meet test:watch",
-    "generate:i18n": "pnpm --filter @zntr/i18n generate",
-    "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
-    "format": "prettier . --write --ignore-path config/.prettierignore",
-    "format:check": "prettier . --check --ignore-path config/.prettierignore"
+    "lint:calendar": "bun run --filter zentra-calendar lint",
+    "tc:calendar": "bun run --filter zentra-calendar type-check",
+    "lint:auth": "bun run --filter @zntr/auth lint",
+    "tc:auth": "bun run --filter @zntr/auth type-check",
+    "test:calendar": "bun run --filter zentra-calendar test",
+    "test:calendar:watch": "bun run --filter zentra-calendar test:watch",
+    "test:meet": "bun run --filter zentra-meet test",
+    "test:meet:watch": "bun run --filter zentra-meet test:watch",
+    "generate:i18n": "bun run --filter @zntr/i18n generate",
+    "cleanup:i18n": "bun run --filter @zntr/i18n cleanup",
+    "format": "bun fmt",
+    "format:check": "bun fmt --check"
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",
     "@commitlint/config-conventional": "20.5.3",
     "@tailwindcss/postcss": "4.3.1",
+    "@types/bun": "^1.4.4",
     "@types/node": "25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -49,28 +51,19 @@
     "lint-staged": "17.0.8",
     "next": "16.3.8",
     "oxlint": "1.71.0",
-    "postcss": "8.5.15",
-    "prettier": "3.8.4",
     "playwright": "1.63.0",
+    "postcss": "8.5.15",
     "tailwindcss": "4.3.1",
     "typescript": "6.0.3",
     "vite": "8.2.0"
   },
-  "prettier": {
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "all",
-    "printWidth": 80,
-    "tabWidth": 2,
-    "arrowParens": "always"
-  },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "prettier --write",
+    "*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}": [
+      "bun fmt",
       "oxlint --fix --config config/oxlint.json"
     ],
-    "*.{json,md,css}": [
-      "prettier --write"
+    "*.{json,jsonc,md,mdx,css,html,yaml,yml,graphql,gql}": [
+      "bun fmt"
     ]
   },
   "commitlint": {
@@ -118,5 +111,21 @@
   },
   "dependencies": {
     "rrule": "^2.8.1"
-  }
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "docs"
+  ],
+  "overrides": {
+    "lingo.dev@0.138.9>@openrouter/ai-sdk-provider": "2.10.0",
+    "mdast-util-to-markdown": "2.1.2",
+    "sonner": "2.0.8",
+    "@types/react": "19.2.18",
+    "jose@^6": "6.2.12"
+  },
+  "trustedDependencies": [
+    "sharp",
+    "esbuild"
+  ]
 }

@@ -5,15 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "build:check": "tsc && vite build",
+    "build": "bun check && vite build",
+    "build:check": "bun check && vite build",
     "build:tauri": "tauri build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "icons": "bun scripts/generate-icons.mjs",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/calendar-client/"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
@@ -31,7 +32,7 @@
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "vitest": "4.1.10",
+    "@resvg/resvg-wasm": "2.6.2",
     "@types/node": "^26.0.0",
     "@tailwindcss/postcss": "4.3.3",
     "tailwindcss": "4.3.3",

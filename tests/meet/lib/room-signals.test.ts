@@ -1,10 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import {
-  REACTIONS,
-  decodeReaction,
-  encodeReaction,
-  isReaction,
-} from '@/lib/room-signals'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { REACTIONS, decodeReaction, encodeReaction, isReaction } =
+  await import('@/lib/room-signals')
 
 describe('reaction wire format', () => {
   it('round-trips a reaction', () => {

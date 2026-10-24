@@ -1,30 +1,39 @@
-import { cleanup, fireEvent, render, screen } from '../host-render'
-import { afterEach, expect, it, vi } from 'vitest'
-import YearView from '@zntr/ui/calendar/components/app/views/year-view'
-import EventPreview from '@zntr/ui/calendar/components/app/event/event-preview'
-import {
-  FirstDayOfWeek,
-  Language,
-  TimeFormat,
-  ViewConfig,
-  type CalendarEvent,
-} from '@zntr/ui/calendar/lib/calendar-types'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+const { cleanup, fireEvent, render, screen } = await import('../host-render')
+import { afterEach, expect, it, vi } from 'bun:test'
 
-vi.mock('@zntr/ui/calendar/components/providers/calendar-context', () => ({
-  useCalendar: () => ({ calendars: [], events: [] }),
-}))
-vi.mock('@zntr/ui/calendar/components/providers/data-provider', () => ({
-  useBookmarks: () => ({
-    bookmarks: [],
-    createBookmark: vi.fn(),
-    deleteBookmark: vi.fn(),
+import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
+
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/calendar-context',
+  () => ({
+    useCalendar: () => ({ calendars: [], events: [] }),
   }),
-}))
-vi.mock('@zntr/ui/calendar/hooks/use-anchored-popover', () => ({
+)
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/data-provider',
+  () => ({
+    useBookmarks: () => ({
+      bookmarks: [],
+      createBookmark: vi.fn(),
+      deleteBookmark: vi.fn(),
+    }),
+  }),
+)
+moduleMock.module('@zntr/ui/calendar/hooks/use-anchored-popover', () => ({
   useLiveAnchorRect: () => null,
   pickPopoverSide: () => 'bottom',
   buildAnchorStyle: () => ({}),
 }))
+const { default: YearView } =
+  await import('@zntr/ui/calendar/components/app/views/year-view')
+
+const { default: EventPreview } =
+  await import('@zntr/ui/calendar/components/app/event/event-preview')
+
+const { FirstDayOfWeek, Language, TimeFormat, ViewConfig } =
+  await import('@zntr/ui/calendar/lib/calendar-types')
 
 afterEach(cleanup)
 const date = new Date(2026, 9, 6)

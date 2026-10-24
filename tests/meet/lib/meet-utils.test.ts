@@ -1,12 +1,13 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   decodePassphrase,
   encodePassphrase,
   generatePassphrase,
   isLowPowerDevice,
   randomString,
   resolveRegionalUrl,
-} from '@/lib/meet-utils'
+} = await import('@/lib/meet-utils')
 
 describe('randomString', () => {
   it('honours the requested length', () => {

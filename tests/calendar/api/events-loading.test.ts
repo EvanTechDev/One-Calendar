@@ -1,26 +1,29 @@
-// @vitest-environment node
-import { beforeEach, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { beforeEach, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
-vi.mock('drizzle-orm', async (original) => ({
-  ...(await original<typeof import('drizzle-orm')>()),
+const nativeOriginal1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => ({
+  ...nativeOriginal1,
   ...(await import('./route-test-db')).drizzleOperatorsMock,
 }))
-vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
-const reads = vi.hoisted(() => ({ decrypt: vi.fn((event: unknown) => event) }))
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
+  getDb: () => getFakeDb().db,
+}))
+const reads = (() => ({ decrypt: vi.fn((event: unknown) => event) }))()
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'viewer', email: 'viewer@example.com' }),
   decryptEvent: reads.decrypt,
 }))
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   encryptField: (_id: string, value: unknown) => value,
   encryptJsonField: (_id: string, value: unknown) => value,
   decryptField: (_id: string, value: unknown) => value,
   decryptFieldStrict: (_id: string, value: unknown) => value,
   looksLikeEnvelope: () => true,
 }))
-import { GET } from '@/app/api/events/route'
+const { GET } = await import('@/app/api/events/route')
 
 const fake = getFakeDb()
 function seed(id: string, fields: Record<string, unknown> = {}) {

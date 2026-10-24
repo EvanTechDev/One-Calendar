@@ -1,12 +1,12 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * The top-up cron is an unauthenticated HTTP endpoint guarded only by
  * CRON_SECRET, so its auth is the whole security story. It also must be safe to
  * run twice, since Vercel can retry.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
-const reconcile = vi.hoisted(() => ({
+const reconcile = (() => ({
   reconcileEventReminders: vi.fn(
     async (_params: {
       userId: string
@@ -18,13 +18,13 @@ const reconcile = vi.hoisted(() => ({
   pendingReminderEvents: vi.fn(
     async (): Promise<Array<{ id: string; userId: string }>> => [],
   ),
-}))
+}))()
 
-vi.mock('@/lib/reminders/reconcile', () => reconcile)
+moduleMock.module('@/lib/reminders/reconcile', () => reconcile)
 
 const events: Array<Record<string, unknown>> = []
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -34,8 +34,9 @@ vi.mock('@/lib/drizzle/client', () => ({
   }),
 }))
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     eq: () => () => true,
@@ -43,8 +44,7 @@ vi.mock('drizzle-orm', async (importOriginal) => {
     isNotNull: () => () => true,
   }
 })
-
-import { GET } from '@/app/api/reminders/topup/route'
+const { GET } = await import('@/app/api/reminders/topup/route')
 
 function request(token?: string): Request {
   return new Request('http://localhost/api/reminders/topup', {

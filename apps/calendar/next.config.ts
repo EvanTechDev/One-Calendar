@@ -18,7 +18,7 @@ const getGitCommit = () => {
   }
 }
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   transpilePackages: [
     '@zntr/ui',
     '@zntr/utils',
@@ -62,6 +62,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-}
+} satisfies NextConfig
 
 export default withBotId(nextConfig)

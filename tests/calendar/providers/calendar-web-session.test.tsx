@@ -1,10 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { useState } from 'react'
-import { beforeEach, expect, it, vi } from 'vitest'
-import { useCalendarHost } from '@zntr/utils/calendar-host'
-import { CalendarWebHost } from '@/components/providers/calendar-web-host'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+const { fireEvent, render, screen } = await import('@testing-library/react')
+const { useState } = await import('react')
+import { beforeEach, expect, it, vi } from 'bun:test'
 
-const state = vi.hoisted(() => ({
+const state = (() => ({
   session: {
     data: { user: { id: 'alex', name: 'Alex', email: 'alex@example.com' } } as {
       user: { id: string; name: string; email: string }
@@ -13,11 +13,15 @@ const state = vi.hoisted(() => ({
     error: null as Error | null,
   },
   router: { push: vi.fn(), replace: vi.fn() },
-}))
-vi.mock('@/lib/auth/client', () => ({
+}))()
+moduleMock.module('@/lib/auth/client', () => ({
   authClient: { useSession: () => state.session },
 }))
-vi.mock('next/navigation', () => ({ useRouter: () => state.router }))
+moduleMock.module('next/navigation', () => ({ useRouter: () => state.router }))
+const { useCalendarHost } = await import('@zntr/utils/calendar-host')
+
+const { CalendarWebHost } =
+  await import('@/components/providers/calendar-web-host')
 
 function Calendar() {
   const { session } = useCalendarHost()

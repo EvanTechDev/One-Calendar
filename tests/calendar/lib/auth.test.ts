@@ -1,11 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
 describe.skip('auth configuration (requires env + DB)', () => {
   let authModule: any
+  let importGeneration = 0
 
   beforeEach(async () => {
-    vi.resetModules()
-    authModule = await import('@/lib/auth')
+    authModule = await import(
+      `../../../apps/calendar/lib/auth.ts?test=${++importGeneration}`
+    )
   })
 
   it('exports auth instance', () => {

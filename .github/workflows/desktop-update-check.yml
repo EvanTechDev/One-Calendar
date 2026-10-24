@@ -44,13 +44,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.checkout_ref || github.sha }}
-      - uses: pnpm/action-setup@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          version: 11.5.2
+          bun-version: '1.4.4'
       - uses: actions/setup-node@v4
         with:
           node-version: 25
-          cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -63,7 +62,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libxdo-dev xvfb openbox scrot wmctrl x11-utils desktop-file-utils xdg-utils dbus
-      - run: pnpm install --frozen-lockfile
+      - run: bun install --frozen-lockfile
       - name: Build A and B with a disposable signing key
         working-directory: apps/calendar-client
         run: node scripts/build-update-acceptance.mjs

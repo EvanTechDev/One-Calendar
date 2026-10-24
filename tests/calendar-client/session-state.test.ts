@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { receiveSession } from '../../apps/calendar-client/src/session-state'
 import type { SessionView } from '../../apps/calendar-client/src/native'
 

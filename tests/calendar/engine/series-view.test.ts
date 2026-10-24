@@ -1,10 +1,8 @@
-import { describe, it, expect } from 'vitest'
-import {
-  expandSeriesView,
-  expandSeriesViewInRange,
-  optimisticFollowingSplit,
-  type SeriesViewInput,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { expandSeriesView, expandSeriesViewInRange, optimisticFollowingSplit } =
+  await import('@zntr/ui/calendar/lib/recurrence/engine')
+import type { SeriesViewInput } from '@zntr/ui/calendar/lib/recurrence/engine'
 
 function day(y: number, m: number, d: number, h = 0, min = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, 0))

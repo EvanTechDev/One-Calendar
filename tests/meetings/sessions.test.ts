@@ -21,7 +21,7 @@
  *    `room_finished`, whose failure the caller swallows, so an ended meeting
  *    could keep a sitting open indefinitely.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'bun:test'
 import {
   closeOpenAttendance,
   closeSession,

@@ -1,9 +1,9 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { drizzleOperatorsMock, getFakeDb } from './route-test-db'
 
-const state = vi.hoisted(() => ({
+const state = (() => ({
   currentUser: null as { id: string; email: string } | null,
   invite: {
     id: 'invite-1',
@@ -18,23 +18,23 @@ const state = vi.hoisted(() => ({
     createdAt: new Date('2026-01-01T00:00:00Z'),
   },
   addCalls: [] as Array<{ token: string; categoryId: string | null }>,
-}))
+}))()
 
-vi.mock('drizzle-orm', async () => {
-  const actual =
-    await vi.importActual<typeof import('drizzle-orm')>('drizzle-orm')
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => getFakeDb().db,
 }))
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => state.currentUser,
 }))
 
-vi.mock('@/lib/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   getInvitesByToken: async () => [state.invite],
   getInviteByToken: async () => state.invite,
   getInviteOccurrences: async () => [],
@@ -50,11 +50,13 @@ vi.mock('@/lib/invites/invite-service', () => ({
     state.addCalls.push({ token, categoryId }),
 }))
 
-vi.mock('@zntr/meetings', () => ({ getMeetingForEvent: async () => null }))
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@zntr/meetings', () => ({
+  getMeetingForEvent: async () => null,
+}))
+moduleMock.module('@/lib/field-crypto', () => ({
   decryptField: (_id: string, value: unknown) => value,
 }))
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true, retryAfter: 0 }),
   clientIpFrom: () => '203.0.113.10',
   rateLimitedResponse: () => new Response(null, { status: 429 }),

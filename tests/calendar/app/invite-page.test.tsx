@@ -1,3 +1,6 @@
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
 /**
  * The invite page is the most visible surface of participant invitations, and
  * the `single` scope flow is the one ADR-0005 was built for.
@@ -19,20 +22,20 @@
  *    unconditionally, so a refused add reported success and the button then
  *    disappeared — the participant could not retry.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { format } from 'date-fns'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { render, screen, waitFor, fireEvent } =
+  await import('@testing-library/react')
+const { format } = await import('date-fns')
 
 /** The exact string the page renders for a timed date, in the ambient zone. */
 function shown(iso: string): string {
   return format(new Date(iso), 'yyyy-MM-dd HH:mm')
 }
 
-vi.mock('next/navigation', () => ({
+moduleMock.module('next/navigation', () => ({
   useParams: () => ({ token: 'tok' }),
 }))
-
-import InvitePage from '@/app/(app)/invite/[token]/page'
+const { default: InvitePage } = await import('@/app/(app)/invite/[token]/page')
 
 type InvitePayload = Record<string, unknown>
 
@@ -82,7 +85,7 @@ beforeEach(() => {
   state.patchBody = { success: true }
   state.patches.length = 0
 
-  vi.stubGlobal(
+  stubGlobal(
     'fetch',
     vi.fn(async (_url: string, init?: { method?: string; body?: string }) => {
       if (init?.method === 'PATCH') {
@@ -101,7 +104,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 describe('a grant of exactly one occurrence', () => {

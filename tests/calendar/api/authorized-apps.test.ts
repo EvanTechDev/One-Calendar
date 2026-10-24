@@ -1,16 +1,18 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { drizzleOperatorsMock, getFakeDb } from './route-test-db'
 
-vi.mock('drizzle-orm', async () => {
-  const actual =
-    await vi.importActual<typeof import('drizzle-orm')>('drizzle-orm')
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
+  getDb: () => getFakeDb().db,
+}))
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'user-1', email: 'ada@example.com' }),
 }))
 

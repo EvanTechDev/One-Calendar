@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock, setSystemTime } from 'bun:test'
 // Node, not jsdom: signing a real token goes through `jose`, whose Uint8Array
 // check fails against jsdom's separate global realm.
 /**
@@ -13,7 +13,7 @@
  * Membership is now proven with the LiveKit join token the client already
  * holds, and the sender is read from its verified claims.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { AccessToken } from 'livekit-server-sdk'
 
 const API_KEY = 'devkey'
@@ -27,7 +27,7 @@ const retained: Record<string, unknown>[] = []
 let meetingExists = true
 let retainsChat = true
 
-vi.mock('@zntr/meetings', () => ({
+moduleMock.module('@zntr/meetings', () => ({
   getMeeting: async (_db: unknown, id: string) =>
     meetingExists ? { id, organiserId: 'u1', retainsChat } : null,
   getOpenSession: async () => ({ id: 'session-1' }),
@@ -36,9 +36,9 @@ vi.mock('@zntr/meetings', () => ({
   },
 }))
 
-vi.mock('@/lib/drizzle', () => ({ getDb: () => ({}) }))
+moduleMock.module('@/lib/drizzle', () => ({ getDb: () => ({}) }))
 
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true, retryAfter: 0 }),
   clientAddress: () => '203.0.113.1',
 }))
@@ -143,7 +143,7 @@ describe('chat retention requires proof of room membership', () => {
     // Move past the token's lifetime rather than sleeping through it. The
     // verifier also allows 10s of clock tolerance, so overshoot generously.
     vi.useFakeTimers({ shouldAdvanceTime: true })
-    vi.setSystemTime(Date.now() + 10 * 60 * 1000)
+    setSystemTime(Date.now() + 10 * 60 * 1000)
     try {
       const response = await post({ message: 'hello', participantToken: token })
       expect(response.status).toBe(403)

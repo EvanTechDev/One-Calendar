@@ -2,19 +2,19 @@
   "name": "zentra-calendar",
   "version": "3.0.0-rc.45",
   "private": true,
-  "packageManager": "pnpm@11.5.2",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "dev": "bun run --bun next dev",
-    "build": "pnpm generate:i18n && bun run --bun next build",
-    "build:check": "pnpm build && pnpm type-check",
+    "build": "bun run generate:i18n && bun run --bun next build",
+    "build:check": "bun run build && bun run type-check",
     "start": "bun run --bun next start",
-    "generate:i18n": "pnpm --filter @zntr/i18n generate",
-    "cleanup:i18n": "pnpm --filter @zntr/i18n cleanup",
+    "generate:i18n": "bun run --filter @zntr/i18n generate",
+    "cleanup:i18n": "bun run --filter @zntr/i18n cleanup",
     "lint": "oxlint --fix --config ../../config/oxlint.json app components hooks lib proxy.ts",
     "lint:check": "oxlint --config ../../config/oxlint.json app components hooks lib proxy.ts",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/calendar/",
+    "test:watch": "bun test --isolate --watch ../../tests/calendar/"
   },
   "dependencies": {
     "@ai-sdk/groq": "4.0.54",
@@ -59,7 +59,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/pg": "^8.23.1",
-    "jsdom": "^29.1.1",
-    "vitest": "^4.1.10"
+    "jsdom": "^29.1.1"
   }
 }

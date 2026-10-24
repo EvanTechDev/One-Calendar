@@ -1,15 +1,10 @@
-// @vitest-environment node
-import { afterEach, describe, expect, it, vi } from 'vitest'
-vi.hoisted(() => {
-  process.env.RESEND_API_KEY = 're_test_only_not_a_real_key'
-})
-import {
-  cancelEmail,
-  scheduleEmail,
-  scheduledEmailStatus,
-} from '@/lib/email/send-scheduled-email'
+import { unstubAllGlobals, stubGlobal } from './../../../support/stubs'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
+process.env.RESEND_API_KEY = 're_test_only_not_a_real_key'
+const { cancelEmail, scheduleEmail, scheduledEmailStatus } =
+  await import('@/lib/email/send-scheduled-email')
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => unstubAllGlobals())
 
 describe('scheduled email provider adapter', () => {
   it('sends the persisted idempotency key and a bounded request through the real SDK', async () => {
@@ -19,7 +14,7 @@ describe('scheduled email provider adapter', () => {
           headers: { 'Content-Type': 'application/json' },
         }),
     )
-    vi.stubGlobal('fetch', fetch)
+    stubGlobal('fetch', fetch)
     expect(
       await scheduleEmail({
         from: 'Calendar <test@example.com>',
@@ -42,7 +37,7 @@ describe('scheduled email provider adapter', () => {
   })
 
   it('keeps provider failures uncertain rather than pretending cancellation succeeded', async () => {
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
       vi.fn(async () => {
         throw new Error('network unavailable')

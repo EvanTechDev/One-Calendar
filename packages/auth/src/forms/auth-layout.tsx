@@ -169,14 +169,6 @@ void main() {
 
 function MeshShader({ palette }: { palette: Palette }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const targetRef = useRef(palette.colors)
-  const currentRef = useRef(
-    palette.colors.map((c) => [...c]) as Palette['colors'],
-  )
-
-  useEffect(() => {
-    targetRef.current = palette.colors
-  }, [palette])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -252,28 +244,12 @@ function MeshShader({ palette }: { palette: Palette }) {
       }
     }
 
-    const resizeObserver = new ResizeObserver(resize)
-    resizeObserver.observe(canvas)
-    resize()
-
-    let raf = 0
-    const start = performance.now()
-
-    const tick = (now: number) => {
-      const time = now - start
-      const k = 0.06
-
-      for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 3; j++) {
-          currentRef.current[i][j] +=
-            (targetRef.current[i][j] - currentRef.current[i][j]) * k
-        }
-      }
-
+    const draw = () => {
+      resize()
       gl.uniform2f(uResolution, canvas.width, canvas.height)
-      gl.uniform1f(uTime, time)
+      gl.uniform1f(uTime, 0)
 
-      const colors = currentRef.current
+      const colors = palette.colors
 
       gl.uniform3f(uColor0, colors[0][0], colors[0][1], colors[0][2])
       gl.uniform3f(uColor1, colors[1][0], colors[1][1], colors[1][2])
@@ -281,14 +257,14 @@ function MeshShader({ palette }: { palette: Palette }) {
       gl.uniform3f(uColor3, colors[3][0], colors[3][1], colors[3][2])
 
       gl.drawArrays(gl.TRIANGLES, 0, 6)
-
-      raf = requestAnimationFrame(tick)
     }
 
-    raf = requestAnimationFrame(tick)
+    // Keep the artwork still; redraw only when its actual dimensions change.
+    const resizeObserver = new ResizeObserver(draw)
+    resizeObserver.observe(canvas)
+    draw()
 
     return () => {
-      cancelAnimationFrame(raf)
       resizeObserver.disconnect()
 
       gl.deleteProgram(program)
@@ -296,7 +272,7 @@ function MeshShader({ palette }: { palette: Palette }) {
       gl.deleteShader(fs)
       gl.deleteBuffer(buffer)
     }
-  }, [])
+  }, [palette])
 
   return (
     <canvas

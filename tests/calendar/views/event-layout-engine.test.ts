@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   layoutEventsForDay,
   separateEvents,
   getEventTimesForDay,
@@ -13,8 +14,8 @@ import {
   snapToQuarterHour,
   formatTimeForDisplay,
   formatHourMinute,
-} from '@zntr/ui/calendar/components/app/views/event-layout-engine'
-import { TimeFormat } from '@zntr/ui/calendar/lib/calendar-types'
+} = await import('@zntr/ui/calendar/components/app/views/event-layout-engine')
+const { TimeFormat } = await import('@zntr/ui/calendar/lib/calendar-types')
 import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 
 // Use UTC dates to avoid timezone issues in test environment

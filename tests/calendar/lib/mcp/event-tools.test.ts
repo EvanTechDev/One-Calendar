@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   resolveTimeRange,
   normalizeEmails,
   colorCandidates,
@@ -13,7 +14,7 @@ import {
   matchesParticipantFilter,
   matchesParticipantNames,
   InvalidEventQueryError,
-} from '@/lib/mcp/event-tools'
+} = await import('@/lib/mcp/event-tools')
 
 describe('resolveTimeRange', () => {
   it('returns empty range for no time filter', () => {

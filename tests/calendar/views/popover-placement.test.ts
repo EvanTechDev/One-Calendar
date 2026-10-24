@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { getHorizontalPopoverPlacement } from '@zntr/ui/calendar/lib/popover-placement'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { getHorizontalPopoverPlacement } =
+  await import('@zntr/ui/calendar/lib/popover-placement')
 
 describe('getHorizontalPopoverPlacement', () => {
   it('opens right when the full popover fits', () => {

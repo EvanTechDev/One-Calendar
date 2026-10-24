@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'bun:test'
 
 process.env.SALT = 'invite-token-migration-test-key'
 

@@ -675,10 +675,7 @@ ${rawContent.substring(0, 500)}...`)
             id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
             email: invite.email as string,
             status: (invite.status ?? 'pending') as
-              | 'pending'
-              | 'accepted'
-              | 'maybe'
-              | 'declined',
+              'pending' | 'accepted' | 'maybe' | 'declined',
             inviteToken: '',
             emailSent: false,
             addedToCalendar: false,

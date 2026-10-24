@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { MCP_ACCESS_TOKEN_TTL_SECONDS } from '@/lib/mcp/oauth-config'
+await import('./../../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { MCP_ACCESS_TOKEN_TTL_SECONDS } = await import('@/lib/mcp/oauth-config')
 
 describe('MCP OAuth configuration', () => {
   it('keeps access tokens valid for 14 days', () => {

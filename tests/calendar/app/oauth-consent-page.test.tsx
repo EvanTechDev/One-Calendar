@@ -1,16 +1,19 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+const { fireEvent, render, screen, waitFor } =
+  await import('@testing-library/react')
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   publicClient: vi.fn(),
   consent: vi.fn(),
-}))
+}))()
 
-const query = vi.hoisted(() => ({
+const query = (() => ({
   scope: 'events:read events:write offline_access',
-}))
+}))()
 
-vi.mock('next/navigation', () => ({
+moduleMock.module('next/navigation', () => ({
   useSearchParams: () =>
     new URLSearchParams({
       client_id: 'client-1',
@@ -21,7 +24,7 @@ vi.mock('next/navigation', () => ({
     }),
 }))
 
-vi.mock('@/lib/auth/oauth-client', () => ({
+moduleMock.module('@/lib/auth/oauth-client', () => ({
   oauthAuthClient: {
     useSession: () => ({
       data: { user: { name: 'Ada', image: null } },
@@ -33,8 +36,7 @@ vi.mock('@/lib/auth/oauth-client', () => ({
     },
   },
 }))
-
-import OAuthConsentPage from '@/app/oauth/consent/page'
+const { default: OAuthConsentPage } = await import('@/app/oauth/consent/page')
 
 beforeEach(() => {
   vi.clearAllMocks()

@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import {
+await import('./../../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const {
   DAILY_SEND_QUOTA,
   applyQuota,
   candidatesFor,
@@ -7,8 +8,8 @@ import {
   isSchedulable,
   reminderTimeFor,
   scheduleKey,
-  type OccurrenceInput,
-} from '@/lib/reminders/email-schedule'
+} = await import('@/lib/reminders/email-schedule')
+import type { OccurrenceInput } from '@/lib/reminders/email-schedule'
 
 const NOW = new Date('2026-08-22T12:00:00.000Z')
 const DAY = 86_400_000

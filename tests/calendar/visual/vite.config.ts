@@ -25,10 +25,6 @@ export default defineConfig({
   esbuild: { jsx: 'automatic' },
   resolve: {
     alias: [
-      {
-        find: /^@fontsource-variable\/(.+)$/,
-        replacement: `${root}/apps/calendar-client/node_modules/@fontsource-variable/$1`,
-      },
       { find: /^\.\/native$/, replacement: `${here}/desktop-native.ts` },
       { find: 'next/dynamic', replacement: `${here}/next-dynamic.tsx` },
       { find: '@', replacement: `${root}/apps/calendar` },

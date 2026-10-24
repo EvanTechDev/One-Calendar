@@ -1,11 +1,10 @@
-// @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  AuthFormProvider,
-  ResetPasswordForm,
-  type AuthFormContextValue,
-} from '@zntr/auth/forms'
+const { unstubAllGlobals, stubGlobal } = await import('./../support/stubs')
+await import('./../support/dom')
+const { fireEvent, render, screen, waitFor } =
+  await import('@testing-library/react')
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+const { AuthFormProvider, ResetPasswordForm } = await import('@zntr/auth/forms')
+import type { AuthFormContextValue } from '@zntr/auth/forms'
 
 const requestPasswordReset = vi.fn(async () => ({ data: {}, error: null }))
 const resetPassword = vi.fn(async () => ({ data: {}, error: null }))
@@ -32,7 +31,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 describe('ResetPasswordForm recovery requests', () => {
@@ -60,7 +59,7 @@ describe('ResetPasswordForm recovery requests', () => {
       error: { message: 'Bot verification failed', status: 403 },
     } as never)
     const fetchMock = vi.fn(async () => new Response(null, { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
     render(
       <AuthFormProvider value={value}>
         <ResetPasswordForm />

@@ -1,12 +1,13 @@
-import React from 'react'
-import { afterEach, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+const { default: React } = await import('react')
+import { afterEach, expect, it, vi } from 'bun:test'
+const { cleanup, fireEvent, render, screen } =
+  await import('@testing-library/react')
 import type { UIMessage } from 'ai'
-import { translations } from '@zntr/i18n/calendar'
-import { ChatTranscript } from '@zntr/ui/calendar/components/app/ai/chat-transcript'
 
 // Layout/scrolling is not the seam under test; keep the real markdown and Marker.
-vi.mock('@zntr/ui/message-scroller', () => ({
+moduleMock.module('@zntr/ui/message-scroller', () => ({
   MessageScrollerProvider: ({ children }: React.PropsWithChildren) => (
     <>{children}</>
   ),
@@ -24,6 +25,11 @@ vi.mock('@zntr/ui/message-scroller', () => ({
   ),
   MessageScrollerButton: () => null,
 }))
+const { translations } = await import('@zntr/i18n/calendar')
+
+const { ChatTranscript } =
+  await import('@zntr/ui/calendar/components/app/ai/chat-transcript')
+
 afterEach(cleanup)
 const t = translations.en
 
@@ -76,7 +82,8 @@ it('shows exactly three generated follow-ups below the answer, sending only the 
   ).toBeTruthy()
   expect(onSuggestion).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: prompts[1] }))
-  expect(onSuggestion).toHaveBeenCalledExactlyOnceWith(prompts[1])
+  expect(onSuggestion).toHaveBeenCalledWith(prompts[1])
+  expect(onSuggestion).toHaveBeenCalledTimes(1)
 })
 
 it('does not expose incomplete or failed suggestion tool output as chat actions', () => {
@@ -222,10 +229,11 @@ it.each([true, false])(
     fireEvent.click(
       screen.getByRole('button', { name: approved ? 'Approve' : 'Deny' }),
     )
-    expect(onApproval).toHaveBeenCalledExactlyOnceWith({
+    expect(onApproval).toHaveBeenCalledWith({
       id: 'approval-2',
       approved,
     })
+    expect(onApproval).toHaveBeenCalledTimes(1)
   },
 )
 

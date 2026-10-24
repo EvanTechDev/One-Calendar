@@ -207,7 +207,7 @@ async function run() {
       }
 
       console.log('\n✨ Cleanup complete!')
-      console.log('Run `pnpm run generate:locales` to update lib/locales.ts')
+      console.log('Run `bun run generate` to update lib/locales.ts')
     } else {
       console.log('\nAborted.')
     }

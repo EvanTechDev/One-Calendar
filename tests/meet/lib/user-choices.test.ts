@@ -1,9 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  defaultUserChoices,
-  loadUserChoices,
-  saveUserChoices,
-} from '@/lib/user-choices'
+await import('./../../support/dom')
+import { describe, it, expect, beforeEach } from 'bun:test'
+const { defaultUserChoices, loadUserChoices, saveUserChoices } =
+  await import('@/lib/user-choices')
 
 const STORAGE_KEY = 'zentra-meet-user-choices'
 

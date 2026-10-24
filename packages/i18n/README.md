@@ -43,7 +43,7 @@ changed existing strings as well as missing keys. The current lockfile is
 restored after every targeted retry. The equivalent local environment settings
 are `TRANSLATION_LOCALES` and `TRANSLATION_CHECKSUM_REF`.
 
-`pnpm --filter @zntr/i18n translate` runs the same wrapper when the three
+`bun run --filter @zntr/i18n translate` runs the same wrapper when the three
 environment variables are provided. It preserves the locales and translation
 prompt in `i18n.json`, temporarily substitutes the configured endpoint/model,
 and restores the original configuration after the pinned Lingo CLI finishes.

@@ -67,11 +67,7 @@ export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
 const EVENT_STATUSES: EventStatus[] = ['confirmed', 'tentative', 'cancelled']
 
 export type TimePreset =
-  | 'today'
-  | 'this_week'
-  | 'next_week'
-  | 'upcoming'
-  | 'past'
+  'today' | 'this_week' | 'next_week' | 'upcoming' | 'past'
 type EventSortField = 'start_date' | 'end_date' | 'created_at' | 'updated_at'
 type EventSearchField = 'title' | 'description' | 'location'
 export type ParticipantMode = 'any' | 'all'
@@ -444,8 +440,7 @@ export function extractParticipantEmails(participants: unknown): string[] {
 export function matchesParticipantFilter(
   emails: Set<string>,
   emailsFilter:
-    | { emails?: string[]; mode?: ParticipantMode; exists?: boolean }
-    | undefined,
+    { emails?: string[]; mode?: ParticipantMode; exists?: boolean } | undefined,
 ): boolean {
   if (!emailsFilter) return true
   if (typeof emailsFilter.exists === 'boolean') {

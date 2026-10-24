@@ -1,20 +1,23 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, it, vi } from 'vitest'
-import { SWRConfig } from 'swr'
-import {
-  CalendarHostProvider,
-  type CalendarHost,
-} from '@zntr/utils/calendar-host'
-import { CalendarDataHost } from '@zntr/ui/calendar/components/providers/calendar-data-host'
-import { useData } from '@zntr/ui/calendar/components/providers/data-provider'
+const { unstubAllGlobals, stubGlobal } = await import('./../../support/stubs')
+await import('./../../support/dom')
+const { act, cleanup, fireEvent, render, screen } =
+  await import('@testing-library/react')
+import { afterEach, expect, it, vi } from 'bun:test'
+const { SWRConfig } = await import('swr')
+const { CalendarHostProvider } = await import('@zntr/utils/calendar-host')
+import type { CalendarHost } from '@zntr/utils/calendar-host'
+const { CalendarDataHost } =
+  await import('@zntr/ui/calendar/components/providers/calendar-data-host')
+const { useData } =
+  await import('@zntr/ui/calendar/components/providers/data-provider')
 
 afterEach(() => {
   cleanup()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 it('loads and edits calendar data through the supplied host transport', async () => {
-  vi.stubGlobal('fetch', () => {
+  stubGlobal('fetch', () => {
     throw new Error('The calendar escaped its host transport')
   })
 

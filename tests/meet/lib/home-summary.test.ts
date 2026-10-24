@@ -1,10 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import {
-  firstName,
-  greetingFor,
-  meetingTiming,
-  nextUpcoming,
-} from '@/lib/home-summary'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { firstName, greetingFor, meetingTiming, nextUpcoming } =
+  await import('@/lib/home-summary')
 
 const at = (iso: string) => new Date(iso)
 

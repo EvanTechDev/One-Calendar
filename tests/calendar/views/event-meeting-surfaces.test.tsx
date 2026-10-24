@@ -1,3 +1,6 @@
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
 /**
  * The event preview's meeting row.
  *
@@ -18,12 +21,12 @@
  * 3. The room code is rendered as a code — monospace and tabular — on the same
  *    type step as the preview's other metadata rows.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '../host-render'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { render, screen, waitFor } = await import('../host-render')
 import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 
 const toasts = { error: vi.fn(), success: vi.fn(), warning: vi.fn() }
-vi.mock('sonner', () => ({
+moduleMock.module('sonner', () => ({
   toast: Object.assign((...args: unknown[]) => void args, {
     error: (...args: unknown[]) => toasts.error(...args),
     success: (...args: unknown[]) => toasts.success(...args),
@@ -31,17 +34,23 @@ vi.mock('sonner', () => ({
   }),
 }))
 
-vi.mock('@zntr/ui/calendar/components/providers/calendar-context', () => ({
-  useCalendar: () => ({ calendars: [], events: [] }),
-}))
-
-vi.mock('@zntr/ui/calendar/components/providers/data-provider', () => ({
-  useBookmarks: () => ({
-    bookmarks: [],
-    createBookmark: vi.fn(),
-    deleteBookmark: vi.fn(),
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/calendar-context',
+  () => ({
+    useCalendar: () => ({ calendars: [], events: [] }),
   }),
-}))
+)
+
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/data-provider',
+  () => ({
+    useBookmarks: () => ({
+      bookmarks: [],
+      createBookmark: vi.fn(),
+      deleteBookmark: vi.fn(),
+    }),
+  }),
+)
 
 const EventPreview = (
   await import('@zntr/ui/calendar/components/app/event/event-preview')
@@ -52,7 +61,7 @@ const requests: string[] = []
 beforeEach(() => {
   requests.length = 0
   toasts.error.mockClear()
-  vi.stubGlobal(
+  stubGlobal(
     'fetch',
     vi.fn(async (input: string) => {
       requests.push(String(input))
@@ -62,7 +71,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {

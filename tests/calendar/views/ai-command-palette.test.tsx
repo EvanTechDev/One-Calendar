@@ -1,16 +1,13 @@
-import React from 'react'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '../host-render'
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal, unstubAllGlobals, advanceTimersByTimeAsync } =
+  await import('./../../support/stubs')
+await import('./../../support/dom')
+const { default: React } = await import('react')
+import { afterEach, beforeEach, expect, it, vi } from 'bun:test'
+const { act, cleanup, fireEvent, render, screen, waitFor, within } =
+  await import('../host-render')
 
-const { sendMessage, stop, setMessages, chatState } = vi.hoisted(() => {
+const { sendMessage, stop, setMessages, chatState } = (() => {
   process.env.NEXT_PUBLIC_AI_ENABLED = '1'
   return {
     sendMessage: vi.fn(),
@@ -18,8 +15,8 @@ const { sendMessage, stop, setMessages, chatState } = vi.hoisted(() => {
     setMessages: vi.fn(),
     chatState: { status: 'ready', messages: [] as unknown[] },
   }
-})
-vi.mock('@ai-sdk/react', () => ({
+})()
+moduleMock.module('@ai-sdk/react', () => ({
   useChat: () => ({
     ...chatState,
     stop,
@@ -28,18 +25,21 @@ vi.mock('@ai-sdk/react', () => ({
     addToolApprovalResponse: vi.fn(),
   }),
 }))
-vi.mock('@zntr/ui/calendar/components/app/ai/chat-transcript', () => ({
-  ChatTranscript: () => null,
-}))
-vi.mock('@zntr/i18n/calendar', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@zntr/i18n/calendar')>()),
+moduleMock.module(
+  '@zntr/ui/calendar/components/app/ai/chat-transcript',
+  () => ({
+    ChatTranscript: () => null,
+  }),
+)
+const originalModule1 = { ...(await import('@zntr/i18n/calendar')) }
+moduleMock.module('@zntr/i18n/calendar', async () => ({
+  ...originalModule1,
   useLanguage: () => ['en'],
 }))
+const { AiCommandPalette } =
+  await import('@zntr/ui/calendar/components/app/ai/ai-command-palette')
 
-import {
-  AiCommandPalette,
-  type PaletteActions,
-} from '@zntr/ui/calendar/components/app/ai/ai-command-palette'
+import type { PaletteActions } from '@zntr/ui/calendar/components/app/ai/ai-command-palette'
 
 const fetchSearch = vi.fn()
 beforeEach(() => {
@@ -48,7 +48,7 @@ beforeEach(() => {
   stop.mockClear()
   setMessages.mockClear()
   sendMessage.mockClear()
-  vi.stubGlobal(
+  stubGlobal(
     'ResizeObserver',
     class {
       observe() {}
@@ -57,13 +57,13 @@ beforeEach(() => {
     },
   )
   Element.prototype.scrollIntoView = vi.fn()
-  vi.stubGlobal('fetch', fetchSearch)
+  stubGlobal('fetch', fetchSearch)
   fetchSearch.mockReset().mockImplementation(() => new Promise(() => {}))
 })
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 async function typeQuestion(question: string) {
@@ -197,7 +197,8 @@ it.each(['keyword', 'semantic'])(
     await act(async () => {
       fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
     })
-    expect(goToEvent).toHaveBeenCalledExactlyOnceWith(hit)
+    expect(goToEvent).toHaveBeenCalledWith(hit)
+    expect(goToEvent).toHaveBeenCalledTimes(1)
     expect(fetchSearch).toHaveBeenCalledTimes(requests)
   },
 )
@@ -299,7 +300,7 @@ it('a stalled request stops loading and offers retry after the deadline', async 
   expect(fetchSearch).toHaveBeenCalledTimes(1)
   const signal = fetchSearch.mock.calls[0][1].signal as AbortSignal
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(285_000)
+    await advanceTimersByTimeAsync(285_000)
   })
   expect(signal.aborted).toBe(true)
   expect(
@@ -453,7 +454,8 @@ it('switching modes preserves the draft and aborts a pending semantic search', a
     code: 'Enter',
     keyCode: 13,
   })
-  expect(sendMessage).toHaveBeenCalledExactlyOnceWith({ text: 'find my trip' })
+  expect(sendMessage).toHaveBeenCalledWith({ text: 'find my trip' })
+  expect(sendMessage).toHaveBeenCalledTimes(1)
 })
 
 it('uses an upward send arrow and a destructive stop control in chat', () => {
@@ -469,7 +471,8 @@ it('uses an upward send arrow and a destructive stop control in chat', () => {
     sendButton.querySelector('[data-testid="ai-chat-send-icon"]'),
   ).toBeTruthy()
   fireEvent.click(sendButton)
-  expect(sendMessage).toHaveBeenCalledExactlyOnceWith({ text: 'Find events' })
+  expect(sendMessage).toHaveBeenCalledWith({ text: 'Find events' })
+  expect(sendMessage).toHaveBeenCalledTimes(1)
 
   chatState.status = 'streaming'
   rerender(<AiCommandPalette open initialMode="chat" onOpenChange={vi.fn()} />)
@@ -561,7 +564,8 @@ it('renders the same event row in keyword and semantic search, with paging and E
     code: 'Enter',
     keyCode: 13,
   })
-  expect(goToEvent).toHaveBeenCalledExactlyOnceWith(hit)
+  expect(goToEvent).toHaveBeenCalledWith(hit)
+  expect(goToEvent).toHaveBeenCalledTimes(1)
 })
 
 it('typing a new query cancels AI and restores server keyword search', async () => {
@@ -650,7 +654,7 @@ it('stops a stalled agent and retains its transcript when the palette closes', a
   vi.useFakeTimers()
   const { rerender } = render(<AiCommandPalette open onOpenChange={vi.fn()} />)
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(285_000)
+    await advanceTimersByTimeAsync(285_000)
   })
   expect(stop).toHaveBeenCalledTimes(1)
   rerender(<AiCommandPalette open={false} onOpenChange={vi.fn()} />)

@@ -1,43 +1,56 @@
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import {
-  cleanup,
-  fireEvent,
-  render,
-  renderHook,
-  screen,
-  waitFor,
-} from '../host-render'
-import { BookmarkPanelBody } from '@zntr/ui/calendar/components/app/sidebar/bookmark-panel'
-import { eventDataToCalendarEvent } from '@zntr/ui/calendar/components/providers/calendar-context'
-import { useEventPreviewNavigation } from '@zntr/ui/calendar/hooks/use-event-preview-navigation'
-import { toCalendarDate } from '@zntr/ui/calendar/lib/zoned-date'
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { afterEach, beforeEach, expect, it, vi } from 'bun:test'
+const { act, cleanup, fireEvent, render, renderHook, screen, waitFor } =
+  await import('../host-render')
+
 import type { BookmarkData, EventData } from '@zntr/ui/calendar/lib/api-client'
 import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
 
-const state = vi.hoisted(() => ({
+const state = (() => ({
   bookmarks: [] as BookmarkData[],
   events: [] as CalendarEvent[],
   deleteBookmark: vi.fn(),
-}))
-vi.mock('@zntr/ui/calendar/components/providers/data-provider', () => ({
-  useBookmarks: () => ({
-    bookmarks: state.bookmarks,
-    deleteBookmark: state.deleteBookmark,
+}))()
+const originalDataProvider = {
+  ...(await import('@zntr/ui/calendar/components/providers/data-provider')),
+}
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/data-provider',
+  () => ({
+    ...originalDataProvider,
+    useBookmarks: () => ({
+      bookmarks: state.bookmarks,
+      deleteBookmark: state.deleteBookmark,
+    }),
   }),
-}))
-vi.mock(
+)
+const originalModule1 = {
+  ...(await import('@zntr/ui/calendar/components/providers/calendar-context')),
+}
+moduleMock.module(
   '@zntr/ui/calendar/components/providers/calendar-context',
-  async (importOriginal) => ({
-    ...(await importOriginal<
-      typeof import('@zntr/ui/calendar/components/providers/calendar-context')
-    >()),
+  async () => ({
+    ...originalModule1,
     useCalendar: () => ({ events: state.events }),
   }),
 )
-vi.mock('@zntr/i18n/calendar', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@zntr/i18n/calendar')>()),
+const originalModule2 = { ...(await import('@zntr/i18n/calendar')) }
+moduleMock.module('@zntr/i18n/calendar', async () => ({
+  ...originalModule2,
   useLanguage: () => ['en', vi.fn()],
 }))
+const { BookmarkPanelBody } =
+  await import('@zntr/ui/calendar/components/app/sidebar/bookmark-panel')
+
+const { eventDataToCalendarEvent } =
+  await import('@zntr/ui/calendar/components/providers/calendar-context')
+
+const { useEventPreviewNavigation } =
+  await import('@zntr/ui/calendar/hooks/use-event-preview-navigation')
+
+const { toCalendarDate } = await import('@zntr/ui/calendar/lib/zoned-date')
 
 const event: EventData = {
   id: 'event-outside-loaded-range',
@@ -59,13 +72,27 @@ const event: EventData = {
   updatedAt: '2026-10-01T00:00:00Z',
 }
 
+const frames = new Map<number, FrameRequestCallback>()
+let frameId = 0
+function advanceFrame() {
+  const pending = [...frames.values()]
+  frames.clear()
+  for (const callback of pending) callback(performance.now())
+}
+
 beforeEach(() => {
+  frames.clear()
+  stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frames.set(++frameId, callback)
+    return frameId
+  })
+  stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id))
   state.bookmarks = [
     { id: 'bookmark-1', eventId: event.id, createdAt: event.createdAt, event },
   ]
   state.events = []
   state.deleteBookmark.mockReset()
-  vi.stubGlobal(
+  stubGlobal(
     'ResizeObserver',
     class {
       observe() {}
@@ -77,7 +104,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
   delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView
 })
 
@@ -109,6 +136,12 @@ it('opens an unloaded bookmark with real dates and reveals its day in the calend
   renderHook(() =>
     useEventPreviewNavigation(selected, containerRef, onReady, 'Etc/GMT+11'),
   )
+  // The real hook reveals the day on one frame and positions its anchor on
+  // the next; drive those browser frames without racing machine load.
+  act(() => {
+    advanceFrame()
+    advanceFrame()
+  })
   await waitFor(() => expect(onReady).toHaveBeenCalledWith(anchor))
 })
 

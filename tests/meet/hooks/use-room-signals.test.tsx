@@ -1,6 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { act, renderHook } from '@testing-library/react'
-import { HAND_RAISED_ATTRIBUTE } from '@/lib/room-signals'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, expect, it, vi, beforeEach } from 'bun:test'
+const { act, renderHook } = await import('@testing-library/react')
 
 /**
  * "The hand goes up and then cannot be put down" was two bugs stacked.
@@ -29,13 +30,16 @@ const participant = {
 
 // Whatever the subscription would report, driven by the fake's own state so the
 // hook sees the same value the server holds.
-vi.mock('@livekit/components-react', () => ({
+moduleMock.module('@livekit/components-react', () => ({
   useLocalParticipant: () => ({ localParticipant: participant }),
   useParticipantAttribute: (key: string) => participant.attributes[key],
   useDataChannel: () => ({ send: vi.fn() }),
 }))
 
-vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+moduleMock.module('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}))
+const { HAND_RAISED_ATTRIBUTE } = await import('@/lib/room-signals')
 
 const { useRoomSignals } = await import('@/hooks/use-room-signals')
 

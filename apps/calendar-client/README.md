@@ -98,5 +98,10 @@ source revisions.
 
 The current Termux machine is for source editing only. Run builds, development
 servers and checks in CI or on an external desktop. On those systems,
-`pnpm --filter calendar-client build` builds the frontend and
-`pnpm --filter calendar-client build:tauri` builds the installer.
+`bun run --filter calendar-client build` builds the frontend and
+`bun run --filter calendar-client build:tauri` builds the installer.
+
+The window supports resizing and maximizing, with a 900×600 logical-pixel
+minimum (bounded by the monitor work area). Normal resizing is preserved.
+`bun run --filter calendar-client icons` regenerates platform icons from the
+current product logo; `--png-only` renders the master on non-desktop hosts.

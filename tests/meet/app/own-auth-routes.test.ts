@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 

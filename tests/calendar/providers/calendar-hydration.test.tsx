@@ -1,15 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
-import { SWRConfig } from 'swr'
-import {
-  DataProvider,
-  useCountdowns,
-} from '@zntr/ui/calendar/components/providers/data-provider'
-import {
-  CalendarProvider,
-  useCalendar,
-} from '@zntr/ui/calendar/components/providers/calendar-context'
-import { useEffect } from 'react'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { render, waitFor } = await import('@testing-library/react')
+const { SWRConfig } = await import('swr')
+const { DataProvider, useCountdowns } =
+  await import('@zntr/ui/calendar/components/providers/data-provider')
+const { CalendarProvider, useCalendar } =
+  await import('@zntr/ui/calendar/components/providers/calendar-context')
+const { useEffect } = await import('react')
 
 type Resolver = (value: {
   ok: boolean
@@ -70,7 +68,7 @@ const renderApp = () =>
 describe('data hydration', () => {
   beforeEach(() => {
     pending = new Map()
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
       vi.fn(
         (input: RequestInfo | URL) =>
@@ -86,7 +84,7 @@ describe('data hydration', () => {
       resolve({ ok: true, status: 200, json: async () => ({}) })
       pending.delete(url)
     }
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('hydrates the calendar store once events and categories have both arrived', async () => {

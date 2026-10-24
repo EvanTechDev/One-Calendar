@@ -88,8 +88,7 @@ async function authRateLimit(request: Request, path: string) {
 
 type AuthAuditSubject = {
   actor:
-    | typeof anonymousAuditActor
-    | { type: 'user'; id: string; email?: string }
+    typeof anonymousAuditActor | { type: 'user'; id: string; email?: string }
   target: { type: 'auth_identity'; id: string; email?: string }
 }
 

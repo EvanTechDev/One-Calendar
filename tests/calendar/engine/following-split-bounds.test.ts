@@ -1,12 +1,14 @@
-import { describe, expect, it } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const {
   expandSeriesView,
   optimisticFollowingSplit,
   reanchor,
   remainingSeriesCount,
-  type SeriesViewInput,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
-import { planInstanceChange, type EventRow } from '@/lib/event-service'
+} = await import('@zntr/ui/calendar/lib/recurrence/engine')
+import type { SeriesViewInput } from '@zntr/ui/calendar/lib/recurrence/engine'
+const { planInstanceChange } = await import('@/lib/event-service')
+import type { EventRow } from '@/lib/event-service'
 
 const day = (d: number, hour = 9) => new Date(Date.UTC(2026, 7, d, hour, 0, 0))
 

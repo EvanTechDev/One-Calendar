@@ -1,17 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import { withBotId } from 'botid/next/config'
-import { botIdPlugin, rejectBotRequest } from '@zntr/auth/bot-id'
-import {
+
+const { check } = (() => ({ check: vi.fn() }))()
+moduleMock.module('botid/server', () => ({ checkBotId: check }))
+const { botIdPlugin, rejectBotRequest } = await import('@zntr/auth/bot-id')
+
+const {
   BOT_ID_ENDPOINTS,
   BOT_ID_OPTIONS,
   BOT_ID_PROXY_PREFIX,
   BOT_ID_ROUTES,
   botIdIsGuarded,
-} from '@zntr/auth/bot-policy'
-import { authRouteIsExposed } from '@zntr/auth/route-policy'
+} = await import('@zntr/auth/bot-policy')
 
-const { check } = vi.hoisted(() => ({ check: vi.fn() }))
-vi.mock('botid/server', () => ({ checkBotId: check }))
+const { authRouteIsExposed } = await import('@zntr/auth/route-policy')
 
 beforeEach(() => {
   check.mockReset().mockResolvedValue({ isBot: false })

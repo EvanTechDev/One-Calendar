@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
+const { renderHook, act } = await import('@testing-library/react')
 
 /**
  * Mirroring was applied to any local camera, front or rear.
@@ -13,7 +15,7 @@ import { renderHook, act } from '@testing-library/react'
  */
 const facing = { facingMode: 'user' as 'user' | 'environment' }
 
-vi.mock('livekit-client', () => ({
+moduleMock.module('livekit-client', () => ({
   facingModeFromLocalTrack: () => ({
     facingMode: facing.facingMode,
     confidence: 'high',

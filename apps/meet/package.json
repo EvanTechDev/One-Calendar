@@ -2,17 +2,17 @@
   "name": "zentra-meet",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.5.2",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "dev": "bun run --bun next dev -p 3001",
     "build": "bun run --bun next build",
-    "build:check": "pnpm build && pnpm type-check",
+    "build:check": "bun run build && bun run type-check",
     "start": "bun run --bun next start -p 3001",
     "lint": "oxlint --fix --config ../../config/oxlint.json app components hooks lib",
     "lint:check": "oxlint --config ../../config/oxlint.json app components hooks lib",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/meet/",
+    "test:watch": "bun test --isolate --watch ../../tests/meet/"
   },
   "dependencies": {
     "@livekit/components-react": "2.9.24",
@@ -44,7 +44,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/pg": "^8.23.1",
-    "jsdom": "^29.1.1",
-    "vitest": "^4.1.10"
+    "jsdom": "^29.1.1"
   }
 }

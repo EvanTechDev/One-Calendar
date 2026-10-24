@@ -1,12 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  render,
-  cleanup,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from '@testing-library/react'
+import { mock as moduleMock } from 'bun:test'
+import { appModule } from '../../support/modules'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { render, cleanup, screen, fireEvent, waitFor, within } =
+  await import('@testing-library/react')
 
 /**
  * The dashboard settings dialog: section switching, and that a preference
@@ -20,13 +17,13 @@ import {
  * sign-out.
  */
 
-vi.mock('next/navigation', () => ({
+moduleMock.module(appModule('meet', 'next/navigation'), () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
 }))
 
 // The shared account panel reads the session from the client rather than taking
 // it as a prop, which is what lets it render under either app's client.
-vi.mock('@/lib/auth/client', () => ({
+moduleMock.module('@/lib/auth/client', () => ({
   authClient: {
     useSession: () => ({
       data: {
@@ -48,7 +45,7 @@ vi.mock('@/lib/auth/client', () => ({
 }))
 
 const theme = { value: 'system', setTheme: vi.fn() }
-vi.mock('next-themes', () => ({
+moduleMock.module('next-themes', () => ({
   useTheme: () => ({ theme: theme.value, setTheme: theme.setTheme }),
 }))
 

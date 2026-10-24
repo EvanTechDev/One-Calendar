@@ -1,10 +1,14 @@
-import { act, cleanup, renderHook } from '../host-render'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useKeywordSearch } from '@zntr/ui/calendar/hooks/use-keyword-search'
+const { unstubAllGlobals, stubGlobal, advanceTimersByTimeAsync } =
+  await import('./../../support/stubs')
+await import('./../../support/dom')
+const { act, cleanup, renderHook } = await import('../host-render')
+import { afterEach, describe, expect, it, vi } from 'bun:test'
+const { useKeywordSearch } =
+  await import('@zntr/ui/calendar/hooks/use-keyword-search')
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 describe('keyword search request lifecycle', () => {
   it('debounces typing and continues empty pages instead of reporting a false empty result', async () => {
@@ -22,14 +26,14 @@ describe('keyword search request lifecycle', () => {
           cursor: null,
         }),
       })
-    vi.stubGlobal('fetch', fetcher)
+    stubGlobal('fetch', fetcher)
     const view = renderHook(({ text }) => useKeywordSearch(text, true), {
       initialProps: { text: 'nee' },
     })
     view.rerender({ text: 'needle' })
     expect(fetcher).not.toHaveBeenCalled()
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(250)
+      await advanceTimersByTimeAsync(250)
     })
     expect(fetcher).toHaveBeenCalledTimes(2)
     expect(String(fetcher.mock.calls[1][0])).toContain('cursor=200')
@@ -50,18 +54,18 @@ describe('keyword search request lifecycle', () => {
         ok: true,
         json: async () => ({ results: [{ id: 'new' }], cursor: null }),
       })
-    vi.stubGlobal('fetch', fetcher)
+    stubGlobal('fetch', fetcher)
     const view = renderHook(({ text, open }) => useKeywordSearch(text, open), {
       initialProps: { text: 'old', open: true },
     })
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(250)
+      await advanceTimersByTimeAsync(250)
     })
     const oldSignal = fetcher.mock.calls[0][1].signal as AbortSignal
     view.rerender({ text: 'new', open: true })
     expect(oldSignal.aborted).toBe(true)
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(250)
+      await advanceTimersByTimeAsync(250)
       resolveOld({
         ok: true,
         json: async () => ({ results: [{ id: 'old' }], cursor: null }),

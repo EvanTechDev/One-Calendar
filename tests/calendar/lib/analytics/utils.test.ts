@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   normalizeChartColor,
   getChartColorOrderIndex,
   resolveDateRange,
@@ -14,7 +15,7 @@ import {
   formatHourRange,
   calculateDaySpanInHours,
   addDurationByDayCategory,
-} from '@zntr/ui/calendar/lib/analytics/utils'
+} = await import('@zntr/ui/calendar/lib/analytics/utils')
 import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 import type { AnalyticsEvent } from '@zntr/ui/calendar/lib/analytics/types'
 

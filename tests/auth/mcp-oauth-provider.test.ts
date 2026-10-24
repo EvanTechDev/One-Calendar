@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'bun:test'
 import { getAuthTables } from 'better-auth/db'
 import { createAuth } from '@zntr/auth/server'
 import { authSchema, session, verification } from '@zntr/auth/schema'

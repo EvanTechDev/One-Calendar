@@ -1,11 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import {
+await import('./../../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const {
   CLIENT_ERROR_TYPES,
   clientErrorMessage,
   InvalidEventQueryError,
   isClientError,
   ParticipantError,
-} from '@/lib/mcp/errors'
+} = await import('@/lib/mcp/errors')
 
 /**
  * The decision every MCP tool now shares: is this failure the caller's fault,

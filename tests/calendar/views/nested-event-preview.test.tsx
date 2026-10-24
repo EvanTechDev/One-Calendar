@@ -1,3 +1,5 @@
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
 /**
  * The month view's "N more events" list and the event preview opened from one
  * of its rows.
@@ -16,22 +18,14 @@
  *  - an interaction outside BOTH still closes the list — the exemption is
  *    narrow, not a blanket "the list can no longer be dismissed".
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, act, waitFor } from '../host-render'
-import { useState, useRef } from 'react'
-import MonthView from '@zntr/ui/calendar/components/app/views/month-view'
-import YearView from '@zntr/ui/calendar/components/app/views/year-view'
-import { useEventPreviewNavigation } from '@zntr/ui/calendar/hooks/use-event-preview-navigation'
-import EventPreview from '@zntr/ui/calendar/components/app/event/event-preview'
-import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
-import {
-  Language,
-  FirstDayOfWeek,
-  ViewConfig,
-  TimeFormat,
-} from '@zntr/ui/calendar/lib/calendar-types'
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
+const { render, screen, fireEvent, act, waitFor } =
+  await import('../host-render')
+const { useState, useRef } = await import('react')
 
-vi.mock('sonner', () => ({
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
+
+moduleMock.module('sonner', () => ({
   toast: Object.assign((...args: unknown[]) => void args, {
     error: (...args: unknown[]) => void args,
     success: (...args: unknown[]) => void args,
@@ -39,17 +33,37 @@ vi.mock('sonner', () => ({
   }),
 }))
 
-vi.mock('@zntr/ui/calendar/components/providers/calendar-context', () => ({
-  useCalendar: () => ({ calendars: [], events: [] }),
-}))
-
-vi.mock('@zntr/ui/calendar/components/providers/data-provider', () => ({
-  useBookmarks: () => ({
-    bookmarks: [],
-    createBookmark: vi.fn(),
-    deleteBookmark: vi.fn(),
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/calendar-context',
+  () => ({
+    useCalendar: () => ({ calendars: [], events: [] }),
   }),
-}))
+)
+
+moduleMock.module(
+  '@zntr/ui/calendar/components/providers/data-provider',
+  () => ({
+    useBookmarks: () => ({
+      bookmarks: [],
+      createBookmark: vi.fn(),
+      deleteBookmark: vi.fn(),
+    }),
+  }),
+)
+const { default: MonthView } =
+  await import('@zntr/ui/calendar/components/app/views/month-view')
+
+const { default: YearView } =
+  await import('@zntr/ui/calendar/components/app/views/year-view')
+
+const { useEventPreviewNavigation } =
+  await import('@zntr/ui/calendar/hooks/use-event-preview-navigation')
+
+const { default: EventPreview } =
+  await import('@zntr/ui/calendar/components/app/event/event-preview')
+
+const { Language, FirstDayOfWeek, ViewConfig, TimeFormat } =
+  await import('@zntr/ui/calendar/lib/calendar-types')
 
 const config = ViewConfig.create({
   date: new Date(2025, 0, 15),

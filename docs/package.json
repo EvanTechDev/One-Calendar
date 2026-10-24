@@ -3,12 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "pnpm mdx && next build",
+    "build": "bun run mdx && next build",
     "dev": "next dev --port 3002",
     "start": "next start --port 3002",
     "mdx": "fumadocs-mdx",
-    "test:mdx": "pnpm mdx && node --test ../tests/docs/mdx.test.mjs",
-    "type-check": "pnpm mdx && next typegen && tsc --noEmit",
+    "test:mdx": "bun run mdx && node --test ../tests/docs/mdx.test.mjs",
+    "type-check": "bun run mdx && next typegen && bun check",
     "lint": "oxlint --fix --config ../config/oxlint.json app components lib mdx-components.tsx source.config.ts next.config.mjs postcss.config.mjs",
     "lint:check": "oxlint --config ../config/oxlint.json app components lib mdx-components.tsx source.config.ts next.config.mjs postcss.config.mjs"
   },

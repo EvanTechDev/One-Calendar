@@ -1,15 +1,13 @@
-import { describe, expect, it } from 'vitest'
-import { applyListSort, LIST_SORTS } from '@zntr/ui/calendar/lib/list-sort'
-import {
-  DEFAULT_BOOKMARK_SORT,
-  sortBookmarks,
-  type SortableBookmark,
-} from '@zntr/ui/calendar/lib/bookmark-sort'
-import {
-  DEFAULT_COUNTDOWN_SORT,
-  sortCountdowns,
-  type SortableCountdown,
-} from '@zntr/ui/calendar/lib/countdown-sort'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { applyListSort, LIST_SORTS } =
+  await import('@zntr/ui/calendar/lib/list-sort')
+const { DEFAULT_BOOKMARK_SORT, sortBookmarks } =
+  await import('@zntr/ui/calendar/lib/bookmark-sort')
+import type { SortableBookmark } from '@zntr/ui/calendar/lib/bookmark-sort'
+const { DEFAULT_COUNTDOWN_SORT, sortCountdowns } =
+  await import('@zntr/ui/calendar/lib/countdown-sort')
+import type { SortableCountdown } from '@zntr/ui/calendar/lib/countdown-sort'
 
 const bookmark = (
   over: Partial<SortableBookmark> & { id: string },

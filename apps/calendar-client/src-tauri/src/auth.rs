@@ -59,6 +59,18 @@ struct SessionInner {
     error: Option<String>,
 }
 
+impl SessionInner {
+    fn cancel_sign_in(&mut self) -> bool {
+        // Identity cleanup after success must not invalidate calendar requests.
+        let Some(pending) = self.pending.take() else { return false; };
+        if let Some(abort) = pending.abort { abort.abort(); }
+        self.generation += 1;
+        self.loading = false;
+        self.error = None;
+        true
+    }
+}
+
 pub struct DesktopAuth {
     pub origin: reqwest::Url,
     pub identifier: String,
@@ -312,13 +324,44 @@ pub fn desktop_cancel_sign_in(app: AppHandle) -> Result<(), String> {
     let auth = app.state::<DesktopAuth>();
     {
         let mut inner = auth.inner.lock().map_err(|_| "Session state is unavailable")?;
-        if let Some(pending) = inner.pending.take() { if let Some(abort) = pending.abort { abort.abort(); } }
-        inner.generation += 1;
-        inner.loading = false;
-        inner.error = None;
+        if !inner.cancel_sign_in() { return Ok(()); }
     }
     emit_session(&app);
     Ok(())
+}
+
+#[cfg(test)]
+mod cancellation_tests {
+    use super::*;
+
+    #[test]
+    fn closing_successful_identity_keeps_first_login_requests_current() {
+        let auth = DesktopAuth::new("https://calendar.example", "app.zntr.calendar", false, PathBuf::new()).unwrap();
+        let mut inner = auth.inner.lock().unwrap();
+        inner.generation = 7;
+        inner.user = Some(PublicUser { id: "first-login".into(), name: "Alex".into(), email: "alex@example.com".into(), image: None, email_verified: true, two_factor_enabled: false });
+        inner.error = Some("Session could not be saved".into());
+        // The successful OAuth callback has already consumed pending login.
+        assert!(!inner.cancel_sign_in());
+        assert_eq!(inner.generation, 7);
+        assert!(inner.user.is_some());
+        assert!(inner.error.is_some());
+    }
+
+    #[test]
+    fn cancelling_an_active_exchange_invalidates_only_that_attempt() {
+        let auth = DesktopAuth::new("https://calendar.example", "app.zntr.calendar", false, PathBuf::new()).unwrap();
+        let mut inner = auth.inner.lock().unwrap();
+        let (abort, _registration) = AbortHandle::new_pair();
+        let observed_abort = abort.clone();
+        inner.pending = Some(PendingLogin { state: "state".into(), verifier: "verifier".into(), started: Instant::now(), exchanging: true, abort: Some(abort) });
+        assert!(inner.cancel_sign_in());
+        assert_eq!(inner.generation, 1);
+        assert!(observed_abort.is_aborted());
+        assert!(inner.pending.is_none());
+        assert!(!inner.cancel_sign_in());
+        assert_eq!(inner.generation, 1);
+    }
 }
 
 pub async fn callback(app: AppHandle, url: tauri::Url) {

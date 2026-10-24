@@ -1,14 +1,15 @@
-import { act, cleanup, fireEvent, render } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import WeekView from '@zntr/ui/calendar/components/app/views/week-view'
-import DayView from '@zntr/ui/calendar/components/app/views/day-view'
+import { setSystemTime } from 'bun:test'
+await import('./../../support/dom')
+const { act, cleanup, fireEvent, render } =
+  await import('@testing-library/react')
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+const { default: WeekView } =
+  await import('@zntr/ui/calendar/components/app/views/week-view')
+const { default: DayView } =
+  await import('@zntr/ui/calendar/components/app/views/day-view')
 import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
-import {
-  FirstDayOfWeek,
-  Language,
-  TimeFormat,
-  ViewConfig,
-} from '@zntr/ui/calendar/lib/calendar-types'
+const { FirstDayOfWeek, Language, TimeFormat, ViewConfig } =
+  await import('@zntr/ui/calendar/lib/calendar-types')
 
 class ResizeObserverStub {
   observe() {}
@@ -71,7 +72,7 @@ function gridColumn(container: HTMLElement, kind: 'day' | 'week') {
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(now)
+  setSystemTime(now)
 })
 afterEach(() => {
   cleanup()

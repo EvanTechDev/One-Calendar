@@ -1,6 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, cleanup, screen } from '@testing-library/react'
-import { ChatPanel } from '@/components/room/chat-panel'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, expect, it, vi, beforeEach } from 'bun:test'
+const { render, cleanup, screen } = await import('@testing-library/react')
+
 import type { RoomChat } from '@/hooks/use-room-chat'
 
 /**
@@ -11,7 +13,8 @@ import type { RoomChat } from '@/hooks/use-room-chat'
  * an exact width and a one-word reply rendered a 272px slab.
  */
 
-vi.mock('@livekit/components-react', () => ({}))
+moduleMock.module('@livekit/components-react', () => ({}))
+const { ChatPanel } = await import('@/components/room/chat-panel')
 
 type Message = Parameters<typeof makeChat>[0][number]
 

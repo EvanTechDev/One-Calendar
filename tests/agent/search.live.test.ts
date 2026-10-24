@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { expect, it } from 'bun:test'
 import { generateObject } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { matchSearchEvents } from '@zntr/agent/search-match'

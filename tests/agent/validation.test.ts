@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   EVENT_COLOR_OPTIONS,
   colorNameToHex,
@@ -6,7 +6,7 @@ import {
   parseInstantRange,
   parseIsoInstant,
   validateRrule,
-} from '@zntr/agent/validation'
+} from '../../packages/agent/src/validation'
 
 describe('color palette', () => {
   it('mirrors the app palette (lib/mcp/colors.ts COLOR_OPTIONS)', () => {

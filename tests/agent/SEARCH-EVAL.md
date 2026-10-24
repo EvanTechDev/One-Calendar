@@ -30,7 +30,7 @@ matcher on synthetic Tokyo travel, dog-walking, and coffee intent examples.
 With `GROQ_API_KEY` already set, run from `packages/agent`:
 
 ```sh
-RUN_SEARCH_LIVE=1 NODE_OPTIONS=--max-old-space-size=1400 ./node_modules/.bin/vitest run ../../tests/agent/search.live.test.ts --maxWorkers=1
+RUN_SEARCH_LIVE=1 bun test --isolate ../../tests/agent/search.live.test.ts
 ```
 
 This makes four model calls and is skipped by default. It checks that the compiler

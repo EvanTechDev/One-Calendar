@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * BUG-02: a "this and following" split lost the Series' Meeting.
  *
@@ -16,36 +16,36 @@
  * occurrence (master becomes empty and is deleted) and splitting mid-series
  * (master survives, truncated).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   const { drizzleOperatorsMock } = await import('./route-test-db')
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', async () => {
+moduleMock.module('@/lib/drizzle/client', async () => {
   const { getFakeDb } = await import('./route-test-db')
   return { getDb: () => getFakeDb().db }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'u1', email: 'u1@example.com' }),
   decryptEvent: (e: unknown) => e,
 }))
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
   decryptFieldStrict: (_id: string, v: unknown) => v,
   looksLikeEnvelope: () => true,
 }))
 
-vi.mock('@/lib/months', () => ({ fullMonthRange: () => [] }))
-
-import { POST, DELETE } from '@/app/api/events/route'
+moduleMock.module('@/lib/months', () => ({ fullMonthRange: () => [] }))
+const { POST, DELETE } = await import('@/app/api/events/route')
 
 const fake = getFakeDb()
 

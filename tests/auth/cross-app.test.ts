@@ -10,8 +10,8 @@
  * This pins the opt-in shape: unset means "unchanged", set means a Domain is
  * emitted, and the sibling origin is trusted either way.
  */
-import { describe, it, expect } from 'vitest'
-import { crossAppAuthConfig } from '@zntr/auth/cross-app'
+import { describe, it, expect } from 'bun:test'
+import { crossAppAuthConfig } from '../../packages/auth/src/cross-app'
 
 const CAL = 'https://cal.zntr.app'
 const MEET = 'https://meet.zntr.app'

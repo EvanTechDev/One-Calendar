@@ -1,26 +1,28 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { drizzleOperatorsMock, getFakeDb } from './route-test-db'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
+const { drizzleOperatorsMock, getFakeDb } = await import('./route-test-db')
 
 const OWNER = 'user-owner'
 const STRANGER = 'user-stranger'
 
 let authedUser: { id: string } | null = { id: OWNER }
 
-vi.mock('drizzle-orm', async () => {
-  const actual =
-    await vi.importActual<typeof import('drizzle-orm')>('drizzle-orm')
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => getFakeDb().db,
 }))
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => authedUser,
 }))
 
-vi.mock('@/lib/meetings', () => ({
+moduleMock.module('@/lib/meetings', () => ({
   meetingUrl: (id: string) => `https://meet.test/${id}`,
 }))
 
@@ -36,7 +38,7 @@ type FakeMeeting = {
 }
 const meetings = new Map<string, FakeMeeting>()
 let created = 0
-vi.mock('@zntr/meetings', () => ({
+moduleMock.module('@zntr/meetings', () => ({
   generateMeetingId: () => `code-${created + 1}`,
   getMeeting: async (_db: unknown, id: string) => meetings.get(id) ?? null,
   getMeetingForEvent: async (_db: unknown, eventId: string) =>
@@ -87,7 +89,7 @@ vi.mock('@zntr/meetings', () => ({
   },
 }))
 
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({
     allowed: rateLimitAllows,
     retryAfter: 60,

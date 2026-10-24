@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { RRule } from 'rrule'
-import {
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { RRule } = await import('rrule')
+const {
   adaptRuleToStart,
   expandSeriesView,
   optimisticFollowingSplit,
@@ -8,11 +9,9 @@ import {
   shiftExdates,
   shiftToAnchorClock,
   toRfcStamp,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
-import {
-  planInstanceChange,
-  type InstanceChangePlan,
-} from '@/lib/event-service'
+} = await import('@zntr/ui/calendar/lib/recurrence/engine')
+const { planInstanceChange } = await import('@/lib/event-service')
+import type { InstanceChangePlan } from '@/lib/event-service'
 
 interface StoreEvent {
   id: string

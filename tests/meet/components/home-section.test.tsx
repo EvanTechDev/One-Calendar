@@ -1,17 +1,18 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import {
-  act,
-  render,
-  cleanup,
-  screen,
-  fireEvent,
-  waitFor,
-} from '@testing-library/react'
-import { HomeSection } from '@/components/dashboard/home-section'
+import { mock as moduleMock, setSystemTime } from 'bun:test'
+import { appModule } from '../../support/modules'
+const { unstubAllGlobals, stubGlobal } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, vi, afterEach } from 'bun:test'
+const { act, render, cleanup, screen, fireEvent, waitFor } =
+  await import('@testing-library/react')
+
 import type { UpcomingRow } from '@/hooks/use-upcoming-meetings'
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }))
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+const { push } = (() => ({ push: vi.fn() }))()
+moduleMock.module(appModule('meet', 'next/navigation'), () => ({
+  useRouter: () => ({ push }),
+}))
+const { HomeSection } = await import('@/components/dashboard/home-section')
 
 /**
  * Home after the redesign. The behaviours worth pinning are that it is not an
@@ -53,7 +54,7 @@ function renderHome(overrides?: {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
   vi.clearAllMocks()
 })
 
@@ -94,7 +95,7 @@ describe('HomeSection', () => {
     const readText = vi
       .fn()
       .mockResolvedValue('https://meet.example.com/ab3k-x9q2#secret')
-    vi.stubGlobal(
+    stubGlobal(
       'navigator',
       Object.create(navigator, {
         clipboard: { value: { readText } },
@@ -115,7 +116,7 @@ describe('HomeSection', () => {
   })
 
   it('keeps manual entry usable when clipboard access is denied', async () => {
-    vi.stubGlobal(
+    stubGlobal(
       'navigator',
       Object.create(navigator, {
         clipboard: {
@@ -186,7 +187,7 @@ describe('HomeSection', () => {
 
   it('updates the scheduled countdown and advances when a meeting ends', () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-10-04T09:00:00Z'))
+    setSystemTime(new Date('2026-10-04T09:00:00Z'))
     renderHome({
       rows: [
         row({
@@ -216,7 +217,7 @@ describe('HomeSection', () => {
 
   it('refreshes immediately on tab return after timers have been throttled', () => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-10-04T09:00:00Z'))
+    setSystemTime(new Date('2026-10-04T09:00:00Z'))
     renderHome({
       rows: [
         row({
@@ -225,7 +226,7 @@ describe('HomeSection', () => {
         }),
       ],
     })
-    vi.setSystemTime(new Date('2026-10-04T09:03:00Z'))
+    setSystemTime(new Date('2026-10-04T09:03:00Z'))
     fireEvent(document, new Event('visibilitychange'))
     expect(screen.queryByText('Weekly standup')).toBeNull()
     expect(screen.getByText(/Nothing on your calendar/)).toBeTruthy()

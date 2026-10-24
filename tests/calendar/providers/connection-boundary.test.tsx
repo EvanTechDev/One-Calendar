@@ -1,20 +1,23 @@
-import { useEffect, useState } from 'react'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-import {
-  CalendarHostProvider,
-  useCalendarHost,
-  type CalendarHost,
-} from '@zntr/utils/calendar-host'
-import { ConnectionBoundary } from '@zntr/ui/calendar/components/connection-boundary'
-import { Dialog, DialogContent, DialogTitle } from '@zntr/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '@zntr/ui/popover'
+await import('./../../support/dom')
+const { useEffect, useState } = await import('react')
+const { act, fireEvent, render, screen, waitFor } =
+  await import('@testing-library/react')
+import { describe, expect, it, vi } from 'bun:test'
+const { CalendarHostProvider, useCalendarHost } =
+  await import('@zntr/utils/calendar-host')
+import type { CalendarHost } from '@zntr/utils/calendar-host'
+const { ConnectionBoundary } =
+  await import('@zntr/ui/calendar/components/connection-boundary')
+const { Dialog, DialogContent, DialogTitle } = await import('@zntr/ui/dialog')
+const { Popover, PopoverContent, PopoverTrigger } =
+  await import('@zntr/ui/popover')
 
 function fixture(
   request: typeof fetch,
   mounted: () => void,
   portal?: 'dialog' | 'popover',
   checkConnection?: () => Promise<boolean>,
+  onReconnect?: () => void | Promise<void>,
 ) {
   const host: CalendarHost = {
     platform: 'web',
@@ -65,7 +68,10 @@ function fixture(
   }
   return render(
     <CalendarHostProvider value={host}>
-      <ConnectionBoundary checkConnection={checkConnection}>
+      <ConnectionBoundary
+        checkConnection={checkConnection}
+        onReconnect={onReconnect}
+      >
         {portal ? <PortalledEditor /> : <Editor />}
       </ConnectionBoundary>
     </CalendarHostProvider>,
@@ -73,7 +79,7 @@ function fixture(
 }
 
 describe('shared connection recovery', () => {
-  it('shows the offline screen while the initial desktop connection probe is pending', async () => {
+  it('does not claim an outage while the initial desktop probe is pending', async () => {
     let resolveProbe: (connected: boolean) => void = () => {}
     const checkConnection = vi.fn(
       () =>
@@ -84,11 +90,9 @@ describe('shared connection recovery', () => {
     const view = fixture(vi.fn(), vi.fn(), undefined, checkConnection)
 
     expect(
-      screen.getByRole('heading', { name: 'No internet connection' }),
-    ).toBeVisible()
-    expect(view.container.querySelector('[inert]')).toHaveStyle({
-      visibility: 'hidden',
-    })
+      screen.queryByRole('heading', { name: 'No internet connection' }),
+    ).toBeNull()
+    expect(view.container.querySelector('[inert]')).toBeNull()
 
     await act(async () => resolveProbe(false))
     expect(
@@ -108,8 +112,8 @@ describe('shared connection recovery', () => {
     const view = fixture(vi.fn(), vi.fn(), undefined, checkConnection)
 
     expect(
-      screen.getByRole('heading', { name: 'No internet connection' }),
-    ).toBeVisible()
+      screen.queryByRole('heading', { name: 'No internet connection' }),
+    ).toBeNull()
     await act(async () => resolveProbe(true))
     expect(
       screen.queryByRole('heading', { name: 'No internet connection' }),
@@ -201,6 +205,26 @@ describe('shared connection recovery', () => {
     view.unmount()
   })
 
+  it('confirms connectivity before treating a native request rejection as an outage', async () => {
+    const check = vi.fn(async () => true)
+    const view = fixture(
+      vi.fn(async () => {
+        throw new Error('The account changed during this request')
+      }),
+      vi.fn(),
+      undefined,
+      check,
+    )
+    await act(async () => {
+      fireEvent.click(screen.getByText('Load'))
+    })
+    expect(check).toHaveBeenCalledTimes(2)
+    expect(
+      screen.queryByRole('heading', { name: 'No internet connection' }),
+    ).toBeNull()
+    view.unmount()
+  })
+
   it('uses offline/online signals to cover lost connectivity without a calendar request', async () => {
     const view = fixture(
       vi.fn(async () => new Response(null, { status: 204 })),
@@ -218,6 +242,28 @@ describe('shared connection recovery', () => {
     expect(
       screen.queryByRole('heading', { name: 'No internet connection' }),
     ).toBeNull()
+    view.unmount()
+  })
+
+  it('does not turn a session refresh failure into an outage after a successful probe', async () => {
+    const onReconnect = vi.fn(async () => {
+      throw new Error('Session expired')
+    })
+    const view = fixture(
+      vi.fn(),
+      vi.fn(),
+      undefined,
+      async () => true,
+      onReconnect,
+    )
+    await act(async () => {})
+    act(() => window.dispatchEvent(new Event('offline')))
+    await act(async () => window.dispatchEvent(new Event('online')))
+    expect(onReconnect).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('heading', { name: 'No internet connection' }),
+    ).toBeNull()
+    expect(view.container.querySelector('[inert]')).toBeNull()
     view.unmount()
   })
 

@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "app.zntr.calendar",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "bun run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -18,8 +18,10 @@
         "create": false,
         "width": 1320,
         "height": 880,
-        "resizable": false,
-        "maximizable": false,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "maximizable": true,
         "visible": false,
         "url": "index.html"
       }

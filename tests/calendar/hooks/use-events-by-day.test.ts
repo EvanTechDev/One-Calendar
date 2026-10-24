@@ -1,9 +1,8 @@
-import { describe, it, expect } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import {
-  eventsOnDay,
-  useEventsByDay,
-} from '@zntr/ui/calendar/hooks/use-events-by-day'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { renderHook } = await import('@testing-library/react')
+const { eventsOnDay, useEventsByDay } =
+  await import('@zntr/ui/calendar/hooks/use-events-by-day')
 import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 
 const baseEvent: CalendarEvent = {

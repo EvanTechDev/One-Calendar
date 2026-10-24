@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
 /**
  * The MCP throttle's boundary.
@@ -9,12 +11,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  * than `count <= maxRpm` — the inclusive form allows request N+1. Nothing
  * exercised that edge, which is why it shipped wrong.
  */
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   auditCount: 0,
   rateLimitRpm: 60,
-}))
+}))()
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     // A thenable chain that ignores the query it is handed and answers with the
     // count the test wants. The point under test is the comparison, not the
@@ -30,7 +32,7 @@ vi.mock('@/lib/drizzle/client', () => ({
   }),
 }))
 
-vi.mock('@/lib/mcp/settings', () => ({
+moduleMock.module('@/lib/mcp/settings', () => ({
   getMcpSettings: async () => ({ rateLimitRpm: mocks.rateLimitRpm }),
 }))
 

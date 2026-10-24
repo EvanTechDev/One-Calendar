@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { expect, it } from 'bun:test'
 import { betterAuth } from 'better-auth'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { createDrizzleAdapter } from '@zntr/auth/adapter'

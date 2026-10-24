@@ -1,0 +1,5 @@
+{
+  "extends": "../../apps/calendar/tsconfig.json",
+  "include": ["./**/*.ts", "./**/*.tsx"],
+  "exclude": ["node_modules", "visual"]
+}

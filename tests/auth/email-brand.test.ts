@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { authEmailBrand, type EmailBrand } from '@zntr/auth/email-brand'
 
 /**

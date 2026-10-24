@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
 /**
  * Meet's auth surface.
@@ -18,16 +20,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  * of `@zntr/auth` replaces the whole handler, so any bot assertion made through
  * this route would only be asserting that the mock is not the real thing.
  */
-const { handled, limiter } = vi.hoisted(() => ({
+const { handled, limiter } = (() => ({
   handled: vi.fn(() => new Response('delegated', { status: 200 })),
   limiter: vi.fn(async () => ({ allowed: true, retryAfter: 11 })),
-}))
+}))()
 
-vi.mock('@zntr/auth', () => ({
+moduleMock.module('@zntr/auth', () => ({
   toNextJsHandler: () => ({ GET: handled, POST: handled }),
 }))
-vi.mock('@/lib/auth', () => ({ getAuth: () => ({}) }))
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/auth', () => ({ getAuth: () => ({}) }))
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: limiter,
   clientAddress: () => '203.0.113.1',
 }))

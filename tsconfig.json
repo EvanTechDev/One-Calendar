@@ -1,4 +1,18 @@
 {
+  "files": [],
+  "references": [
+    { "path": "./apps/calendar" },
+    { "path": "./apps/calendar-client" },
+    { "path": "./apps/meet" },
+    { "path": "./apps/web" },
+    { "path": "./docs" },
+    { "path": "./packages/agent" },
+    { "path": "./packages/auth" },
+    { "path": "./packages/i18n" },
+    { "path": "./packages/meetings" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/utils" }
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext", "ES2022"],

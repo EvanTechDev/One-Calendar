@@ -1,12 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  checkFixedWindowLimit,
-  cleanupRateLimitCounters,
-  clientIpFrom,
-  rateLimitedResponse,
-} from '@/lib/rate-limit'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
-const mocks = vi.hoisted(() => {
+const mocks = (() => {
   const db = { handle: 'db' }
   return {
     db,
@@ -14,13 +10,19 @@ const mocks = vi.hoisted(() => {
     countAgainst: vi.fn(async () => ({ allowed: true, retryAfter: 60 })),
     dropClosedCounters: vi.fn(async () => 3),
   }
-})
+})()
 
-vi.mock('@/lib/drizzle/client', () => ({ getDb: mocks.getDb }))
-vi.mock('@zntr/auth/rate-limit', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({ getDb: mocks.getDb }))
+moduleMock.module('@zntr/auth/rate-limit', () => ({
   checkFixedWindowLimit: mocks.countAgainst,
   cleanupRateLimitCounters: mocks.dropClosedCounters,
 }))
+const {
+  checkFixedWindowLimit,
+  cleanupRateLimitCounters,
+  clientIpFrom,
+  rateLimitedResponse,
+} = await import('@/lib/rate-limit')
 
 /**
  * The counting itself — allow up to the limit, block past it, keep concurrent

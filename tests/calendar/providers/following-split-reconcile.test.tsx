@@ -1,14 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, render, waitFor } from '@testing-library/react'
-import { SWRConfig, useSWRConfig } from 'swr'
-import {
-  DataProvider,
-  useData,
-} from '@zntr/ui/calendar/components/providers/data-provider'
-import {
-  CalendarProvider,
-  useCalendar,
-} from '@zntr/ui/calendar/components/providers/calendar-context'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { act, render, waitFor } = await import('@testing-library/react')
+const { SWRConfig, useSWRConfig } = await import('swr')
+const { DataProvider, useData } =
+  await import('@zntr/ui/calendar/components/providers/data-provider')
+const { CalendarProvider, useCalendar } =
+  await import('@zntr/ui/calendar/components/providers/calendar-context')
 import type { CalendarEvent } from '@zntr/ui/calendar/components/providers/calendar-context'
 import type { api, EventData } from '@zntr/ui/calendar/lib/api-client'
 
@@ -28,11 +26,13 @@ type Resolver = (value: {
 
 // FIFO list (not a Map keyed by url): concurrent requests can share the same
 // url (e.g. two overlapping POST /api/events) and must be resolvable in order.
-let pending: { key: string; resolve: Resolver }[] = []
+let pending: { key: string; method: string; resolve: Resolver }[] = []
 
-const resolveJson = (url: string, body: unknown) => {
+const resolveJson = (url: string, body: unknown, method?: string) => {
   const idx = pending.findIndex(
-    (p) => p.key === url || p.key.startsWith(`${url}?`),
+    (p) =>
+      (p.key === url || p.key.startsWith(`${url}?`)) &&
+      (!method || p.method === method),
   )
   if (idx < 0) throw new Error(`no pending fetch for ${url}`)
   const [entry] = pending.splice(idx, 1)
@@ -122,16 +122,24 @@ let upsertFn:
 let swrCache: { clear?: () => void } | null = null
 let deleteFn: ReturnType<typeof useData>['deleteEvent']
 let refreshFn: ReturnType<typeof useData>['refreshEvents']
+let revalidateFn: () => Promise<unknown>
+
+const pendingEventGets = () =>
+  pending.filter((p) => p.method === 'GET' && p.key.startsWith('/api/events?'))
 
 function Probe() {
   const { events } = useCalendar()
   const data = useData()
-  const { cache } = useSWRConfig()
+  const { cache, mutate } = useSWRConfig()
   swrCache = cache as unknown as { clear?: () => void }
   storeEvents = events
   upsertFn = data.upsertEvent
   deleteFn = data.deleteEvent
   refreshFn = data.refreshEvents
+  // Exercise SWR's direct focus/reconnect revalidation as well as the guarded
+  // application refresh. The latter intentionally queues while a write runs.
+  revalidateFn = () =>
+    mutate((key) => typeof key === 'string' && key.startsWith('/api/events?'))
   return null
 }
 
@@ -189,13 +197,14 @@ describe('following-split reconciliation (ghost regression)', () => {
     storeEvents = []
     upsertFn = null
     swrCache?.clear?.()
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
       vi.fn(
-        (input: RequestInfo | URL) =>
+        (input: RequestInfo | URL, init?: RequestInit) =>
           new Promise((resolve) => {
             pending.push({
               key: String(input),
+              method: init?.method ?? 'GET',
               resolve: resolve as unknown as Resolver,
             })
           }),
@@ -203,12 +212,13 @@ describe('following-split reconciliation (ghost regression)', () => {
     )
   })
 
-  afterEach(() => {
-    for (const entry of pending) {
-      entry.resolve({ ok: true, status: 200, json: async () => ({}) })
-    }
-    pending = []
-    vi.unstubAllGlobals()
+  afterEach(async () => {
+    await act(async () => {
+      for (const entry of pending.splice(0)) {
+        entry.resolve({ ok: true, status: 200, json: async () => ({}) })
+      }
+    })
+    unstubAllGlobals()
   })
 
   it.each(['before', 'during'] as const)(
@@ -216,11 +226,13 @@ describe('following-split reconciliation (ghost regression)', () => {
     async (timing) => {
       const seed = [evt()]
       await seedApp(seed)
-      let refreshing: ReturnType<typeof refreshFn>
-      if (timing === 'before')
+      let refreshing: Promise<unknown>
+      if (timing === 'before') {
         act(() => {
-          refreshing = refreshFn()
+          refreshing = revalidateFn()
         })
+        await waitFor(() => expect(pendingEventGets()).toHaveLength(1))
+      }
       let deleting: Promise<void>
       act(() => {
         deleting = deleteFn(seed[0].id, undefined, 'UTC')
@@ -232,31 +244,52 @@ describe('following-split reconciliation (ghost regression)', () => {
       )
       if (timing === 'during') {
         act(() => {
-          refreshing = refreshFn()
+          refreshing = revalidateFn()
         })
-        // Resolve the later GET first, leaving the earlier DELETE pending.
-        pending.push(pending.shift()!)
+        await waitFor(() => expect(pendingEventGets()).toHaveLength(1))
       }
-      resolveJson('/api/events', { events: seed })
+      resolveJson('/api/events', { events: seed }, 'GET')
       await act(async () => {
         await refreshing
       })
       expect(storeEvents).toHaveLength(0)
-      resolveJson('/api/events', { success: true })
+      resolveJson('/api/events', { success: true }, 'DELETE')
       await act(async () => {
         await deleting
       })
       expect(storeEvents).toHaveLength(0)
-      act(() => {
-        refreshing = refreshFn()
-      })
-      resolveJson('/api/events', { events: [] })
+      // A successful write schedules its own authoritative reconciliation.
+      await waitFor(() => expect(pendingEventGets()).toHaveLength(1))
       await act(async () => {
-        await refreshing
+        resolveJson('/api/events', { events: [] }, 'GET')
       })
       expect(storeEvents).toHaveLength(0)
     },
   )
+
+  it('queues an application refresh until the pending DELETE is durable', async () => {
+    const seed = [evt()]
+    await seedApp(seed)
+    let deleting: Promise<void>
+    act(() => {
+      deleting = deleteFn(seed[0].id)
+    })
+    await waitFor(() => expect(storeEvents).toHaveLength(0))
+    await act(async () => {
+      await refreshFn()
+    })
+    expect(pendingEventGets()).toHaveLength(0)
+    expect(pending.some((p) => p.method === 'DELETE')).toBe(true)
+    await act(async () => {
+      resolveJson('/api/events', { success: true }, 'DELETE')
+      await deleting
+    })
+    await waitFor(() => expect(pendingEventGets()).toHaveLength(1))
+    await act(async () => {
+      resolveJson('/api/events', { events: [] }, 'GET')
+    })
+    expect(storeEvents).toHaveLength(0)
+  })
 
   it('rolls back a failed durable deletion', async () => {
     const seed = [evt()]

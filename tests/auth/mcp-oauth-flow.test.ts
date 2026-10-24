@@ -1,6 +1,5 @@
-// @vitest-environment node
 import { createHash, randomBytes } from 'node:crypto'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { betterAuth } from 'better-auth'
 import { verifyJwsAccessToken } from '@better-auth/core/oauth2'
 import { memoryAdapter } from '@better-auth/memory-adapter'

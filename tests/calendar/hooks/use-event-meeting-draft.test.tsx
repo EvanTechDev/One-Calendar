@@ -1,3 +1,6 @@
+import { mock as moduleMock } from 'bun:test'
+const { stubGlobal, unstubAllGlobals } = await import('./../../support/stubs')
+await import('./../../support/dom')
 /**
  * The event editor's Meeting lifecycle.
  *
@@ -23,11 +26,11 @@
  * useLiveAnchorRect loop forever), which is why this lifecycle lives in a hook
  * that can be.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act, waitFor } from '../host-render'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { renderHook, act, waitFor } = await import('../host-render')
 
 const toastError = vi.fn()
-vi.mock('sonner', () => ({
+moduleMock.module('sonner', () => ({
   toast: {
     error: (...args: unknown[]) => toastError(...args),
     success: vi.fn(),
@@ -53,7 +56,7 @@ beforeEach(() => {
   nextId = 0
   postOk = true
   toastError.mockClear()
-  vi.stubGlobal(
+  stubGlobal(
     'fetch',
     vi.fn(async (input: string, init?: RequestInit) => {
       calls.push({
@@ -78,7 +81,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  unstubAllGlobals()
 })
 
 const posts = () => calls.filter((c) => c.method === 'POST')

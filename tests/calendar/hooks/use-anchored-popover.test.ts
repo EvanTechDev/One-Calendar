@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+await import('./../../support/dom')
 /**
  * Positioning rules for the anchored popovers (event preview + editor).
  *
@@ -10,15 +10,15 @@
  * a near-full-width anchor — neither side fit — and flipped above/below; week
  * view attached at the block's vertical middle regardless of the click.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import {
+import { describe, it, expect, afterEach, vi } from 'bun:test'
+const { renderHook, act } = await import('@testing-library/react')
+const {
   pickPopoverSide,
   buildAnchorStyle,
   anchorRectForClick,
   clampRectToViewport,
   useLiveAnchorRect,
-} from '@zntr/ui/calendar/hooks/use-anchored-popover'
+} = await import('@zntr/ui/calendar/hooks/use-anchored-popover')
 
 const WIDTH = 460
 const HEIGHT = 520

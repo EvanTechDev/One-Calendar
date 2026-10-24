@@ -1,5 +1,4 @@
-// @vitest-environment node
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { authRouteIsExposed } from '@zntr/auth/route-policy'
 
 /**
@@ -24,6 +23,22 @@ describe('authRouteIsExposed', () => {
   it('exposes recovery', () => {
     expect(authRouteIsExposed('POST', 'forget-password')).toBe(true)
     expect(authRouteIsExposed('POST', 'reset-password')).toBe(true)
+  })
+
+  it('allows the emailed reset callback without exposing arbitrary subroutes', () => {
+    expect(authRouteIsExposed('GET', 'reset-password/example-token')).toBe(true)
+    for (const path of [
+      'reset-password',
+      'reset-password/',
+      'reset-password/../admin',
+      'reset-password/token/extra',
+      'reset-password/%2fadmin',
+    ]) {
+      expect(authRouteIsExposed('GET', path)).toBe(false)
+    }
+    expect(authRouteIsExposed('POST', 'reset-password/example-token')).toBe(
+      false,
+    )
   })
 
   it('exposes the OTP endpoints the shared forms call', () => {

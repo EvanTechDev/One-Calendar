@@ -26,13 +26,13 @@
     "./route-policy": "./src/route-policy.ts"
   },
   "scripts": {
-    "build": "tsc",
-    "build:check": "tsc && tsc --noEmit",
+    "build": "bun check",
+    "build:check": "bun check && bun check",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/auth/",
+    "test:watch": "bun test --isolate --watch ../../tests/auth/"
   },
   "dependencies": {
     "@better-auth/cimd": "1.7.7",
@@ -61,8 +61,7 @@
     "@types/react": "19.2.2",
     "jsdom": "^29.1.1",
     "react": "19.2.7",
-    "react-dom": "19.2.7",
-    "vitest": "^4.1.10"
+    "react-dom": "19.2.7"
   },
   "peerDependencies": {
     "react": "^19.2.7",

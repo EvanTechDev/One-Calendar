@@ -1,23 +1,23 @@
-// @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { describe, it, expect, vi, beforeEach } from 'bun:test'
 
 // `field-crypto` reads SALT at module load, and static imports run before any
 // statement in this file — so the assignment has to be hoisted too.
-vi.hoisted(() => {
+;(() => {
   process.env.SALT = 'analytics-tools-test-salt-key'
-})
+})()
 
-const state = vi.hoisted(() => ({
+const state = (() => ({
   settings: {} as Record<string, unknown>,
   eventRows: [] as Record<string, unknown>[],
   categoryRows: [] as { id: string; name: string }[],
-}))
+}))()
 
-vi.mock('@/lib/mcp/settings-tools', () => ({
+moduleMock.module('@/lib/mcp/settings-tools', () => ({
   getSettings: vi.fn(async () => state.settings),
 }))
 
-vi.mock('@/lib/drizzle/client', () => {
+moduleMock.module('@/lib/drizzle/client', () => {
   // A minimal select-only fake: every query resolves with whichever row set
   // matches the from() table, ignoring where-conditions (tests pre-filter).
   const makeQuery = (rows: unknown[]) => {
@@ -37,15 +37,17 @@ vi.mock('@/lib/drizzle/client', () => {
     })),
   }
 })
-
-import {
+const {
   resolveAnalyticsRange,
   getAnalyticsSummary,
   getTimeDistribution,
   getAnalyticsInsights,
-} from '@/lib/mcp/analytics-tools'
-import { InvalidEventQueryError } from '@/lib/mcp/errors'
-import { encryptField, FieldDecryptionError } from '@/lib/field-crypto'
+} = await import('@/lib/mcp/analytics-tools')
+
+const { InvalidEventQueryError } = await import('@/lib/mcp/errors')
+
+const { encryptField, FieldDecryptionError } =
+  await import('@/lib/field-crypto')
 
 function eventRow(overrides: Record<string, unknown> = {}) {
   return {

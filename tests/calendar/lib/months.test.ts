@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { affectedMonths } from '@/lib/months'
+await import('./../../support/dom')
+import { describe, expect, it } from 'bun:test'
+const { affectedMonths } = await import('@/lib/months')
 
 /**
  * The months a requested range touches.

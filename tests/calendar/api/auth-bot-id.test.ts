@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * What this route owns around BotID.
  *
@@ -18,34 +18,34 @@
  * is mocked here, so such a test would only assert that the mock is not the
  * real handler.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
+const mocks = (() => ({
   handler: vi.fn(async (request: Request) =>
     Response.json(await request.json()),
   ),
   limiter: vi.fn(),
   audit: vi.fn(),
-}))
-vi.mock('@zntr/auth', () => ({
+}))()
+moduleMock.module('@zntr/auth', () => ({
   toNextJsHandler: () => ({ GET: mocks.handler, POST: mocks.handler }),
 }))
-vi.mock('@/lib/auth', () => ({
+moduleMock.module('@/lib/auth', () => ({
   auth: { api: { getSession: async () => null } },
 }))
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({ where: () => ({ limit: async () => [] }) }),
     }),
   }),
 }))
-vi.mock('@/lib/evlog', () => ({
+moduleMock.module('@/lib/evlog', () => ({
   anonymousAuditActor: { type: 'anonymous' },
   withEvlog: (fn: unknown) => fn,
   useLogger: () => ({ audit: mocks.audit }),
 }))
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: mocks.limiter,
   clientIpFrom: () => '203.0.113.8',
   rateLimitedResponse: () => new Response(null, { status: 429 }),

@@ -1,13 +1,14 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   COLOR_OPTIONS,
   COLOR_NAMES,
   COLOR_HEX_VALUES,
   normalizeColor,
   normalizeCountdownColor,
   COUNTDOWN_COLOR_NAMES,
-} from '@/lib/mcp/colors'
-import { EVENT_COLORS } from '@zntr/ui/calendar/lib/event-colors'
+} = await import('@/lib/mcp/colors')
+const { EVENT_COLORS } = await import('@zntr/ui/calendar/lib/event-colors')
 
 describe('mcp colors', () => {
   it('offers a colour for every selectable event colour', () => {

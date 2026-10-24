@@ -1,12 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { uuid } from '@zntr/ui/calendar/lib/uuid'
+const { unstubAllGlobals, stubGlobal } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { afterEach, describe, expect, it, vi } from 'bun:test'
+const { uuid } = await import('@zntr/ui/calendar/lib/uuid')
 
 const V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 describe('uuid', () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('returns a valid v4 uuid with native crypto.randomUUID', () => {
@@ -14,7 +16,7 @@ describe('uuid', () => {
   })
 
   it('falls back to getRandomValues when randomUUID is missing (insecure origin)', () => {
-    vi.stubGlobal('crypto', {
+    stubGlobal('crypto', {
       getRandomValues: (arr: Uint8Array) => {
         for (let i = 0; i < arr.length; i++) arr[i] = (i * 17 + 11) % 256
         return arr
@@ -27,12 +29,12 @@ describe('uuid', () => {
   })
 
   it('falls back to Math.random when no crypto exists at all', () => {
-    vi.stubGlobal('crypto', undefined)
+    stubGlobal('crypto', undefined)
     expect(uuid()).toMatch(V4)
   })
 
   it('never throws and produces unique ids', () => {
-    vi.stubGlobal('crypto', undefined)
+    stubGlobal('crypto', undefined)
     const ids = new Set(Array.from({ length: 200 }, () => uuid()))
     expect(ids.size).toBe(200)
   })

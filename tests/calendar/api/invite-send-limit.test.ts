@@ -1,27 +1,36 @@
-// @vitest-environment node
-import { beforeEach, expect, it, vi } from 'vitest'
+import { mock as moduleMock } from 'bun:test'
+import { beforeEach, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
-const state = vi.hoisted(() => ({ authenticated: true, remaining: 1 }))
-vi.mock('drizzle-orm', async (original) => ({
-  ...(await original<typeof import('drizzle-orm')>()),
+const state = (() => ({ authenticated: true, remaining: 1 }))()
+const nativeOriginal1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => ({
+  ...nativeOriginal1,
   ...(await import('./route-test-db')).drizzleOperatorsMock,
 }))
-vi.mock('@/lib/drizzle/client', () => ({ getDb: () => getFakeDb().db }))
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
+  getDb: () => getFakeDb().db,
+}))
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => (state.authenticated ? { id: 'owner' } : null),
 }))
-vi.mock('@/lib/field-crypto', () => ({
+const originalFieldCrypto = { ...(await import('@/lib/field-crypto')) }
+moduleMock.module('@/lib/field-crypto', () => ({
+  ...originalFieldCrypto,
   decryptField: (_id: string, v: unknown) => v,
 }))
-vi.mock('@/lib/invites/meeting-link', () => ({
+moduleMock.module('@/lib/invites/meeting-link', () => ({
   resolveMeetingUrl: async () => null,
 }))
-vi.mock('@/lib/invites/invite-service', () => ({
+const originalInviteService = {
+  ...(await import('@/lib/invites/invite-service')),
+}
+moduleMock.module('@/lib/invites/invite-service', () => ({
+  ...originalInviteService,
   resendInviteEmail: vi.fn(async () => true),
 }))
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: vi.fn(async () => ({
     allowed: state.remaining-- > 0,
     retryAfter: 60,
@@ -32,10 +41,14 @@ vi.mock('@/lib/rate-limit', () => ({
       headers: { 'Retry-After': String(seconds) },
     }),
 }))
-import { POST as resend } from '@/app/api/invites/manage/route'
-import { POST as send } from '@/app/api/invites/route'
-import { resendInviteEmail } from '@/lib/invites/invite-service'
-import { checkFixedWindowLimit } from '@/lib/rate-limit'
+const { POST: resend } = await import('@/app/api/invites/manage/route')
+
+const { POST: send } = await import('@/app/api/invites/route')
+
+const { resendInviteEmail } = await import('@/lib/invites/invite-service')
+
+const { checkFixedWindowLimit } = await import('@/lib/rate-limit')
+
 const fake = getFakeDb()
 const request = () =>
   new NextRequest('http://localhost/api/invites/manage', {
@@ -67,7 +80,7 @@ it('shares the send budget with resends and returns Retry-After before sending',
   expect(blocked.status).toBe(429)
   expect(blocked.headers.get('Retry-After')).toBe('60')
   expect(resendInviteEmail).toHaveBeenCalledTimes(1)
-  for (const [input] of vi.mocked(checkFixedWindowLimit).mock.calls) {
+  for (const [input] of checkFixedWindowLimit.mock.calls) {
     expect(input).toEqual({
       name: 'invite-send',
       subject: 'owner',

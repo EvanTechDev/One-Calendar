@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * Lifecycle tests for scheduled reminder emails.
  *
@@ -7,39 +7,37 @@
  * the user about a deleted event. See
  * ADR-0010 (email reminders are opt-in per event and scheduled through Resend).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-
-vi.hoisted(() => {
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
+;(() => {
   process.env.SALT = 'reminder-test-only-encryption-salt'
-})
-const provider = vi.hoisted(() => ({
+})()
+const provider = (() => ({
   scheduleEmail: vi.fn(
     async (_payload: Record<string, unknown>) => 'provider-1',
   ),
   rescheduleEmail: vi.fn(async () => true),
   cancelEmail: vi.fn(async () => true),
   scheduledEmailStatus: vi.fn(async () => 'unknown'),
-}))
+}))()
 
-const renderReminder = vi.hoisted(() =>
-  vi.fn(async (params: unknown) => JSON.stringify(params)),
-)
+const renderReminder = (() =>
+  vi.fn(async (params: unknown) => JSON.stringify(params)))()
 
-vi.mock('@/lib/email/send-scheduled-email', () => ({
+moduleMock.module('@/lib/email/send-scheduled-email', () => ({
   ...provider,
   MAX_SCHEDULE_AHEAD_MS: 30 * 24 * 60 * 60 * 1000,
   EmailProviderUnavailable: class extends Error {},
 }))
 
-vi.mock('@/lib/email/reminder-template', () => ({
+moduleMock.module('@/lib/email/reminder-template', () => ({
   buildReminderEmail: renderReminder,
 }))
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   decryptEvent: (e: unknown) => e,
   getAuthedUser: async () => ({ id: 'u1', email: 'u1@example.com' }),
 }))
-vi.mock('@/lib/event-crypto', () => ({
+moduleMock.module('@/lib/event-crypto', () => ({
   decryptEvent: (event: unknown) => event,
 }))
 
@@ -51,7 +49,7 @@ const tables: Record<string, Array<Record<string, unknown>>> = {
   reminder_locks: [],
 }
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => makeDb(),
 }))
 
@@ -135,8 +133,9 @@ function camel(s: string): string {
   return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     eq: (c: { name: string }, v: unknown) => (r: Record<string, unknown>) =>
@@ -161,8 +160,9 @@ vi.mock('drizzle-orm', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/drizzle/schema', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/drizzle/schema')>()
+const originalModule2 = { ...(await import('@/lib/drizzle/schema')) }
+moduleMock.module('@/lib/drizzle/schema', async () => {
+  const actual = originalModule2
   const named = (t: object, name: string) =>
     Object.assign({}, t, { __name: name })
   return {
@@ -174,15 +174,15 @@ vi.mock('@/lib/drizzle/schema', async (importOriginal) => {
     reminderLocks: named(actual.reminderLocks, 'reminder_locks'),
   }
 })
-
-import {
+const {
   cancelRemindersForEvents,
   reconcileEventReminders,
   clearRemindersPastSplit,
   pruneSpentReminders,
   pendingReminderEvents,
-} from '@/lib/reminders/reconcile'
-import { SendQuotaExceeded } from '@/lib/reminders/email-schedule'
+} = await import('@/lib/reminders/reconcile')
+
+const { SendQuotaExceeded } = await import('@/lib/reminders/email-schedule')
 
 const HOUR = 3_600_000
 const DAY = 86_400_000
