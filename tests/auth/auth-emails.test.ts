@@ -18,6 +18,16 @@ const brand = authEmailBrand({
 
 let sent: Array<{ to: string; subject: string; html: string; from: string }>
 
+const stripHtmlComments = (input: string): string => {
+  let previous: string
+  let current = input
+  do {
+    previous = current
+    current = current.replace(/<!--.*?-->/g, '')
+  } while (current !== previous)
+  return current
+}
+
 const send = vi.fn(async (m: (typeof sent)[number]) => {
   sent.push(m)
 })
@@ -39,9 +49,9 @@ describe('authEmailCallbacks', () => {
     expect(sent[0].from).toContain('Zentra Meet')
     expect(sent[0].html).toContain('Zentra Meet')
     expect(sent[0].html).not.toContain('Zentra Calendar')
-    const footer = sent[0].html
-      .slice(sent[0].html.lastIndexOf('<hr'))
-      .replace(/<!--.*?-->/g, '')
+    const footer = stripHtmlComments(
+      sent[0].html.slice(sent[0].html.lastIndexOf('<hr')),
+    )
     expect(footer).toContain('Privacy')
     expect(footer).toContain(`© ${new Date().getFullYear()}`)
     expect(footer).toContain(`${brand.appName}. All rights reserved.`)
