@@ -73,20 +73,22 @@ export function LandingFooter() {
           <LandingBrand />
           <p>Events, invitations, and the time between them.</p>
         </div>
-        <nav aria-label="Product">
-          <h2>Product</h2>
-          <a href="/#calendar">Calendar</a>
-          <a href="/#features">Planning tools</a>
-          <a href="/#integrations">AI & integrations</a>
-        </nav>
-        <nav aria-label="Resources">
-          <h2>Resources</h2>
-          <a href={LANDING_DOCS_URL}>Documentation</a>
-          <a href="https://xyehr.cn/changelog">Changelog</a>
-          <a href={LANDING_REPOSITORY_URL}>
-            GitHub <ArrowUpRight aria-hidden="true" />
-          </a>
-        </nav>
+        <div className="landing-footer-link-groups">
+          <nav aria-label="Product">
+            <h2>Product</h2>
+            <a href="/#calendar">Calendar</a>
+            <a href="/#features">Planning tools</a>
+            <a href="/#integrations">AI & integrations</a>
+          </nav>
+          <nav aria-label="Resources">
+            <h2>Resources</h2>
+            <a href={LANDING_DOCS_URL}>Documentation</a>
+            <a href="https://xyehr.cn/changelog">Changelog</a>
+            <a href={LANDING_REPOSITORY_URL}>
+              GitHub <ArrowUpRight aria-hidden="true" />
+            </a>
+          </nav>
+        </div>
         <nav aria-label="Legal">
           <h2>Legal</h2>
           <Link href="/privacy">Privacy policy</Link>

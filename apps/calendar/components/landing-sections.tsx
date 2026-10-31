@@ -38,23 +38,21 @@ export function LandingHero() {
           <br />
           <span>See the whole year.</span>
         </h1>
-        <div className="landing-hero-bottom">
-          <p>
-            Recurring plans, invitations, and reminders. See your events by day,
-            week, month, or year — and organize them your way.
-          </p>
-          <div className="landing-actions">
-            <Button asChild size="sm">
-              <Link href="/sign-up">
-                Create account <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="ghost">
-              <a href="#calendar">
-                Take a look <ArrowDown aria-hidden="true" />
-              </a>
-            </Button>
-          </div>
+        <p>
+          Recurring plans, invitations, and reminders. See your events by day,
+          week, month, or year — and organize them your way.
+        </p>
+        <div className="landing-actions">
+          <Button asChild size="sm">
+            <Link href="/sign-up">
+              Create account <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <a href="#calendar">
+              Take a look <ArrowDown aria-hidden="true" />
+            </a>
+          </Button>
         </div>
       </div>
       <div className="landing-product" id="calendar">
@@ -128,10 +126,8 @@ export function LandingFeatures() {
       aria-labelledby="features-title"
     >
       <div className="landing-section-heading">
-        <div>
-          <p className="landing-eyebrow">Everyday planning</p>
-          <h2 id="features-title">A place for the details.</h2>
-        </div>
+        <p className="landing-eyebrow">Everyday planning</p>
+        <h2 id="features-title">A place for the details.</h2>
         <p>Organize the events. Set the pattern. Bring the right people.</p>
       </div>
       <div className="landing-feature-grid">
@@ -173,10 +169,8 @@ export function LandingAutomation() {
       aria-labelledby="automation-title"
     >
       <div className="landing-section-heading">
-        <div>
-          <p className="landing-eyebrow">AI & integrations</p>
-          <h2 id="automation-title">Another way into your calendar.</h2>
-        </div>
+        <p className="landing-eyebrow">AI & integrations</p>
+        <h2 id="automation-title">Another way into your calendar.</h2>
         <p>
           Start with words, or connect an assistant you already use. The
           calendar stays at the center.
@@ -184,6 +178,14 @@ export function LandingAutomation() {
       </div>
       <div className="landing-automation-grid">
         <article className="landing-automation-card">
+          <div className="landing-automation-symbol">
+            <Sparkles aria-hidden="true" />
+          </div>
+          <h3>Start with a sentence.</h3>
+          <p>
+            Fill a new event draft from its title, or open the command palette
+            to ask AI to read, create, and reschedule events.
+          </p>
           <div
             className="landing-assistant-visual"
             aria-label="The command palette provides search and AI commands"
@@ -204,11 +206,6 @@ export function LandingAutomation() {
               </div>
             </div>
           </div>
-          <h3>Start with a sentence.</h3>
-          <p>
-            Fill a new event draft from its title, or open the command palette
-            to ask AI to read, create, and reschedule events.
-          </p>
           <p className="landing-command-key">
             Open the command palette with <kbd>⌘ / Ctrl + K</kbd>.
           </p>
@@ -233,6 +230,14 @@ export function LandingAutomation() {
           </a>
         </article>
         <article className="landing-automation-card">
+          <div className="landing-automation-symbol">
+            <Plug aria-hidden="true" />
+          </div>
+          <h3>Connect your own assistant.</h3>
+          <p>
+            Authorize an MCP client with OAuth or an API key. Grant access by
+            resource, inspect its activity, and revoke it when you’re done.
+          </p>
           <div className="landing-connection-visual">
             <div
               className="landing-mcp-diagram"
@@ -258,11 +263,6 @@ export function LandingAutomation() {
               revoke.
             </span>
           </div>
-          <h3>Connect your own assistant.</h3>
-          <p>
-            Authorize an MCP client with OAuth or an API key. Grant access by
-            resource, inspect its activity, and revoke it when you’re done.
-          </p>
           <div className="landing-scope-list">
             <span>Events</span>
             <span>Categories</span>
@@ -317,10 +317,8 @@ export function LandingTools() {
       aria-labelledby="tools-title"
     >
       <div className="landing-section-heading">
-        <div>
-          <p className="landing-eyebrow">Alongside your events</p>
-          <h2 id="tools-title">The dates worth keeping close.</h2>
-        </div>
+        <p className="landing-eyebrow">Alongside your events</p>
+        <h2 id="tools-title">The dates worth keeping close.</h2>
         <p>
           Return to an event, count down to a milestone, or bring your existing
           calendar data.
