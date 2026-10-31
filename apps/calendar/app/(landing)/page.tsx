@@ -1,27 +1,29 @@
-import { Header } from '@/components/header'
-import { HeroSection } from '@/components/hero'
-import { TestimonialsSection } from '@/components/testimonials-section'
-import { FaqSection } from '@/components/faq-section'
-import { FeatureSection } from '@/components/feature-section'
-import { WorkflowSection } from '@/components/workflow-section'
-import { ResultsSection } from '@/components/results-section'
-import { CallToAction } from '@/components/cta'
-import { Footer } from '@/components/footer'
+import { LandingHeader, LandingFooter } from '@/components/landing-navigation'
+import {
+  LandingHero,
+  LandingFeatures,
+  LandingAutomation,
+  LandingTools,
+  LandingFaq,
+  LandingCallToAction,
+} from '@/components/landing-sections'
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center">
-      <Header />
-      <main className="flex w-full flex-col gap-20">
-        <HeroSection />
-        <WorkflowSection />
-        <FeatureSection />
-        <ResultsSection />
-        <TestimonialsSection />
-        <CallToAction />
-        <FaqSection />
+    <div className="landing-page">
+      <a className="landing-skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <LandingHeader />
+      <main className="landing-frame" id="main-content" tabIndex={-1}>
+        <LandingHero today={new Date().toISOString().slice(0, 10)} />
+        <LandingFeatures />
+        <LandingAutomation />
+        <LandingTools />
+        <LandingFaq />
+        <LandingCallToAction />
       </main>
-      <Footer />
+      <LandingFooter />
     </div>
   )
 }

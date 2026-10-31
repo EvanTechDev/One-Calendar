@@ -1,29 +1,21 @@
-// app/(landing)/layout.tsx
-
 import './landing.css'
-import { Instrument_Sans, Inter, Geist } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 import { cn } from '@zntr/utils'
 import type { Metadata } from 'next'
 import type React from 'react'
-import { APP_SUBTITLE, APP_TITLE } from '@/lib/metadata'
+import { APP_TITLE } from '@/lib/metadata'
 
-const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
-
-const instrumentSans = Instrument_Sans({
-  subsets: ['latin'],
-  variable: '--font-instrument-sans',
-})
+const description =
+  'Plan in day, four-day, week, month, and year views. Organize recurring events, invitations, and reminders, or connect an AI assistant with MCP.'
 
 export const metadata: Metadata = {
   title: APP_TITLE,
-  description: APP_SUBTITLE,
+  description,
   manifest: '/manifest.webmanifest',
   openGraph: {
     title: APP_TITLE,
-    description: APP_SUBTITLE,
+    description,
     url: '/',
   },
 }
@@ -36,11 +28,9 @@ export default function LandingLayout({
   return (
     <div
       className={cn(
-        'landing min-h-dvh font-sans antialiased',
-        inter.variable,
-        geistHeading.variable,
+        'landing min-h-dvh antialiased',
         GeistSans.className,
-        instrumentSans.variable,
+        GeistMono.variable,
       )}
     >
       {children}
