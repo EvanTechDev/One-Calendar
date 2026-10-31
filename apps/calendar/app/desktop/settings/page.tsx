@@ -1,5 +1,5 @@
-import WebAccountPanel from '@/features/account/components/web-account-panel'
-import { requireAppSession } from '@/features/auth/require-session'
+import WebAccountPanel from '@/components/web-account-panel'
+import { requireAppSession } from '@/lib/auth/require-session'
 
 export default async function DesktopSettingsPage({
   searchParams,

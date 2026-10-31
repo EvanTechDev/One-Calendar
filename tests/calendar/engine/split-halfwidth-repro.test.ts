@@ -3,7 +3,7 @@ import { describe, expect, it } from 'bun:test'
 const { expandSeriesView, withUntil } =
   await import('@zntr/calendar/lib/recurrence/engine')
 import type { SeriesViewInput } from '@zntr/calendar/lib/recurrence/engine'
-const { planInstanceChange } = await import('@/features/events/service')
+const { planInstanceChange } = await import('@/lib/events/service')
 
 /**
  * Repro: daily series starting Mon 9:00. Drag Wednesday's instance onto

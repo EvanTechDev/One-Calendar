@@ -8,7 +8,7 @@ import {
   eventStamp,
   openSearch,
   sealSearch,
-} from '@/features/agent/search-session'
+} from '@/lib/agent/search-session'
 import type { AgentEventSummary } from '@zntr/agent/types'
 import {
   buildSearchInstructions,
@@ -21,7 +21,7 @@ import {
   type SearchQuery,
 } from '@zntr/agent/search'
 import { summarizeProviderError } from '@zntr/agent'
-import { createAppToolkit } from '@/features/agent/toolkit'
+import { createAppToolkit } from '@/lib/agent/toolkit'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 

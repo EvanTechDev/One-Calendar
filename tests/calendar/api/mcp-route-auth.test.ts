@@ -22,12 +22,12 @@ moduleMock.module('@zntr/auth/server', () => ({
       }),
 }))
 
-moduleMock.module('@/features/auth', () => ({ auth: {} }))
-moduleMock.module('@/features/mcp/auth-helpers', () => ({
+moduleMock.module('@/lib/auth', () => ({ auth: {} }))
+moduleMock.module('@/lib/mcp/auth-helpers', () => ({
   getMcpApiKeyAuth: mocks.getApiKey,
   getMcpOAuthAuth: mocks.getOAuth,
 }))
-moduleMock.module('@/features/mcp/handler', () => ({
+moduleMock.module('@/lib/mcp/handler', () => ({
   handleMcpRequest: mocks.handle,
 }))
 

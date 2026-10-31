@@ -4,7 +4,7 @@ import { bookmarkedEvents, calendarEvents } from '@/lib/drizzle/schema'
 import { eq, and, desc, inArray } from 'drizzle-orm'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
-import { isEventViewableBy } from '@/features/bookmarks/visibility'
+import { isEventViewableBy } from '@/lib/bookmarks'
 import { parseInstanceId } from '@zntr/calendar/lib/recurrence/engine'
 import { bookmarkSchema, firstZodMessage } from '@/lib/validation'
 

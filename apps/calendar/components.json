@@ -17,7 +17,7 @@
     "utils": "@zntr/utils",
     "ui": "@zntr/ui",
     "lib": "@/lib",
-    "hooks": "@/hooks"
+    "hooks": "@/components"
   },
   "menuColor": "default",
   "menuAccent": "subtle",

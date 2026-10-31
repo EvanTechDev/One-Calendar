@@ -21,7 +21,7 @@ const store = (() => ({
   rsvpCalls: [] as Array<{ kind: 'invite' | 'occurrence'; payload: unknown }>,
 }))()
 
-moduleMock.module('@/features/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   getInvitesByToken: async (token: string) =>
     store.invites.filter((i) => i.inviteToken === token),
   getInviteByToken: async (token: string) =>

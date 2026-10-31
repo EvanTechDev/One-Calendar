@@ -4,7 +4,7 @@ import {
   MIN_RETENTION_DAYS,
   parseRequestedRetentionDays,
   secretMatches,
-} from '@/features/mcp/cleanup-config'
+} from '@/lib/mcp/cleanup-config'
 import {
   MAINTENANCE_JOBS,
   maintenanceSucceeded,

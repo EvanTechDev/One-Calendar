@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server'
 import { and, eq, isNotNull } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents } from '@/lib/drizzle/schema'
-import { secretMatches } from '@/features/mcp/cleanup-config'
+import { secretMatches } from '@/lib/mcp/cleanup-config'
 import {
   pruneSpentReminders,
   reconcileEventReminders,
   pendingReminderEvents,
-} from '@/features/reminders/reconcile'
+} from '@/lib/reminders/reconcile'
 
 export const runtime = 'nodejs'
 

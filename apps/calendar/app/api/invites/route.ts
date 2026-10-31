@@ -11,20 +11,20 @@ import {
   baselineOf,
   removeParticipantFromCalendar,
   readInviteToken,
-} from '@/features/invites/invite-service'
+} from '@/lib/invites/invite-service'
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
   type OccurrenceException,
-} from '@/features/invites/visibility'
+} from '@/lib/invites/visibility'
 import {
   applyScopedParticipantChange,
   resolveParticipantTarget,
   ParticipantScopeError,
-} from '@/features/invites/scoped-invites'
-import { resolveMeetingUrl } from '@/features/invites/meeting-link'
-import { limitInviteSend } from '@/features/invites/send-limit'
-import type { ApplyTo } from '@/features/events/service'
+} from '@/lib/invites/scoped-invites'
+import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
+import { limitInviteSend } from '@/lib/invites/send-limit'
+import type { ApplyTo } from '@/lib/events/service'
 import { isEmail } from '@zntr/calendar/lib/email'
 
 const PARTICIPANT_SCOPES: ApplyTo[] = ['single', 'following', 'all']

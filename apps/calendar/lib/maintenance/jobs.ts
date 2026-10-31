@@ -2,8 +2,8 @@ import { sql } from 'drizzle-orm'
 import { deleteExpiredMeetings } from '@zntr/meetings'
 import { cleanupRateLimitCounters } from '@zntr/auth/rate-limit'
 import { getDb } from '@/lib/drizzle/client'
-import { cleanupAuditLogs } from '@/features/mcp/audit'
-import { cleanupExpiredOAuthState } from '@/features/mcp/oauth-cleanup'
+import { cleanupAuditLogs } from '@/lib/mcp/audit'
+import { cleanupExpiredOAuthState } from '@/lib/mcp/oauth-cleanup'
 
 /**
  * Every recurring housekeeping job, in one registry.

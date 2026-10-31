@@ -8,7 +8,7 @@ const mocks = (() => ({
   getAuditToolNames: vi.fn(async () => []),
 }))()
 
-moduleMock.module('@/features/mcp/audit', () => mocks)
+moduleMock.module('@/lib/mcp/audit', () => mocks)
 moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'user-1', email: 'ada@example.com' }),
 }))

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthedUser } from '@/lib/api-helpers'
-import { getMcpSettings, updateMcpSettings } from '@/features/mcp/settings'
+import { getMcpSettings, updateMcpSettings } from '@/lib/mcp/settings'
 
 export const runtime = 'nodejs'
 

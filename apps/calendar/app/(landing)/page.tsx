@@ -1,12 +1,12 @@
-import { Header } from '@/components/landing/header'
-import { HeroSection } from '@/components/landing/hero'
-import { TestimonialsSection } from '@/components/landing/testimonials-section'
-import { FaqSection } from '@/components/landing/faq-section'
-import { FeatureSection } from '@/components/landing/feature-section'
-import { WorkflowSection } from '@/components/landing/workflow-section'
-import { ResultsSection } from '@/components/landing/results-section'
-import { CallToAction } from '@/components/landing/cta'
-import { Footer } from '@/components/landing/footer'
+import { Header } from '@/components/header'
+import { HeroSection } from '@/components/hero'
+import { TestimonialsSection } from '@/components/testimonials-section'
+import { FaqSection } from '@/components/faq-section'
+import { FeatureSection } from '@/components/feature-section'
+import { WorkflowSection } from '@/components/workflow-section'
+import { ResultsSection } from '@/components/results-section'
+import { CallToAction } from '@/components/cta'
+import { Footer } from '@/components/footer'
 
 export default function LandingPage() {
   return (

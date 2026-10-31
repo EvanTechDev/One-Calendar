@@ -13,7 +13,7 @@ import {
   buildInstructions,
   summarizeProviderError,
 } from '@zntr/agent'
-import { createAppToolkit } from '@/features/agent/toolkit'
+import { createAppToolkit } from '@/lib/agent/toolkit'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { checkFixedWindowLimit } from '@/lib/rate-limit'
 

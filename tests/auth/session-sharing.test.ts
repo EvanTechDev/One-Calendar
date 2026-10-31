@@ -18,7 +18,7 @@ import { crossAppAuthConfig } from '@zntr/auth'
 const ROOT = resolve(__dirname, '../..')
 const read = (p: string) => readFileSync(resolve(ROOT, p), 'utf8')
 
-const CALENDAR_AUTH = 'apps/calendar/features/auth/index.ts'
+const CALENDAR_AUTH = 'apps/calendar/lib/auth/index.ts'
 const MEET_AUTH = 'apps/meet/lib/auth/index.ts'
 
 describe('the cookie both apps read', () => {

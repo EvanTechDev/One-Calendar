@@ -8,8 +8,8 @@ import {
   updateRsvp,
   updateOccurrenceRsvp,
   addParticipantToCalendar,
-} from '@/features/invites/invite-service'
-import { resolveRsvpTarget } from '@/features/invites/rsvp-target'
+} from '@/lib/invites/invite-service'
+import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { firstZodMessage, inviteSelfPatchSchema } from '@/lib/validation'
 
 export const runtime = 'nodejs'

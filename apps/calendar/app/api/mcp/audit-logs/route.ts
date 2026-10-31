@@ -5,7 +5,7 @@ import {
   getAuditLogsCount,
   getAuditToolNames,
   type AuditLogFilters,
-} from '@/features/mcp/audit'
+} from '@/lib/mcp/audit'
 import type { AuditEntryType } from '@zntr/calendar/lib/mcp/types'
 
 export const runtime = 'nodejs'

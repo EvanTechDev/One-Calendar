@@ -5,7 +5,7 @@ import { looksLikeEnvelope } from '@/lib/field-crypto'
 import {
   decryptInviteToken,
   protectInviteToken,
-} from '@/features/invites/invite-token'
+} from '@/lib/invites/invite-token'
 
 const BATCH_SIZE = 100
 

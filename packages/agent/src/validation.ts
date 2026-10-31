@@ -1,12 +1,12 @@
 /**
  * Argument validation for the agent's tools, mirroring the MCP server's
- * posture (apps/calendar/features/mcp/server.ts): every enum-like argument is a
+ * posture (apps/calendar/lib/mcp/server.ts): every enum-like argument is a
  * closed vocabulary in the JSON schema itself, so the model sees the legal
  * values up front instead of inventing them; everything the schema cannot
  * express (real ISO instants, ordering, existing category ids) is checked
  * in execute and returned as a correctable error result.
  *
- * The palette is a MIRROR of apps/calendar/features/mcp/colors.ts COLOR_OPTIONS.
+ * The palette is a MIRROR of apps/calendar/lib/mcp/colors.ts COLOR_OPTIONS.
  * It is duplicated because this package must not import the app (the port
  * boundary); if the app palette changes, update this list in lockstep —
  * tests in tests/agent/ pin the values.

@@ -1,4 +1,4 @@
-import { LegalPageShell } from '@/components/landing/legal-page-shell'
+import { LegalPageShell } from '@/components/legal-page-shell'
 
 const termsContent = {
   title: 'Zentra Calendar terms of service',

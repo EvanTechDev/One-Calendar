@@ -34,7 +34,7 @@ moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => state.currentUser,
 }))
 
-moduleMock.module('@/features/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   getInvitesByToken: async () => [state.invite],
   getInviteByToken: async () => state.invite,
   getInviteOccurrences: async () => [],

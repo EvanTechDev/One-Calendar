@@ -3,12 +3,12 @@ import { beforeAll, describe, expect, it } from 'bun:test'
 process.env.SALT = 'invite-token-migration-test-key'
 
 let convertInviteTokenRecord: typeof import('@/scripts/migrate-invite-tokens').convertInviteTokenRecord
-let decryptInviteToken: typeof import('@/features/invites/invite-token').decryptInviteToken
+let decryptInviteToken: typeof import('@/lib/invites/invite-token').decryptInviteToken
 
 beforeAll(async () => {
   ;({ convertInviteTokenRecord } =
     await import('@/scripts/migrate-invite-tokens'))
-  ;({ decryptInviteToken } = await import('@/features/invites/invite-token'))
+  ;({ decryptInviteToken } = await import('@/lib/invites/invite-token'))
 })
 
 describe('Invite Token backfill conversion', () => {

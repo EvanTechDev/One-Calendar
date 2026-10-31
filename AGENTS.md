@@ -40,16 +40,17 @@ Apps never import each other. Code shared between calendar and meet lives in
 Calendar source stays directly under its workspace root, without a `src/` wrapper:
 
 - `apps/calendar/app/`: Next.js routes, layouts and API handlers; keep URLs stable.
-- `apps/calendar/features/`: business modules (`auth`, `account`, `events`,
-  `bookmarks`, `meetings`, `invites`, `reminders`, `agent`, `mcp`). Keep feature-owned
-  components beside their logic.
-- `apps/calendar/components/`: app shell and landing page, not shared product UI.
-- `apps/calendar/lib/`: infrastructure (database, mail, crypto, logging and jobs).
+- `apps/calendar/components/`: app-only UI and its local hooks, kept flat. Do not
+  create subdirectories for a handful of files or move shared product UI here.
+- `apps/calendar/lib/`: application logic and infrastructure (auth, events,
+  invites, reminders, agent, MCP, database, mail, crypto, logging and jobs). Keep
+  small modules as files; use subdirectories only for substantial related code.
+- Keep these three source homes; do not add `features/` or a `src/` wrapper.
 - `apps/calendar/drizzle/`: the single migration home for both apps.
 - `packages/calendar/`: `components/`, `hooks/`, `lib/`, `host/`, `assets/`, and
   `styles.css`. Web and desktop consume this package; generic primitives stay in
   `@zntr/ui`, and generic utilities stay in `@zntr/utils`.
-- `tests/calendar/`: mirrors Calendar's route, feature and infrastructure ownership.
+- `tests/calendar/`: route and module tests, with application logic under `lib/`.
 
 `docs/` is the user documentation website, not an engineering documentation tree.
 Existing Astro, desktop and generic package source layouts are unchanged.
@@ -215,13 +216,13 @@ Write `NodePgDatabase<Record<string, unknown>>` (plus
 `NodePgTransaction<Record<string, unknown>, Record<string, never>>` where a
 transaction is also accepted) instead — see `Db` in `@zntr/meetings/src/db.ts`,
 `Db` in `@zntr/auth/rate-limit.ts`, and `EventWriteDb` in
-`apps/calendar/features/events/write.ts`. Widening the schema argument to `unknown`
+`apps/calendar/lib/events/write.ts`. Widening the schema argument to `unknown`
 keeps `query` real while still accepting every handle.
 
 ## Auth
 
-Better Auth with drizzle adapter. Config at `apps/calendar/features/auth/index.ts`;
-app-owned auth helpers and components live alongside it in `features/auth/`.
+Better Auth with drizzle adapter. Config at `apps/calendar/lib/auth/index.ts`;
+app-owned auth helpers live in `lib/auth/`, and UI hosts live in `components/`.
 Env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Optional: `BETTER_AUTH_API_KEY`.
 Browser credential and mail-sending routes use Vercel BotID Basic. Both apps
 initialize its client in `instrumentation-client.ts`. Auth routes are verified
@@ -278,15 +279,15 @@ Tools are authored ONCE in `packages/agent/src/tools.ts` — plain AI SDK
 (a thrown tool error is returned as `{ error }` so the model can recover)
 and `needsApproval: true` on the two destructive tools — against the
 `CalendarToolkit` port (`src/types.ts`). The app binds it with its database
-toolkit (`apps/calendar/features/agent/toolkit.ts`, built from the SAME
-`features/mcp/*-tools.ts` functions the MCP server uses, so the palette and an
+toolkit (`apps/calendar/lib/agent/toolkit.ts`, built from the SAME
+`lib/mcp/*-tools.ts` functions the MCP server uses, so the palette and an
 external MCP client share cache invalidation and reminder reconciliation).
 
 There are still two event write paths — this one and the REST handler in
 `app/api/events/route.ts` — and they stay separate: the REST path owns request
 validation, category ownership and invite merging, which the MCP path has no
 need for. What they must NOT do is each carry a private copy of the parts that
-have to agree. Those live in `apps/calendar/features/events/write.ts`
+have to agree. Those live in `apps/calendar/lib/events/write.ts`
 (`encryptMergedFields`, `isValidRrule`, `isValidStamp`, `shiftOverrideStamps`,
 `remapSeriesOverrideStamps`) and both sides import them.
 

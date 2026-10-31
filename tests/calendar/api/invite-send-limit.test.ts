@@ -20,13 +20,13 @@ moduleMock.module('@/lib/field-crypto', () => ({
   ...originalFieldCrypto,
   decryptField: (_id: string, v: unknown) => v,
 }))
-moduleMock.module('@/features/invites/meeting-link', () => ({
+moduleMock.module('@/lib/invites/meeting-link', () => ({
   resolveMeetingUrl: async () => null,
 }))
 const originalInviteService = {
-  ...(await import('@/features/invites/invite-service')),
+  ...(await import('@/lib/invites/invite-service')),
 }
-moduleMock.module('@/features/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   ...originalInviteService,
   resendInviteEmail: vi.fn(async () => true),
 }))
@@ -45,7 +45,7 @@ const { POST: resend } = await import('@/app/api/invites/manage/route')
 
 const { POST: send } = await import('@/app/api/invites/route')
 
-const { resendInviteEmail } = await import('@/features/invites/invite-service')
+const { resendInviteEmail } = await import('@/lib/invites/invite-service')
 
 const { checkFixedWindowLimit } = await import('@/lib/rate-limit')
 

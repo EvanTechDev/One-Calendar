@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { CALENDAR_EMAIL_BRAND } from '@/features/auth/brand'
-import { renderAuthEmailTemplate } from '@/features/auth/email-template'
-import { sendAuthEmail } from '@/features/auth/send-auth-email'
+import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
+import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
+import { sendAuthEmail } from '@/lib/auth/send-auth-email'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 

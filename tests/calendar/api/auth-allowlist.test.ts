@@ -17,7 +17,7 @@ moduleMock.module('@zntr/auth', () => ({
   toNextJsHandler: () => ({ GET: mocks.handler, POST: mocks.handler }),
 }))
 
-moduleMock.module('@/features/auth', () => ({
+moduleMock.module('@/lib/auth', () => ({
   auth: { api: { getSession: mocks.getSession } },
 }))
 

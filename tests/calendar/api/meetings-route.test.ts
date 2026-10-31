@@ -22,7 +22,7 @@ moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => authedUser,
 }))
 
-moduleMock.module('@/features/meetings', () => ({
+moduleMock.module('@/lib/meetings', () => ({
   meetingUrl: (id: string) => `https://meet.test/${id}`,
 }))
 

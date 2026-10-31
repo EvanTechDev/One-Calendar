@@ -84,7 +84,6 @@ async function run() {
   const searchDirs = [
     'apps/calendar/app',
     'apps/calendar/components',
-    'apps/calendar/features',
     'apps/calendar/lib',
     'apps/calendar-client/src',
     'packages/calendar',

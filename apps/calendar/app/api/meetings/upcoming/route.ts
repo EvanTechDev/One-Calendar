@@ -8,7 +8,7 @@ import {
   isSeriesEvent,
 } from '@zntr/calendar/lib/recurrence/engine'
 import { meeting } from '@zntr/meetings'
-import { meetingUrl } from '@/features/meetings'
+import { meetingUrl } from '@/lib/meetings'
 
 export const runtime = 'nodejs'
 

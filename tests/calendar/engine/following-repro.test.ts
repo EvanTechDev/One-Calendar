@@ -10,8 +10,8 @@ const {
   shiftToAnchorClock,
   toRfcStamp,
 } = await import('@zntr/calendar/lib/recurrence/engine')
-const { planInstanceChange } = await import('@/features/events/service')
-import type { InstanceChangePlan } from '@/features/events/service'
+const { planInstanceChange } = await import('@/lib/events/service')
+import type { InstanceChangePlan } from '@/lib/events/service'
 
 interface StoreEvent {
   id: string

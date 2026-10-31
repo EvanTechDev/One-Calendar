@@ -36,8 +36,8 @@ const {
   addWallClockDays,
 } = await import('@zntr/calendar/lib/recurrence/engine')
 import type { SeriesViewInput } from '@zntr/calendar/lib/recurrence/engine'
-const { planInstanceChange } = await import('@/features/events/service')
-import type { EventRow } from '@/features/events/service'
+const { planInstanceChange } = await import('@/lib/events/service')
+import type { EventRow } from '@/lib/events/service'
 
 const TZ = 'UTC'
 /**

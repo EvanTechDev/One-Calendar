@@ -14,16 +14,15 @@ moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => getFakeDb().db,
 }))
 
-moduleMock.module('@/features/auth/send-auth-email', () => ({
+moduleMock.module('@/lib/auth/send-auth-email', () => ({
   sendAuthEmail: vi.fn(),
 }))
 
 const { createInvitesForEvent, getGrantsByToken, readInviteToken } =
-  await import('@/features/invites/invite-service')
-const { carryInvitesAcrossSplit } =
-  await import('@/features/invites/split-carry')
+  await import('@/lib/invites/invite-service')
+const { carryInvitesAcrossSplit } = await import('@/lib/invites/split-carry')
 const { hashInviteToken, protectInviteToken } =
-  await import('@/features/invites/invite-token')
+  await import('@/lib/invites/invite-token')
 
 beforeEach(() => {
   getFakeDb().reset()

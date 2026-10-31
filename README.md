@@ -17,8 +17,8 @@ Contributions are welcome. See [AGENTS.md](./AGENTS.md) for workspace commands a
 - `tests/`: workspace tests, mirroring source ownership.
 - `config/` and `scripts/`: shared tooling and workspace orchestration.
 
-Within `apps/calendar/`, `app/` owns routing, `features/` groups business modules,
-`components/` owns the app shell and landing page, and `lib/` holds infrastructure.
+Within `apps/calendar/`, `app/` owns routing, `components/` keeps app-only UI in a
+flat directory, and `lib/` holds application logic and infrastructure.
 Application code lives directly under the workspace root, without a `src/` wrapper.
 
 ## License

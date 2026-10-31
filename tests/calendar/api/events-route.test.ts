@@ -21,7 +21,7 @@ const reminderCalls = (() =>
       strictQuota?: boolean
     }) => ({ scheduled: 0, cancelled: 0 }),
   ))()
-moduleMock.module('@/features/reminders/reconcile', () => ({
+moduleMock.module('@/lib/reminders/reconcile', () => ({
   reconcileEventReminders: reminderCalls,
   SendQuotaExceeded: class extends Error {},
 }))

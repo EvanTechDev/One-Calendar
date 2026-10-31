@@ -24,9 +24,9 @@ moduleMock.module('next/navigation', () => ({ redirect }))
 moduleMock.module('next/headers', () => ({
   headers: async () => new Headers(),
 }))
-moduleMock.module('@/features/auth', () => ({ auth: { api: { getSession } } }))
+moduleMock.module('@/lib/auth', () => ({ auth: { api: { getSession } } }))
 
-const { requireAppSession } = await import('@/features/auth/require-session')
+const { requireAppSession } = await import('@/lib/auth/require-session')
 
 beforeEach(() => {
   vi.clearAllMocks()

@@ -9,7 +9,7 @@ moduleMock.module('@/lib/api-helpers', () => ({
 moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true }),
 }))
-moduleMock.module('@/features/agent/toolkit', () => ({
+moduleMock.module('@/lib/agent/toolkit', () => ({
   createAppToolkit: () => ({ getTimezone: async () => 'Asia/Shanghai' }),
 }))
 moduleMock.module('@ai-sdk/groq', () => ({ createGroq: () => () => 'model' }))

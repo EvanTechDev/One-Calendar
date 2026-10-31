@@ -20,7 +20,7 @@ const reconcile = (() => ({
   ),
 }))()
 
-moduleMock.module('@/features/reminders/reconcile', () => reconcile)
+moduleMock.module('@/lib/reminders/reconcile', () => reconcile)
 
 const events: Array<Record<string, unknown>> = []
 

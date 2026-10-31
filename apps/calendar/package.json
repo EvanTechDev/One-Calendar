@@ -10,8 +10,8 @@
     "start": "bun run --bun next start",
     "generate:i18n": "bun run --filter @zntr/i18n generate",
     "cleanup:i18n": "bun run --filter @zntr/i18n cleanup",
-    "lint": "oxlint --fix --config ../../config/oxlint.json app components features lib proxy.ts",
-    "lint:check": "oxlint --config ../../config/oxlint.json app components features lib proxy.ts",
+    "lint": "oxlint --fix --config ../../config/oxlint.json app components lib proxy.ts",
+    "lint:check": "oxlint --config ../../config/oxlint.json app components lib proxy.ts",
     "type-check": "bun check",
     "test": "bun test --isolate ../../tests/calendar/",
     "test:watch": "bun test --isolate --watch ../../tests/calendar/"

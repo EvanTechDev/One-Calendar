@@ -16,7 +16,7 @@ import {
   loadEventWindow,
   loadEventBatch,
   type ViewEvent,
-} from '@/features/events/read'
+} from '@/lib/events/read'
 import {
   eventSchema,
   firstZodMessage,
@@ -30,7 +30,7 @@ import {
   type ApplyTo,
   type EventRow,
   type InstanceChangePlan,
-} from '@/features/events/service'
+} from '@/lib/events/service'
 import {
   adaptRuleToStart,
   defaultExpansionWindow,
@@ -53,13 +53,13 @@ import {
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
-} from '@/features/invites/visibility'
+} from '@/lib/invites/visibility'
 import {
   baselineOf,
   getOccurrencesForInvites,
   readInviteToken,
-} from '@/features/invites/invite-service'
-import { carryInvitesAcrossSplit } from '@/features/invites/split-carry'
+} from '@/lib/invites/invite-service'
+import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
   encryptMergedFields,
   writeInstanceOverride,
@@ -68,14 +68,14 @@ import {
   remapSeriesOverrideStamps,
   shiftOverrideStamps,
   type EventWriteDb,
-} from '@/features/events/write'
+} from '@/lib/events/write'
 import {
   commitMeetingForEvent,
   deleteMeetingsForEvents,
   getMeetingsForEvents,
   moveMeetingToEvent,
 } from '@zntr/meetings'
-import { meetingUrl } from '@/features/meetings'
+import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
 import { isValidTimezone } from '@zntr/calendar/lib/timezone'
 import { MAX_CALENDAR_RANGE_MS } from '@zntr/calendar/lib/calendar-range'
@@ -1815,7 +1815,7 @@ async function withReminderReconciliation(
 
   try {
     const { reconcileEventReminders, SendQuotaExceeded } =
-      await import('@/features/reminders/reconcile')
+      await import('@/lib/reminders/reconcile')
     const wantsEmail = (peek as { emailReminder?: unknown } | null)
       ?.emailReminder
     try {

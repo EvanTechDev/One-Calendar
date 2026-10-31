@@ -18,7 +18,7 @@ moduleMock.module('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams({ user_code: 'ABCD1234' }),
 }))
 
-moduleMock.module('@/features/auth/client', () => ({
+moduleMock.module('@/lib/auth/client', () => ({
   authClient: {
     useSession: () => ({
       data: state.signedIn ? { user: { id: 'user-1' } } : null,

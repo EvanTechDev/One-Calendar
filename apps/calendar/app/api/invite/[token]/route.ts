@@ -9,7 +9,7 @@ import {
 } from '@/lib/drizzle/schema'
 import { decryptField } from '@/lib/field-crypto'
 import { getMeetingForEvent } from '@zntr/meetings'
-import { meetingUrl } from '@/features/meetings'
+import { meetingUrl } from '@/lib/meetings'
 import {
   getInviteByToken,
   getInvitesByToken,
@@ -19,18 +19,18 @@ import {
   baselineOf,
   getInviteOccurrences,
   updateOccurrenceRsvp,
-} from '@/features/invites/invite-service'
+} from '@/lib/invites/invite-service'
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
-} from '@/features/invites/visibility'
+} from '@/lib/invites/visibility'
 import {
   DEFAULT_EXPANSION_WINDOW_MS,
   MAX_EXPANSION,
   describeRecurrence,
   expandSeriesView,
 } from '@zntr/calendar/lib/recurrence/engine'
-import { resolveRsvpTarget } from '@/features/invites/rsvp-target'
+import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { firstZodMessage, invitePatchSchema } from '@/lib/validation'
 import {
   checkFixedWindowLimit,

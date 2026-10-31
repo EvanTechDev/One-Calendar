@@ -7,8 +7,8 @@ const {
   remainingSeriesCount,
 } = await import('@zntr/calendar/lib/recurrence/engine')
 import type { SeriesViewInput } from '@zntr/calendar/lib/recurrence/engine'
-const { planInstanceChange } = await import('@/features/events/service')
-import type { EventRow } from '@/features/events/service'
+const { planInstanceChange } = await import('@/lib/events/service')
+import type { EventRow } from '@/lib/events/service'
 
 const day = (d: number, hour = 9) => new Date(Date.UTC(2026, 7, d, hour, 0, 0))
 

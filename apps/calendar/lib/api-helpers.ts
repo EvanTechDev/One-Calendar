@@ -1,5 +1,5 @@
-import { getServerSession } from '@/features/auth/server'
-export { decryptEvent } from '@/features/events/crypto'
+import { getServerSession } from '@/lib/auth/server'
+export { decryptEvent } from '@/lib/events/crypto'
 
 export async function getAuthedUser() {
   const session = await getServerSession()

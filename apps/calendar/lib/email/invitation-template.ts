@@ -1,5 +1,5 @@
-import { renderAuthEmailTemplate } from '@/features/auth/email-template'
-import { CALENDAR_EMAIL_BRAND } from '@/features/auth/brand'
+import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
+import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
 
 interface InvitationEmailParams {
   title: string

@@ -1,13 +1,13 @@
 import { requireMcpAuth } from '@zntr/auth/server'
-import { auth } from '@/features/auth'
-import { getMcpApiKeyAuth, getMcpOAuthAuth } from '@/features/mcp/auth-helpers'
-import { handleMcpRequest } from '@/features/mcp/handler'
+import { auth } from '@/lib/auth'
+import { getMcpApiKeyAuth, getMcpOAuthAuth } from '@/lib/mcp/auth-helpers'
+import { handleMcpRequest } from '@/lib/mcp/handler'
 import {
   MCP_ISSUER,
   MCP_JWKS_URL,
   MCP_RESOURCE,
   MCP_RESOURCE_METADATA_URL,
-} from '@/features/mcp/oauth-config'
+} from '@/lib/mcp/oauth-config'
 import { ALL_SCOPES } from '@zntr/calendar/lib/mcp/types'
 
 export const runtime = 'nodejs'

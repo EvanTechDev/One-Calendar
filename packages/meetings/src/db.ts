@@ -6,7 +6,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
  * The operations here are connection-agnostic: each app passes its own client,
  * and the calendar passes a transaction so a meeting cascade commits atomically
  * with the event deletion that caused it. Mirrors the pattern already used in
- * apps/calendar/features/invites/split-carry.ts.
+ * apps/calendar/lib/invites/split-carry.ts.
  *
  * This is deliberately schema-erased rather than schema-bound one: the two apps
  * instantiate drizzle with different schemas (each app's own tables plus these),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthedUser } from '@/lib/api-helpers'
-import { searchEventPage } from '@/features/events/keyword-search'
+import { searchEventPage } from '@/lib/events/keyword-search'
 
 export async function GET(request: NextRequest) {
   const user = await getAuthedUser()

@@ -27,7 +27,7 @@ moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => store.authedUser,
 }))
 
-moduleMock.module('@/features/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   // Grant semantics by contract: no expiry filter (ADR-0013).
   getGrantsByToken: async (token: string) =>
     store.invites.filter((i) => i.inviteToken === token),
