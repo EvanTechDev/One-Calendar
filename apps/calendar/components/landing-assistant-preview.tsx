@@ -10,7 +10,7 @@ export function LandingAssistantPreview() {
   return (
     <figure className="landing-ai-preview">
       <div
-        className="landing-ai-palette dark"
+        className="landing-ai-palette"
         role="img"
         aria-label="Calendar’s Ask AI command panel, with its empty conversation and message composer"
       >
