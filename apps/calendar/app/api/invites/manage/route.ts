@@ -15,7 +15,7 @@ import {
   ParticipantScopeError,
 } from '@/lib/invites/scoped-invites'
 import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
-import type { ApplyTo } from '@/lib/event-service'
+import type { ApplyTo } from '@/lib/events/service'
 import { limitInviteSend } from '@/lib/invites/send-limit'
 
 export const runtime = 'nodejs'

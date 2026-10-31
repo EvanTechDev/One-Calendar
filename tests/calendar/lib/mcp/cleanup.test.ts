@@ -1,4 +1,4 @@
-await import('./../../../support/dom')
+await import('../../../support/dom')
 import { describe, it, expect } from 'bun:test'
 const { parseRequestedRetentionDays, parseRetentionDays, secretMatches } =
   await import('@/lib/mcp/cleanup-config')

@@ -1,4 +1,4 @@
-import type { ApplyTo } from '@/lib/event-service'
+import type { ApplyTo } from '@/lib/events/service'
 
 /**
  * Participant visibility for a recurring series, and the plan for changing it.

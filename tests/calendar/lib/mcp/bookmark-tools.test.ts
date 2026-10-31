@@ -1,5 +1,5 @@
 import { mock as moduleMock } from 'bun:test'
-await import('./../../../support/dom')
+await import('../../../support/dom')
 import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
 const state = (() => {

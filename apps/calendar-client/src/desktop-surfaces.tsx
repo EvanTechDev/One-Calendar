@@ -1,6 +1,6 @@
 import { Button } from '@zntr/ui/button'
 import { CircleAlert, RefreshCw } from 'lucide-react'
-import AuthWaitingLoading from '@zntr/ui/calendar/components/app/auth-waiting-loading'
+import AuthWaitingLoading from '@zntr/calendar/components/auth-waiting-loading'
 
 export function DesktopBrand() {
   return (

@@ -4,12 +4,12 @@ const { act, cleanup, fireEvent, render, screen } =
   await import('@testing-library/react')
 import { afterEach, expect, it, vi } from 'bun:test'
 const { SWRConfig } = await import('swr')
-const { CalendarHostProvider } = await import('@zntr/utils/calendar-host')
-import type { CalendarHost } from '@zntr/utils/calendar-host'
+const { CalendarHostProvider } = await import('@zntr/calendar/host')
+import type { CalendarHost } from '@zntr/calendar/host'
 const { CalendarDataHost } =
-  await import('@zntr/ui/calendar/components/providers/calendar-data-host')
+  await import('@zntr/calendar/components/providers/calendar-data-host')
 const { useData } =
-  await import('@zntr/ui/calendar/components/providers/data-provider')
+  await import('@zntr/calendar/components/providers/data-provider')
 
 afterEach(() => {
   cleanup()

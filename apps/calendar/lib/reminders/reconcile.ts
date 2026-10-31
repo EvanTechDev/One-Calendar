@@ -7,7 +7,7 @@ import {
   settings,
   user,
 } from '@/lib/drizzle/schema'
-import { decryptEvent } from '@/lib/event-crypto'
+import { decryptEvent } from '@/lib/events/crypto'
 import { APP_CONFIG } from '@/lib/config'
 import { decryptFieldStrict, encryptField } from '@/lib/field-crypto'
 import {
@@ -22,7 +22,7 @@ import {
   expandSeriesView,
   MAX_EXPANSION,
   type SeriesViewInput,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+} from '@zntr/calendar/lib/recurrence/engine'
 import {
   applyQuota,
   candidatesFor,

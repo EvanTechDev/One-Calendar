@@ -1,4 +1,4 @@
-await import('./../../../support/dom')
+await import('../../../support/dom')
 import { describe, it, expect } from 'bun:test'
 const {
   resolveTimeRange,

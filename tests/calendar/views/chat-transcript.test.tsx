@@ -28,7 +28,7 @@ moduleMock.module('@zntr/ui/message-scroller', () => ({
 const { translations } = await import('@zntr/i18n/calendar')
 
 const { ChatTranscript } =
-  await import('@zntr/ui/calendar/components/app/ai/chat-transcript')
+  await import('@zntr/calendar/components/ai/chat-transcript')
 
 afterEach(cleanup)
 const t = translations.en

@@ -1,5 +1,5 @@
 import { ResetPasswordForm } from '@zntr/auth/forms'
-import { AuthFormHost } from '@/components/auth/auth-form-host'
+import { AuthFormHost } from '@/components/auth-form-host'
 
 /**
  * The reset token is read here and passed down, rather than the form calling

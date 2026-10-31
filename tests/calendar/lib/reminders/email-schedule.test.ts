@@ -1,4 +1,4 @@
-await import('./../../../support/dom')
+await import('../../../support/dom')
 import { describe, expect, it } from 'bun:test'
 const {
   DAILY_SEND_QUOTA,

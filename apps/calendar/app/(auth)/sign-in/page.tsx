@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { RETURN_TO_PARAM, resolveReturnTo } from '@/lib/auth/return-to'
-import { AuthFormHost } from '@/components/auth/auth-form-host'
+import { AuthFormHost } from '@/components/auth-form-host'
 
 /**
  * Zentra Meet links here to sign a user in and expects them back, so this page

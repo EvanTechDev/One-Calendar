@@ -4,11 +4,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
 const { act, render, waitFor } = await import('@testing-library/react')
 const { SWRConfig, useSWRConfig } = await import('swr')
 const { DataProvider, useData } =
-  await import('@zntr/ui/calendar/components/providers/data-provider')
+  await import('@zntr/calendar/components/providers/data-provider')
 const { CalendarProvider, useCalendar } =
-  await import('@zntr/ui/calendar/components/providers/calendar-context')
-import type { CalendarEvent } from '@zntr/ui/calendar/components/providers/calendar-context'
-import type { api, EventData } from '@zntr/ui/calendar/lib/api-client'
+  await import('@zntr/calendar/components/providers/calendar-context')
+import type { CalendarEvent } from '@zntr/calendar/components/providers/calendar-context'
+import type { api, EventData } from '@zntr/calendar/lib/api-client'
 
 /**
  * Regression tests for the "this and following" split ghost: after saving a

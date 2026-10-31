@@ -5,7 +5,7 @@ import {
   MAX_EXPANSION,
   expandSeries,
   parseRfcStamp,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+} from '@zntr/calendar/lib/recurrence/engine'
 import { baselineOf, getInviteOccurrences } from '@/lib/invites/invite-service'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
 

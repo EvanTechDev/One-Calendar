@@ -5,8 +5,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./calendar-host": "./src/calendar-host/index.ts",
-    "./calendar-host/request": "./src/calendar-host/request.ts",
     "./utils": "./src/utils.ts"
   },
   "scripts": {
@@ -17,7 +15,6 @@
     "type-check": "bun check"
   },
   "dependencies": {
-    "react": "19.2.7",
     "cn": "^0.4.0"
   },
   "devDependencies": {}

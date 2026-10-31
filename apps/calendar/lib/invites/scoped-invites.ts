@@ -6,8 +6,8 @@ import {
   isInstanceId,
   parseInstanceId,
   toRfcStamp,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
-import type { ApplyTo } from '@/lib/event-service'
+} from '@zntr/calendar/lib/recurrence/engine'
+import type { ApplyTo } from '@/lib/events/service'
 import {
   planParticipantChange,
   ParticipantScopeError,

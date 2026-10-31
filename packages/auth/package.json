@@ -35,33 +35,33 @@
     "test:watch": "bun test --isolate --watch ../../tests/auth/"
   },
   "dependencies": {
-    "@better-auth/cimd": "1.7.7",
-    "@better-auth/core": "1.7.7",
-    "@better-auth/drizzle-adapter": "1.7.7",
-    "@better-auth/infra": "0.4.14",
-    "@better-auth/mcp": "1.7.7",
-    "@better-auth/oauth-provider": "1.7.7",
-    "botid": "1.5.11",
+    "@better-auth/cimd": "1.7.14",
+    "@better-auth/core": "1.7.14",
+    "@better-auth/drizzle-adapter": "1.7.14",
+    "@better-auth/infra": "0.4.25",
+    "@better-auth/mcp": "1.7.14",
+    "@better-auth/oauth-provider": "1.7.14",
+    "botid": "1.5.12",
     "@zntr/i18n": "workspace:*",
     "@zntr/ui": "workspace:*",
     "@zntr/utils": "workspace:*",
-    "better-auth": "1.7.7",
+    "better-auth": "1.7.14",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "1.21.0",
     "qr-code-styling": "latest",
     "react-email": "6.11.0",
     "resend": "6.14.0",
     "sonner": "2.0.8",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "@better-auth/memory-adapter": "1.7.7",
+    "@better-auth/memory-adapter": "1.7.14",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "19.2.2",
     "jsdom": "^29.1.1",
-    "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "peerDependencies": {
     "react": "^19.2.7",

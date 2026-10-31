@@ -24,8 +24,7 @@ moduleMock.module('@/lib/auth/oauth-client', () => ({
     },
   },
 }))
-const { OAuthAuthFormHost } =
-  await import('@/components/auth/oauth-auth-form-host')
+const { OAuthAuthFormHost } = await import('@/components/oauth-auth-form-host')
 
 describe('OAuth auth form continuation', () => {
   it('preserves the signed query across sign-up and recovery links', () => {

@@ -3,15 +3,15 @@ await import('./../../support/dom')
 import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
 const { renderHook } = await import('../host-render')
 
-import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
+import type { CalendarEvent } from '@zntr/calendar/components/calendar'
 
 const checkPendingNotifications = (() => vi.fn())()
 
-moduleMock.module('@zntr/ui/calendar/lib/notifications', () => ({
+moduleMock.module('@zntr/calendar/lib/notifications', () => ({
   checkPendingNotifications,
 }))
 const { useNotifications } =
-  await import('@zntr/ui/calendar/hooks/use-notifications')
+  await import('@zntr/calendar/hooks/use-notifications')
 
 function event(id: string): CalendarEvent {
   return {

@@ -4,9 +4,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
 const { render, waitFor } = await import('@testing-library/react')
 const { SWRConfig } = await import('swr')
 const { DataProvider, useCountdowns } =
-  await import('@zntr/ui/calendar/components/providers/data-provider')
+  await import('@zntr/calendar/components/providers/data-provider')
 const { CalendarProvider, useCalendar } =
-  await import('@zntr/ui/calendar/components/providers/calendar-context')
+  await import('@zntr/calendar/components/providers/calendar-context')
 const { useEffect } = await import('react')
 
 type Resolver = (value: {

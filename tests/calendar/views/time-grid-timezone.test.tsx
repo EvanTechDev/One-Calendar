@@ -4,12 +4,12 @@ const { act, cleanup, fireEvent, render } =
   await import('@testing-library/react')
 import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 const { default: WeekView } =
-  await import('@zntr/ui/calendar/components/app/views/week-view')
+  await import('@zntr/calendar/components/views/week-view')
 const { default: DayView } =
-  await import('@zntr/ui/calendar/components/app/views/day-view')
-import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
+  await import('@zntr/calendar/components/views/day-view')
+import type { CalendarEvent } from '@zntr/calendar/lib/calendar-types'
 const { FirstDayOfWeek, Language, TimeFormat, ViewConfig } =
-  await import('@zntr/ui/calendar/lib/calendar-types')
+  await import('@zntr/calendar/lib/calendar-types')
 
 class ResizeObserverStub {
   observe() {}

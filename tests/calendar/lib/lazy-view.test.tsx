@@ -2,7 +2,7 @@ await import('./../../support/dom')
 const { act, cleanup, fireEvent, render, screen } =
   await import('@testing-library/react')
 import { afterEach, expect, it, vi } from 'bun:test'
-const { default: lazyView } = await import('@zntr/ui/calendar/lib/lazy-view')
+const { default: lazyView } = await import('@zntr/calendar/lib/lazy-view')
 
 afterEach(cleanup)
 

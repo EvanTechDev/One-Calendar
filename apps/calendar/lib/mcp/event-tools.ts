@@ -12,7 +12,7 @@ import { normalizeColor } from './colors'
 import {
   EVENT_COLOR_VALUES,
   PALETTE_TO_EVENT_COLOR,
-} from '@zntr/ui/calendar/lib/event-colors'
+} from '@zntr/calendar/lib/event-colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
 import {
@@ -24,7 +24,7 @@ import {
   type ApplyTo,
   type EventRow,
   type InstanceChangePlan,
-} from '@/lib/event-service'
+} from '@/lib/events/service'
 import {
   adaptRuleToStart,
   addWallClockDays,
@@ -43,15 +43,15 @@ import {
   withUntil,
   partsInTz,
   tzOffsetMs,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
-import { isValidTimezone } from '@zntr/ui/calendar/lib/timezone'
+} from '@zntr/calendar/lib/recurrence/engine'
+import { isValidTimezone } from '@zntr/calendar/lib/timezone'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
   baselineOf,
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
-import { normalizeEmails as normalizeEmailsShared } from '@zntr/ui/calendar/lib/email'
+import { normalizeEmails as normalizeEmailsShared } from '@zntr/calendar/lib/email'
 import {
   encryptMergedFields,
   isValidRrule,
@@ -60,7 +60,7 @@ import {
   shiftOverrideStamps,
   writeInstanceOverride,
   type EventWriteDb,
-} from '@/lib/event-write'
+} from '@/lib/events/write'
 import crypto from 'crypto'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'

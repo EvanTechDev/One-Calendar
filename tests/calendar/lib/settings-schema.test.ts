@@ -2,7 +2,7 @@ await import('./../../support/dom')
 import { describe, expect, it } from 'bun:test'
 const { settingsPatchSchema, settingsSchema } = await import('@/lib/validation')
 const { CALENDAR_COLOR_OPTIONS } =
-  await import('@zntr/ui/calendar/lib/calendar-colors')
+  await import('@zntr/calendar/lib/calendar-colors')
 
 /**
  * The settings blob is merged, not replaced — a PUT carries only what changed.

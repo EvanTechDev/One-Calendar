@@ -1,7 +1,7 @@
 await import('./../../support/dom')
 import { describe, expect, it } from 'bun:test'
 const { CALENDAR_COLOR_OPTIONS, applyCalendarColor, normalizeCalendarColor } =
-  await import('@zntr/ui/calendar/lib/calendar-colors')
+  await import('@zntr/calendar/lib/calendar-colors')
 
 describe('calendar colors', () => {
   it('offers the default and requested color choices', () => {

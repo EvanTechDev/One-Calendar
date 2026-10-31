@@ -18,10 +18,9 @@ moduleMock.module('@/lib/auth/client', () => ({
   authClient: { useSession: () => state.session },
 }))
 moduleMock.module('next/navigation', () => ({ useRouter: () => state.router }))
-const { useCalendarHost } = await import('@zntr/utils/calendar-host')
+const { useCalendarHost } = await import('@zntr/calendar/host')
 
-const { CalendarWebHost } =
-  await import('@/components/providers/calendar-web-host')
+const { CalendarWebHost } = await import('@/components/calendar-web-host')
 
 function Calendar() {
   const { session } = useCalendarHost()

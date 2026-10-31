@@ -1,7 +1,7 @@
 await import('./../../support/dom')
 import { describe, it, expect } from 'bun:test'
 const { upsertById, upsertBy, removeById, dedupeById } =
-  await import('@zntr/ui/calendar/lib/array-mutations')
+  await import('@zntr/calendar/lib/array-mutations')
 
 describe('upsertById', () => {
   it('replaces an item with a matching id in place', () => {

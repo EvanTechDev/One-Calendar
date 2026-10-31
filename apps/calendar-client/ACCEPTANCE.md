@@ -70,8 +70,8 @@ It passed installed Windows startup checks and targets the development backend.
 
 ## Automated gate
 
-The current requested layout is `packages/ui/src/calendar` with the host port in
-`packages/utils/src/calendar-host`. The window is now 1320×880 logical outer
+The current requested layout is `packages/calendar` with the host port in
+`packages/calendar/host`. The window is now 1320×880 logical outer
 pixels, with fullscreen available and edge resizing disabled. Sign-in, sign-up,
 password recovery and account settings are embedded in the client; `/account`
 has been removed. The earlier evidence above describes earlier revisions, not

@@ -18,7 +18,7 @@ import {
   EVENT_COLORS,
   PALETTE_COLOR_OPTIONS,
   paletteColorName,
-} from '@zntr/ui/calendar/lib/event-colors'
+} from '@zntr/calendar/lib/event-colors'
 
 /**
  * Event colours, in menu order — the same seven the event colour menu offers.

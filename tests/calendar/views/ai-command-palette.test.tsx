@@ -25,21 +25,18 @@ moduleMock.module('@ai-sdk/react', () => ({
     addToolApprovalResponse: vi.fn(),
   }),
 }))
-moduleMock.module(
-  '@zntr/ui/calendar/components/app/ai/chat-transcript',
-  () => ({
-    ChatTranscript: () => null,
-  }),
-)
+moduleMock.module('@zntr/calendar/components/ai/chat-transcript', () => ({
+  ChatTranscript: () => null,
+}))
 const originalModule1 = { ...(await import('@zntr/i18n/calendar')) }
 moduleMock.module('@zntr/i18n/calendar', async () => ({
   ...originalModule1,
   useLanguage: () => ['en'],
 }))
 const { AiCommandPalette } =
-  await import('@zntr/ui/calendar/components/app/ai/ai-command-palette')
+  await import('@zntr/calendar/components/ai/ai-command-palette')
 
-import type { PaletteActions } from '@zntr/ui/calendar/components/app/ai/ai-command-palette'
+import type { PaletteActions } from '@zntr/calendar/components/ai/ai-command-palette'
 
 const fetchSearch = vi.fn()
 beforeEach(() => {

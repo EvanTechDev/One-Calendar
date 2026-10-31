@@ -1,6 +1,6 @@
 /**
  * MCP analytics tools — expose the shared analytics engine
- * (`@/lib/analytics/engine`) to AI agents.
+ * (`@zntr/calendar/lib/analytics/engine`) to AI agents.
  *
  * These tools never decrypt title/description/location: every metric derives
  * from structural columns only (dates, category id, all-day flag, createdAt).
@@ -15,7 +15,7 @@
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, calendarCategories } from '@/lib/drizzle/schema'
 import { eq, and, lt, gt, or, isNotNull } from 'drizzle-orm'
-import { expandRows, type EventRow } from '@/lib/event-service'
+import { expandRows, type EventRow } from '@/lib/events/service'
 import {
   compareSummaries,
   computeDistribution,
@@ -26,7 +26,7 @@ import {
   UNCATEGORIZED_ID,
   type AnalyticsEngineEvent,
   type AnalyticsRange,
-} from '@zntr/ui/calendar/lib/analytics/engine'
+} from '@zntr/calendar/lib/analytics/engine'
 import { InvalidEventQueryError } from './errors'
 import { decryptFieldStrict } from '@/lib/field-crypto'
 import { getSettings } from './settings-tools'

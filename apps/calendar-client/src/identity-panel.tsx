@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@zntr/ui/button'
 import { LoaderCircle, Maximize } from 'lucide-react'
-import { useCalendarDisconnected } from '@zntr/ui/calendar/components/connection-boundary'
+import { useCalendarDisconnected } from '@zntr/calendar/components/connection-boundary'
 import { invoke, listen } from './native'
 
 /** Native child view: official same-origin forms + BotID, with no remote IPC. */

@@ -1,4 +1,4 @@
-import WebAccountPanel from '@/components/app/profile/web-account-panel'
+import WebAccountPanel from '@/components/web-account-panel'
 import { requireAppSession } from '@/lib/auth/require-session'
 
 export default async function DesktopSettingsPage({

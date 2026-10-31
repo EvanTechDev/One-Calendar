@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import { eq, and, inArray } from 'drizzle-orm'
 import { eventInvites, eventInviteOccurrences } from '@/lib/drizzle/schema'
-import { shiftExdates } from '@zntr/ui/calendar/lib/recurrence/engine'
-import type { EventWriteDb } from '@/lib/event-write'
+import { shiftExdates } from '@zntr/calendar/lib/recurrence/engine'
+import type { EventWriteDb } from '@/lib/events/write'
 import {
   decryptInviteToken,
   protectInviteToken,

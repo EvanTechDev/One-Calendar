@@ -1,4 +1,4 @@
-await import('./../../../support/dom')
+await import('../../../support/dom')
 /**
  * Pins the per-tool-call audit summarisation (CORE-128).
  *

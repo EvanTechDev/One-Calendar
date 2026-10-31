@@ -37,7 +37,7 @@ moduleMock.module('@/lib/api-helpers', () => ({
   decryptEvent: (e: unknown) => e,
   getAuthedUser: async () => ({ id: 'u1', email: 'u1@example.com' }),
 }))
-moduleMock.module('@/lib/event-crypto', () => ({
+moduleMock.module('@/lib/events/crypto', () => ({
   decryptEvent: (event: unknown) => event,
 }))
 

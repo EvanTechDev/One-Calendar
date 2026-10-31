@@ -14,10 +14,7 @@ import {
 } from 'drizzle-orm'
 import crypto from 'crypto'
 import { parseRetentionDays } from './cleanup-config'
-import type {
-  AuditEntry,
-  AuditEntryType,
-} from '@zntr/ui/calendar/lib/mcp/types'
+import type { AuditEntry, AuditEntryType } from '@zntr/calendar/lib/mcp/types'
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
   const db = await getDb()

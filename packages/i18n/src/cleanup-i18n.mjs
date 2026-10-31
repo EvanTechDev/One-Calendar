@@ -54,10 +54,12 @@ function parseIndices(input, max) {
 async function getFiles(dir) {
   const dirents = await fs.readdir(dir, { withFileTypes: true })
   const files = await Promise.all(
-    dirents.map((dirent) => {
-      const res = path.resolve(dir, dirent.name)
-      return dirent.isDirectory() ? getFiles(res) : res
-    }),
+    dirents
+      .filter((dirent) => dirent.name !== 'node_modules')
+      .map((dirent) => {
+        const res = path.resolve(dir, dirent.name)
+        return dirent.isDirectory() ? getFiles(res) : res
+      }),
   )
   return files.flat()
 }
@@ -83,10 +85,8 @@ async function run() {
     'apps/calendar/app',
     'apps/calendar/components',
     'apps/calendar/lib',
-    'apps/calendar/hooks',
     'apps/calendar-client/src',
-    'packages/ui/src/calendar',
-    'packages/utils/src/calendar-host',
+    'packages/calendar',
     'packages/auth/src',
     'packages/ui/src',
   ]

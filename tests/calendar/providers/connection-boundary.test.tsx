@@ -4,10 +4,10 @@ const { act, fireEvent, render, screen, waitFor } =
   await import('@testing-library/react')
 import { describe, expect, it, vi } from 'bun:test'
 const { CalendarHostProvider, useCalendarHost } =
-  await import('@zntr/utils/calendar-host')
-import type { CalendarHost } from '@zntr/utils/calendar-host'
+  await import('@zntr/calendar/host')
+import type { CalendarHost } from '@zntr/calendar/host'
 const { ConnectionBoundary } =
-  await import('@zntr/ui/calendar/components/connection-boundary')
+  await import('@zntr/calendar/components/connection-boundary')
 const { Dialog, DialogContent, DialogTitle } = await import('@zntr/ui/dialog')
 const { Popover, PopoverContent, PopoverTrigger } =
   await import('@zntr/ui/popover')

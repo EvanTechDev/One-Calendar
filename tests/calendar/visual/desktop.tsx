@@ -8,7 +8,7 @@ import {
 } from '@zntr/auth/forms'
 import { DesktopState } from '../../../apps/calendar-client/src/desktop-surfaces'
 import { DesktopUpdates } from '../../../apps/calendar-client/src/updates'
-import { NoInternet } from '@zntr/ui/calendar/components/connection-boundary'
+import { NoInternet } from '@zntr/calendar/components/connection-boundary'
 import '@fontsource-variable/geist'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/instrument-sans'

@@ -16,7 +16,7 @@ import {
   loadEventWindow,
   loadEventBatch,
   type ViewEvent,
-} from '@/lib/event-read'
+} from '@/lib/events/read'
 import {
   eventSchema,
   firstZodMessage,
@@ -30,7 +30,7 @@ import {
   type ApplyTo,
   type EventRow,
   type InstanceChangePlan,
-} from '@/lib/event-service'
+} from '@/lib/events/service'
 import {
   adaptRuleToStart,
   defaultExpansionWindow,
@@ -49,7 +49,7 @@ import {
   wallClockDayDelta,
   withUntil,
   type SeriesViewInput,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+} from '@zntr/calendar/lib/recurrence/engine'
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
@@ -68,7 +68,7 @@ import {
   remapSeriesOverrideStamps,
   shiftOverrideStamps,
   type EventWriteDb,
-} from '@/lib/event-write'
+} from '@/lib/events/write'
 import {
   commitMeetingForEvent,
   deleteMeetingsForEvents,
@@ -77,14 +77,14 @@ import {
 } from '@zntr/meetings'
 import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
-import { isValidTimezone } from '@zntr/ui/calendar/lib/timezone'
-import { MAX_CALENDAR_RANGE_MS } from '@zntr/ui/calendar/lib/calendar-range'
+import { isValidTimezone } from '@zntr/calendar/lib/timezone'
+import { MAX_CALENDAR_RANGE_MS } from '@zntr/calendar/lib/calendar-range'
 import {
   CATCH_UP_FLOOR_MS,
   getReminderTime,
   getReminderKey,
   reminderDeadline,
-} from '@zntr/ui/calendar/lib/reminder-rules'
+} from '@zntr/calendar/lib/reminder-rules'
 
 export const runtime = 'nodejs'
 

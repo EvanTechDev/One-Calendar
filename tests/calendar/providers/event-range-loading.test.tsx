@@ -12,7 +12,7 @@ const mock = (() => ({
   idle: new Map<number, () => void>(),
   nextIdle: 0,
 }))()
-moduleMock.module('@zntr/ui/calendar/lib/api-client', () => ({
+moduleMock.module('@zntr/calendar/lib/api-client', () => ({
   api: {
     events: { list: mock.list, delete: mock.delete },
     categories: { list: async () => ({ categories: [] }) },
@@ -22,10 +22,10 @@ moduleMock.module('@zntr/ui/calendar/lib/api-client', () => ({
   },
 }))
 const { DataProvider, useData } =
-  await import('@zntr/ui/calendar/components/providers/data-provider')
+  await import('@zntr/calendar/components/providers/data-provider')
 
 const { calendarLoadRange, calendarVisibleRange, calendarPreloadRange } =
-  await import('@zntr/ui/calendar/lib/calendar-range')
+  await import('@zntr/calendar/lib/calendar-range')
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })

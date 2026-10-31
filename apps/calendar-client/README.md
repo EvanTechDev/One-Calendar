@@ -1,6 +1,6 @@
 # Zentra Calendar Desktop
 
-The Tauri client bundles `/app` locally from `@zntr/ui/calendar`, the same
+The Tauri client bundles `/app` locally from `@zntr/calendar`, the same
 calendar components, data providers and recurrence implementation used by Web.
 Sign-in, sign-up, password recovery and account settings stay inside the client.
 Web and desktop share a No internet screen that preserves the mounted calendar
@@ -8,9 +8,9 @@ and editor while disconnected, then revalidates data when connectivity returns.
 
 ## Architecture
 
-- Shared calendar code lives in `packages/ui/src/calendar`, exported by
-  `@zntr/ui/calendar`. The host port lives in `packages/utils/src/calendar-host`,
-  exported by `@zntr/utils/calendar-host`. Web and desktop import them directly.
+- Shared calendar code lives in `packages/calendar`, exported by
+  `@zntr/calendar`. The host port lives in `packages/calendar/host`,
+  exported by `@zntr/calendar/host`. Web and desktop import them directly.
   Each app registers its own Tailwind source paths.
 - React requests use `CalendarHost.request`: Tauri IPC → Rust → Calendar API.
   Streaming responses and cancellation use the same port. Session cookies remain

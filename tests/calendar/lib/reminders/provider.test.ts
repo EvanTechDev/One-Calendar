@@ -1,4 +1,4 @@
-import { unstubAllGlobals, stubGlobal } from './../../../support/stubs'
+import { unstubAllGlobals, stubGlobal } from '../../../support/stubs'
 import { afterEach, describe, expect, it, vi } from 'bun:test'
 process.env.RESEND_API_KEY = 're_test_only_not_a_real_key'
 const { cancelEmail, scheduleEmail, scheduledEmailStatus } =

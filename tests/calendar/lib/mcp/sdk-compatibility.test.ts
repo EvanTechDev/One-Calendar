@@ -1,9 +1,9 @@
 import { mock as moduleMock } from 'bun:test'
-import { stubEnv, unstubAllEnvs } from './../../../support/stubs'
+import { stubEnv, unstubAllEnvs } from '../../../support/stubs'
 import { afterEach, beforeEach, expect, it, vi } from 'bun:test'
 import { SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/server'
 
-import type { McpAuthUser } from '@zntr/ui/calendar/lib/mcp/types'
+import type { McpAuthUser } from '@zntr/calendar/lib/mcp/types'
 
 // Keep the real transport, registration, JSON Schema conversion and tool
 // dispatch. Only storage/rate-limit boundaries are replaced.

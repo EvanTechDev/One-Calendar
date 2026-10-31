@@ -1,4 +1,4 @@
-await import('./../../../support/dom')
+await import('../../../support/dom')
 import { describe, expect, it } from 'bun:test'
 const { MCP_ACCESS_TOKEN_TTL_SECONDS } = await import('@/lib/mcp/oauth-config')
 

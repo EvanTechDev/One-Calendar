@@ -18,7 +18,7 @@ const {
   anchorRectForClick,
   clampRectToViewport,
   useLiveAnchorRect,
-} = await import('@zntr/ui/calendar/hooks/use-anchored-popover')
+} = await import('@zntr/calendar/hooks/use-anchored-popover')
 
 const WIDTH = 460
 const HEIGHT = 520

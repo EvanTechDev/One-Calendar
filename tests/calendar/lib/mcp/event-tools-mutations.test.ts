@@ -52,7 +52,7 @@ moduleMock.module('@/lib/field-crypto', () => ({
   looksLikeEnvelope: () => true,
 }))
 
-import type { EventRow } from '@/lib/event-service'
+import type { EventRow } from '@/lib/events/service'
 
 moduleMock.module('@/lib/mcp/settings-tools', () => ({
   getSettings: vi.fn(async () => ({ timezone: 'UTC' })),
@@ -60,7 +60,7 @@ moduleMock.module('@/lib/mcp/settings-tools', () => ({
 const { updateEvent, deleteEvent, listEvents, getEvent } =
   await import('@/lib/mcp/event-tools')
 
-const { expandRows } = await import('@/lib/event-service')
+const { expandRows } = await import('@/lib/events/service')
 
 const { getSettings } = await import('@/lib/mcp/settings-tools')
 

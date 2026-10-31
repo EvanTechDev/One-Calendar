@@ -1,6 +1,6 @@
 import { unstubAllGlobals, stubGlobal } from './../../support/stubs'
 import { afterEach, describe, expect, it, vi } from 'bun:test'
-import { createCalendarApi } from '@zntr/ui/calendar/lib/api-client'
+import { createCalendarApi } from '@zntr/calendar/lib/api-client'
 
 afterEach(() => {
   unstubAllGlobals()

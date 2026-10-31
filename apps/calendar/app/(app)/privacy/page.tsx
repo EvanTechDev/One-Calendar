@@ -1,4 +1,4 @@
-import { LegalPageShell } from '@/components/landing/legal-page-shell'
+import { LegalPageShell } from '@/components/legal-page-shell'
 
 const privacyContent = {
   title: 'Zentra Calendar privacy policy',

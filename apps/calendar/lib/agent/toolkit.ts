@@ -10,7 +10,7 @@
  * independently, because it also owns request validation, category ownership
  * and invite merging. The parts the two must agree on (field encryption, the
  * recurrence validators, the override re-stamp) are shared from
- * lib/event-write.ts rather than copied; see AGENTS.md.
+ * lib/events/write.ts rather than copied; see AGENTS.md.
  *
  * A toolkit instance is created per authenticated request and closes over
  * the userId — the agent package never sees user identity.
@@ -36,7 +36,7 @@ import {
   listCountdowns,
 } from '@/lib/mcp/countdown-tools'
 import { COLOR_HEX_VALUES } from '@/lib/mcp/colors'
-import { DEFAULT_COUNTDOWN_ICON } from '@zntr/ui/calendar/lib/countdown-icons'
+import { DEFAULT_COUNTDOWN_ICON } from '@zntr/calendar/lib/countdown-icons'
 import type {
   AgentAnalyticsSummary,
   AgentEventSummary,

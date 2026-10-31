@@ -5,10 +5,7 @@ import {
   type RenderOptions,
   type RenderHookOptions,
 } from '@testing-library/react'
-import {
-  CalendarHostProvider,
-  type CalendarHost,
-} from '@zntr/utils/calendar-host'
+import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar/host'
 
 export * from '@testing-library/react'
 

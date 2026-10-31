@@ -1,7 +1,7 @@
 const { unstubAllGlobals, stubGlobal } = await import('./../../support/stubs')
 await import('./../../support/dom')
 import { afterEach, describe, expect, it, vi } from 'bun:test'
-const { uuid } = await import('@zntr/ui/calendar/lib/uuid')
+const { uuid } = await import('@zntr/calendar/lib/uuid')
 
 const V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/

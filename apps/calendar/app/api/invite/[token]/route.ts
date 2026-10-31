@@ -29,7 +29,7 @@ import {
   MAX_EXPANSION,
   describeRecurrence,
   expandSeriesView,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+} from '@zntr/calendar/lib/recurrence/engine'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { firstZodMessage, invitePatchSchema } from '@/lib/validation'
 import {
