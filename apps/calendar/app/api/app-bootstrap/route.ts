@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
-import { getServerSession } from '@/lib/auth/server'
+import { getServerSession } from '@/features/auth/server'
 
 export const runtime = 'nodejs'
 

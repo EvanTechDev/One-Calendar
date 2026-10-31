@@ -19,8 +19,8 @@ const {
   parseICS,
   parseICSDate,
   unescapeIcsText,
-} = await import('@zntr/ui/calendar/lib/ics')
-import type { IcsEvent } from '@zntr/ui/calendar/lib/ics'
+} = await import('@zntr/calendar/lib/ics')
+import type { IcsEvent } from '@zntr/calendar/lib/ics'
 
 function timed(overrides: Partial<IcsEvent> = {}): IcsEvent {
   return {

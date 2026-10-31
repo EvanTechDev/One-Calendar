@@ -39,7 +39,7 @@ moduleMock.module('sonner', () => ({
 }))
 
 const { useEventMeetingDraft } =
-  await import('@zntr/ui/calendar/hooks/use-event-meeting-draft')
+  await import('@zntr/calendar/hooks/use-event-meeting-draft')
 
 interface Call {
   url: string

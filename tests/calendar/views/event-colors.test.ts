@@ -15,8 +15,8 @@ const {
   paletteColorName,
   getEventAccentColor,
   getEventBackgroundColor,
-} = await import('@zntr/ui/calendar/lib/event-colors')
-import type { ColorOption } from '@zntr/ui/calendar/lib/event-colors'
+} = await import('@zntr/calendar/lib/event-colors')
+import type { ColorOption } from '@zntr/calendar/lib/event-colors'
 
 const HEX = /^#[0-9A-F]{6}$/
 

@@ -9,15 +9,14 @@ import {
   type ReactNode,
 } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  CalendarHostProvider,
-  type CalendarHost,
-} from '@zntr/utils/calendar-host'
-import { authClient } from '@/lib/auth/client'
-import { ConnectionBoundary } from '@zntr/ui/calendar/components/connection-boundary'
+import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar/host'
+import { authClient } from '@/features/auth/client'
+import { ConnectionBoundary } from '@zntr/calendar/components/connection-boundary'
 
 const request: typeof fetch = (input, init) => fetch(input, init)
-const AccountPanel = lazy(() => import('../app/profile/web-account-panel'))
+const AccountPanel = lazy(
+  () => import('../../features/account/components/web-account-panel'),
+)
 const renderAccount = (section?: string | null) => (
   <Suspense fallback={null}>
     <AccountPanel section={section} />

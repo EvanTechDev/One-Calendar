@@ -5,23 +5,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
 const { render, screen, fireEvent, within, waitFor } =
   await import('../host-render')
 
-import type { CalendarEvent } from '@zntr/ui/calendar/lib/calendar-types'
+import type { CalendarEvent } from '@zntr/calendar/lib/calendar-types'
 ;(() => {
   process.env.NEXT_PUBLIC_AI_ENABLED = '1'
 })()
 
 moduleMock.module(
-  '@zntr/ui/calendar/components/providers/calendar-context',
+  '@zntr/calendar/components/providers/calendar-context',
   () => {
     const state = { calendars: [], events: [] }
     return { useCalendar: () => state }
   },
 )
-moduleMock.module('@zntr/ui/calendar/hooks/use-event-meeting-draft', () => ({
+moduleMock.module('@zntr/calendar/hooks/use-event-meeting-draft', () => ({
   useEventMeetingDraft: () => ({ meeting: null, keep: vi.fn() }),
 }))
 moduleMock.module(
-  '@zntr/ui/calendar/components/app/event/event-meeting-field',
+  '@zntr/calendar/components/event/event-meeting-field',
   () => ({
     EventMeetingField: () => null,
   }),
@@ -29,17 +29,17 @@ moduleMock.module(
 // jsdom has no layout. Keep the real form and scope dialogs, but freeze the
 // live positioning hook so Radix's layout effects cannot chase zero rects.
 const originalModule1 = {
-  ...(await import('@zntr/ui/calendar/hooks/use-anchored-popover')),
+  ...(await import('@zntr/calendar/hooks/use-anchored-popover')),
 }
-moduleMock.module('@zntr/ui/calendar/hooks/use-anchored-popover', async () => ({
+moduleMock.module('@zntr/calendar/hooks/use-anchored-popover', async () => ({
   ...originalModule1,
   useLiveAnchorRect: () => null,
 }))
 const { default: EventEditor } =
-  await import('@zntr/ui/calendar/components/app/event/event-editor')
+  await import('@zntr/calendar/components/event/event-editor')
 
 const { Language, FirstDayOfWeek, ViewConfig, TimeFormat } =
-  await import('@zntr/ui/calendar/lib/calendar-types')
+  await import('@zntr/calendar/lib/calendar-types')
 
 const start = new Date('2026-10-05T09:00:00Z')
 const config = ViewConfig.create({

@@ -6,7 +6,20 @@ Zntr builds fully open-source, self-hostable cloud products. This monorepo conta
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions and guidelines.
+Contributions are welcome. See [AGENTS.md](./AGENTS.md) for workspace commands and conventions.
+
+## Repository layout
+
+- `apps/`: Calendar web app, Meet, desktop client, and marketing website.
+- `packages/calendar/`: shared Calendar UI, state, recurrence, styles, and web/desktop host interface.
+- `packages/`: reusable UI primitives, auth, meetings, agent, utilities, and translations.
+- `docs/`: the user documentation website.
+- `tests/`: workspace tests, mirroring source ownership.
+- `config/` and `scripts/`: shared tooling and workspace orchestration.
+
+Within `apps/calendar/`, `app/` owns routing, `features/` groups business modules,
+`components/` owns the app shell and landing page, and `lib/` holds infrastructure.
+Application code lives directly under the workspace root, without a `src/` wrapper.
 
 ## License
 

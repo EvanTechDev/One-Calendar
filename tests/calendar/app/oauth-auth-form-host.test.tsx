@@ -12,7 +12,7 @@ moduleMock.module('next/navigation', () => ({
     ),
 }))
 
-moduleMock.module('@/lib/auth/oauth-client', () => ({
+moduleMock.module('@/features/auth/oauth-client', () => ({
   oauthAuthClient: {
     signIn: { email: vi.fn() },
     signUp: { email: vi.fn() },
@@ -25,7 +25,7 @@ moduleMock.module('@/lib/auth/oauth-client', () => ({
   },
 }))
 const { OAuthAuthFormHost } =
-  await import('@/components/auth/oauth-auth-form-host')
+  await import('@/features/auth/components/oauth-auth-form-host')
 
 describe('OAuth auth form continuation', () => {
   it('preserves the signed query across sign-up and recovery links', () => {

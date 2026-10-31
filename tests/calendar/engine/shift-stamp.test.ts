@@ -1,6 +1,6 @@
 await import('./../../support/dom')
 import { describe, expect, it } from 'bun:test'
-const { shiftStamp } = await import('@zntr/ui/calendar/lib/recurrence/engine')
+const { shiftStamp } = await import('@zntr/calendar/lib/recurrence/engine')
 
 describe('shiftStamp', () => {
   it('shifts a timed stamp by a full delta', () => {

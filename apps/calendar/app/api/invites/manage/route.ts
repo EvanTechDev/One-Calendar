@@ -8,15 +8,15 @@ import {
   deleteInviteByToken,
   readInviteToken,
   resendInviteEmail,
-} from '@/lib/invites/invite-service'
+} from '@/features/invites/invite-service'
 import {
   applyScopedParticipantChange,
   resolveParticipantTarget,
   ParticipantScopeError,
-} from '@/lib/invites/scoped-invites'
-import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
-import type { ApplyTo } from '@/lib/event-service'
-import { limitInviteSend } from '@/lib/invites/send-limit'
+} from '@/features/invites/scoped-invites'
+import { resolveMeetingUrl } from '@/features/invites/meeting-link'
+import type { ApplyTo } from '@/features/events/service'
+import { limitInviteSend } from '@/features/invites/send-limit'
 
 export const runtime = 'nodejs'
 

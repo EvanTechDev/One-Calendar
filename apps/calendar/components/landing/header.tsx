@@ -1,11 +1,11 @@
 'use client'
 
 import { cn } from '@zntr/utils'
-import { useScroll } from '@/hooks/use-scroll'
+import { useScroll } from '@/components/landing/use-scroll'
 import { Button } from '@zntr/ui/button'
 import { DesktopNav } from './desktop-nav'
 import { MobileNav } from './mobile-nav'
-import { ZentraLogo } from '@zntr/ui/calendar/components/brand/zentra-logo'
+import { ZentraLogo } from '@zntr/calendar/components/brand/zentra-logo'
 import Link from 'next/link'
 
 export function Header() {

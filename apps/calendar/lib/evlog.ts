@@ -39,7 +39,7 @@ function getEvlog() {
 
 function getIdentify() {
   if (!_identifyPromise) {
-    _identifyPromise = import('@/lib/auth').then((mod) =>
+    _identifyPromise = import('@/features/auth').then((mod) =>
       createAuthMiddleware(mod.auth),
     )
   }

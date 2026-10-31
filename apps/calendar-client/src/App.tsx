@@ -6,13 +6,10 @@ import {
   useMemo,
   useState,
 } from 'react'
-import {
-  CalendarHostProvider,
-  type CalendarHost,
-} from '@zntr/utils/calendar-host'
-import { CalendarDataHost } from '@zntr/ui/calendar/components/providers/calendar-data-host'
-import { CalendarProvider } from '@zntr/ui/calendar/components/providers/calendar-context'
-import { AVAILABLE_THEMES } from '@zntr/ui/calendar/lib/theme'
+import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar/host'
+import { CalendarDataHost } from '@zntr/calendar/components/providers/calendar-data-host'
+import { CalendarProvider } from '@zntr/calendar/components/providers/calendar-context'
+import { AVAILABLE_THEMES } from '@zntr/calendar/lib/theme'
 import { ThemeProvider } from 'next-themes'
 import { SWRConfig } from 'swr'
 import { Toaster, toast } from 'sonner'
@@ -25,7 +22,7 @@ import {
   type SessionView,
 } from './native'
 import { DesktopUpdates } from './updates'
-import { ConnectionBoundary } from '@zntr/ui/calendar/components/connection-boundary'
+import { ConnectionBoundary } from '@zntr/calendar/components/connection-boundary'
 import { IdentityPanel } from './identity-panel'
 import { DesktopNotice, DesktopState } from './desktop-surfaces'
 import './styles.css'
@@ -36,7 +33,7 @@ import { CalendarBoundary } from './calendar-boundary'
 import { receiveSession } from './session-state'
 import './App.css'
 
-const CalendarApp = lazy(() => import('@zntr/ui/calendar'))
+const CalendarApp = lazy(() => import('@zntr/calendar'))
 const initialSession: SessionView = {
   generation: 0,
   user: null,

@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "paths": {
+      "@zntr/calendar": ["./index.tsx"],
+      "@zntr/calendar/*": ["./*"],
+      "@zntr/ui": ["../ui/src/index.ts"],
+      "@zntr/ui/*": ["../ui/src/*"],
+      "@zntr/utils": ["../utils/src/index.ts"],
+      "@zntr/utils/*": ["../utils/src/*"],
+      "@zntr/i18n": ["../i18n/src/index.ts"],
+      "@zntr/i18n/*": ["../i18n/src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}

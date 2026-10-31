@@ -4,7 +4,7 @@ await import('./../../support/dom')
 const { act, cleanup, renderHook } = await import('../host-render')
 import { afterEach, describe, expect, it, vi } from 'bun:test'
 const { useKeywordSearch } =
-  await import('@zntr/ui/calendar/hooks/use-keyword-search')
+  await import('@zntr/calendar/hooks/use-keyword-search')
 afterEach(() => {
   cleanup()
   vi.useRealTimers()

@@ -17,12 +17,12 @@ const { render, screen, fireEvent, act } =
   await import('@testing-library/react')
 const { useRef } = await import('react')
 const { default: MonthView } =
-  await import('@zntr/ui/calendar/components/app/views/month-view')
+  await import('@zntr/calendar/components/views/month-view')
 const { default: YearView } =
-  await import('@zntr/ui/calendar/components/app/views/year-view')
-import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
+  await import('@zntr/calendar/components/views/year-view')
+import type { CalendarEvent } from '@zntr/calendar/components/calendar'
 const { Language, FirstDayOfWeek, ViewConfig, TimeFormat } =
-  await import('@zntr/ui/calendar/lib/calendar-types')
+  await import('@zntr/calendar/lib/calendar-types')
 
 const config = ViewConfig.create({
   date: new Date(2025, 0, 15),

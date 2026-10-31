@@ -18,10 +18,10 @@ moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => auth,
   decryptEvent: vi.fn((e: unknown) => e),
 }))
-moduleMock.module('@/lib/mcp/settings-tools', () => ({
+moduleMock.module('@/features/mcp/settings-tools', () => ({
   getSettings: async () => ({ timezone: 'Asia/Shanghai' }),
 }))
-moduleMock.module('@/lib/mcp/category-tools', () => ({
+moduleMock.module('@/features/mcp/category-tools', () => ({
   listCategories: async () => [{ id: 'travel', name: 'Travel' }],
 }))
 const originalRateLimit = { ...(await import('@/lib/rate-limit')) }

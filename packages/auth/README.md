@@ -137,7 +137,7 @@ import {
   twoFactorClient,
   sentinelClient,
 } from '@zntr/auth/client'
-import { enabledPlugins } from '@/lib/auth'
+import { enabledPlugins } from '@/features/auth'
 
 const baseURL = process.env.NEXT_PUBLIC_APP_URL
 
@@ -160,7 +160,7 @@ Create `app/api/auth/[...all]/route.ts`:
 
 ```ts
 import { toNextJsHandler } from '@zntr/auth'
-import { auth } from '@/lib/auth'
+import { auth } from '@/features/auth'
 
 export const { GET, POST } = toNextJsHandler(auth)
 ```

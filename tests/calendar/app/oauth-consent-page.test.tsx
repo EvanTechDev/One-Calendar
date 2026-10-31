@@ -24,7 +24,7 @@ moduleMock.module('next/navigation', () => ({
     }),
 }))
 
-moduleMock.module('@/lib/auth/oauth-client', () => ({
+moduleMock.module('@/features/auth/oauth-client', () => ({
   oauthAuthClient: {
     useSession: () => ({
       data: { user: { name: 'Ada', image: null } },

@@ -28,5 +28,6 @@ ignorePatterns = [
   "**/bun.lock",
   "**/yarn.lock",
   "packages/ui/src/**",
+  "packages/calendar/**",
   "**/locales/**",
 ]

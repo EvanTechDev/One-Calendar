@@ -16,7 +16,7 @@ import {
   loadEventWindow,
   loadEventBatch,
   type ViewEvent,
-} from '@/lib/event-read'
+} from '@/features/events/read'
 import {
   eventSchema,
   firstZodMessage,
@@ -30,7 +30,7 @@ import {
   type ApplyTo,
   type EventRow,
   type InstanceChangePlan,
-} from '@/lib/event-service'
+} from '@/features/events/service'
 import {
   adaptRuleToStart,
   defaultExpansionWindow,
@@ -49,17 +49,17 @@ import {
   wallClockDayDelta,
   withUntil,
   type SeriesViewInput,
-} from '@zntr/ui/calendar/lib/recurrence/engine'
+} from '@zntr/calendar/lib/recurrence/engine'
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
-} from '@/lib/invites/visibility'
+} from '@/features/invites/visibility'
 import {
   baselineOf,
   getOccurrencesForInvites,
   readInviteToken,
-} from '@/lib/invites/invite-service'
-import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
+} from '@/features/invites/invite-service'
+import { carryInvitesAcrossSplit } from '@/features/invites/split-carry'
 import {
   encryptMergedFields,
   writeInstanceOverride,
@@ -68,23 +68,23 @@ import {
   remapSeriesOverrideStamps,
   shiftOverrideStamps,
   type EventWriteDb,
-} from '@/lib/event-write'
+} from '@/features/events/write'
 import {
   commitMeetingForEvent,
   deleteMeetingsForEvents,
   getMeetingsForEvents,
   moveMeetingToEvent,
 } from '@zntr/meetings'
-import { meetingUrl } from '@/lib/meetings'
+import { meetingUrl } from '@/features/meetings'
 import { z } from 'zod'
-import { isValidTimezone } from '@zntr/ui/calendar/lib/timezone'
-import { MAX_CALENDAR_RANGE_MS } from '@zntr/ui/calendar/lib/calendar-range'
+import { isValidTimezone } from '@zntr/calendar/lib/timezone'
+import { MAX_CALENDAR_RANGE_MS } from '@zntr/calendar/lib/calendar-range'
 import {
   CATCH_UP_FLOOR_MS,
   getReminderTime,
   getReminderKey,
   reminderDeadline,
-} from '@zntr/ui/calendar/lib/reminder-rules'
+} from '@zntr/calendar/lib/reminder-rules'
 
 export const runtime = 'nodejs'
 
@@ -1815,7 +1815,7 @@ async function withReminderReconciliation(
 
   try {
     const { reconcileEventReminders, SendQuotaExceeded } =
-      await import('@/lib/reminders/reconcile')
+      await import('@/features/reminders/reconcile')
     const wantsEmail = (peek as { emailReminder?: unknown } | null)
       ?.emailReminder
     try {

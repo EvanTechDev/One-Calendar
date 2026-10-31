@@ -18,7 +18,7 @@ const audit = (() => ({
   })),
 }))()
 
-moduleMock.module('@/lib/mcp/audit', () => audit)
+moduleMock.module('@/features/mcp/audit', () => audit)
 
 const meetings = (() => ({
   deleteExpiredMeetings: vi.fn(async () => []),
@@ -28,7 +28,7 @@ moduleMock.module('@zntr/meetings', () => meetings)
 const oauth = (() => ({
   cleanupExpiredOAuthState: vi.fn(async () => ({ deleted: 0 })),
 }))()
-moduleMock.module('@/lib/mcp/oauth-cleanup', () => oauth)
+moduleMock.module('@/features/mcp/oauth-cleanup', () => oauth)
 
 const rateLimits = (() => ({
   cleanupRateLimitCounters: vi.fn(async () => 0),

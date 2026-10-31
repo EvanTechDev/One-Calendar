@@ -7,7 +7,7 @@ import {
   sanitizeParsedEvent,
   summarizeProviderError,
 } from '@zntr/agent'
-import { createAppToolkit } from '@/lib/agent/toolkit'
+import { createAppToolkit } from '@/features/agent/toolkit'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 

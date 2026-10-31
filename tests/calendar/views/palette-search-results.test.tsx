@@ -14,7 +14,7 @@ moduleMock.module('@zntr/ui/command', () => ({
 const { translations } = await import('@zntr/i18n/calendar')
 
 const { PaletteSearchResults } =
-  await import('@zntr/ui/calendar/components/app/ai/palette-search-results')
+  await import('@zntr/calendar/components/ai/palette-search-results')
 
 afterEach(cleanup)
 

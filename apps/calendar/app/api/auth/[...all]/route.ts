@@ -6,7 +6,7 @@ import {
   oauthRouteIsExposed,
   desktopRouteIsExposed,
 } from '@zntr/auth/route-policy'
-import { auth } from '@/lib/auth'
+import { auth } from '@/features/auth'
 import { getDb } from '@/lib/drizzle/client'
 import { user as users } from '@/lib/drizzle/schema'
 import { anonymousAuditActor, withEvlog, useLogger } from '@/lib/evlog'

@@ -1,8 +1,8 @@
 import { SignUpForm } from '@zntr/auth/forms'
 import { headers } from 'next/headers'
-import { auth } from '@/lib/auth'
+import { auth } from '@/features/auth'
 import { redirect } from 'next/navigation'
-import { AuthFormHost } from '@/components/auth/auth-form-host'
+import { AuthFormHost } from '@/features/auth/components/auth-form-host'
 
 export default async function SignUpPage() {
   const session = await auth.api.getSession({ headers: await headers() })

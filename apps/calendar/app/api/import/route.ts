@@ -10,7 +10,7 @@ import {
 import { eq } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import { getAuthedUser } from '@/lib/api-helpers'
-import { isEventViewableBy } from '@/lib/bookmarks'
+import { isEventViewableBy } from '@/features/bookmarks/visibility'
 import { importSchema, firstZodMessage } from '@/lib/validation'
 import crypto from 'crypto'
 

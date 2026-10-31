@@ -20,6 +20,7 @@ const getGitCommit = () => {
 
 const nextConfig = {
   transpilePackages: [
+    '@zntr/calendar',
     '@zntr/ui',
     '@zntr/utils',
     '@zntr/i18n',

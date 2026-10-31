@@ -11,7 +11,7 @@
  * suite runs in jsdom, which masked the problem.
  */
 import { describe, it, expect } from 'bun:test'
-import { describeRecurrence } from '@zntr/ui/calendar/lib/recurrence/engine'
+import { describeRecurrence } from '@zntr/calendar/lib/recurrence/engine'
 
 describe('describeRecurrence in a server environment', () => {
   it('describes a daily rule', () => {

@@ -8,6 +8,7 @@
     { "path": "./docs" },
     { "path": "./packages/agent" },
     { "path": "./packages/auth" },
+    { "path": "./packages/calendar" },
     { "path": "./packages/i18n" },
     { "path": "./packages/meetings" },
     { "path": "./packages/ui" },

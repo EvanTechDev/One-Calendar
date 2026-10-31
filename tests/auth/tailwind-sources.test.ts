@@ -17,7 +17,11 @@ import { dirname, resolve, sep } from 'node:path'
  */
 const ROOT = resolve(__dirname, '../..')
 
-const APPS = ['apps/calendar/app/globals.css', 'apps/meet/app/globals.css']
+const APPS = [
+  'apps/calendar/app/globals.css',
+  'apps/meet/app/globals.css',
+  'apps/calendar-client/src/styles.css',
+]
 
 interface Manifest {
   name: string
@@ -53,7 +57,7 @@ function componentDependencies(app: string): string[] {
   }
   visit(manifest)
   return [...visited].flatMap((name) => {
-    const source = resolve(workspaces.get(name)!.directory, 'src')
+    const source = sourceRoot(workspaces.get(name)!.directory)
     return hasTsx(source) ? [source] : []
   })
 }
@@ -92,9 +96,9 @@ function packagesWithComponents(): string[] {
   return readdirSync(resolve(ROOT, 'packages'), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .filter((entry) => {
-      const src = resolve(ROOT, 'packages', entry.name, 'src')
+      const source = sourceRoot(resolve(ROOT, 'packages', entry.name))
       try {
-        return hasTsx(src)
+        return hasTsx(source)
       } catch {
         return false
       }
@@ -102,9 +106,15 @@ function packagesWithComponents(): string[] {
     .map((entry) => entry.name)
 }
 
+function sourceRoot(directory: string): string {
+  const src = resolve(directory, 'src')
+  return existsSync(src) ? src : directory
+}
+
 function hasTsx(dir: string): boolean {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue
       if (hasTsx(resolve(dir, entry.name))) return true
     } else if (entry.name.endsWith('.tsx')) {
       return true
@@ -121,6 +131,7 @@ describe('Tailwind sources', () => {
     // below vacuously true.
     expect(withComponents).toContain('ui')
     expect(withComponents).toContain('auth')
+    expect(withComponents).toContain('calendar')
   })
 
   for (const app of APPS) {

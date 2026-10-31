@@ -5,15 +5,13 @@
 ### Issue tracker
 
 Track specifications and implementation work in Linear: Core team, Zentra
-Calendar project. See `docs/agents/issue-tracker.md`.
+Calendar project. Record scope and verification results on the issue and keep its
+status current.
 
 ### Triage labels
 
-Use the five default triage labels. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Use the single-context glossary and ADR layout. See `docs/agents/domain.md`.
+Use the default triage labels: `ready-for-agent`, `ready-for-human`, `needs-info`,
+`needs-triage`, and `wontfix`.
 
 ## Monorepo structure
 
@@ -26,8 +24,7 @@ apps/
   calendar-client/ Tauri + React + Vite desktop client
   web/             Astro 7 marketing/site app (@astrojs/react + Tailwind v4)
 packages/
-  ui/src/calendar/ — shared calendar UI, client state, recurrence and styles
-  utils/src/calendar-host/ — shared frontend request/session/navigation port
+  calendar/        @zntr/calendar — shared product UI, state, recurrence and host interface
   agent/           @zntr/agent — AI calendar copilot: eve tool defs + AI SDK adapter
   auth/            @zntr/auth — Better Auth adapter, schema, client/server helpers
   meetings/        @zntr/meetings — meeting/session/attendance/chat schema + operations
@@ -38,7 +35,24 @@ docs/              @zntr/docs — Next.js + Fumadocs user documentation, port 30
 ```
 
 Apps never import each other. Code shared between calendar and meet lives in
-`packages/*` — that is why `@zntr/meetings` exists (ADR-0017).
+`packages/*` — that is why `@zntr/meetings` exists.
+
+Calendar source stays directly under its workspace root, without a `src/` wrapper:
+
+- `apps/calendar/app/`: Next.js routes, layouts and API handlers; keep URLs stable.
+- `apps/calendar/features/`: business modules (`auth`, `account`, `events`,
+  `bookmarks`, `meetings`, `invites`, `reminders`, `agent`, `mcp`). Keep feature-owned
+  components beside their logic.
+- `apps/calendar/components/`: app shell and landing page, not shared product UI.
+- `apps/calendar/lib/`: infrastructure (database, mail, crypto, logging and jobs).
+- `apps/calendar/drizzle/`: the single migration home for both apps.
+- `packages/calendar/`: `components/`, `hooks/`, `lib/`, `host/`, `assets/`, and
+  `styles.css`. Web and desktop consume this package; generic primitives stay in
+  `@zntr/ui`, and generic utilities stay in `@zntr/utils`.
+- `tests/calendar/`: mirrors Calendar's route, feature and infrastructure ownership.
+
+`docs/` is the user documentation website, not an engineering documentation tree.
+Existing Astro, desktop and generic package source layouts are unchanged.
 
 ## Essential commands (run from root)
 
@@ -53,7 +67,7 @@ Apps never import each other. Code shared between calendar and meet lives in
 Root scripts use `bun run --sequential --workspaces --if-present`; the root is excluded to avoid
 recursion. Builds and checks run one workspace at a time to bound resource use;
 development servers use `--parallel`. Workspaces without a script are skipped.
-The calendar's own build script generates i18n and MDX before `next build`.
+The calendar's own build script generates i18n before `next build`.
 Builds use `scripts/workspaces.mjs` to visit dependencies first: Bun's
 `--sequential` runner alone orders by name, not dependency order.
 
@@ -95,7 +109,7 @@ calendar test path and `focused_only` mode support remote red-green cycles.
 Application project references do not cover `tests/**`. Run `bun run type-check`, `bun run lint:check`, and
 `bun run test` before committing anything that could reach `main`; a focused green
 run is not the full validation gate.
-The calendar's type-check command generates its MDX collections first.
+The docs website's type-check command generates its MDX collections first.
 
 ## Testing
 
@@ -201,12 +215,13 @@ Write `NodePgDatabase<Record<string, unknown>>` (plus
 `NodePgTransaction<Record<string, unknown>, Record<string, never>>` where a
 transaction is also accepted) instead — see `Db` in `@zntr/meetings/src/db.ts`,
 `Db` in `@zntr/auth/rate-limit.ts`, and `EventWriteDb` in
-`apps/calendar/lib/event-write.ts`. Widening the schema argument to `unknown`
+`apps/calendar/features/events/write.ts`. Widening the schema argument to `unknown`
 keeps `query` real while still accepting every handle.
 
 ## Auth
 
-Better Auth with drizzle adapter. Config at `apps/calendar/lib/auth.ts` + `lib/auth/`.  
+Better Auth with drizzle adapter. Config at `apps/calendar/features/auth/index.ts`;
+app-owned auth helpers and components live alongside it in `features/auth/`.
 Env vars: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Optional: `BETTER_AUTH_API_KEY`.
 Browser credential and mail-sending routes use Vercel BotID Basic. Both apps
 initialize its client in `instrumentation-client.ts`. Auth routes are verified
@@ -231,7 +246,7 @@ byte-identical `BETTER_AUTH_SECRET`. See `packages/auth/src/cross-app.ts`.
 
 ## AI assistant (command palette)
 
-Cmd/Ctrl+K opens an AI command palette (`packages/ui/src/calendar/components/app/ai/ai-command-palette.tsx`,
+Cmd/Ctrl+K opens an AI command palette (`packages/calendar/components/ai/ai-command-palette.tsx`,
 shadcn cmdk `Command` in `@zntr/ui/command`). Its backend is
 `POST /api/agent/chat`: Groq `openai/gpt-oss-120b` via the AI SDK (override
 with `GROQ_MODEL`), multi-step tool loop capped
@@ -263,15 +278,15 @@ Tools are authored ONCE in `packages/agent/src/tools.ts` — plain AI SDK
 (a thrown tool error is returned as `{ error }` so the model can recover)
 and `needsApproval: true` on the two destructive tools — against the
 `CalendarToolkit` port (`src/types.ts`). The app binds it with its database
-toolkit (`apps/calendar/lib/agent/toolkit.ts`, built from the SAME
-`lib/mcp/*-tools.ts` functions the MCP server uses, so the palette and an
+toolkit (`apps/calendar/features/agent/toolkit.ts`, built from the SAME
+`features/mcp/*-tools.ts` functions the MCP server uses, so the palette and an
 external MCP client share cache invalidation and reminder reconciliation).
 
 There are still two event write paths — this one and the REST handler in
 `app/api/events/route.ts` — and they stay separate: the REST path owns request
 validation, category ownership and invite merging, which the MCP path has no
 need for. What they must NOT do is each carry a private copy of the parts that
-have to agree. Those live in `apps/calendar/lib/event-write.ts`
+have to agree. Those live in `apps/calendar/features/events/write.ts`
 (`encryptMergedFields`, `isValidRrule`, `isValidStamp`, `shiftOverrideStamps`,
 `remapSeriesOverrideStamps`) and both sides import them.
 
@@ -300,7 +315,7 @@ the popover keeps the user's value — `sanitizeParsedEvent` drops invalid
 fields one by one (field-level degradation) instead of failing the parse,
 and a text that yields only a title ("午餐") is still a success.
 
-In `packages/ui/src/calendar/components/app/event/event-editor.tsx`: `applyParsedEvent` merges the
+In `packages/calendar/components/event/event-editor.tsx`: `applyParsedEvent` merges the
 draft (missing `end` shifts the whole event so the current duration is
 preserved; a hex colour is mapped to the option whose
 `EVENT_BG_TO_ACCENT` matches; `rruleToParts` populates the recurrence
@@ -340,7 +355,7 @@ Conventional commits enforced by commitlint (commit-msg hook): `feat`, `fix`, `d
   `dev` or `production`; the dev configuration has a separate application ID.
 - knip config in root `package.json` tracks known dead-code exceptions.
 - Vercel crons run via `apps/calendar/vercel.json`: `GET /api/blob/check` at midnight UTC (which runs every job in `apps/calendar/lib/maintenance/jobs.ts` — table health, MCP audit retention, expired OAuth state, expired meetings) and `GET /api/reminders/topup` at 2am UTC. `/api/blob/check?jobs=<name>[,<name>]` runs a subset by hand. apps/meet registers no crons: it sweeps expired meetings from the calendar's maintenance run, since the rows are in the same database.
-- Recurrence expansion has exactly ONE owner: `packages/ui/src/calendar/lib/recurrence/engine.ts`. Server consumers import the package directly. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.
+- Recurrence expansion has exactly ONE owner: `packages/calendar/lib/recurrence/engine.ts`. Server consumers import the package directly. Meet's dashboard reads upcoming meetings from `GET /api/meetings/upcoming` on the calendar rather than re-deriving occurrences, because a series master's `start_date` is its anchor, not an occurrence.
 - `apps/meet` needs the calendar's `SALT` to read encrypted event titles. Its `readEventTitle` is a deliberate read-only copy of the calendar's format; if `lib/field-crypto.ts` ever changes, update it in lockstep.
 - Node-postgres, not postgres-js. `Pool` + `attachDatabasePool(pool)` for Fluid
   compute, and `db.execute(sql)` returns a pg `QueryResult` — read `.rows`, it is

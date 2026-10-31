@@ -7,7 +7,7 @@ const metadata = (() =>
 moduleMock.module('@zntr/auth/server', () => ({
   oauthProviderAuthServerMetadata: () => metadata,
 }))
-moduleMock.module('@/lib/auth', () => ({ auth: {} }))
+moduleMock.module('@/features/auth', () => ({ auth: {} }))
 
 const root = await import('@/app/.well-known/oauth-authorization-server/route')
 const issuerPath =

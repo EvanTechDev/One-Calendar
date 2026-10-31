@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withEvlog, useLogger, getAuditActor } from '@/lib/evlog'
-import { getServerSession } from '@/lib/auth/server'
+import { getServerSession } from '@/features/auth/server'
 import { getDb } from '@/lib/drizzle/client'
 import {
   user as userTable,

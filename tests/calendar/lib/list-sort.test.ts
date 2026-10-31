@@ -1,13 +1,13 @@
 await import('./../../support/dom')
 import { describe, expect, it } from 'bun:test'
 const { applyListSort, LIST_SORTS } =
-  await import('@zntr/ui/calendar/lib/list-sort')
+  await import('@zntr/calendar/lib/list-sort')
 const { DEFAULT_BOOKMARK_SORT, sortBookmarks } =
-  await import('@zntr/ui/calendar/lib/bookmark-sort')
-import type { SortableBookmark } from '@zntr/ui/calendar/lib/bookmark-sort'
+  await import('@zntr/calendar/lib/bookmark-sort')
+import type { SortableBookmark } from '@zntr/calendar/lib/bookmark-sort'
 const { DEFAULT_COUNTDOWN_SORT, sortCountdowns } =
-  await import('@zntr/ui/calendar/lib/countdown-sort')
-import type { SortableCountdown } from '@zntr/ui/calendar/lib/countdown-sort'
+  await import('@zntr/calendar/lib/countdown-sort')
+import type { SortableCountdown } from '@zntr/calendar/lib/countdown-sort'
 
 const bookmark = (
   over: Partial<SortableBookmark> & { id: string },

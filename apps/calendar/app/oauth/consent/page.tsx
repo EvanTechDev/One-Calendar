@@ -8,8 +8,8 @@ import { Badge } from '@zntr/ui/badge'
 import { Button } from '@zntr/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@zntr/ui/card'
 import { Spinner } from '@zntr/ui/spinner'
-import { oauthAuthClient } from '@/lib/auth/oauth-client'
-import { groupMcpPermissions } from '@zntr/ui/calendar/lib/mcp/types'
+import { oauthAuthClient } from '@/features/auth/oauth-client'
+import { groupMcpPermissions } from '@zntr/calendar/lib/mcp/types'
 
 type PublicClient = {
   client_id: string

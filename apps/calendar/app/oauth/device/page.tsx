@@ -6,7 +6,7 @@ import { Button } from '@zntr/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@zntr/ui/card'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { authClient } from '@/lib/auth/client'
+import { authClient } from '@/features/auth/client'
 
 type DeviceRequest = {
   client_id?: string

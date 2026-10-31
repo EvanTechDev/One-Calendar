@@ -5,8 +5,8 @@ import {
   listApiKeys,
   deleteApiKey,
   updateApiKeyScopes,
-} from '@/lib/mcp/auth'
-import { parseScopes } from '@/lib/mcp/scopes'
+} from '@/features/mcp/auth'
+import { parseScopes } from '@/features/mcp/scopes'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'

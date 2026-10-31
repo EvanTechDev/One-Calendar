@@ -11,7 +11,7 @@ import {
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents } from '@/lib/drizzle/schema'
 import { getAuthedUser } from '@/lib/api-helpers'
-import { meetingUrl } from '@/lib/meetings'
+import { meetingUrl } from '@/features/meetings'
 import { checkFixedWindowLimit, rateLimitedResponse } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'

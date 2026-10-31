@@ -97,7 +97,7 @@
       "apps/calendar/public/sw.js"
     ],
     "ignoreIssues": {
-      "packages/ui/src/calendar/components/providers/calendar-context.tsx": [
+      "packages/calendar/**": [
         "exports"
       ],
       "packages/ui/src/**": [

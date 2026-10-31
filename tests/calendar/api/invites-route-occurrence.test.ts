@@ -29,8 +29,10 @@ moduleMock.module('@/lib/api-helpers', () => ({
   decryptEvent: (e: unknown) => e,
 }))
 
-const originalModule1 = { ...(await import('@/lib/invites/invite-service')) }
-moduleMock.module('@/lib/invites/invite-service', async () => {
+const originalModule1 = {
+  ...(await import('@/features/invites/invite-service')),
+}
+moduleMock.module('@/features/invites/invite-service', async () => {
   const actual = originalModule1
   return {
     ...actual,
@@ -55,8 +57,10 @@ moduleMock.module('@/lib/invites/invite-service', async () => {
   }
 })
 
-const originalModule2 = { ...(await import('@/lib/invites/scoped-invites')) }
-moduleMock.module('@/lib/invites/scoped-invites', async () => {
+const originalModule2 = {
+  ...(await import('@/features/invites/scoped-invites')),
+}
+moduleMock.module('@/features/invites/scoped-invites', async () => {
   const actual = originalModule2
   return {
     ...actual,

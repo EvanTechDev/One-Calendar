@@ -6,8 +6,8 @@ const {
   defaultExpansionWindow,
   shiftExdates,
   toRfcStamp,
-} = await import('@zntr/ui/calendar/lib/recurrence/engine')
-const { planInstanceChange } = await import('@/lib/event-service')
+} = await import('@zntr/calendar/lib/recurrence/engine')
+const { planInstanceChange } = await import('@/features/events/service')
 
 interface StoreEvent {
   id: string

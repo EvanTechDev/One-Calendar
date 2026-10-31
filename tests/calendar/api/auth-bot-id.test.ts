@@ -30,7 +30,7 @@ const mocks = (() => ({
 moduleMock.module('@zntr/auth', () => ({
   toNextJsHandler: () => ({ GET: mocks.handler, POST: mocks.handler }),
 }))
-moduleMock.module('@/lib/auth', () => ({
+moduleMock.module('@/features/auth', () => ({
   auth: { api: { getSession: async () => null } },
 }))
 moduleMock.module('@/lib/drizzle/client', () => ({

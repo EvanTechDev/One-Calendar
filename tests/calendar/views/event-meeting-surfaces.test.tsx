@@ -23,7 +23,7 @@ await import('./../../support/dom')
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
 const { render, screen, waitFor } = await import('../host-render')
-import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
+import type { CalendarEvent } from '@zntr/calendar/components/calendar'
 
 const toasts = { error: vi.fn(), success: vi.fn(), warning: vi.fn() }
 moduleMock.module('sonner', () => ({
@@ -35,25 +35,22 @@ moduleMock.module('sonner', () => ({
 }))
 
 moduleMock.module(
-  '@zntr/ui/calendar/components/providers/calendar-context',
+  '@zntr/calendar/components/providers/calendar-context',
   () => ({
     useCalendar: () => ({ calendars: [], events: [] }),
   }),
 )
 
-moduleMock.module(
-  '@zntr/ui/calendar/components/providers/data-provider',
-  () => ({
-    useBookmarks: () => ({
-      bookmarks: [],
-      createBookmark: vi.fn(),
-      deleteBookmark: vi.fn(),
-    }),
+moduleMock.module('@zntr/calendar/components/providers/data-provider', () => ({
+  useBookmarks: () => ({
+    bookmarks: [],
+    createBookmark: vi.fn(),
+    deleteBookmark: vi.fn(),
   }),
-)
+}))
 
 const EventPreview = (
-  await import('@zntr/ui/calendar/components/app/event/event-preview')
+  await import('@zntr/calendar/components/event/event-preview')
 ).default
 
 const requests: string[] = []

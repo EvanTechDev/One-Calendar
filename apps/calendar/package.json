@@ -10,8 +10,8 @@
     "start": "bun run --bun next start",
     "generate:i18n": "bun run --filter @zntr/i18n generate",
     "cleanup:i18n": "bun run --filter @zntr/i18n cleanup",
-    "lint": "oxlint --fix --config ../../config/oxlint.json app components hooks lib proxy.ts",
-    "lint:check": "oxlint --config ../../config/oxlint.json app components hooks lib proxy.ts",
+    "lint": "oxlint --fix --config ../../config/oxlint.json app components features lib proxy.ts",
+    "lint:check": "oxlint --config ../../config/oxlint.json app components features lib proxy.ts",
     "type-check": "bun check",
     "test": "bun test --isolate ../../tests/calendar/",
     "test:watch": "bun test --isolate --watch ../../tests/calendar/"
@@ -23,6 +23,7 @@
     "@vercel/functions": "^3.9.11",
     "@zntr/agent": "workspace:*",
     "@zntr/auth": "workspace:*",
+    "@zntr/calendar": "workspace:*",
     "@zntr/i18n": "workspace:*",
     "@zntr/meetings": "workspace:*",
     "@zntr/ui": "workspace:*",

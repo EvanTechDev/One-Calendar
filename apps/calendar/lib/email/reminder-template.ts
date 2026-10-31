@@ -1,5 +1,5 @@
-import { renderAuthEmailTemplate } from '@/lib/auth/email-template'
-import { CALENDAR_EMAIL_BRAND } from '@/lib/auth/brand'
+import { renderAuthEmailTemplate } from '@/features/auth/email-template'
+import { CALENDAR_EMAIL_BRAND } from '@/features/auth/brand'
 
 interface ReminderEmailParams {
   title: string

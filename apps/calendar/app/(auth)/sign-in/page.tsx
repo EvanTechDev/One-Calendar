@@ -1,9 +1,9 @@
 import { LoginForm } from '@zntr/auth/forms'
 import { headers } from 'next/headers'
-import { auth } from '@/lib/auth'
+import { auth } from '@/features/auth'
 import { redirect } from 'next/navigation'
-import { RETURN_TO_PARAM, resolveReturnTo } from '@/lib/auth/return-to'
-import { AuthFormHost } from '@/components/auth/auth-form-host'
+import { RETURN_TO_PARAM, resolveReturnTo } from '@/features/auth/return-to'
+import { AuthFormHost } from '@/features/auth/components/auth-form-host'
 
 /**
  * Zentra Meet links here to sign a user in and expects them back, so this page
