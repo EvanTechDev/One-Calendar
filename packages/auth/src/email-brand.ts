@@ -49,11 +49,15 @@ export function authEmailBrand(input: EmailBrandInput): EmailBrand {
   // A relative image src in an email resolves against the mail client rather
   // than the app, so it silently shows nothing; and a trailing slash produces
   // `//icon.svg`, which some clients refuse to load.
-  const baseUrl = (
+  const rawBaseUrl =
     input.baseUrl?.trim() ||
     process.env.NEXT_PUBLIC_BASE_URL ||
     'http://localhost:3000'
-  ).replace(/\/+$/, '')
+  // Scan once from the end: an unanchored /\/+$/ retries at every slash when
+  // a long slash run is followed by another character (quadratic backtracking).
+  let end = rawBaseUrl.length
+  while (end > 0 && rawBaseUrl[end - 1] === '/') end--
+  const baseUrl = rawBaseUrl.slice(0, end)
 
   return {
     appName,

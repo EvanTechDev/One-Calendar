@@ -56,6 +56,27 @@ describe('authEmailBrand', () => {
     expect(brand.baseUrl).toBe('https://a.example.com')
   })
 
+  it.each([
+    ['https://a.example.com///', 'https://a.example.com'],
+    ['https://a.example.com/a//b///', 'https://a.example.com/a//b'],
+    ['  https://a.example.com///  ', 'https://a.example.com'],
+    ['////', ''],
+  ])('normalizes trailing slashes in %s', (baseUrl, expected) => {
+    const brand = authEmailBrand({ appName: 'A', tagline: 't', baseUrl })
+    expect(brand.baseUrl).toBe(expected)
+    expect(brand.logoUrl).toBe(`${expected}/logo-light.svg`)
+  })
+
+  it('handles long slash runs without quadratic backtracking', () => {
+    const baseUrl = `https://a.example.com/${'/'.repeat(32_000)}x`
+    const start = performance.now()
+    const brand = authEmailBrand({ appName: 'A', tagline: 't', baseUrl })
+    const elapsed = performance.now() - start
+
+    expect(brand.baseUrl).toBe(baseUrl)
+    expect(elapsed).toBeLessThan(100)
+  })
+
   it('falls back to localhost for a missing baseUrl, rather than emitting a relative URL', () => {
     // A relative image src in an email resolves against the mail client, not the
     // app, so it silently shows nothing.
