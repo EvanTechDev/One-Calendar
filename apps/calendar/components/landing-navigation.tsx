@@ -1,15 +1,16 @@
 import Link from 'next/link'
-import { ArrowRight, ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { LandingMobileMenu } from './landing-mobile-menu'
+import { LandingAnchor } from './landing-anchor'
 
 export const LANDING_DOCS_URL = 'https://xyehr.cn/docs'
 export const LANDING_REPOSITORY_URL =
   'https://github.com/EvanTechDev/One-Calendar'
 
 const navigation = [
-  { label: 'Product', href: '/#calendar' },
-  { label: 'Integrations', href: '/#integrations' },
+  { label: 'Product', href: '#features' },
+  { label: 'Integrations', href: '#integrations' },
   { label: 'Changelog', href: 'https://xyehr.cn/changelog' },
   { label: 'Documentation', href: LANDING_DOCS_URL },
 ]
@@ -30,9 +31,9 @@ export function LandingHeader() {
         <LandingBrand />
         <nav className="landing-desktop-nav" aria-label="Main navigation">
           {navigation.map((item) => (
-            <a key={item.label} href={item.href}>
+            <LandingAnchor key={item.label} href={item.href}>
               {item.label}
-            </a>
+            </LandingAnchor>
           ))}
         </nav>
         <div className="landing-header-actions">
@@ -40,23 +41,19 @@ export function LandingHeader() {
             Sign in
           </Link>
           <Button asChild size="sm">
-            <Link href="/sign-up">
-              Create account <ArrowRight aria-hidden="true" />
-            </Link>
+            <Link href="/sign-up">Get started</Link>
           </Button>
         </div>
         <LandingMobileMenu>
           <nav aria-label="Mobile navigation">
             {navigation.map((item) => (
-              <a key={item.label} href={item.href}>
+              <LandingAnchor key={item.label} href={item.href}>
                 {item.label}
-              </a>
+              </LandingAnchor>
             ))}
             <Link href="/sign-in">Sign in</Link>
             <Button asChild size="sm">
-              <Link href="/sign-up">
-                Create account <ArrowRight aria-hidden="true" />
-              </Link>
+              <Link href="/sign-up">Get started</Link>
             </Button>
           </nav>
         </LandingMobileMenu>
@@ -73,22 +70,20 @@ export function LandingFooter() {
           <LandingBrand />
           <p>Events, invitations, and the time between them.</p>
         </div>
-        <div className="landing-footer-link-groups">
-          <nav aria-label="Product">
-            <h2>Product</h2>
-            <a href="/#calendar">Calendar</a>
-            <a href="/#features">Planning tools</a>
-            <a href="/#integrations">AI & integrations</a>
-          </nav>
-          <nav aria-label="Resources">
-            <h2>Resources</h2>
-            <a href={LANDING_DOCS_URL}>Documentation</a>
-            <a href="https://xyehr.cn/changelog">Changelog</a>
-            <a href={LANDING_REPOSITORY_URL}>
-              GitHub <ArrowUpRight aria-hidden="true" />
-            </a>
-          </nav>
-        </div>
+        <nav aria-label="Product">
+          <h2>Product</h2>
+          <LandingAnchor href="#calendar">Calendar</LandingAnchor>
+          <LandingAnchor href="#features">Planning tools</LandingAnchor>
+          <LandingAnchor href="#integrations">AI & integrations</LandingAnchor>
+        </nav>
+        <nav aria-label="Resources">
+          <h2>Resources</h2>
+          <a href={LANDING_DOCS_URL}>Documentation</a>
+          <a href="https://xyehr.cn/changelog">Changelog</a>
+          <a href={LANDING_REPOSITORY_URL}>
+            GitHub <ArrowUpRight aria-hidden="true" />
+          </a>
+        </nav>
         <nav aria-label="Legal">
           <h2>Legal</h2>
           <Link href="/privacy">Privacy policy</Link>

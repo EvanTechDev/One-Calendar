@@ -4,9 +4,11 @@ import {
   LandingFeatures,
   LandingAutomation,
   LandingTools,
+  LandingTestimonials,
   LandingFaq,
   LandingCallToAction,
 } from '@/components/landing-sections'
+import { LandingReveal } from '@/components/landing-motion'
 
 export default function LandingPage() {
   return (
@@ -20,8 +22,13 @@ export default function LandingPage() {
         <LandingFeatures />
         <LandingAutomation />
         <LandingTools />
-        <LandingFaq />
-        <LandingCallToAction />
+        <LandingTestimonials />
+        <LandingReveal>
+          <LandingFaq />
+        </LandingReveal>
+        <LandingReveal>
+          <LandingCallToAction />
+        </LandingReveal>
       </main>
       <LandingFooter />
     </div>

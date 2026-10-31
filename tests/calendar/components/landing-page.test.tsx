@@ -4,6 +4,21 @@ const { fireEvent, render, screen, within } =
 import { describe, expect, it } from 'bun:test'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+
+// Render the accessible reduced-motion path in jsdom.
+window.matchMedia ??= ((query: string) => ({
+  matches: query === '(prefers-reduced-motion: reduce)',
+  media: query,
+  onchange: null,
+  addListener() {},
+  removeListener() {},
+  addEventListener() {},
+  removeEventListener() {},
+  dispatchEvent() {
+    return true
+  },
+})) as typeof window.matchMedia
+
 const { default: LandingPage } =
   await import('../../../apps/calendar/app/(landing)/page')
 
@@ -22,15 +37,16 @@ describe('signed-out landing page', () => {
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByRole('main').id).toBe('main-content')
-    for (const label of ['Create account', 'Sign in']) {
+    for (const label of ['Get started', 'Sign in']) {
       const links = screen.getAllByRole('link', { name: label, exact: true })
       expect(links.length).toBeGreaterThan(1)
       for (const link of links) {
         expect(link.getAttribute('href')).toBe(
           label === 'Sign in' ? '/sign-in' : '/sign-up',
         )
-        if (label === 'Create account') {
+        if (label === 'Get started') {
           expect(link.getAttribute('data-size')).toBe('sm')
+          expect(link.querySelector('svg')).toBeNull()
         }
       }
     }
@@ -80,8 +96,13 @@ describe('signed-out landing page', () => {
     expect(text).toContain('MIT License')
     expect(text).toContain('up to five reminder emails per day')
     expect(text).not.toMatch(/[\u3400-\u9fff]/u)
-    expect(text).not.toMatch(
-      /99\.9%|3×|Elena Fischer|Marcus Oyelaran|Free forever|Enterprise Security/,
+    expect(text).not.toMatch(/99\.9%|3×|Free forever|Enterprise Security/)
+    expect(text).toContain('Elena Fischer')
+    expect(text).toContain('Marcus Oyelaran')
+    expect(container.querySelectorAll('blockquote')).toHaveLength(2)
+    expect(container.querySelector('.landing-facts')).toBeNull()
+    expect(container.querySelector('#calendar img')?.getAttribute('src')).toBe(
+      '/landing-calendar.jpg',
     )
     expect(container.querySelector('img[src^="http"]')).toBeNull()
   })
@@ -114,6 +135,8 @@ describe('signed-out landing page', () => {
       within(navigation).getByRole('link', { name: 'Product', exact: true }),
     )
     expect(menu.open).toBe(false)
+    expect(window.location.hash).toBe('#features')
+    expect(document.activeElement?.id).toBe('features')
 
     menu.open = true
     const docs = within(navigation).getByRole('link', { name: 'Documentation' })
