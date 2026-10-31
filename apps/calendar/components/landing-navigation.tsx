@@ -4,7 +4,6 @@ import { Button } from '@zntr/ui/button'
 import { LandingMobileMenu } from './landing-mobile-menu'
 import { LandingAnchor } from './landing-anchor'
 
-export const LANDING_DOCS_URL = 'https://xyehr.cn/docs'
 export const LANDING_REPOSITORY_URL =
   'https://github.com/EvanTechDev/One-Calendar'
 
@@ -12,7 +11,6 @@ const navigation = [
   { label: 'Product', href: '#features' },
   { label: 'Integrations', href: '#integrations' },
   { label: 'Changelog', href: 'https://xyehr.cn/changelog' },
-  { label: 'Documentation', href: LANDING_DOCS_URL },
 ]
 
 function LandingBrand() {
@@ -78,7 +76,6 @@ export function LandingFooter() {
         </nav>
         <nav aria-label="Resources">
           <h2>Resources</h2>
-          <a href={LANDING_DOCS_URL}>Documentation</a>
           <a href="https://xyehr.cn/changelog">Changelog</a>
           <a href={LANDING_REPOSITORY_URL}>
             GitHub <ArrowUpRight aria-hidden="true" />

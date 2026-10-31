@@ -2,8 +2,6 @@ await import('../../support/dom')
 const { fireEvent, render, screen, within } =
   await import('@testing-library/react')
 import { describe, expect, it } from 'bun:test'
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 
 // Render the accessible reduced-motion path in jsdom.
 window.matchMedia ??= ((query: string) => ({
@@ -62,20 +60,11 @@ describe('signed-out landing page', () => {
     expect(brand.children).toHaveLength(0)
   })
 
-  it('links feature descriptions to actual documentation pages', () => {
+  it('keeps legal navigation without documentation promotion links', () => {
     const { container } = render(<LandingPage />)
-    const root = resolve(import.meta.dir, '../../..')
-    const guides = container.querySelectorAll<HTMLAnchorElement>(
-      'a[href^="https://xyehr.cn/docs/"]',
-    )
-
-    expect(guides.length).toBeGreaterThanOrEqual(10)
-    for (const link of guides) {
-      const slug = new URL(link.href).pathname.slice('/docs/'.length)
-      expect(existsSync(resolve(root, `docs/content/docs/${slug}.mdx`))).toBe(
-        true,
-      )
-    }
+    expect(
+      container.querySelectorAll('a[href^="https://xyehr.cn/docs"]'),
+    ).toHaveLength(0)
     expect(
       screen.getByRole('link', { name: 'Privacy policy' }).getAttribute('href'),
     ).toBe('/privacy')
@@ -139,9 +128,11 @@ describe('signed-out landing page', () => {
     expect(document.activeElement?.id).toBe('features')
 
     menu.open = true
-    const docs = within(navigation).getByRole('link', { name: 'Documentation' })
-    docs.focus()
-    fireEvent.keyDown(docs, { key: 'Escape' })
+    const changelog = within(navigation).getByRole('link', {
+      name: 'Changelog',
+    })
+    changelog.focus()
+    fireEvent.keyDown(changelog, { key: 'Escape' })
     expect(menu.open).toBe(false)
     expect(document.activeElement).toBe(summary)
   })

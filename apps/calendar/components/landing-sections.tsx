@@ -1,26 +1,23 @@
 import Link from 'next/link'
 import { Button } from '@zntr/ui/button'
+import { AssistantIcon } from '@zntr/calendar/components/ai/assistant-icon'
 import {
   ArrowDownToLine,
-  ArrowUpRight,
   Bell,
   Bookmark,
   Check,
   ChevronDown,
-  Code2,
   Command,
-  FileText,
   Layers,
   Plug,
   Repeat2,
-  Sparkles,
   Star,
   Timer,
   Users,
 } from 'lucide-react'
 import { LandingAnchor } from './landing-anchor'
 import { LandingReveal, LandingWords } from './landing-motion'
-import { LANDING_DOCS_URL, LANDING_REPOSITORY_URL } from './landing-navigation'
+import { LandingAssistantPreview } from './landing-assistant-preview'
 
 // Claims follow docs/content/docs/calendar and integrations/mcp.mdx.
 // The original product screenshot and user-confirmed testimonials are retained.
@@ -28,13 +25,6 @@ export function LandingHero() {
   return (
     <section className="landing-hero" aria-labelledby="landing-title">
       <div className="landing-hero-copy">
-        <LandingReveal onLoad>
-          <a className="landing-announcement" href={LANDING_REPOSITORY_URL}>
-            <Code2 aria-hidden="true" />
-            An open-source calendar
-            <ArrowUpRight aria-hidden="true" />
-          </a>
-        </LandingReveal>
         <h1 id="landing-title">
           <LandingWords text="Plan the day." delay={0.1} />
           <br />
@@ -59,16 +49,14 @@ export function LandingHero() {
       </div>
       <div className="landing-product" id="calendar" tabIndex={-1}>
         <LandingReveal onLoad delay={0.4}>
-          <div className="landing-screenshot-frame">
-            <img
-              className="landing-screenshot"
-              src="/landing-calendar.jpg"
-              width={1919}
-              height={1116}
-              fetchPriority="high"
-              alt="The original Calendar interface showing a weekly schedule"
-            />
-          </div>
+          <img
+            className="landing-screenshot"
+            src="/landing-calendar.jpg"
+            width={1919}
+            height={1116}
+            fetchPriority="high"
+            alt="The original Calendar interface showing a weekly schedule"
+          />
         </LandingReveal>
       </div>
     </section>
@@ -82,8 +70,6 @@ const features = [
     title: 'Choose what’s in view.',
     description:
       'Group events into categories and filter the calendar. Hiding a category changes the view, not the events.',
-    href: 'categories',
-    details: ['Group events', 'Filter categories'],
   },
   {
     icon: Repeat2,
@@ -91,8 +77,6 @@ const features = [
     title: 'Change a date. Keep the pattern.',
     description:
       'Repeat daily, weekly, monthly, or yearly. Edit one occurrence or change this and following events.',
-    href: 'recurring-events',
-    details: ['This event', 'This and following events'],
   },
   {
     icon: Users,
@@ -100,8 +84,6 @@ const features = [
     title: 'Send the invite. See the response.',
     description:
       'Invite participants by email and track their replies. For recurring events, choose which dates to share.',
-    href: 'invitations',
-    details: ['Accepted', 'Tentative', 'Declined'],
   },
   {
     icon: Bell,
@@ -109,8 +91,6 @@ const features = [
     title: 'Decide when to be reminded.',
     description:
       'Choose a lead time and browser or email reminders. Browser reminders need Calendar open; email has a daily limit.',
-    href: 'reminders',
-    details: ['Browser notifications', 'Email reminders'],
   },
 ]
 
@@ -137,21 +117,6 @@ export function LandingFeatures() {
               </div>
               <h3>{feature.title}</h3>
               <p>{feature.description}</p>
-              <div
-                className="landing-feature-tags"
-                aria-label={`${feature.label} options`}
-              >
-                {feature.details.map((detail) => (
-                  <span key={detail}>{detail}</span>
-                ))}
-              </div>
-              <a
-                className="landing-text-link"
-                href={`${LANDING_DOCS_URL}/calendar/${feature.href}`}
-              >
-                Read about {feature.label.toLowerCase()}{' '}
-                <ArrowUpRight aria-hidden="true" />
-              </a>
             </article>
           </LandingReveal>
         ))}
@@ -181,7 +146,7 @@ export function LandingAutomation() {
           <article className="landing-automation-card">
             <div className="landing-automation-copy">
               <div className="landing-automation-symbol">
-                <Sparkles aria-hidden="true" />
+                <AssistantIcon />
               </div>
               <h3>Start with a sentence.</h3>
               <p>
@@ -204,32 +169,9 @@ export function LandingAutomation() {
               <p className="landing-availability">
                 AI features require an AI-enabled deployment.
               </p>
-              <a
-                className="landing-text-link"
-                href={`${LANDING_DOCS_URL}/calendar/ai`}
-              >
-                How AI works <ArrowUpRight aria-hidden="true" />
-              </a>
             </div>
-            <div
-              className="landing-assistant-visual"
-              aria-label="The command palette provides search and AI commands"
-            >
-              <div className="landing-command-surface">
-                <div>
-                  <Command aria-hidden="true" />
-                  <span>Calendar commands</span>
-                  <kbd>⌘ K</kbd>
-                </div>
-                <span>
-                  <Sparkles aria-hidden="true" /> Ask AI
-                </span>
-                <div className="landing-command-options">
-                  <span>Find events</span>
-                  <span>Create</span>
-                  <span>Reschedule</span>
-                </div>
-              </div>
+            <div className="landing-assistant-visual">
+              <LandingAssistantPreview />
             </div>
           </article>
         </LandingReveal>
@@ -253,12 +195,6 @@ export function LandingAutomation() {
                 <span>Settings</span>
                 <span>Profile · read only</span>
               </div>
-              <a
-                className="landing-text-link"
-                href={`${LANDING_DOCS_URL}/integrations/mcp`}
-              >
-                Read the MCP guide <ArrowUpRight aria-hidden="true" />
-              </a>
             </div>
             <div className="landing-connection-visual">
               <div
@@ -299,7 +235,6 @@ const tools = [
     description:
       'Bookmark an event to return to its details without finding the date again.',
     label: 'Bookmarks',
-    href: 'bookmarks',
   },
   {
     icon: Timer,
@@ -307,7 +242,6 @@ const tools = [
     description:
       'Track days to a milestone. Countdowns stay separate from scheduled events.',
     label: 'Countdowns',
-    href: 'countdowns',
   },
   {
     icon: ArrowDownToLine,
@@ -315,7 +249,7 @@ const tools = [
     description:
       'Import and export ICS, JSON, or CSV. Link imports are one-time reads, not two-way sync.',
     label: 'Import & export',
-    href: 'import-export',
+    formats: ['ICS', 'JSON', 'CSV'],
   },
 ]
 
@@ -341,38 +275,20 @@ export function LandingTools() {
               <p className="landing-tool-label">{tool.label}</p>
               <h3>{tool.title}</h3>
               <p>{tool.description}</p>
-              {tool.href === 'import-export' ? (
+              {tool.formats ? (
                 <div
                   className="landing-file-formats"
                   aria-label="Supported file formats"
                 >
-                  <span>ICS</span>
-                  <span>JSON</span>
-                  <span>CSV</span>
+                  {tool.formats.map((format) => (
+                    <span key={format}>{format}</span>
+                  ))}
                 </div>
               ) : null}
-              <a
-                className="landing-text-link"
-                href={`${LANDING_DOCS_URL}/calendar/${tool.href}`}
-              >
-                {tool.label} <ArrowUpRight aria-hidden="true" />
-              </a>
             </article>
           </LandingReveal>
         ))}
       </div>
-      <LandingReveal className="landing-source-banner">
-        <Code2 aria-hidden="true" />
-        <div>
-          <h3>The source is part of the product.</h3>
-          <p>Zentra Calendar is open source under the MIT License.</p>
-        </div>
-        <Button asChild size="sm" variant="outline">
-          <a href={LANDING_REPOSITORY_URL}>
-            View on GitHub <ArrowUpRight aria-hidden="true" />
-          </a>
-        </Button>
-      </LandingReveal>
     </section>
   )
 }
@@ -469,9 +385,6 @@ export function LandingFaq() {
       <div>
         <p className="landing-eyebrow">Questions & answers</p>
         <h2 id="faq-title">A few things to know.</h2>
-        <a className="landing-text-link" href={LANDING_DOCS_URL}>
-          Read the documentation <ArrowUpRight aria-hidden="true" />
-        </a>
       </div>
       <div className="landing-faq-list">
         {faqs.map((faq) => (
@@ -507,10 +420,6 @@ export function LandingCallToAction() {
           <Link href="/sign-in">Sign in</Link>
         </Button>
       </div>
-      <a className="landing-text-link" href={LANDING_DOCS_URL}>
-        <FileText aria-hidden="true" />
-        Or read the docs first <ArrowUpRight aria-hidden="true" />
-      </a>
     </section>
   )
 }
