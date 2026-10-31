@@ -66,6 +66,10 @@ interface WeekViewProps {
   ) => void
   daysToShow?: number
   fixedStartDate?: Date
+  /** Embeds can choose a stable starting hour; the app defaults to now. */
+  initialScrollHour?: number
+  /** Embeds can pin their surface without changing the app's global theme. */
+  appearance?: 'light' | 'dark'
   onEditEvent?: (event: CalendarEvent) => void
   onDeleteEvent?: (event: CalendarEvent) => void
   onBookmarkEvent?: (event: CalendarEvent) => void
@@ -90,6 +94,8 @@ export default function WeekView({
   onEventDrop,
   daysToShow,
   fixedStartDate,
+  initialScrollHour,
+  appearance,
   onEditEvent: _onEditEvent,
   onDeleteEvent: _onDeleteEvent,
   onBookmarkEvent: _onBookmarkEvent,
@@ -247,8 +253,10 @@ export default function WeekView({
   )
   const isCreatingRef = useRef(false)
   const isDark =
-    typeof document !== 'undefined' &&
-    document.documentElement.classList.contains('dark')
+    appearance === 'dark' ||
+    (appearance === undefined &&
+      typeof document !== 'undefined' &&
+      document.documentElement.classList.contains('dark'))
 
   useEffect(() => {
     if (
@@ -257,12 +265,15 @@ export default function WeekView({
     ) {
       const now = toCalendarDate(new Date(), config.timezone)
       scrollContainerRef.current.scrollTo({
-        top: Math.max(0, now.getHours() * 60 + now.getMinutes() - 100),
+        top:
+          initialScrollHour === undefined
+            ? Math.max(0, now.getHours() * 60 + now.getMinutes() - 100)
+            : Math.max(0, Math.min(23, initialScrollHour)) * 60,
         behavior: 'auto',
       })
       scrolledTimezoneRef.current = config.timezone
     }
-  }, [date, weekDays, config.timezone])
+  }, [date, weekDays, config.timezone, initialScrollHour])
 
   useEffect(() => {
     setCurrentTime(new Date())

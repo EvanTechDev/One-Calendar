@@ -7,6 +7,15 @@ import { resolve } from 'node:path'
 const { default: LandingPage } =
   await import('../../../apps/calendar/app/(landing)/page')
 
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as never
+Element.prototype.scrollTo ??= function scrollTo() {}
+Element.prototype.scrollIntoView ??= function scrollIntoView() {}
+
 describe('signed-out landing page', () => {
   it('keeps account entry points and all section links usable', () => {
     const { container } = render(<LandingPage />)
@@ -20,6 +29,9 @@ describe('signed-out landing page', () => {
         expect(link.getAttribute('href')).toBe(
           label === 'Sign in' ? '/sign-in' : '/sign-up',
         )
+        if (label === 'Create account') {
+          expect(link.getAttribute('data-size')).toBe('sm')
+        }
       }
     }
     for (const link of container.querySelectorAll<HTMLAnchorElement>(
@@ -29,6 +41,9 @@ describe('signed-out landing page', () => {
       expect(container.querySelector(`[id="${target}"]`)).not.toBeNull()
     }
     expect(container.querySelector('a button, button a')).toBeNull()
+    const brand = container.querySelector('.landing-brand > span')!
+    expect(brand.textContent).toBe('Zentra Calendar')
+    expect(brand.children).toHaveLength(0)
   })
 
   it('links feature descriptions to actual documentation pages', () => {
@@ -95,11 +110,13 @@ describe('signed-out landing page', () => {
     })
 
     menu.open = true
-    fireEvent.click(within(navigation).getByRole('link', { name: 'Features' }))
+    fireEvent.click(
+      within(navigation).getByRole('link', { name: 'Product', exact: true }),
+    )
     expect(menu.open).toBe(false)
 
     menu.open = true
-    const docs = within(navigation).getByRole('link', { name: 'Docs' })
+    const docs = within(navigation).getByRole('link', { name: 'Documentation' })
     docs.focus()
     fireEvent.keyDown(docs, { key: 'Escape' })
     expect(menu.open).toBe(false)

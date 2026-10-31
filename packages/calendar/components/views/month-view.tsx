@@ -85,6 +85,8 @@ interface MonthViewProps {
    */
   scrollContainerRef?: RefObject<HTMLElement | null>
   config: ViewConfig
+  /** Embeds can pin their surface without changing the app's global theme. */
+  appearance?: 'light' | 'dark'
 }
 
 /** Height of the day-number block at the top of each cell, in px. */
@@ -178,6 +180,7 @@ export default function MonthView({
   onCellClick,
   scrollContainerRef,
   config,
+  appearance,
   selection: instantSelection = null,
 }: MonthViewProps) {
   const language = config.language
@@ -189,8 +192,10 @@ export default function MonthView({
   const today = toCalendarDate(new Date(), config.timezone)
   const selection = selectionInTimeZone(instantSelection, config.timezone)
   const isDark =
-    typeof document !== 'undefined' &&
-    document.documentElement.classList.contains('dark')
+    appearance === 'dark' ||
+    (appearance === undefined &&
+      typeof document !== 'undefined' &&
+      document.documentElement.classList.contains('dark'))
 
   const startWeekDay = monthStart.getDay()
   const leadingEmptyDays = (7 + (startWeekDay - firstDayOfWeek.value)) % 7

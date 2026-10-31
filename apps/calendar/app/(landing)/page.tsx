@@ -16,7 +16,7 @@ export default function LandingPage() {
       </a>
       <LandingHeader />
       <main className="landing-frame" id="main-content" tabIndex={-1}>
-        <LandingHero today={new Date().toISOString().slice(0, 10)} />
+        <LandingHero />
         <LandingFeatures />
         <LandingAutomation />
         <LandingTools />

@@ -1,126 +1,149 @@
 await import('../../support/dom')
-const { fireEvent, render, screen } = await import('@testing-library/react')
+const { fireEvent, render, screen, waitFor, within } =
+  await import('@testing-library/react')
 import { describe, expect, it } from 'bun:test'
 const { LandingCalendarPreview } =
   await import('../../../apps/calendar/components/landing-calendar-preview')
+const { landingDemoEvents } =
+  await import('../../../apps/calendar/lib/landing-demo')
 
-const today = '2026-10-31'
+// Real calendar views measure and scroll their grid; jsdom has no layout APIs.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as never
+Element.prototype.scrollTo ??= function scrollTo() {}
+Element.prototype.scrollIntoView ??= function scrollIntoView() {}
 
-describe('landing calendar view explorer', () => {
-  it('starts with the real date in an explicitly empty illustration', () => {
-    const { container } = render(<LandingCalendarPreview today={today} />)
+describe('landing product calendar demo', () => {
+  it('renders the actual week grid with explicitly labeled sample events', () => {
+    const { container } = render(<LandingCalendarPreview />)
 
-    expect(screen.getByRole('heading', { name: 'October 2026' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeTruthy()
     expect(
       screen
-        .getByRole('button', { name: 'Month' })
+        .getByRole('button', { name: 'Week', exact: true })
         .getAttribute('aria-pressed'),
     ).toBe('true')
-    expect(screen.getByText('Illustrated preview · No event data')).toBeTruthy()
-    expect(container.querySelector('[data-today]')?.textContent).toBe('31')
-    expect(container.querySelectorAll('.landing-date-cell')).toHaveLength(35)
     expect(
-      screen.getByRole('region', { name: 'Month view illustration' }).tabIndex,
+      screen.getByText('Sample schedule · Nov 2–8, 2026 · UTC'),
+    ).toBeTruthy()
+    expect(
+      container.querySelector('[data-event-id="landing-focus"]')?.textContent,
+    ).toContain('Focus time')
+    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
+    expect(
+      screen.getByRole('region', { name: 'Interactive sample calendar' })
+        .tabIndex,
     ).toBe(0)
   })
 
-  it('switches all five real view types and updates their accessible state', () => {
-    const { container } = render(<LandingCalendarPreview today={today} />)
-    const expectedColumns = { Day: 1, 'Four days': 4, Week: 7 }
-
-    for (const [label, count] of Object.entries(expectedColumns)) {
-      fireEvent.click(screen.getByRole('button', { name: label, exact: true }))
-      expect(
-        screen
-          .getByRole('button', { name: label, exact: true })
-          .getAttribute('aria-pressed'),
-      ).toBe('true')
-      expect(container.querySelectorAll('.landing-time-day')).toHaveLength(
-        count,
-      )
-      expect(
-        screen.getByRole('region', { name: `${label} view illustration` }),
-      ).toBeTruthy()
-      expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
-    }
-
-    fireEvent.click(screen.getByRole('button', { name: 'Year', exact: true }))
-    expect(
-      screen.getByRole('heading', { name: '2026', exact: true }),
-    ).toBeTruthy()
-    expect(container.querySelectorAll('.landing-year-grid h4')).toHaveLength(12)
-    expect(screen.getByText('January')).toBeTruthy()
-    expect(screen.getByText('December')).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Month', exact: true }))
-    expect(container.querySelector('.landing-month-grid')).toBeTruthy()
-  })
-
-  it('moves one month at a time without skipping November after October 31', () => {
-    render(<LandingCalendarPreview today={today} />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
-    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }))
-    expect(screen.getByRole('heading', { name: 'October 2026' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }))
-    expect(screen.getByRole('heading', { name: 'September 2026' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Today' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Day', exact: true }))
-    expect(
-      screen.getByRole('heading', { name: 'October 31, 2026' }),
-    ).toBeTruthy()
-  })
-
-  it('navigates days, four-day periods, and weeks across a month boundary', () => {
-    const { container } = render(<LandingCalendarPreview today={today} />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Day', exact: true }))
-    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
-    expect(
-      screen.getByRole('heading', { name: 'November 1, 2026' }),
-    ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }))
-    expect(
-      screen.getByRole('heading', { name: 'October 31, 2026' }),
-    ).toBeTruthy()
-
+  it('filters the same sample dataset by category', () => {
+    const { container } = render(<LandingCalendarPreview />)
     fireEvent.click(
-      screen.getByRole('button', { name: 'Four days', exact: true }),
+      screen.getByRole('button', { name: 'Personal', exact: true }),
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
-    expect(container.querySelector('.landing-time-day')?.textContent).toBe(
-      'Wed4',
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Today' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Week', exact: true }))
-    expect(container.querySelector('.landing-time-day')?.textContent).toBe(
-      'Mon26',
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
-    expect(container.querySelector('.landing-time-day')?.textContent).toBe(
-      'Mon2',
-    )
-  })
 
-  it('handles a leap-year month and year navigation', () => {
-    const { container } = render(<LandingCalendarPreview today="2028-02-29" />)
-
-    expect(container.querySelector('[data-today]')?.textContent).toBe('29')
-    fireEvent.click(screen.getByRole('button', { name: 'Year', exact: true }))
-    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
-    expect(
-      screen.getByRole('heading', { name: '2029', exact: true }),
-    ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }))
-    expect(
-      screen.getByRole('heading', { name: '2028', exact: true }),
-    ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Today' }))
     expect(
       screen
-        .getByRole('button', { name: 'Year', exact: true })
+        .getByRole('button', { name: 'Personal', exact: true })
         .getAttribute('aria-pressed'),
     ).toBe('true')
+    expect(
+      container.querySelector('[data-event-id="landing-focus"]'),
+    ).toBeNull()
+    expect(
+      container.querySelector('[data-event-id="landing-reading"]'),
+    ).not.toBeNull()
+    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(5)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'All events', exact: true }),
+    )
+    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
+  })
+
+  it('navigates weeks and resets the date, view, and filters', () => {
+    const { container } = render(<LandingCalendarPreview />)
+    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
+    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(0)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Personal', exact: true }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Reset demo' }))
+    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
+    expect(
+      screen
+        .getByRole('button', { name: 'All events', exact: true })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
+  it('loads the actual month view and navigates calendar months', async () => {
+    const { container } = render(<LandingCalendarPreview />)
+    fireEvent.click(screen.getByRole('button', { name: 'Month', exact: true }))
+    await waitFor(() =>
+      expect(container.querySelector('[data-day-cell]')).not.toBeNull(),
+    )
+
+    expect(
+      screen
+        .getByRole('button', { name: 'Month', exact: true })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+      container.querySelector('[data-event-id="landing-focus"]'),
+    ).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
+    expect(screen.getByRole('heading', { name: 'December 2026' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }))
+    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset demo' }))
+    expect(
+      screen
+        .getByRole('button', { name: 'Week', exact: true })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
+  it('offers a keyboard-accessible sample list and event details', () => {
+    render(<LandingCalendarPreview />)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Browse sample events' }),
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(
+      within(dialog).getByText(
+        'These are fictional example events, not a real person’s calendar.',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: /Focus time/ }))
+    expect(
+      within(dialog).getByRole('heading', { name: 'Focus time' }),
+    ).toBeTruthy()
+    expect(
+      within(dialog)
+        .getByRole('link', { name: 'Create account' })
+        .getAttribute('href'),
+    ).toBe('/sign-up')
+  })
+
+  it('keeps the example data isolated, read-only, and UTC-based', () => {
+    const first = landingDemoEvents()
+    const second = landingDemoEvents()
+    expect(first).toHaveLength(11)
+    expect(first).not.toBe(second)
+    for (const event of first) {
+      expect(event.viewOnly).toBe(true)
+      expect(event.id.startsWith('landing-')).toBe(true)
+      expect(event.participants).toHaveLength(0)
+      expect(event.notification).toBeNull()
+      expect(event.startDate.getUTCMonth()).toBe(10)
+      expect(event.endDate.getTime()).toBeGreaterThan(event.startDate.getTime())
+    }
+    first[0]!.title = 'Changed only in this instance'
+    expect(second[0]!.title).toBe('Plan the week')
   })
 })
