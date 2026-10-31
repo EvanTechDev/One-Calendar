@@ -133,7 +133,7 @@ export async function runMaintenance(
       results[name] = { ok: true, detail: await job.run(options) }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      console.error(`Maintenance job "${name}" failed:`, error)
+      console.error('Maintenance job "%s" failed:', name, error)
       results[name] = { ok: false, error: message }
     }
   }
