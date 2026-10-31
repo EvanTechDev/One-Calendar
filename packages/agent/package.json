@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "ai": "7.0.127",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@ai-sdk/groq": "4.0.54",
