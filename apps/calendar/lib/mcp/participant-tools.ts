@@ -13,10 +13,12 @@ import {
   baselineOf,
   getInviteOccurrences,
   getOccurrencesForInvites,
+  readInviteToken,
   updateOccurrenceRsvp,
 } from '@/lib/invites/invite-service'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
-import { isSeriesEvent } from '@/lib/recurrence/engine'
+import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
+import { isSeriesEvent } from '@zntr/ui/calendar/lib/recurrence/engine'
 import {
   applyScopedParticipantChange,
   resolveParticipantTarget,
@@ -27,41 +29,27 @@ import {
   ParticipantScopeError,
 } from '@/lib/invites/visibility'
 import type { ApplyTo } from '@/lib/event-service'
+import { normalizeEmails as normalizeEmailsShared } from '@zntr/ui/calendar/lib/email'
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_PARTICIPANTS = 20
 
+/**
+ * Adding to an existing participant list is not idempotent, so a repeat is a
+ * mistake here — unlike writing a whole list back onto an event, which
+ * `event-tools.ts` allows.
+ */
 function normalizeEmails(emails: string[]): string[] {
   if (emails.length === 0) {
     throw new ParticipantError('emails must not be empty')
   }
-  if (emails.length > MAX_PARTICIPANTS) {
-    throw new ParticipantError(
-      `Maximum ${MAX_PARTICIPANTS} participants allowed`,
-    )
-  }
-  const unique = [...new Set(emails.map((e) => e.trim().toLowerCase()))]
-  if (unique.length !== emails.length) {
-    throw new ParticipantError('Duplicate emails not allowed')
-  }
-  for (const email of unique) {
-    if (!EMAIL_REGEX.test(email)) {
-      throw new ParticipantError(`Invalid email: ${email}`)
-    }
-  }
-  return unique
+  return normalizeEmailsShared(emails, {
+    max: MAX_PARTICIPANTS,
+    rejectDuplicates: true,
+    invalid: (message) => new ParticipantError(message),
+  })
 }
 
-export async function getUserEmail(userId: string): Promise<string> {
-  const db = await getDb()
-  const [row] = await db
-    .select({ email: user.email })
-    .from(user)
-    .where(eq(user.id, userId))
-  return row?.email?.toLowerCase() ?? ''
-}
-
-export async function getOwnedEvent(userId: string, eventId: string) {
+async function getOwnedEvent(userId: string, eventId: string) {
   const db = await getDb()
   const [row] = await db
     .select()
@@ -93,6 +81,9 @@ async function buildEmailPayload(event: ReturnType<typeof decryptEvent>) {
     inviterName: inviter?.name ?? 'Someone',
     description: event.description ?? undefined,
     location: event.location ?? undefined,
+    // Both the first send and the resend flow through here, so the meeting
+    // link cannot go missing from one of them.
+    meetingUrl: await resolveMeetingUrl(event.id),
     baseUrl: baseUrl(),
   }
 }
@@ -408,7 +399,7 @@ export async function listMyEventInvites(
               )
           : null,
         added_to_calendar: invite.addedToCalendar,
-        invite_link: `${baseUrl()}/invite/${invite.inviteToken}`,
+        invite_link: `${baseUrl()}/invite/${readInviteToken(invite)}`,
         expires_at: invite.expiresAt,
       }
     })

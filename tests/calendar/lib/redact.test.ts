@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { redactLog, redactLogValue } from '@/lib/redact'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { redactLog, redactLogValue } = await import('@/lib/redact')
 
 describe('redactLogValue', () => {
   it('masks strings under sensitive keys', () => {
@@ -68,18 +69,18 @@ describe('redactLog', () => {
     }
     const result = redactLog(ctx) as Record<string, unknown>
     expect(JSON.parse(JSON.stringify(result))).toEqual(result)
-    expect(
-      (result.request as Record<string, unknown>).headers,
-    ).toEqual({ cookie: '[REDACTED]', authorization: '[REDACTED]' })
-    expect(
-      (result.user as Record<string, unknown>).email,
-    ).toBe('u\u2022\u2022\u2022@example.com')
+    expect((result.request as Record<string, unknown>).headers).toEqual({
+      cookie: '[REDACTED]',
+      authorization: '[REDACTED]',
+    })
+    expect((result.user as Record<string, unknown>).email).toBe(
+      'u\u2022\u2022\u2022@example.com',
+    )
     expect(
       (
-        ((result.body as Record<string, unknown>).items as unknown[])[2] as Record<
-          string,
-          unknown
-        >
+        (
+          (result.body as Record<string, unknown>).items as unknown[]
+        )[2] as Record<string, unknown>
       ).apiKey,
     ).toBe('[REDACTED]')
     expect((result.body as Record<string, unknown>).count).toBe(3)

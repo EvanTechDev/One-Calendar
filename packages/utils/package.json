@@ -5,23 +5,20 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./calendar-host": "./src/calendar-host/index.ts",
+    "./calendar-host/request": "./src/calendar-host/request.ts",
     "./utils": "./src/utils.ts"
   },
   "scripts": {
-    "build": "tsc",
-    "build:check": "tsc && tsc --noEmit",
+    "build": "bun check",
+    "build:check": "bun check && bun check",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "bun check"
   },
   "dependencies": {
-    "clsx": "^2.1.1",
-    "tailwind-merge": "3.6.0",
-    "react": "19.2.7"
+    "react": "19.2.7",
+    "cn": "^0.4.0"
   },
-  "devDependencies": {
-    "vitest": "^4.1.10"
-  }
+  "devDependencies": {}
 }

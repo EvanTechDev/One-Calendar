@@ -1,3 +1,4 @@
+await import('./../../support/dom')
 /**
  * Pins firstVisibleStampOfSeries and the isFirstInstance marker in
  * expandSeriesView. The product rule (plan 004) is that "all events" edits
@@ -5,12 +6,10 @@
  * generated instance not removed by an exdate — so both the helper and the
  * marker must skip exdated firsts.
  */
-import { describe, it, expect } from 'vitest'
-import {
-  expandSeriesView,
-  firstVisibleStampOfSeries,
-  type SeriesViewInput,
-} from '@/lib/recurrence/engine'
+import { describe, it, expect } from 'bun:test'
+const { expandSeriesView, firstVisibleStampOfSeries } =
+  await import('@zntr/ui/calendar/lib/recurrence/engine')
+import type { SeriesViewInput } from '@zntr/ui/calendar/lib/recurrence/engine'
 
 function day(y: number, m: number, d: number, h = 0, min = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, 0))

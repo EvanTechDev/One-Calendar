@@ -1,22 +1,355 @@
-name: TypeScript Check
+name: Workspace Checks
 
 on:
   workflow_dispatch:
+    inputs:
+      calendar_test_file:
+        description: Test path under tests/calendar or tests/auth (legacy input name)
+        required: false
+        type: string
+      focused_only:
+        description: Run only the selected calendar test during a red-green cycle
+        required: false
+        default: false
+        type: boolean
+      checkout_ref:
+        description: Optional revision to compare against the work branch
+        required: false
+        type: string
+      visual_baseline:
+        description: Capture the deterministic 1280px Web calendar reference
+        required: false
+        default: false
+        type: boolean
+      production_ui:
+        description: Build Next and verify its actual CSS against shared UI surfaces
+        type: boolean
+        default: false
+      auth_build:
+        description: Build both Next authentication hosts
+        type: boolean
+        default: false
+      botid_origin:
+        description: Optional Vercel origin for real BotID browser/API verification
+        type: string
+        required: false
+      desktop_environment:
+        description: Optionally build the four desktop installer targets
+        required: false
+        default: none
+        type: choice
+        options:
+          - none
+          - dev
+          - production
+      updater_environment:
+        description: Rehearse a signed installed update with disposable keys
+        default: none
+        type: choice
+        options: [none, dev, production]
+      desktop_linux_only:
+        description: Focus native startup/update diagnosis on Linux
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
-  typecheck:
+  botid-live:
+    if: ${{ inputs.botid_origin != '' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
         with:
-          version: 11.5.2
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
       - uses: actions/setup-node@v4
         with:
           node-version: 25
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm type-check
+      - run: bun install --frozen-lockfile
+      - run: bun x --no-install playwright install --with-deps --only-shell chromium
+      - run: node tests/auth/bot-id-browser.mjs
+        env:
+          BOTID_ORIGIN: ${{ inputs.botid_origin }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: botid-browser-${{ github.sha }}
+          path: artifacts/bot-id
+  auth-build:
+    if: ${{ inputs.auth_build }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [zentra-calendar, zentra-meet]
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_BASE_URL: https://calendar.example
+      BETTER_AUTH_URL: https://calendar.example
+      BETTER_AUTH_SECRET: isolated-build-only-not-a-deployment-secret
+      POSTGRES_URL: postgres://build:build@127.0.0.1:5432/build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter ${{ matrix.app }} build
+  installed-update:
+    if: ${{ inputs.updater_environment != 'none' && inputs.updater_environment != '' }}
+    uses: ./.github/workflows/desktop-update-check.yml
+    with:
+      desktop_environment: ${{ inputs.updater_environment }}
+      checkout_ref: ${{ inputs.checkout_ref || github.sha }}
+      desktop_linux_only: ${{ inputs.desktop_linux_only }}
+  calendar-build:
+    if: ${{ inputs.production_ui || (!inputs.focused_only && inputs.desktop_environment != 'none' && inputs.desktop_environment != '') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_BASE_URL: https://calendar.example
+      BETTER_AUTH_URL: https://calendar.example
+      BETTER_AUTH_SECRET: isolated-build-only-not-a-deployment-secret
+      POSTGRES_URL: postgres://build:build@127.0.0.1:5432/build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter zentra-calendar build
+      - run: bun x --no-install playwright install --with-deps --only-shell chromium
+      - name: Start built Web app and isolated UI fixture
+        run: |
+          bun run --filter zentra-calendar start >"$RUNNER_TEMP/zentra-next.log" 2>&1 &
+          ZENTRA_VISUAL_PRODUCTION_CSS=1 bun x --no-install vite --config tests/calendar/visual/vite.config.ts >"$RUNNER_TEMP/zentra-ui-fixture.log" 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3000/privacy >/dev/null && curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/zentra-next.log" "$RUNNER_TEMP/zentra-ui-fixture.log"
+          exit 1
+      - name: Verify production CSS and capture Web and desktop surfaces
+        run: node tests/calendar/visual/production-css.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-ui-production-${{ github.sha }}
+          path: |
+            artifacts/calendar-ui
+            ${{ runner.temp }}/zentra-next.log
+            ${{ runner.temp }}/zentra-ui-fixture.log
+  desktop-build:
+    if: ${{ inputs.desktop_environment != 'none' && inputs.desktop_environment != '' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.desktop_linux_only && '[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","bundle":"appimage"}]' || '[{"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","bundle":"appimage"},{"os":"windows-latest","target":"x86_64-pc-windows-msvc","bundle":"nsis"},{"os":"macos-15-intel","target":"x86_64-apple-darwin","bundle":"dmg"},{"os":"macos-14","target":"aarch64-apple-darwin","bundle":"dmg"}]') }}
+    runs-on: ${{ matrix.os }}
+    env:
+      BUILD_TARGET: ${{ matrix.target }}
+      ZENTRA_DESKTOP_ENV: ${{ inputs.desktop_environment }}
+      ZENTRA_API_ORIGIN: ${{ inputs.desktop_environment == 'dev' && (vars.ZENTRA_DEV_API_ORIGIN || 'https://precal.xyehr.cn') || (vars.ZENTRA_API_ORIGIN || 'https://calendar.xyehr.cn') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - name: Identify checked-out source
+        id: source
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/calendar-client/src-tauri -> target
+          key: ${{ matrix.target }}
+      - name: Install Linux desktop libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev patchelf xvfb openbox scrot wmctrl x11-utils desktop-file-utils xdg-utils dbus
+      - run: bun install --frozen-lockfile
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: desktop-cargo-lock-${{ steps.source.outputs.sha }}
+          path: apps/calendar-client/src-tauri/Cargo.lock
+      - name: Build native installer
+        shell: bash
+        working-directory: apps/calendar-client
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+          BUILD_BUNDLE: ${{ matrix.bundle }}
+        run: |
+          config_args=()
+          if [ "$ZENTRA_DESKTOP_ENV" = "dev" ]; then
+            config_args=(--config src-tauri/tauri.dev.conf.json)
+          fi
+          bun run tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" "${config_args[@]}" -- --locked
+      - name: Verify window sizing rules
+        if: runner.os == 'Linux'
+        working-directory: apps/calendar-client/src-tauri
+        run: cargo test --locked --release --lib --target x86_64-unknown-linux-gnu
+      - name: Verify installed Linux application
+        if: runner.os == 'Linux'
+        run: |
+          dbus-run-session -- xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" bash -c 'openbox >"$RUNNER_TEMP/zentra-window-manager.log" 2>&1 & node apps/calendar-client/scripts/native-smoke.mjs'
+      - name: Verify installed desktop application
+        if: runner.os != 'Linux'
+        run: node apps/calendar-client/scripts/native-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-smoke-${{ inputs.desktop_environment }}-${{ matrix.target }}-${{ steps.source.outputs.sha }}
+          path: apps/calendar-client/native-smoke-artifacts/**
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: ${{ success() }}
+        with:
+          name: zentra-${{ inputs.desktop_environment }}-${{ matrix.target }}-${{ steps.source.outputs.sha }}
+          path: |
+            apps/calendar-client/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            apps/calendar-client/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
+            apps/calendar-client/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+          if-no-files-found: error
+  visual-baseline:
+    if: ${{ inputs.visual_baseline }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - name: Identify checked-out source
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+      - run: bun install --frozen-lockfile
+      - run: bun x --no-install playwright install --with-deps --only-shell chromium
+      - name: Start the isolated visual fixture
+        run: |
+          bun x --no-install vite --config tests/calendar/visual/vite.config.ts >"$RUNNER_TEMP/zentra-visual-server.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/zentra-visual-server.log"
+          exit 1
+      - name: Capture Reference Width
+        run: |
+          mkdir -p artifacts
+          bun x --no-install playwright screenshot --browser=chromium --viewport-size="1280,900" --timezone=UTC --wait-for-selector='[aria-label="Help"]' --wait-for-timeout=3000 --timeout=60000 http://127.0.0.1:4173/ artifacts/reference-width.png
+          bun x --no-install playwright screenshot --browser=chromium --viewport-size="1200,680" --timezone=UTC --wait-for-selector='[aria-label="Help"]' --wait-for-timeout=3000 --timeout=60000 http://127.0.0.1:4173/ artifacts/desktop-content-width.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-reference-width-${{ steps.source.outputs.sha }}
+          path: |
+            artifacts/reference-width.png
+            artifacts/desktop-content-width.png
+            ${{ runner.temp }}/zentra-visual-server.log
+  calendar-test:
+    if: ${{ inputs.calendar_test_file != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+      - run: bun install --frozen-lockfile
+      - name: Run selected calendar test
+        env:
+          TEST_FILE: ${{ inputs.calendar_test_file }}
+        run: |
+          case "$TEST_FILE" in
+            tests/calendar|tests/calendar/*.test.ts|tests/calendar/*.test.tsx) ;;
+            tests/auth|tests/auth/*.test.ts|tests/auth/*.test.tsx) ;;
+            *) echo "Select a test under tests/calendar or tests/auth"; exit 1 ;;
+          esac
+          case "$TEST_FILE" in
+            *..*) echo "Parent traversal is not allowed"; exit 1 ;;
+          esac
+          bun test --isolate --timeout 180000 "./$TEST_FILE"
+  typecheck:
+    if: ${{ !inputs.focused_only }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: desktop_test
+          POSTGRES_PASSWORD: desktop_test
+          POSTGRES_DB: desktop_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U desktop_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      AUTH_TEST_POSTGRES_URL: postgres://desktop_test:desktop_test@127.0.0.1:5432/desktop_test
+      AUTH_TEST_POSTGRES_SSL: disable
+      DESKTOP_AUTH_DATABASE_TEST: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+      - run: bun install --frozen-lockfile
+        id: dependencies
+      - name: Initialize isolated authentication test schema
+        env:
+          PGPASSWORD: desktop_test
+        run: |
+          psql -h 127.0.0.1 -U desktop_test -d desktop_test <<'SQL'
+          CREATE SCHEMA auth_test;
+          CREATE TABLE public."user" (id text PRIMARY KEY);
+          INSERT INTO public."user" VALUES ('ci-isolation-sentinel');
+          SQL
+      - run: bun run type-check
+      - run: bun run lint:check
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+      - run: bun run test
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}

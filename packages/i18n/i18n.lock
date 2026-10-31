@@ -444,6 +444,9 @@ checksums:
     changePasswordDescription: aa9626176226e69d38a51a292d766921
     twoFactorQrCodeAlt: 0c9041fc1611b44c02aad0c59fa7981f
   dc5dcc6320cd17c37a2cc4837e8b82c3:
+    aiAssistantContinue: 307d4aa4152290b23622856ebafd009e
+    aiAssistantContinuePrompt: 0f55439c1e1a695ba516d08c34ff779f
+    aiAssistantTimedOut: 9a47b0f56e20152855614abcc64f48d7
     calendar: f113fede755b1502d0a17ad5068ba005
     loadingCalendar: a47f1c89c970f706751bc86b8f2165af
     createEvent: 1fe5822ac024f997b1fec9be1cecf1d2
@@ -488,7 +491,9 @@ checksums:
     settingsGeneral: e3f4cfb8373d2b888a0c38e743de0e19
     settingsGeneralDesc: 95135c02c6e5d173f19d87ae5e535199
     settingsThemeDesc: 816a7b32b4a5ecd8719018f04da58708
-    settingsLanguageDesc: a2dcaca5e91db5ba5a798ec9e27284ba
+    calendarColor: 156da4019c6dabeaae6e1381c24708b0
+    calendarColorDesc: 1b2068cee731a0a54e25f10395d21486
+    settingsLanguageDesc: f4d0ef4b4e8de4ef901f054ef4559f5a
     settingsFirstDayDesc: 0c77772c0f1da920405817aea702f486
     settingsDefaultViewDesc: 58ccafd235172cac343b4c135597d226
     settingsTimezoneDesc: 08b8c5a3ed51ad47834f6ca9e00ff37a
@@ -595,7 +600,7 @@ checksums:
     confirmYourPassword: 224b4aa56991875af1df9d3b102de647
     passwordsDoNotMatch: 37ca1f4e0afc9a0b8e9617f767103c92
     passwordRequired: 19ff103c40080105aaaee40e2689e257
-    unknownError: 4fa139b42a7b7ed262b07bdda7cd2fb6
+    unknownError: 7a2ffaf151bef1e23cdd30a29e389e71
     backup: 347a6ced8293c55ed9945d1e0597958f
     autoBackupEnabled: e6e88d213e7b9ef7be5faed2ec86a552
     autoBackupDisabled: 3fd17f8644494cd8bce2abfd692f29d7
@@ -614,6 +619,14 @@ checksums:
     searchBookmarks: 8d159c44e667bd0cb28175c349afead3
     noMatchingBookmarks: 5ec2f7ed5746f8c660c63559b47c1e7f
     eventRemovedFromBookmarks: 8024d54557f7a72d59c9549b28ef9ec7
+    bookmarkSort: 8b928fb3b68d93ccda40bed22261e796
+    bookmarkSortTitleAsc: ff1f84d4c756240a5f3d7db51a0d26f3
+    bookmarkSortTitleDesc: cc9a363e8df3be064574dda263b62826
+    bookmarkSortDateDesc: 45b15eb6adfe5031299914312e4cebfc
+    bookmarkSortDateAsc: 4857d15eca6c84613b5c61ff92f3aac6
+    bookmarkSortBookmarkedDesc: e0096214cebf49bf29267c9e535db881
+    bookmarkSortBookmarkedAsc: 84003c9acd52da659ee806c7f2fc18c7
+    removeBookmark: 70c896d7331fabd0c0821115fe9dfa09
     qrCode: 98e0d8ee1f4ce1599a08de315984b545
     downloadQRCode: e71db8919d189038fb8f3ff91f175052
     qrCodeDownloaded: 82c30bf0e7850f5ad764c575ec6de2a5
@@ -641,6 +654,66 @@ checksums:
     countdownDelete: 8bcf303dd10a645b5baacb02b47d72c9
     countdownCancel: 2e2a849c2223911717de8caa2c71bade
     countdownDaysLeft: 1ae28c53aca44886b88d4981dc5d65b6
+    commandPaletteTitle: f09a9458917512669cb2a5f25e431571
+    commandPaletteMode: 74b9548377e2b54399cafce962946d09
+    aiAssistantNewChat: 18c9e37f01da36ecfd5d395a1758d97b
+    aiAssistantNewLine: f924f0910df53ca835c35123dd5a914c
+    aiToolRunning: 010d4795c3d5df31edde92a3441d7017
+    aiToolCompleted: 0e4bbce9985f25eb673d9a054c8d5334
+    aiToolFailed: 99f87615af1fffa2b8802866b096705a
+    aiToolStopped: 452e5223e6edf7be5fea554915a318c6
+    aiToolInput: f5d1e79cce69c212cbf3c472a0934fa1
+    aiToolOutput: c08df923fb1753b5e6df453e28ed991d
+    aiToolCategories: 339987015b3cc5908ad05c295f8ca810
+    aiToolSummary: 22df948fd876fe5b7921b407ec6c3d54
+    aiToolFreeTime: 2a0ae732b2a748c9ddfed84fa39ccd0b
+    aiToolDeleteCountdown: 1cc970ab3ba3f2490d13935783065f19
+    aiToolUpdateEvent: ba7363e88fbf6bb84e23a7116a3a4d52
+    aiToolDeleteEvent: 469259bf4c327d239bcb8e402f68eb96
+    commandPaletteDescription: 409793c31fea09abfdc42c11e52bce0a
+    commandPaletteCommands: cc2c78e51e7ed1318cdc8b9ed42fc4c6
+    commandPaletteSearch: 49dd6c21604b5e8d4153ff1aff2177e1
+    commandPalettePlaceholder: 51885f5a634913cfac27aeff05ab0726
+    commandPaletteSearchPlaceholder: 3c03f002083d328d02efb22e19bf31b8
+    commandPaletteSearchHint: 534e96946a5e261a51b9ba65e85f54b7
+    commandPaletteRun: 4a81b0e05fe4ab6e79e246f12ad4e283
+    commandPaletteStop: bd182646e2a07c0abe40546bc94e0b9a
+    aiSearchScope: 48108b45e11e83ea1de993d019f481b4
+    aiSearchFrom: a8237e4c3b5f2de9b0948d464e767813
+    aiSearchUntil: 13271248d8ed1f956c713f8612e327db
+    aiSearchWords: c5bf0b693853a8583e58e8a6ff8fa684
+    aiSearchWith: 9da893d3c2357f12941ff4a6e74be76e
+    aiSearchDefaultRange: 47614f2947a1207a8d70df2b5a92a38f
+    aiSearchRelaxed: 77f59b466d3c12fce0db66842fabed5a
+    aiSearchDropNames: 097ad217f6d5d557c8f5ceb2e29c4dd0
+    aiSearchDropCategories: f286e224b85e13fcc2fc7248bcb1be9a
+    aiSearchDropRange: a62130054749dfdc7d67ba9a1ee804ec
+    aiSearchDropKeyword: 63770c2444a3d1d91564a205d525b3cd
+    aiSearch: 49dd6c21604b5e8d4153ff1aff2177e1
+    aiSemanticSearch: 5a374e37ef1769f65e2ef38af362d6ae
+    aiSemanticSearchHint: aa9759826bee02b656182883c66c43dc
+    aiSearchPlaceholder: 5c7c1ffc6e8fda785b6966254cf9ae14
+    aiSearchRefinePlaceholder: ffda7df5e6f53b4bd10ab8057f36bcce
+    aiSearchLoading: 45966ee3c9d62088753966fc49fe38c8
+    aiSearchNoResultsHint: fd1c325b051af818f896431848cccc81
+    aiSearchMore: 365c2d8dfc53ac7e9188acd5274e2837
+    aiSearchBack: 9705d606fca8245a77de49ca21881ba3
+    aiSearchRetry: 33dd8820e743e35a66e6977f69e9d3b5
+    aiSearchFailed: 1135c4a6d4915dfad17ba2d44711ef70
+    aiSearchTimedOut: 2fce95e7c172ba37339142de2c12b766
+    aiSearchRateLimited: 17eef830bc1966cf951db031deee10ba
+    aiSearchUnavailable: c379d19c957a43e9d750f469c5d7d48a
+    aiGoToDate: 2c261b5593a258a80af37920d74fd94a
+    aiView: 36a9b5e3dc153c036d320460d72a03c3
+    aiSearchOpen: 9a8c3b16091ea6cef3f771fc6715ab67
+    aiSearchAgain: 6bab7e4d63c3ef5f5387c8f655f7007c
+    countdownSort: 8b928fb3b68d93ccda40bed22261e796
+    countdownSortNameAsc: 0f3684ef395aabe9aff7563ef7e20ff3
+    countdownSortNameDesc: cba34047f063a6a781932d56ce4a7d10
+    countdownSortDateAsc: d87815bd78fd214298ca1ebfabafd097
+    countdownSortDateDesc: b18133b25de1d9ead63554affba41040
+    countdownSortCreatedDesc: fdc3bfbacff759fd61eaf619b4ab3920
+    countdownSortCreatedAsc: ba23a90186e092d24de2603d987138d0
     countdownNoEvents: 02eb8664d40259a4c62bb5657f3c7d01
     countdownSearchPlaceholder: ecaa80bc7d96fb977ee8c8a21a231473
     countdownDetails: 37d5c6e255373f68c866c093016fc514
@@ -655,6 +728,7 @@ checksums:
     colorPink: d6c91bab1871309e1f3f304db218a2f9
     colorIndigo: 7c708929e5d550af32f872d5b3108870
     colorOrange: 836094fa3fcf7488957f6d7cba7c1f60
+    colorBlackWhite: e739e42db9aa8a9eae406e5c8510e7e3
     eventsCalendar: 07198d96bbe756d25c1e99880664ffa6
     selectYear: d42598d032ef81c9cd819069cf7fe40c
     noEventsFound: 170665ceb28e9ca4309a21627c740359
@@ -888,6 +962,32 @@ checksums:
     analyticsHourUnit: abd5b935394c7064aac85b2b3bf503e9
     analyticsDayUnit: c95fe8aedde21a0b5653dbd0b3c58b48
     analyticsTo: 81f480a4c52ff7185e42b4b5c00376a7
+    analyticsMinuteUnit: 4bb0271b1aa8ba29083bec371729f331
+    analyticsKpiTotalEvents: eeabfc3195241cc03a37263e85442a73
+    analyticsKpiScheduledHours: 2b5b4a0812c563702c3cefdaacdb88a7
+    analyticsKpiBusyDays: 660d4eb60b0df18a91b0705996cc15fd
+    analyticsKpiAvgDuration: 2361ab0365bcc7d9c1f94f2de07feeac
+    analyticsVsPreviousPeriod: 4274bf0dba7e14dd295867db93c2d3a7
+    analyticsHourDistributionTitle: a3c4644a31ea9fcc34cdcc6a0c0b3262
+    analyticsSectionWeek: f56c3ffd82c3439d5ac94bfd01ab327a
+    analyticsSectionCategories: 0133a10f11eec562a550d0bf9b07c982
+    analyticsSectionYear: e2b9071dfc6d970f0803d7eb1338e6ec
+    analyticsLedgerCategory: 1b0340cd175aa5a2be745a0d54908466
+    analyticsLedgerAvg: 63439362a7416d0caf96a58f09f160e0
+    analyticsInsightsTitle: 1e88b2537ba6966f2a90b0def1ce1ddc
+    analyticsInsightsEmpty: da9efe309cdce07de1d9bdae4cabd06d
+    analyticsInsightVolumeUp: 3de01fdd4071d931481098c27cb6e6d6
+    analyticsInsightVolumeDown: a3a34d8271b77080cffd82252181b088
+    analyticsInsightBusiestWeekday: 886f268507ba16e53f96b939017a60ba
+    analyticsInsightOverloadedDays: 707874b3fc131f7b8f504f63dd38e689
+    analyticsInsightLongStreak: c175e761ffa6cd0b5fb5ca6ec0bdd8a4
+    analyticsInsightNoFreeDays: 22dc7e7e1a82f3c157dc241f4d637b13
+    analyticsInsightFragmented: 0a2a08f870c8ca4045ea19c23f11f0b3
+    analyticsInsightCategoryShift: 7d993f950b8582b92086f7649cf015d9
+    analyticsInsightPeakHours: c328117405fcf3b49405dd9ebbbb8a38
+    analyticsInsightFreeWeekday: 36eb9759d6be12943b713cd5e0584b78
+    analyticsInsightPlanningAhead: b1522618b4d0d649a7c64ccfc7420fff
+    analyticsInsightSpontaneous: 66dfccae5b3ec39e4e074fc82e0c5ba0
     feedback: 6fac88806e0c269a30777b283988c61c
     privacy: 6007d5d5f6591c027b15bd49ab7a8c47
     tos: a93e3ebc6c19afbfde9f93cafb4d8edc
@@ -962,3 +1062,180 @@ checksums:
     copyInviteLink: 181840a28f41caec62936fe6f8c4a80d
     inviteLinkCopied: 4046f23a78e1cd5166671c3fb8a7ea6e
     shortcutsDialogDesc: bc64d08698a52657c94343dd87505b10
+    yes: ec580fd11a45779b039466f1e35eed2a
+    no: 8c708225830b06df2d1141c536f2a0d6
+    close: 2c2e22f8424a1031de89063bd0022e16
+    help: 62712a1f2fcef75e399e9a9a9ddbd495
+    send: 76a8497d7b546628b03bb81d5c1ce995
+    notNow: e25303a722815bc94d86bdcffd0fd7d1
+    recurrenceDayOfMonth: b1f8851fa132615fe3108e245ebd779a
+    selectTime: 7310c99cbc11688008c1f4f1dc5f4d0c
+    hourAbbrev: ec3113f22fc51d01f0c615c5496f8f87
+    minuteAbbrev: 51bb8c9c784f032bdeb93af40705d7f2
+    customTimeFormatLabel: 66d88e6d7910cdd188c48d041e2ae6f8
+    customTimeFormatError: e4c114c142918d93a02e10dfd599e2cd
+    bookmarkAdded: ce6d687fdcb75c14dca5f19fe26f6adc
+    eventAddedToBookmarks: 2aa512c39415539cc2ead78901d6a44b
+    participantsCount: 6c80be1dd8ff155bc9559da5f915874f
+    inviteExpired: ca6efc9a9990ca8b0fd6402e1860c3ea
+    sendInvite: 782a5fd3a56437c705526e6ad694ccc1
+    resendInvite: 6e6a06878f27819de22b9c7c5008b765
+    invitationSent: 08723e3f412c3cffc7c99b264d9cbde1
+    invitationSendFailed: fbcdf6e7f51a1879f1cf93103a5f6c99
+    removeParticipant: dba2fe5fe9f83f8078c687f28cba4b52
+    removeParticipantThisEvent: f6ff3d22709e00ed9d583ac1b5bf38f1
+    removeParticipantAllEvents: 378fb9605da8e77c2dd2b8f4c7a567fd
+    removeParticipantThisAndFollowing: 8d1b2e592651fc0467a5bf43fc536356
+    participantRemoved: ba5e4f714828d2c4f36b16140197e7d0
+    participantRemoveFailed: 762bf3413271484497447f290e9d7a46
+    copyInviteLinkFailed: 635884d5ed8d6ee20b85a003939b4ae7
+    rsvpUpdateFailed: 26625f8fc8492190452928bf3effec4d
+    moveEventFailed: 63fcbd447f56695f0cea98debc687b75
+    yourResponse: 27fb812f256c8c7da6ed6cd8a49f1386
+    responseAppliesToThisDateOnly: 88ad2a5c951c7db524ed98c88d14921e
+    sendInvitationsTitle: 9ad94739bfdc296f297bbb3fb415f844
+    sendInvitationsDescription: 375cc05187ce51c0cadab7bbf63355fb
+    invitationsSent: c4b8ab889a0f08e33547c9fa66ae6b17
+    addParticipantsFailed: 77351a9a8960b9bcaf736672e59c3007
+    videoMeeting: efd153f634d431ba6c98b76baf9077dc
+    addZentraMeet: b6d8ac090dfedea4466a73a186046dc2
+    addZentraMeetHelp: 0c5ed633ce3aa2000f0eb1807727b521
+    removeMeeting: 74e5e8e367742c190d506824d8e8120e
+    removeMeetingConfirm: 9e1ef7ac84b1ba61dc70e0f9a4105bcc
+    joinMeeting: 523bb29f98e4f46a4427855e90d49e5d
+    joinMeetingNow: 771e0a32289f998ae66ca9cf7a72f8aa
+    meetingHappeningNow: 6b28cc326e455bbad39ebc8c259382b7
+    meetingStartingSoon: 9d3fc699005b2828e86e733f9fc0cce6
+    copyMeetingLink: 1cef77f81c6ce0af1e827e3c76e2b5e6
+    meetingLinkCopied: 1ca3506b4684d871fdf3984efdfc094a
+    copyMeetingLinkFailed: fc48b46854cdb6f49b29e6a2e7d3f15f
+    settingsMigrationFailed: 4b02a41c13ad1120f78d8e8971733989
+    saveEventFailed: c5474dd769f09c25c1aab47703daab08
+    deleteEventFailed: 3a5048d73febebcf9f9af0596459dc35
+    createCategoryFailed: f94a4243f180a6c27c9ecb1819d2f9ba
+    deleteCategoryFailed: 47935240d97708b919481eb20fa66ca7
+    updateCategoryFailed: 1726abd716c3911bae5dfa9fb14dca7c
+    createCountdownFailed: bbfed363da74149c2964511d602bae30
+    deleteCountdownFailed: c58146b91f63605edaeea48c78eb650c
+    createBookmarkFailed: df293f18d5c6d2dfc79ecfda16a1a87f
+    deleteBookmarkFailed: 53b199bf0c8930fa8899fcd4e33e10a0
+    updateSettingsFailed: 3f7b7eea984f2ef954d27bce76bd98c8
+    copyFailed: 6233aaa405266fade46ee80a0ab171e8
+    relativeJustNow: 465da4cf3bd301066d7377dc29d31374
+    relativeMinutesAgo: 0e2cdae77f9a654684cd53fde89bc864
+    relativeHoursAgo: 66cac15161f3046f3eaebf694b3a9988
+    relativeDaysAgo: 8d07a9f7cfdca31f561f669214293286
+    mcpPermissions: 2160be68b1d6b6577e64634e9feba2ed
+    mcpPermissionsReadOnly: ed9df6b7e1b86f2ddfe41c94403223b8
+    mcpPermissionsSelectAll: eedc7cdb02de467c15dc418a066a77f2
+    mcpPermissionsClear: d4c069de3111b7a5df96f3703f199f2f
+    mcpPermissionRead: 2494ca23d10e5b6381eb271aceeb5270
+    mcpPermissionWrite: 0c8cd5e85bbf4a4ef271c6df37736df3
+    mcpPermissionReadFor: 7744e1fe83811e453730bd2b9669a089
+    mcpPermissionWriteFor: a01e63518f59bff73ee6a85d06b89692
+    mcpPermissionsGranted: c41651ed9f98b70756ad2bd4e5e68cd8
+    mcpScopeWritable: 096bac5cb05595b796e1543bc16ea805
+    mcpScopeNoAccess: cdb44adb343d96f0a793f0ef31946d96
+    mcpConnection: 421e709602c92ffbe04a266f6a092089
+    mcpConnectionDesc: 0e545fab542c176451d386e68697daa6
+    mcpEnabled: 20236664b7e62df0e767921b4450205f
+    mcpDisabled: 0889a3dfd914a7ef638611796b17bf72
+    mcpEnableLabel: 96ad1246d8aac8167229e0ff596c7f53
+    mcpUpdateSettingsFailed: a9e9d51eb22f31a3b87c495971cc3a3c
+    mcpServerEndpoint: ed06ef5c662ae9d0530e49494270f6ae
+    mcpEndpointCopied: 51cb4c53c665c3175cdb634aece4b99b
+    mcpAuthenticateHint: c48258be9a991e1e03bdceb1c08c7b16
+    mcpApiKeys: 07f3620a30e08136f0b072c9af8d1eef
+    mcpApiKeysDesc: 3be11120a4499261c840a17894e4d7c2
+    mcpNewKey: 7bd1a6692bec3ff89b2938b24ddb5fe8
+    mcpNoApiKeys: 455c0870cde4f4f31c9130aa382ee5df
+    mcpNoApiKeysDesc: 752aaae8dadb593e2aeff21829995130
+    mcpCreateFirstKey: 09dbce2804c2e0a5747d0e1df20c646c
+    mcpKeyInactive: 239e3b722db75bbafc6c628a2685eed2
+    mcpKeyUsed: d98c4c48bde414e2ed134ac7412db1af
+    mcpKeyNeverUsed: a0d6a91032b55f05581651df64f0b4dc
+    mcpManageKey: b49c916f4d7ccfdc2a990411a4281f08
+    mcpEditPermissions: 244558dd716491b7ed72ba8ab73aa28f
+    mcpDeleteKey: e7f99705a963f040ed6e44582bdcd443
+    mcpNewApiKeyTitle: db3088aedba6e4a99b46451c5b3d36ed
+    mcpNewApiKeyDesc: c5a4d892a56a412cb3be5ff107fce53b
+    mcpKeyNameLabel: 9368b5a047572b6051f334af5aa76819
+    mcpKeyNamePlaceholder: d06503faf6a60cee08c1a1eb40e1bff8
+    mcpCreatingKey: 6c5e2e5b84c43b7642db738a7f2d19a2
+    mcpCreateKey: 8ac65dcfcb453e3e9a81fa5866cd0595
+    mcpCreateKeyFailed: 2874ce0eed71e0e4afb70784593984e4
+    mcpKeyCreatedTitle: 00db9513c4677009619a5899012cce84
+    mcpKeyCreatedDesc: 88d4292b1255e66c5f408f7eb45c0b6f
+    mcpHideKey: 030b6ed14524512c415ccbc4d6c98d86
+    mcpRevealKey: 73559c7059e92575ca7a1e0dc6c12ea0
+    mcpCopyKey: 4930a9f1b473f7b072f0c84c63ece133
+    mcpApiKeyCopied: 130c06bf26d3f3eb089cf8f930d84646
+    mcpDone: ffd408fa29d5bc9039ef8ea1b9b699bb
+    mcpSavingPermissions: ee98ff32f9a585a9108c8cd961d6077e
+    mcpSavePermissions: 93ccb477c1fd4f8aa597d24c796c13c2
+    mcpPermissionsUpdated: 0df44570b783b8b284610da8627d333d
+    mcpUpdatePermissionsFailed: 861146bbca13917bfe9aef2466581261
+    mcpDeleteKeyTitle: 798d20836d1855aa00ab647e39b74cfa
+    mcpDeleteKeyDesc: a64821baffb4b3b39db7489c0b2d0eae
+    mcpDeletingKey: 2ab7d53da20bd7216f4eb3ca510b95f7
+    mcpApiKeyDeleted: a685a621a636249a374345dd60ba1022
+    mcpDeleteKeyFailed: 0474e443920c91660949a19a9ded82d6
+    mcpConnectedApps: e88b53d65551b8f445904be0517057ec
+    mcpConnectedAppsDesc: 867d60b9cd07110f2998d14fcd14f753
+    mcpNoConnectedApps: 47022b14fb3f3daea81de18a0f56f03f
+    mcpNoConnectedAppsDesc: 3cc011fd4b222134de34939f991840f7
+    mcpAppAuthorizedOn: 676d0e688b7f809eff21e599d37845b6
+    mcpRevoke: be57685a85b6dfeaeb6eab4e9560b520
+    mcpRevokeTitle: ce6f261527503e007e6c2c6085e598bc
+    mcpRevokeDesc: 3d575ca62403737b1065b53ef317e1f0
+    mcpRevoking: 56cfe7cf0c8ea06db51ad4cefd6e64bf
+    mcpRevokeAccess: b161900cc32a2ea96290572afcf68c15
+    mcpAccessRevoked: 229d005abcbbc4c334417678a7c0c06a
+    mcpRevokeAccessFailed: 368f62dfb1456ea10dca3a0942aaa438
+    mcpActivity: 1948763de8e531483a798b68195e297e
+    mcpActivityDesc: 3c16f1843cd2b4eea8fc50139ae177eb
+    mcpPrevPage: 724f0dc19f459215364fbcfc2793d45a
+    mcpNextPage: 89ddbcf710eba274963494f312bdc8a9
+    mcpFilters: acf5accc113ff3c1992688058576732c
+    mcpFilterAllEntries: c41d6417c187533df3cee44845fe411d
+    mcpFilterToolCalls: 6d575c1906d1daa33af42e31a41545db
+    mcpFilterRequests: 3be472175257347ec4ae7236b2a34e18
+    mcpFilterAllTools: edd2f7dabbe88e7dd0255808e7a9caa2
+    mcpFilterDataChanges: 8b8245e4789301a5ddd59a4f152f8a69
+    mcpFilterFailures: 0b61ef3d217891c09c0053b42d13bd41
+    mcpFilterSearchPlaceholder: 7ce589a10a604ce921299c2082b00b80
+    mcpFilterWindowAll: 62258944e7c2e83f3ebf69074b2c2156
+    mcpFilterWindow1h: a5f1c6049682651af9f68de955f3f878
+    mcpFilterWindow24h: 0bc5386969795001992fccbe817580d3
+    mcpFilterWindow7d: 3631df3109bfecfe358ba15dcf8bd6f5
+    mcpFilterWindow30d: a738894cfc5e592052f1e16787744568
+    mcpNoMatchingActivity: 32f139615b9d340886f671cffed5e0ef
+    mcpNoActivityYet: f88897ac05afd6bf8af0d4834ad24ffc
+    mcpNoMatchingActivityDesc: ca37749dda0d8d898cc1c5d7ccbeee11
+    mcpNoActivityYetDesc: e63009015e2fde3ce06b6727520f864e
+    mcpLogSucceeded: 5a6a378853fa4ad6790e5fcaf8695b7c
+    mcpLogFailed: 99f87615af1fffa2b8802866b096705a
+    mcpLogWriteBadge: 8a5e5eb33662ab5b75df9c2956681d09
+    mcpLogVia: ca46940abc31d5b02cc4ae0057b403b1
+    mcpLogChanged: 5cee856fbdb408f2b7846faf8cbb2924
+    mcpLogChangeScope: 525b4355bf279fe77ecaaf081ba36fd7
+    mcpLogChangeParticipants: 1987cee6444a673b42ee1b39bd80ed4f
+    mcpLogChangeExclusions: 0c6acb3e64bbbc0b936105da138a9ba9
+    mcpLogChangeRepeatRule: 4b2fee1684214490f88478d01c3cdc04
+    menu: 520968a9770cddeb6d339c0fcbd70240
+    aiAssistant: 3dad85ff99f887b97c9d07db3e53d93f
+    aiAssistantPlaceholder: 0e9bac85ce8bb920e53b3153fa84c719
+    aiAssistantHint: 37262cf76b7fc869e9bc22890a91d4d8
+    aiAssistantEnterToAsk: 6ffc7a2d839a633f7ed62d2eeb756ea0
+    aiAssistantThinking: 51d5f50f85aba4cabedeabcc1300e335
+    aiAssistantError: 39cc52550a723286bff26c715a9940be
+    aiPalettePlaceholder: 70d05cf4cc14dd9331039aa0016e4550
+    aiAssistantAsk: 698e65175f106c3bb3cacacff9d9d883
+    aiAssistantBack: 9705d606fca8245a77de49ca21881ba3
+    aiAssistantConfirmAction: d18e49503f2dfc6f1ce8ecc0e9666c06
+    aiAssistantApprove: df82197ab4899a770b4677fbea82abbb
+    aiAssistantDeny: 5e4572e4d0e5bce1f27f74f857be1c6a
+    aiAssistantDenied: 56c6a770559b9d812618a010cc158a70
+    aiParseApplied: cb2fb3e3972fedad125735c537aa7ad6
+    aiParseError: 9768a9970d34d4d99ea2748a16b72bad
+    aiParseRateLimited: fa96fd9028276d573096f5e53eabe4c8

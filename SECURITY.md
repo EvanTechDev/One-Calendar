@@ -1,28 +1,24 @@
-# Security Policy for One Calendar
+# Security policy
 
-## Reporting a Vulnerability
+This page explains how to report a security vulnerability in Zentra Calendar and what to expect after you do.
 
-At Tech-Art, we take security seriously. If you discover a security vulnerability in One Calendar, please report it as soon as possible.
+## Report a vulnerability
 
-### How to Report
+Report vulnerabilities through either channel:
 
-- **Please use GitHub issues or Email to report security vulnerabilities**
-- **Email:** Send an email to [evan.huang000@proton.me](mailto:evan.huang000@proton.me) with the details of the vulnerability.
+- **GitHub issues**: open an issue on this repository
+- **Email**: [evan.huang000@proton.me](mailto:evan.huang000@proton.me)
 
-### Responsible Disclosure
+Include in your report:
 
-Please include the following information in your report:
+- A description of the vulnerability
+- Steps to reproduce it
+- Screenshots or other evidence, if relevant
 
-- A detailed description of the vulnerability.
-- Steps to reproduce the issue.
-- Any relevant screenshots or evidence.
+## What to expect
 
-### Response Time
+We acknowledge reports within 48 hours and aim to send a detailed response within 14 days. We'll work with you until the vulnerability is resolved.
 
-We will acknowledge receipt of your report within 48 hours and aim to provide a detailed response within 14 days. We are committed to working with you to address the vulnerability promptly.
+Thank you for helping keep Zentra Calendar secure.
 
-Thank you for helping us keep One Calendar secure!
-
----
-
-This document is subject to change as our security practices and policies evolve.
+This document changes as our security practices evolve.

@@ -1,16 +1,14 @@
-// @vitest-environment node
 /**
  * ADR-0006: a participant must never receive the recurrence rule. Holding the
  * rule lets a client generate occurrences that were never granted, so the
  * boundary is structural rather than a matter of client behaviour.
  *
- * These tests read the participant-facing source and assert the withholding is
- * still in place. A source-level check is deliberate: the alternative is
- * standing up the full events route against a database, and the property being
- * protected ("this response shape has no rrule") is exactly the kind of thing a
- * well-meaning refactor silently reverses.
+ * These source-level checks guard all participant-facing surfaces. They
+ * complement the actual shared-occurrence response assertions in
+ * tests/calendar/api/events-read-range.test.ts, so moving an implementation
+ * cannot silently invalidate the privacy coverage.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -21,7 +19,13 @@ function read(relative: string): string {
 }
 
 describe('getSharedEvents', () => {
-  const source = read('app/api/events/route.ts')
+  const source = read('lib/event-read.ts')
+
+  it('is consumed by the events route through the shared read module', () => {
+    expect(read('app/api/events/route.ts')).toMatch(
+      /import\s*\{[^}]*\bgetSharedEvents\b[^}]*\}\s*from\s*['"]@\/lib\/event-read['"]/,
+    )
+  })
 
   it('nulls the rrule on every occurrence it emits to a participant', () => {
     // The emitted object literal must set rrule: null.
@@ -53,10 +57,14 @@ describe('the public invite endpoint', () => {
     expect(source).toContain('canParticipantSeeOccurrence')
   })
 
-  it('stays anonymous — no session lookup', () => {
-    // Plan 012's invariant: the invite link is credential-bearing, not
-    // session-bearing.
-    expect(source).not.toContain('getAuthedUser')
+  it('uses an optional session only to protect private category data', () => {
+    // RSVP remains token-authorized. Session identity is additive and only
+    // unlocks the matching participant's private category list/actions.
+    expect(source).toContain('getAuthedUser')
+    expect(source).toContain('isMatchingParticipant')
+    expect(source.indexOf('if (status)')).toBeLessThan(
+      source.indexOf('if (categoryId !== undefined)'),
+    )
     expect(source).not.toContain('getServerSession')
   })
 

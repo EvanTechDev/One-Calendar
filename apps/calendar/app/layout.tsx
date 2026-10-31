@@ -6,10 +6,11 @@ import { cn } from '@zntr/utils'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { PwaProvider } from '@/components/providers/pwa-provider'
 import { Toaster } from '@zntr/ui/sonner'
-import { SwrProvider } from '@/components/providers/swr-provider'
+import { SwrProvider } from '@zntr/ui/calendar/components/providers/swr-provider'
 import type { Metadata } from 'next'
 import type React from 'react'
-import { AVAILABLE_THEMES } from '@/lib/theme'
+import { AVAILABLE_THEMES } from '@zntr/ui/calendar/lib/theme'
+import { APP_SUBTITLE, APP_TITLE } from '@/lib/metadata'
 
 const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -20,9 +21,6 @@ const instrumentSans = Instrument_Sans({
   variable: '--font-instrument-sans',
 })
 
-export const APP_TITLE = 'One Calendar'
-export const APP_SUBTITLE = 'Your life, stay safe.'
-
 export const metadata: Metadata = {
   title: APP_TITLE,
   description: APP_SUBTITLE,
@@ -31,12 +29,6 @@ export const metadata: Metadata = {
     title: APP_TITLE,
     description: APP_SUBTITLE,
     url: '/',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@One__Cal',
-    title: APP_TITLE,
-    description: APP_SUBTITLE,
   },
 }
 

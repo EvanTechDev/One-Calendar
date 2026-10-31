@@ -1,41 +1,69 @@
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
+import {
+  SUPPORTED_PROTOCOL_VERSIONS,
+  WebStandardStreamableHTTPServerTransport,
+  type AuthInfo,
+  validateHostHeader,
+} from '@modelcontextprotocol/server'
 import { createServer } from './server'
-import { getMcpAuth } from './auth-helpers'
 import { logAudit } from './audit'
 import { getMcpSettings } from './settings'
 import { checkRateLimit } from './rate-limiter'
-import { McpAuthError } from './types'
+import { McpAuthError } from '@zntr/ui/calendar/lib/mcp/types'
+import { getMcpPublicOrigin } from './oauth-config'
 
 function allowedOrigins(): string[] {
-  const appOrigin = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
   const configured = (process.env.MCP_ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
-  return [appOrigin, ...configured]
+  return [...new Set([getMcpPublicOrigin(), ...configured].flatMap(originOf))]
 }
 
-export async function handleMcpRequest(request: Request): Promise<Response> {
+function originOf(value: string): string[] {
   try {
-    const auth = await getMcpAuth(request)
+    return [new URL(value).origin]
+  } catch {
+    return []
+  }
+}
 
-    if (!auth) {
-      return Response.json(
-        { error: 'unauthorized' },
-        { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } },
-      )
+function allowedHosts(): string[] {
+  return allowedOrigins().flatMap((origin) => {
+    try {
+      return [new URL(origin).hostname]
+    } catch {
+      return []
+    }
+  })
+}
+
+export async function handleMcpRequest(
+  request: Request,
+  auth: {
+    user: import('@zntr/ui/calendar/lib/mcp/types').McpAuthUser
+    token: string
+  },
+): Promise<Response> {
+  try {
+    const origin = request.headers.get('origin')
+    const list = allowedOrigins()
+    if (origin && list.length > 0 && !list.includes(origin)) {
+      return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
+    }
+    const host = validateHostHeader(request.headers.get('host'), allowedHosts())
+    if (!host.ok) {
+      return Response.json({ error: 'host_not_allowed' }, { status: 403 })
     }
 
-    // GET opens the SSE stream. The SDK only rejects a *present* mismatching
-    // Origin, so this check is defence-in-depth on top of the bearer token
-    // above — not a substitute for it.
+    // This stateless server replies to client POSTs and sends no unsolicited
+    // notifications. Decline the optional GET stream instead of holding an
+    // idle function open until the hosting timeout. Authentication still runs
+    // in the route first, preserving its 401 OAuth discovery challenge.
     if (request.method === 'GET') {
-      const origin = request.headers.get('origin')
-      const list = allowedOrigins()
-      if (origin && list.length > 0 && !list.includes(origin)) {
-        return Response.json({ error: 'origin_not_allowed' }, { status: 403 })
-      }
+      return new Response(null, {
+        status: 405,
+        headers: { Allow: 'POST', 'Cache-Control': 'no-store' },
+      })
     }
 
     const settings = await getMcpSettings(auth.user.userId)
@@ -52,6 +80,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         action: 'rate_limited',
         entryType: 'request',
         success: false,
@@ -88,6 +117,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         // only receive `authInfo` — so the request-scoped identity and client
         // details have to travel with it.
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         ipAddress: clientIp,
         userAgent,
       },
@@ -97,6 +127,9 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,
       allowedOrigins: allowedOrigins(),
+      allowedHosts: allowedHosts(),
+      enableDnsRebindingProtection: true,
+      supportedProtocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
     })
 
     await server.connect(transport)
@@ -108,6 +141,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         action: 'mcp_request',
         entryType: 'request',
         success: response.status < 400,
@@ -123,6 +157,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
         userId: auth.user.userId,
         authType: auth.user.authType,
         keyId: auth.user.keyId,
+        identityName: auth.user.identityName,
         action: 'mcp_request',
         entryType: 'request',
         success: false,

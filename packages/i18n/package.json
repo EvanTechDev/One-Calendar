@@ -7,24 +7,24 @@
     ".": "./src/index.ts",
     "./i18n": "./src/i18n.ts",
     "./calendar": "./src/calendar/index.ts",
-    "./calendar/locales": "./src/calendar/locales.ts"
+    "./calendar/locales": "./src/calendar/locales.ts",
+    "./auth": "./src/auth/index.ts"
   },
   "scripts": {
-    "build": "tsc",
-    "build:check": "tsc && tsc --noEmit",
+    "build": "bun check",
+    "build:check": "bun check && bun check",
     "generate": "node src/gen-locales.mjs",
+    "translate": "node src/translate.mjs",
     "cleanup": "node src/cleanup-i18n.mjs",
     "lint": "oxlint --fix --config ../../config/oxlint.json src",
     "lint:check": "oxlint --config ../../config/oxlint.json src",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/i18n/"
   },
   "dependencies": {
-    "@zntr/utils": "workspace:*",
     "react": "19.2.7"
   },
   "devDependencies": {
-    "vitest": "^4.1.10"
+    "lingo.dev": "0.138.9"
   }
 }

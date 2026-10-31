@@ -1,3 +1,4 @@
+await import('./../../support/dom')
 /**
  * Deterministic fuzz over the recurrence layer: a seeded PRNG generates a
  * matrix of rules (every FREQ, multi-value BY* fields, ordinal weekdays,
@@ -20,8 +21,8 @@
  *
  * Seeded so a failure is reproducible; bump ITERATIONS locally to hunt.
  */
-import { describe, it, expect } from 'vitest'
-import {
+import { describe, it, expect } from 'bun:test'
+const {
   canTranslateRuleByDays,
   expandSeries,
   expandSeriesView,
@@ -33,9 +34,10 @@ import {
   translateStampsByDays,
   wallClockDayDelta,
   addWallClockDays,
-  type SeriesViewInput,
-} from '@/lib/recurrence/engine'
-import { planInstanceChange, type EventRow } from '@/lib/event-service'
+} = await import('@zntr/ui/calendar/lib/recurrence/engine')
+import type { SeriesViewInput } from '@zntr/ui/calendar/lib/recurrence/engine'
+const { planInstanceChange } = await import('@/lib/event-service')
+import type { EventRow } from '@/lib/event-service'
 
 const TZ = 'UTC'
 /**

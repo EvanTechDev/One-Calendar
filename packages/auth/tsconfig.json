@@ -1,7 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@zntr/auth": ["../../packages/auth/src/index.ts"],
       "@zntr/auth/*": ["../../packages/auth/src/*"],

@@ -1,21 +1,21 @@
 import crypto from 'crypto'
 import {
   expandSeries,
+  expandSeriesView,
   firstVisibleStampOfSeries,
   isSeriesEvent,
   mergeOverride,
   parseRfcStamp,
   partsInLocal,
   partsInTz,
-  reanchor,
-  remainingSeriesCount,
+  reanchorFollowingRule,
   shiftExdates,
   snapToPatternDay,
   toRfcStamp,
   wallClockToInstant,
-} from '@/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 
-export { mergeOverride } from '@/lib/recurrence/engine'
+export { mergeOverride } from '@zntr/ui/calendar/lib/recurrence/engine'
 
 export type ApplyTo = 'all' | 'single' | 'following'
 
@@ -132,56 +132,21 @@ export function expandRows(
 ): ExpandedEventRow[] {
   const windowStart = opts.windowStart ?? new Date(-8640000000000000)
   const windowEnd = opts.windowEnd ?? new Date(8640000000000000)
-  const timezone = opts.timezone
-  const explicit = opts.overrides ?? {}
-  const overridesBySeries: Record<string, EventRow[]> = {}
-  for (const row of rows) {
-    if (row.seriesId === null) continue
-    const list = overridesBySeries[row.seriesId] ?? []
-    list.push(row)
-    overridesBySeries[row.seriesId] = list
-  }
-  for (const [seriesId, list] of Object.entries(explicit)) {
-    const merged = overridesBySeries[seriesId] ?? []
-    overridesBySeries[seriesId] = [...merged, ...list]
-  }
-
-  const result: ExpandedEventRow[] = []
-  for (const row of rows) {
-    if (row.seriesId !== null) continue
-    if (isSeriesEvent(row)) {
-      const instances = expandSeries(
-        row,
-        windowStart,
-        windowEnd,
-        1000,
-        timezone,
-      )
-      const seriesOverrides = overridesBySeries[row.id] ?? []
-      for (const instance of instances) {
-        const override =
-          seriesOverrides.find(
-            (o) => o.recurrenceId === instance.recurrenceId,
-          ) ?? null
-        const base = {
-          ...row,
-          startDate: instance.startDate,
-          endDate: instance.endDate,
-          seriesId: row.id,
-          recurrenceId: instance.recurrenceId,
-        }
-        const merged = override ? mergeOverride(base, override) : base
-        result.push({
-          ...merged,
-          instanceId: instance.id,
-          recurrenceId: instance.recurrenceId,
-        })
-      }
-    } else {
-      result.push({ ...row, instanceId: row.id, recurrenceId: null })
-    }
-  }
-  return result
+  // Use the same override reconciliation as the calendar. An EXDATE plus an
+  // override is an edited occurrence, not a deletion: expanding only the base
+  // slots silently dropped these rows from MCP lists and analytics (CORE-219).
+  const overrides = [
+    ...rows.filter((row) => row.seriesId !== null),
+    ...Object.values(opts.overrides ?? {}).flat(),
+  ]
+  return expandSeriesView(
+    rows.map((row) => ({ ...row })),
+    overrides.map((row) => ({ ...row })),
+    windowStart,
+    windowEnd,
+    1000,
+    opts.timezone,
+  ).map((row) => ({ ...row, instanceId: row.id }))
 }
 
 export function resolveInstance(
@@ -193,12 +158,26 @@ export function resolveInstance(
   if (!isSeriesEvent(master)) return null
   const override = overrides.find((o) => o.recurrenceId === recurrenceId)
   if (!override && (master.exdate ?? []).includes(recurrenceId)) return null
-  let date: Date
+  let base: EventRow
   try {
-    date = parseRfcStamp(recurrenceId).date
+    base = occurrenceBase(master, recurrenceId, timeZone)
   } catch {
     return null
   }
+  return override ? mergeOverride(base, override) : base
+}
+
+/**
+ * The occurrence of `master` at `recurrenceId` as it would appear with no
+ * override applied: the master's fields with start/end moved to the slot.
+ * Throws when the stamp is unparseable.
+ */
+function occurrenceBase(
+  master: EventRow,
+  recurrenceId: string,
+  timeZone?: string,
+): EventRow {
+  let date = parseRfcStamp(recurrenceId).date
   if (master.isAllDay && timeZone) {
     const match = recurrenceId.match(/^(\d{4})(\d{2})(\d{2})$/)
     if (match) {
@@ -217,17 +196,16 @@ export function resolveInstance(
     }
   }
   const duration = master.endDate.getTime() - master.startDate.getTime()
-  const base = {
+  return {
     ...master,
     startDate: date,
     endDate: new Date(date.getTime() + duration),
     seriesId: master.id,
     recurrenceId,
   }
-  return override ? mergeOverride(base, override) : base
 }
 
-export interface OverrideUpsert {
+interface OverrideUpsert {
   id: string
   seriesId: string
   recurrenceId: string
@@ -235,7 +213,7 @@ export interface OverrideUpsert {
   fields: Record<string, unknown>
 }
 
-export interface SplitPlan {
+interface SplitPlan {
   masterUntil: string
   masterExdate: string[]
   /**
@@ -314,6 +292,10 @@ export function planInstanceChange(
       }
     }
     const exdate = master.exdate ?? []
+    // A new override is a full row (title/start/end are NOT NULL), so a
+    // partial change — e.g. colour only through the MCP — must be laid over
+    // the occurrence it detaches from, never written as submitted.
+    const occurrence = occurrenceBase(master, recurrenceId, target.timeZone)
     return {
       applyTo,
       exdateToAdd: exdate.includes(recurrenceId) ? null : recurrenceId,
@@ -323,6 +305,7 @@ export function planInstanceChange(
         recurrenceId,
         isNew: true,
         fields: {
+          ...pickMutable(occurrence),
           ...pickMutable(target.fields ?? {}),
           createdAt: now,
           updatedAt: now,
@@ -363,6 +346,7 @@ export function planInstanceChange(
       ((requestedEnd as Date).getTime() - (requestedStart as Date).getTime()),
   )
   const rule = master.rrule ?? ''
+  const requestedRule = target.fields?.rrule
   const existingExdate = master.exdate ?? []
   const splitExdate = existingExdate.filter((stamp) => stamp > recurrenceId)
   const masterExdate = existingExdate.filter((stamp) => stamp <= recurrenceId)
@@ -407,20 +391,17 @@ export function planInstanceChange(
       masterBecomesEmpty,
       newSeries: {
         id: crypto.randomUUID(),
-        // Preserve the original series' bounds: UNTIL carries over inside
-        // reanchor, and a COUNT-bound rule is re-based to its remaining
-        // length so a split never turns a finite series into an infinite one.
-        rrule: reanchor(
-          rule,
-          startDate as Date,
+        // An explicit new rule supplies its own bounds. Otherwise UNTIL
+        // carries over and COUNT is re-based to the remaining length.
+        rrule: reanchorFollowingRule({
+          originalRule: rule,
+          requestedRule,
+          seriesStart: master.startDate,
+          splitInstant: patternStart,
+          startDate: startDate as Date,
           isAllDay,
-          remainingSeriesCount(
-            rule,
-            master.startDate,
-            patternStart,
-            target.timeZone,
-          ),
-        ),
+          timeZone: target.timeZone,
+        }),
         startDate: startDate as Date,
         endDate: endDate as Date,
         exdate: shiftedSplitExdate.length > 0 ? shiftedSplitExdate : null,

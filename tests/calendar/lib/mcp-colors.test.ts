@@ -1,21 +1,47 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
+  COLOR_OPTIONS,
   COLOR_NAMES,
   COLOR_HEX_VALUES,
   normalizeColor,
   normalizeCountdownColor,
   COUNTDOWN_COLOR_NAMES,
-} from '@/lib/mcp/colors'
+} = await import('@/lib/mcp/colors')
+const { EVENT_COLORS } = await import('@zntr/ui/calendar/lib/event-colors')
 
 describe('mcp colors', () => {
-  it('defines 7 color names and hex values', () => {
-    expect(COLOR_NAMES).toHaveLength(7)
-    expect(COLOR_HEX_VALUES).toHaveLength(7)
+  it('offers a colour for every selectable event colour', () => {
+    // Seven, matching the event colour menu. Indigo and orange are accepted as
+    // input — POST /api/events still takes them, and an existing event can wear
+    // one — but they are not offered, so they are not in the tool's colour list.
+    const selectable = EVENT_COLORS.filter((c) => c.selectable !== false)
+    expect(COLOR_OPTIONS).toHaveLength(selectable.length)
+    expect(COLOR_NAMES).toHaveLength(selectable.length)
+    expect(COLOR_HEX_VALUES).toHaveLength(selectable.length)
+    expect(COLOR_OPTIONS.map((c) => c.name)).not.toContain('indigo')
+    expect(COLOR_OPTIONS.map((c) => c.name)).not.toContain('orange')
+  })
+
+  it('names every selectable colour in the table', () => {
+    expect(new Set(COLOR_NAMES)).toEqual(
+      new Set(
+        EVENT_COLORS.filter((c) => c.selectable !== false).map(
+          (c) => c.mcpName,
+        ),
+      ),
+    )
   })
 
   it('normalizes color names to app color values', () => {
     expect(normalizeColor('blue')).toBe('bg-[#E6F6FD]')
     expect(normalizeColor('teal')).toBe('bg-[#E6FAF7]')
+    // The seven names, and only those seven. `indigo` and `orange` are not
+    // names a client can ask for; an event wearing one carries its raw
+    // `bg-[#EEF2FF]` value, which passes through untouched and is still a
+    // valid colour everywhere else.
+    expect(normalizeColor('indigo')).toBe('indigo')
+    expect(normalizeColor('bg-[#EEF2FF]')).toBe('bg-[#EEF2FF]')
   })
 
   it('normalizes hex codes to app color values', () => {
@@ -41,10 +67,18 @@ describe('mcp colors', () => {
 })
 
 describe('normalizeCountdownColor', () => {
-  it('defines the countdown palette names', () => {
-    expect(COUNTDOWN_COLOR_NAMES).toContain('blue')
-    expect(COUNTDOWN_COLOR_NAMES).toContain('indigo')
-    expect(COUNTDOWN_COLOR_NAMES).toContain('orange')
+  it('defines the countdown palette names, all seven', () => {
+    // Same seven as the category menu. Indigo, orange and the amber alias are
+    // not offered.
+    expect(COUNTDOWN_COLOR_NAMES).toEqual([
+      'blue',
+      'green',
+      'yellow',
+      'red',
+      'purple',
+      'pink',
+      'teal',
+    ])
   })
 
   it('maps color names to tailwind palette classes', () => {

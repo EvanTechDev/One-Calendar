@@ -2,27 +2,26 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/drizzle/client'
 import {
   calendarEvents,
+  calendarCategories,
   eventInvites,
   settings,
   user,
 } from '@/lib/drizzle/schema'
-import { and, eq, gte, inArray, lte, or, desc, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, or } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import crypto from 'crypto'
 import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
 import {
-  getCachedEvents,
-  setCachedEvents,
-  invalidateEventCache,
-  groupByMonth,
-} from '@/lib/cache/events'
-import { fullMonthRange } from '@/lib/cache/keys'
+  getSharedEvents,
+  loadEventWindow,
+  loadEventBatch,
+  type ViewEvent,
+} from '@/lib/event-read'
 import {
   eventSchema,
   firstZodMessage,
   recurringFieldsSchema,
 } from '@/lib/validation'
-import { RRule } from 'rrule'
 import {
   mergeOverride,
   resolveMasterEditStamp,
@@ -33,11 +32,9 @@ import {
   type InstanceChangePlan,
 } from '@/lib/event-service'
 import {
-  DEFAULT_EXPANSION_WINDOW_MS,
-  MAX_EXPANSION,
   adaptRuleToStart,
   defaultExpansionWindow,
-  expandSeriesView,
+  expandSeriesViewInRange,
   firstVisibleStampOfSeries,
   isInstanceId,
   isSeriesEvent,
@@ -45,7 +42,6 @@ import {
   parseRfcStamp,
   addWallClockDays,
   canTranslateRuleByDays,
-  describeRecurrence,
   shiftExdates,
   shiftToAnchorClock,
   translateRuleByDays,
@@ -53,7 +49,7 @@ import {
   wallClockDayDelta,
   withUntil,
   type SeriesViewInput,
-} from '@/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
@@ -61,10 +57,34 @@ import {
 import {
   baselineOf,
   getOccurrencesForInvites,
+  readInviteToken,
 } from '@/lib/invites/invite-service'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
+import {
+  encryptMergedFields,
+  writeInstanceOverride,
+  isValidRrule,
+  isValidStamp,
+  remapSeriesOverrideStamps,
+  shiftOverrideStamps,
+  type EventWriteDb,
+} from '@/lib/event-write'
+import {
+  commitMeetingForEvent,
+  deleteMeetingsForEvents,
+  getMeetingsForEvents,
+  moveMeetingToEvent,
+} from '@zntr/meetings'
+import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
-import { dedupeById } from '@/lib/array-mutations'
+import { isValidTimezone } from '@zntr/ui/calendar/lib/timezone'
+import { MAX_CALENDAR_RANGE_MS } from '@zntr/ui/calendar/lib/calendar-range'
+import {
+  CATCH_UP_FLOOR_MS,
+  getReminderTime,
+  getReminderKey,
+  reminderDeadline,
+} from '@zntr/ui/calendar/lib/reminder-rules'
 
 export const runtime = 'nodejs'
 
@@ -87,79 +107,39 @@ type EnrichedInvite = {
   inviteExpired: boolean
 }
 
-function isValidRrule(rule: string | undefined): boolean {
-  if (rule === null || rule === undefined) return true
-  try {
-    return typeof RRule.fromString(rule).options.freq === 'number'
-  } catch {
-    return false
-  }
-}
-
-function isValidStamp(stamp: string): boolean {
-  try {
-    parseRfcStamp(stamp)
-    return true
-  } catch {
-    return false
-  }
-}
-
-function encryptMergedFields(
-  rowId: string,
-  fields: Record<string, unknown>,
-): Record<string, unknown> {
-  const encrypted: Record<string, unknown> = {}
-  if (fields.title !== undefined)
-    encrypted.title = encryptField(rowId, fields.title as string) ?? ''
-  if (fields.description !== undefined)
-    encrypted.description = encryptField(rowId, fields.description as string)
-  if (fields.location !== undefined)
-    encrypted.location = encryptField(rowId, fields.location as string)
-  if (fields.participants !== undefined)
-    encrypted.participants = encryptJsonField(rowId, fields.participants)
-  if (fields.startDate !== undefined) encrypted.startDate = fields.startDate
-  if (fields.endDate !== undefined) encrypted.endDate = fields.endDate
-  if (fields.isAllDay !== undefined) encrypted.isAllDay = fields.isAllDay
-  if (fields.status !== undefined) encrypted.status = fields.status
-  if (fields.color !== undefined) encrypted.color = fields.color
-  if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
-  if (fields.notificationMinutes !== undefined)
-    encrypted.notificationMinutes = fields.notificationMinutes
-  if (fields.emailReminder !== undefined)
-    encrypted.emailReminder = fields.emailReminder
-  return encrypted
-}
-
-async function invalidateMasterCache(
+/**
+ * Reject a `categoryId` that does not belong to the caller.
+ *
+ * Every other category-referencing write pairs the id with
+ * `eq(userId, session.userId)` in the same statement (categories, countdowns,
+ * the invite PATCH, the MCP list filter). The event write was the one exception:
+ * it passed `body.categoryId` straight through, so an event could hold a
+ * stranger's category id. No reader discloses the name — they all scope by
+ * `userId` — but the row would render uncategorised for its owner, and the
+ * foreign category's `ON DELETE SET NULL` would later mutate it.
+ *
+ * `null` (uncategorised) is always allowed and costs no query.
+ */
+async function rejectForeignCategory(
+  categoryId: string | null | undefined,
   userId: string,
-  seriesId: string,
-): Promise<void> {
-  const [master] = await getDb()
-    .select({
-      startDate: calendarEvents.startDate,
-      endDate: calendarEvents.endDate,
-    })
-    .from(calendarEvents)
+): Promise<boolean> {
+  if (!categoryId) return false
+  const [cat] = await getDb()
+    .select({ id: calendarCategories.id })
+    .from(calendarCategories)
     .where(
-      and(eq(calendarEvents.id, seriesId), eq(calendarEvents.userId, userId)),
+      and(
+        eq(calendarCategories.id, categoryId),
+        eq(calendarCategories.userId, userId),
+      ),
     )
-  if (master) {
-    await invalidateEventCache(
-      userId,
-      master.startDate.toISOString(),
-      master.endDate.toISOString(),
-    )
-  }
+  return !cat
 }
-
-type Dbx =
-  | ReturnType<typeof getDb>
-  | Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0]
 
 async function fetchOverrides(
   seriesId: string,
-  dbx: Dbx = getDb(),
+  dbx: EventWriteDb = getDb(),
 ): Promise<EventRow[]> {
   const rows = await dbx
     .select()
@@ -168,117 +148,28 @@ async function fetchOverrides(
   return rows as unknown as EventRow[]
 }
 
-/**
- * Re-stamps a series' single-instance overrides after an "all events" clock
- * shift, WITHOUT moving their stored times. Occurrences are identified by
- * their recurrence stamp, so the stamp must follow the series into the new
- * clock space for the override to keep matching — but a single-edited
- * instance (e.g. a Wednesday moved to 14:00 on its own) keeps its own time.
- * Without the remap the override would no longer match any occurrence and
- * would resurface as an orphan duplicate.
- */
-async function remapOverridesClock(
-  userId: string,
-  masterId: string,
-  clockSource: Date,
-  timeZone?: string,
-  dayDelta = 0,
-): Promise<void> {
-  const overrides = await fetchOverrides(masterId)
-  for (const o of overrides) {
-    if (!o.recurrenceId) continue
-    // A whole-pattern day translation ("all events" moved to another
-    // weekday) moves the override stamps by the same day distance; a pure
-    // clock change keeps their day.
-    const nextStamp =
-      dayDelta !== 0
-        ? translateStampsByDays(
-            [o.recurrenceId],
-            dayDelta,
-            clockSource,
-            timeZone,
-          )![0]
-        : shiftExdates([o.recurrenceId], clockSource, timeZone)![0]
-    await getDb()
-      .update(calendarEvents)
-      .set({
-        recurrenceId: nextStamp,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(calendarEvents.id, o.id), eq(calendarEvents.userId, userId)),
-      )
-  }
-}
-
-/**
- * Moves overrides along with their series by remapping each recurrence stamp
- * to match the new series' generated occurrence slots (clock-based, matching
- * remapOverridesClock). Only the stamp is updated; stored start/end times are
- * untouched so a single-edited instance keeps the time it was edited to.
- * Without the clock remap, overrides would land on slots the new series never
- * generates and resurface as orphan duplicates.
- */
-async function shiftOverridesByDelta(
-  userId: string,
-  ids: string[],
-  clockSource: Date,
-  timeZone?: string,
-  dayDelta = 0,
-): Promise<void> {
-  if (ids.length === 0) return
-  const rows = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, userId)),
-    )
-  for (const row of rows) {
-    if (!row.recurrenceId) continue
-    const newStamp =
-      dayDelta !== 0
-        ? translateStampsByDays(
-            [row.recurrenceId],
-            dayDelta,
-            clockSource,
-            timeZone,
-          )![0]
-        : shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
-    await getDb()
-      .update(calendarEvents)
-      .set({
-        recurrenceId: newStamp,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
-      )
-  }
-}
-
 async function deleteRow(
   userId: string,
   row: EventRow,
-  dbx: Dbx = getDb(),
+  dbx: EventWriteDb = getDb(),
 ): Promise<void> {
   const rowIds = row.seriesId
     ? [row.id]
     : [row.id, ...(await fetchOverrides(row.id, dbx)).map((r) => r.id)]
   if (rowIds.length > 0) {
-    // Scheduled reminder rows cascade with the event, but the PROVIDER's copy
-    // does not — it must be cancelled explicitly or the user is emailed about a
-    // deleted event. See ADR-0010.
-    try {
-      const { cancelRemindersForEvents } =
-        await import('@/lib/reminders/reconcile')
-      await cancelRemindersForEvents(rowIds)
-    } catch {
-      // Never block a delete on the email provider.
-    }
+    // Reminder receipts survive deletion. Reconcile after the transaction has
+    // committed, never call the provider from inside an event transaction.
     // Occurrence rows cascade from event_invites, which cascades from
     // calendar_events, so deleting the invites removes their per-occurrence
     // visibility and RSVPs with them.
     await dbx.delete(eventInvites).where(inArray(eventInvites.eventId, rowIds))
+    // Event Meetings live in a separate package with no database FK back to
+    // this table on purpose (ADR-0017), so their cascade runs here. Deleting
+    // the row is what invalidates the meeting link. One statement for the whole
+    // set, like the eventInvites delete above — meetings only ever attach to
+    // masters, so iterating cost 50 pointless statements on a 50-override
+    // series.
+    await deleteMeetingsForEvents(dbx, rowIds)
     await dbx
       .delete(calendarEvents)
       .where(
@@ -288,24 +179,28 @@ async function deleteRow(
         ),
       )
   }
-  await invalidateEventCache(
-    userId,
-    row.startDate.toISOString(),
-    row.endDate.toISOString(),
-  )
 }
 
 async function applySplitPlan(
   userId: string,
   plan: InstanceChangePlan,
   master: EventRow,
-  /**
-   * The organiser's timezone, already resolved by the handler via
-   * `resolveUserTz`. Carried grants are clock-remapped in it, exactly as the
-   * override path remaps override stamps.
-   */
-  timeZone?: string,
+  opts?: {
+    /**
+     * Join this caller's transaction instead of opening one. The call sites that
+     * also re-stamp the moved overrides need the split writes and the re-stamps
+     * to be one unit, and a nested `transaction()` would commit independently.
+     */
+    db?: EventWriteDb
+    /**
+     * The organiser's timezone, already resolved by the handler via
+     * `resolveUserTz`. Carried grants are clock-remapped in it, exactly as the
+     * override path remaps override stamps.
+     */
+    timeZone?: string
+  },
 ): Promise<ReturnType<typeof decryptEvent> | null> {
+  const timeZone = opts?.timeZone
   const split = plan.split!
   const newId = split.newSeries.id
   const fields = encryptMergedFields(newId, split.newSeries.fields)
@@ -313,7 +208,7 @@ async function applySplitPlan(
   // leave the old series untruncated next to the new one (duplicated
   // occurrences) or overrides reparented to a master that never truncated.
   // Cache invalidation stays OUTSIDE the transaction (after commit).
-  const newMaster = await getDb().transaction(async (tx) => {
+  const writeSplit = async (tx: EventWriteDb) => {
     const [inserted] = await tx
       .insert(calendarEvents)
       .values({
@@ -361,6 +256,17 @@ async function applySplitPlan(
       timeZone,
     })
 
+    // A Series has one Meeting whose link stays stable across occurrences
+    // (ADR-0019), so the split's tail — the part participants are still going
+    // to attend — keeps it. Unconditional, exactly like the invite carry above:
+    // guarding this on `masterBecomesEmpty` meant the ordinary mid-series
+    // "this and following" split never moved it, so the future segment lost its
+    // meeting while the past segment kept a link nobody would use again.
+    //
+    // Must run before the branch below can delete the old master, or the
+    // meeting would be cascaded away with it.
+    await moveMeetingToEvent(tx, master.id, newId)
+
     if (split.masterBecomesEmpty) {
       // The old series would render nothing after truncation (split at its
       // first slot): drop it so repeated "this and following" edits cannot
@@ -398,47 +304,96 @@ async function applySplitPlan(
     }
 
     return inserted
-  })
-
-  await Promise.all([
-    invalidateEventCache(
-      userId,
-      master.startDate.toISOString(),
-      master.endDate.toISOString(),
-    ),
-    invalidateEventCache(
-      userId,
-      split.newSeries.startDate.toISOString(),
-      split.newSeries.endDate.toISOString(),
-    ),
-  ])
-
-  // Occurrences past the boundary now belong to the new master and may have
-  // moved, so their scheduled sends are cancelled and left for the top-up cron
-  // to re-create. Outside the transaction: this calls the email provider.
-  try {
-    const { clearRemindersPastSplit } =
-      await import('@/lib/reminders/reconcile')
-    await clearRemindersPastSplit({
-      oldMasterId: master.id,
-      boundaryStamp: split.masterUntil,
-    })
-  } catch {
-    // Never fail a split because of the email provider.
   }
+  const newMaster = opts?.db
+    ? await writeSplit(opts.db)
+    : await getDb().transaction(writeSplit)
+
+  // The response identifies both roots. The outer mutation boundary reconciles
+  // the head then the tail AFTER commit, including reminders due before cron.
 
   return decryptEvent(newMaster)
 }
 
-async function enrichEventsWithInvites(
-  events: Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>,
+/**
+ * The Meeting attached to each of these events, keyed by the id the meeting
+ * hangs off — always the SERIES master, because a Series gets one Meeting
+ * (ADR-0019) and an expanded occurrence's id is a synthetic instance id no row
+ * exists for.
+ *
+ * This is the fix for a meeting link that arrived a beat late and, right after
+ * a save, not at all. Every event surface used to resolve it with its own
+ * `GET /api/meetings?eventId=` from an effect — so the link was a second round
+ * trip that had not finished when the popover painted, and the SWR-cached event
+ * list the preview reads had no notion that a meeting had appeared. Riding
+ * along with the event payload removes the request instead of hiding it, and
+ * makes the existing `mutate(DATA_KEYS.events)` after a save the one thing that
+ * has to be right.
+ *
+ * A meeting is only reported to a viewer who OWNS the event. A participant's
+ * shared copy learns the link through their invitation (ADR-0019: the Invite
+ * Token's only meeting role is revealing the link on the invite page), not
+ * through the organiser's list payload.
+ */
+async function meetingsForEvents(
+  events: Array<ReturnType<typeof decryptEvent>>,
+  viewerId: string,
+): Promise<Map<string, { id: string; url: string }>> {
+  const ownerKeys = [
+    ...new Set(
+      events
+        .filter((e) => e.userId === viewerId)
+        .map((e) => (e.seriesId ?? e.id) as string),
+    ),
+  ]
+  const found = await getMeetingsForEvents(getDb(), ownerKeys)
+  const out = new Map<string, { id: string; url: string }>()
+  for (const [eventId, row] of found) {
+    out.set(eventId, { id: row.id, url: meetingUrl(row.id) })
+  }
+  return out
+}
+
+/**
+ * Display name and avatar for the given invitee addresses, lower-cased keys.
+ * No query at all for an empty list, which is the common case for an event with
+ * no invitations.
+ */
+async function inviteUsersByEmail(
+  emails: string[],
+): Promise<Record<string, { name: string; image: string | null }>> {
+  if (emails.length === 0) return {}
+
+  const users = await getDb()
+    .select({
+      email: user.email,
+      name: user.name,
+      image: user.image,
+    })
+    .from(user)
+    .where(inArray(user.email, emails))
+
+  return users.reduce(
+    (acc: Record<string, { name: string; image: string | null }>, u) => {
+      acc[u.email.toLowerCase()] = { name: u.name, image: u.image }
+      return acc
+    },
+    {} as Record<string, { name: string; image: string | null }>,
+  )
+}
+
+async function enrichEventsWithInvites<
+  T extends ReturnType<typeof decryptEvent> & { instanceId?: string },
+>(
+  events: T[],
   viewerId: string,
   viewerEmail?: string,
 ): Promise<
   Array<
-    ReturnType<typeof decryptEvent> & {
+    T & {
       invites: EnrichedInvite[]
       instanceId?: string
+      meeting?: { id: string; url: string } | null
     }
   >
 > {
@@ -452,54 +407,73 @@ async function enrichEventsWithInvites(
     events.map((e) => [(e.seriesId ?? e.id) as string, e.userId]),
   )
 
-  const allInvites = await getDb()
-    .select({
-      id: eventInvites.id,
-      eventId: eventInvites.eventId,
-      email: eventInvites.email,
-      status: eventInvites.status,
-      inviteToken: eventInvites.inviteToken,
-      emailSent: eventInvites.emailSent,
-      addedToCalendar: eventInvites.addedToCalendar,
-      expiresAt: eventInvites.expiresAt,
-      baselineKind: eventInvites.baselineKind,
-      fromStamp: eventInvites.fromStamp,
-      untilStamp: eventInvites.untilStamp,
-    })
-    .from(eventInvites)
-    .where(inArray(eventInvites.eventId, idKeys))
-
-  // Per-occurrence exceptions, so the organiser sees who is on THIS occurrence
-  // and their RSVP for it — not a series-wide answer.
-  const occurrencesByInvite = await getOccurrencesForInvites(
-    allInvites.map((i) => i.id),
-  )
+  // The meetings lookup is keyed by the events' own ids and the invite read by
+  // the invite rows — neither needs the other's result, so they go out together
+  // instead of one after the other. `enrichEventsWithInvites` runs on every
+  // `GET /api/events`, which is the app's hottest read: view switches, every
+  // optimistic-write revalidation and every SWR focus revalidation all land here.
+  const [meetings, allInvites] = await Promise.all([
+    meetingsForEvents(events, viewerId),
+    getDb()
+      .select({
+        id: eventInvites.id,
+        eventId: eventInvites.eventId,
+        email: eventInvites.email,
+        status: eventInvites.status,
+        inviteToken: eventInvites.inviteToken,
+        inviteTokenHash: eventInvites.inviteTokenHash,
+        emailSent: eventInvites.emailSent,
+        addedToCalendar: eventInvites.addedToCalendar,
+        expiresAt: eventInvites.expiresAt,
+        baselineKind: eventInvites.baselineKind,
+        fromStamp: eventInvites.fromStamp,
+        untilStamp: eventInvites.untilStamp,
+      })
+      .from(eventInvites)
+      .where(inArray(eventInvites.eventId, idKeys)),
+  ])
 
   const inviteEmails = [
     ...new Set(allInvites.map((i) => i.email.toLowerCase())),
   ]
 
-  let userMap: Record<string, { name: string; image: string | null }> = {}
-  if (inviteEmails.length > 0) {
-    const users = await getDb()
-      .select({
-        email: user.email,
-        name: user.name,
-        image: user.image,
-      })
-      .from(user)
-      .where(inArray(user.email, inviteEmails))
-
-    userMap = users.reduce(
-      (acc: Record<string, { name: string; image: string | null }>, u) => {
-        acc[u.email.toLowerCase()] = { name: u.name, image: u.image }
-        return acc
-      },
-      {} as Record<string, { name: string; image: string | null }>,
-    )
-  }
+  // Both need `allInvites` and neither needs the other.
+  const [occurrencesByInvite, userMap] = await Promise.all([
+    // Per-occurrence exceptions, so the organiser sees who is on THIS
+    // occurrence and their RSVP for it — not a series-wide answer.
+    getOccurrencesForInvites(allInvites.map((i) => i.id)),
+    inviteUsersByEmail(inviteEmails),
+  ])
 
   const viewerEmailLower = viewerEmail?.toLowerCase()
+  const now = new Date()
+  // A series may expand into hundreds of instances. Token decryption and
+  // invite-level fields belong to the invite, not to each generated instance.
+  const inviteDetails = new Map(
+    allInvites.map((invite) => {
+      const emailLower = invite.email.toLowerCase()
+      return [
+        invite.id,
+        {
+          id: invite.id,
+          email: invite.email,
+          inviteToken:
+            eventOwners.get(invite.eventId) === viewerId ||
+            emailLower === viewerEmailLower
+              ? readInviteToken(invite)
+              : '',
+          emailSent: invite.emailSent,
+          addedToCalendar: invite.addedToCalendar,
+          userName: userMap[emailLower]?.name ?? null,
+          userImage: userMap[emailLower]?.image ?? null,
+          inviteExpired:
+            !invite.addedToCalendar &&
+            !!invite.expiresAt &&
+            invite.expiresAt <= now,
+        },
+      ] as const
+    }),
+  )
 
   const invitesByEvent = allInvites.reduce(
     (acc: Record<string, typeof allInvites>, invite) => {
@@ -526,233 +500,27 @@ async function enrichEventsWithInvites(
         )
       })
       .map((invite) => {
-        const emailLower = invite.email.toLowerCase()
-        const isOwnInvite = emailLower === viewerEmailLower
         const exceptions = occurrencesByInvite.get(invite.id) ?? []
         const enriched: EnrichedInvite = {
-          id: invite.id,
-          email: invite.email,
+          ...inviteDetails.get(invite.id)!,
           // RSVP is per-occurrence for a series; the invite row's own status
           // only answers for a non-recurring event.
           status:
             stamp === null
               ? (invite.status as EnrichedInvite['status'])
               : rsvpForOccurrence(exceptions, stamp),
-          // Only the organiser or the invitee themselves get a usable token.
-          inviteToken:
-            eventOwners.get(invite.eventId) === viewerId || isOwnInvite
-              ? invite.inviteToken
-              : '',
-          emailSent: invite.emailSent,
-          addedToCalendar: invite.addedToCalendar,
-          userName: userMap[emailLower]?.name ?? null,
-          userImage: userMap[emailLower]?.image ?? null,
-          // Dead link and no permanent grant: the participant cannot act
-          // until the organiser resends (ADR-0013).
-          inviteExpired:
-            !invite.addedToCalendar &&
-            !!invite.expiresAt &&
-            invite.expiresAt <= new Date(),
         }
         return enriched
       })
 
-    return { ...e, invites }
+    return { ...e, invites, meeting: meetings.get(key) ?? null }
   })
 }
 
-async function getSharedEvents(currentUser: { email: string }): Promise<
-  Array<
-    ReturnType<typeof decryptEvent> & {
-      viewOnly: boolean
-      organizer: {
-        name: string
-        email: string
-        image: string | null
-      } | null
-    }
-  >
-> {
-  // `expiresAt` is deliberately not checked, matching isEventViewableBy: it
-  // bounds the emailed link, not the grant. `addedToCalendar` IS the grant,
-  // permanent until revoked (ADR-0013).
-  const liveInvites = await getDb()
-    .select()
-    .from(eventInvites)
-    .where(
-      and(
-        eq(eventInvites.email, currentUser.email.toLowerCase()),
-        eq(eventInvites.addedToCalendar, true),
-      ),
-    )
-  if (liveInvites.length === 0) return []
-
-  const inviteByEvent = new Map(liveInvites.map((i) => [i.eventId, i]))
-  const occurrencesByInvite = await getOccurrencesForInvites(
-    liveInvites.map((i) => i.id),
-  )
-
-  const sharedIds = liveInvites.map((i) => i.eventId)
-  const sharedResults = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(inArray(calendarEvents.id, sharedIds))
-
-  const ownerIds = [...new Set(sharedResults.map((e) => e.userId))]
-  const owners = ownerIds.length
-    ? await getDb()
-        .select({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        })
-        .from(user)
-        .where(inArray(user.id, ownerIds))
-    : []
-
-  const ownerMap = new Map(owners.map((u) => [u.id, u]))
-  const organiserTimeZones = await organiserTimeZonesFor(ownerIds)
-
-  const out: Array<
-    ReturnType<typeof decryptEvent> & {
-      viewOnly: boolean
-      organizer: {
-        name: string
-        email: string
-        image: string | null
-      } | null
-    }
-  > = []
-
-  for (const row of sharedResults) {
-    const invite = inviteByEvent.get(row.id)
-    if (!invite) continue
-
-    const owner = row.userId ? ownerMap.get(row.userId) : null
-    const organizer = owner
-      ? { name: owner.name, email: owner.email, image: owner.image }
-      : null
-    const categoryId = invite.categoryId ?? row.categoryId
-    const decrypted = decryptEvent(row)
-
-    const isSeries = !!row.rrule && row.rrule.trim().length > 0
-    if (!isSeries) {
-      out.push({ ...decrypted, categoryId, viewOnly: true, organizer })
-      continue
-    }
-
-    // A series is expanded and filtered HERE, and the rule is withheld from the
-    // response. Handing a participant an rrule lets their client generate
-    // occurrences they were never granted — see
-    // ADR-0006 (participants never receive the recurrence rule).
-    const exceptions = occurrencesByInvite.get(invite.id) ?? []
-    const baseline = baselineOf(invite)
-    const overrides = await fetchOverrides(row.id)
-    const instances = expandSeriesView(
-      [decrypted as unknown as SeriesViewInput],
-      overrides.map(decryptEvent) as unknown as SeriesViewInput[],
-      new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
-      new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
-      MAX_EXPANSION,
-      // The organiser's timezone, so the participant sees the occurrences the
-      // organiser actually scheduled rather than a UTC-shifted set.
-      organiserTimeZones.get(row.userId),
-    ) as Array<ReturnType<typeof decryptEvent> & { instanceId?: string }>
-
-    const recurrenceSummary = describeRecurrence(row.rrule!, false)
-
-    for (const instance of instances) {
-      const stamp = instance.recurrenceId
-      if (
-        stamp === null ||
-        !canParticipantSeeOccurrence(baseline, exceptions, stamp)
-      ) {
-        continue
-      }
-      out.push({
-        ...instance,
-        categoryId,
-        // Withheld deliberately. Do not "restore" these.
-        rrule: null,
-        exdate: null,
-        recurrenceSummary,
-        viewOnly: true,
-        organizer,
-      } as (typeof out)[number])
-    }
-  }
-
-  return out
-}
-
-/**
- * Timezones of the given users, from their settings blob. A series must be
- * expanded in its organiser's timezone or a participant sees occurrences at the
- * wrong wall-clock time.
- */
-async function organiserTimeZonesFor(
-  userIds: string[],
-): Promise<Map<string, string | undefined>> {
-  const map = new Map<string, string | undefined>()
-  if (userIds.length === 0) return map
-
-  const rows = await getDb()
-    .select({ userId: settings.userId, data: settings.data })
-    .from(settings)
-    .where(inArray(settings.userId, userIds))
-
-  for (const row of rows) {
-    const tz = (row.data as { timezone?: unknown } | null)?.timezone
-    map.set(row.userId, typeof tz === 'string' && tz ? tz : undefined)
-  }
-  return map
-}
-
-type MergedViewEvent = ReturnType<typeof decryptEvent> & {
-  instanceId?: string
+type MergedViewEvent = ViewEvent & {
   invites?: EnrichedInvite[]
-  viewOnly?: boolean
-  organizer?: {
-    name: string
-    email: string
-    image: string | null
-  } | null
-}
-
-async function loadMergedView(
-  user: { id: string; email: string },
-  baseRows: ReturnType<typeof decryptEvent>[],
-  window?: { windowStart?: Date; windowEnd?: Date },
-  timeZone?: string,
-): Promise<MergedViewEvent[]> {
-  const recurringRows = await getDb()
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(
-        eq(calendarEvents.userId, user.id),
-        or(isNotNull(calendarEvents.rrule), isNotNull(calendarEvents.seriesId)),
-      ),
-    )
-  const all = dedupeById([...baseRows, ...recurringRows.map(decryptEvent)])
-  const windowStart =
-    window?.windowStart ?? new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS)
-  const windowEnd =
-    window?.windowEnd ?? new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
-  const expanded = expandSeriesView(
-    all.filter((e) => e.seriesId === null) as SeriesViewInput[],
-    all.filter((e) => e.seriesId !== null) as SeriesViewInput[],
-    windowStart,
-    windowEnd,
-    MAX_EXPANSION,
-    timeZone,
-  ) as MergedViewEvent[]
-  const withShared = [
-    ...expanded,
-    ...(await getSharedEvents(user)),
-  ] as MergedViewEvent[]
-  return enrichEventsWithInvites(withShared, user.id, user.email)
+  /** The event's Meeting, resolved by lookup — no column on the row (ADR-0019). */
+  meeting?: { id: string; url: string } | null
 }
 
 async function loadSeriesView(
@@ -781,12 +549,11 @@ async function loadSeriesView(
     .filter((r) => r.seriesId !== null)
     .map(decryptEvent) as unknown as SeriesViewInput[]
   const window = defaultExpansionWindow()
-  const expanded = expandSeriesView(
+  const expanded = expandSeriesViewInRange(
     masters,
     overrides,
     window.windowStart,
     window.windowEnd,
-    MAX_EXPANSION,
     timeZone,
   ) as MergedViewEvent[]
   return enrichEventsWithInvites(expanded, user.id, user.email)
@@ -797,14 +564,14 @@ async function resolveUserTz(
   explicit?: string | null,
 ): Promise<string> {
   const candidate = explicit?.trim()
-  if (candidate && isTzValid(candidate)) return candidate
+  if (candidate && isValidTimezone(candidate)) return candidate
   try {
     const [row] = await getDb()
       .select()
       .from(settings)
       .where(eq(settings.userId, userId))
     const data = (row?.data ?? {}) as { timezone?: unknown }
-    if (typeof data.timezone === 'string' && isTzValid(data.timezone)) {
+    if (typeof data.timezone === 'string' && isValidTimezone(data.timezone)) {
       return data.timezone
     }
   } catch {
@@ -813,29 +580,124 @@ async function resolveUserTz(
   return 'UTC'
 }
 
-function isTzValid(timeZone: string): boolean {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone })
-    return true
-  } catch {
-    return false
-  }
-}
-
 export const GET = async function GET(request: NextRequest) {
   const currentUser = await getAuthedUser()
   if (!currentUser)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { searchParams } = request.nextUrl
+  const searchParams = new URLSearchParams(request.nextUrl.searchParams)
+  const reminderFeed = searchParams.get('delivery') === 'desktop-reminders'
+  const now = Date.now()
+  if (reminderFeed) {
+    // The largest accepted lead time is seven days. This range is independent
+    // of the visible calendar and includes the at-start catch-up floor.
+    for (const key of [...searchParams.keys()]) searchParams.delete(key)
+    searchParams.set(
+      'startDate',
+      new Date(now - CATCH_UP_FLOOR_MS).toISOString(),
+    )
+    searchParams.set(
+      'endDate',
+      new Date(now + 10080 * 60_000 + 3600_000).toISOString(),
+    )
+  }
   const id = searchParams.get('id')
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
   const categoryIds = searchParams.get('categoryIds')
+  const batchSize = searchParams.get('batchSize')
+  const anchorDate = searchParams.get('anchorDate')
+  const excludeStart = searchParams.get('excludeStartDate')
+  const excludeEnd = searchParams.get('excludeEndDate')
+  if (
+    Boolean(startDate) !== Boolean(endDate) ||
+    (startDate &&
+      endDate &&
+      (!Number.isFinite(Date.parse(startDate)) ||
+        !Number.isFinite(Date.parse(endDate)) ||
+        Date.parse(startDate) >= Date.parse(endDate) ||
+        Date.parse(endDate) - Date.parse(startDate) > MAX_CALENDAR_RANGE_MS))
+  ) {
+    return NextResponse.json({ error: 'Invalid date range' }, { status: 400 })
+  }
+  if (
+    batchSize !== null ||
+    anchorDate !== null ||
+    excludeStart !== null ||
+    excludeEnd !== null
+  ) {
+    if (
+      (batchSize !== '150' && batchSize !== '400') ||
+      !anchorDate ||
+      !Number.isFinite(Date.parse(anchorDate)) ||
+      !startDate ||
+      !endDate ||
+      id ||
+      categoryIds ||
+      Date.parse(anchorDate) < Date.parse(startDate) ||
+      Date.parse(anchorDate) >= Date.parse(endDate) ||
+      Boolean(excludeStart) !== Boolean(excludeEnd) ||
+      ((excludeStart || excludeEnd) &&
+        (batchSize !== '400' ||
+          !excludeStart ||
+          !excludeEnd ||
+          !Number.isFinite(Date.parse(excludeStart)) ||
+          !Number.isFinite(Date.parse(excludeEnd)) ||
+          Date.parse(excludeStart) > Date.parse(startDate) ||
+          Date.parse(excludeEnd) < Date.parse(endDate)))
+    ) {
+      return NextResponse.json(
+        { error: 'Invalid event batch' },
+        { status: 400 },
+      )
+    }
+  }
+  // Reject invalid ranges before a settings lookup. An explicit valid timezone
+  // avoids that lookup altogether.
   const timeZone = await resolveUserTz(currentUser.id, searchParams.get('tz'))
 
   if (id) {
     const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
+    // Shared search hits can be outside the currently loaded window. Reuse
+    // the same grant/occurrence visibility checks as the calendar list.
+    const sharedFallback = async () => {
+      let window: { windowStart: Date; windowEnd: Date } | undefined
+      if (parsedId) {
+        const stamp = parseRfcStamp(parsedId.recurrenceId).date
+        window = {
+          windowStart: new Date(stamp.getTime() - 86400000),
+          windowEnd: new Date(stamp.getTime() + 86400000),
+        }
+        const [override] = await getDb()
+          .select()
+          .from(calendarEvents)
+          .where(
+            and(
+              eq(calendarEvents.seriesId, parsedId.seriesId),
+              eq(calendarEvents.recurrenceId, parsedId.recurrenceId),
+            ),
+          )
+        if (override)
+          window = {
+            windowStart: override.startDate,
+            windowEnd: new Date(override.endDate.getTime() + 1),
+          }
+      }
+      const shared = (
+        await getSharedEvents(currentUser, window, parsedId?.seriesId ?? id)
+      ).find((event) => event.id === id)
+      if (!shared)
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      const [event] = await enrichEventsWithInvites(
+        [shared],
+        currentUser.id,
+        currentUser.email,
+      )
+      return NextResponse.json(
+        { event },
+        { headers: { 'Cache-Control': 'private, no-store' } },
+      )
+    }
     if (parsedId) {
       const [master] = await getDb()
         .select()
@@ -852,7 +714,7 @@ export const GET = async function GET(request: NextRequest) {
           rrule: master.rrule,
         })
       ) {
-        return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+        return sharedFallback()
       }
       const overrides = (await fetchOverrides(master.id)).map((o) =>
         decryptEvent(o as typeof calendarEvents.$inferSelect),
@@ -872,6 +734,13 @@ export const GET = async function GET(request: NextRequest) {
             ...resolved,
             id,
             instanceId: id,
+            seriesStartDate: master.startDate,
+            isFirstInstance:
+              parsedId.recurrenceId ===
+              firstVisibleStampOfSeries(master, timeZone),
+            isOverride: overrides.some(
+              (override) => override.recurrenceId === parsedId.recurrenceId,
+            ),
           },
         ],
         currentUser.id,
@@ -890,7 +759,7 @@ export const GET = async function GET(request: NextRequest) {
         ),
       )
     if (!row) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      return sharedFallback()
     }
     const [withInvites] = await enrichEventsWithInvites(
       [{ ...decryptEvent(row), instanceId: row.id }],
@@ -900,88 +769,75 @@ export const GET = async function GET(request: NextRequest) {
     return NextResponse.json({ event: withInvites })
   }
 
-  const filters = [eq(calendarEvents.userId, currentUser.id)]
-
-  let decrypted: ReturnType<typeof decryptEvent>[] = []
-
-  if (startDate && endDate) {
-    const cached = await getCachedEvents(currentUser.id, startDate, endDate)
-    if (cached) {
-      decrypted = cached.map(decryptEvent)
-    } else {
-      const range = fullMonthRange(startDate, endDate)
-      filters.push(gte(calendarEvents.startDate, range.start))
-      filters.push(lte(calendarEvents.endDate, range.end))
-    }
-  }
-
-  if (categoryIds) {
-    filters.push(inArray(calendarEvents.categoryId, categoryIds.split(',')))
-  }
-
-  if (decrypted.length === 0) {
-    const query = getDb()
-      .select()
-      .from(calendarEvents)
-      .where(and(...filters))
-
-    if (!(startDate && endDate)) {
-      query.orderBy(desc(calendarEvents.startDate)).limit(1000)
-    }
-
-    const results = await query
-
-    if (startDate && endDate) {
-      const grouped = groupByMonth(results)
-      for (const [ym, monthEvents] of grouped) {
-        await setCachedEvents(currentUser.id, ym, monthEvents)
-      }
-    }
-
-    decrypted = results.map(decryptEvent)
-  }
-
-  const windowStart =
+  const window =
     startDate && endDate
-      ? fullMonthRange(startDate, endDate).start
-      : new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS)
-  const windowEnd =
-    startDate && endDate
-      ? fullMonthRange(startDate, endDate).end
-      : new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS)
-
-  const eventsWithInvites = await loadMergedView(
-    currentUser,
-    decrypted,
-    {
-      windowStart,
-      windowEnd,
-    },
+      ? { windowStart: new Date(startDate), windowEnd: new Date(endDate) }
+      : defaultExpansionWindow()
+  if (batchSize && anchorDate) {
+    const batch = await loadEventBatch(currentUser, {
+      ...window,
+      timeZone,
+      anchor: new Date(anchorDate),
+      size: Number(batchSize),
+      exclude:
+        excludeStart && excludeEnd
+          ? {
+              windowStart: new Date(excludeStart),
+              windowEnd: new Date(excludeEnd),
+            }
+          : undefined,
+    })
+    const events = await enrichEventsWithInvites(
+      batch.events,
+      currentUser.id,
+      currentUser.email,
+    )
+    return NextResponse.json(
+      { ...batch, events },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
+  }
+  const selected = await loadEventWindow(currentUser, {
+    ...window,
     timeZone,
-  )
+    categoryIds: categoryIds ? categoryIds.split(',') : undefined,
+    legacy: !(startDate && endDate),
+  })
 
-  if (categoryIds) {
-    const ids = categoryIds.split(',')
-    eventsWithInvites.splice(
-      0,
-      eventsWithInvites.length,
-      ...eventsWithInvites.filter(
-        (e) => e.categoryId && ids.includes(e.categoryId),
-      ),
+  if (reminderFeed) {
+    // Delivery only needs event/reminder fields. Do not load participants,
+    // avatars, invite tokens or meetings for this independent polling feed.
+    const reminders = selected.flatMap((event) => {
+      const candidate = { ...event, notification: event.notificationMinutes }
+      const dueAt = getReminderTime(candidate)
+      if (dueAt === null || dueAt > now + 3600_000) return []
+      const deadline = reminderDeadline(candidate, dueAt)
+      if (deadline <= now) return []
+      return [
+        {
+          key: getReminderKey(candidate, dueAt),
+          dueAt,
+          deadline,
+          title: event.title,
+          description: event.description ?? '',
+        },
+      ]
+    })
+    return NextResponse.json(
+      { reminders },
+      { headers: { 'Cache-Control': 'private, no-store' } },
     )
   }
 
-  if (startDate && endDate) {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    return NextResponse.json({
-      events: eventsWithInvites.filter(
-        (e) => e.startDate >= start && e.endDate <= end,
-      ),
-    })
-  }
-
-  return NextResponse.json({ events: eventsWithInvites })
+  const events = await enrichEventsWithInvites(
+    selected,
+    currentUser.id,
+    currentUser.email,
+  )
+  return NextResponse.json(
+    { events },
+    { headers: { 'Cache-Control': 'private, no-store' } },
+  )
 }
 
 const postHandler = async function POST(request: NextRequest) {
@@ -1039,6 +895,10 @@ const postHandler = async function POST(request: NextRequest) {
   const id = body.id ?? crypto.randomUUID()
   const isUpdate = !!body.id
   const parsedId = isInstanceId(id) ? parseInstanceId(id) : null
+
+  if (await rejectForeignCategory(body.categoryId, user.id)) {
+    return NextResponse.json({ error: 'Category not found' }, { status: 400 })
+  }
 
   const submittedFields: Partial<EventRow> = {
     title: body.title,
@@ -1183,28 +1043,30 @@ const postHandler = async function POST(request: NextRequest) {
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await getDb()
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, masterRow.id),
-            eq(calendarEvents.userId, user.id),
-          ),
+      // See the master-'all' branch: the master's move and the overrides' re-stamps
+      // commit or roll back together, so a failure can never leave the series
+      // and its overrides disagreeing about where the occurrences are.
+      const [updated] = await getDb().transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+          .returning()
+        await remapSeriesOverrideStamps(
+          tx,
+          user.id,
+          masterRow.id,
+          nextStartDate,
+          timeZone,
+          dayDelta,
         )
-        .returning()
-      await invalidateEventCache(
-        user.id,
-        masterRow.startDate.toISOString(),
-        masterRow.endDate.toISOString(),
-      )
-      await remapOverridesClock(
-        user.id,
-        masterRow.id,
-        nextStartDate,
-        timeZone,
-        dayDelta,
-      )
+        return [row]
+      })
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -1222,7 +1084,7 @@ const postHandler = async function POST(request: NextRequest) {
       overrides,
       recurrenceId: parsedId.recurrenceId,
       applyTo,
-      fields: submittedFields,
+      fields: { ...submittedFields, rrule: rawRrule },
       now,
       timeZone,
     })
@@ -1235,18 +1097,29 @@ const postHandler = async function POST(request: NextRequest) {
       ) {
         newSeries.id = body.split_id
       }
-      const newMaster = await applySplitPlan(user.id, plan, masterRow, timeZone)
+      // The tail's new series and the moved overrides' re-stamps are one unit:
+      // an override stamped for the old series' clock matches no occurrence of
+      // the new one and resurfaces as an orphan duplicate.
+      const newMaster = await getDb().transaction(async (tx) => {
+        const created = await applySplitPlan(user.id, plan, masterRow, {
+          db: tx,
+          timeZone,
+        })
+        if (!created) return null
+        await shiftOverrideStamps(
+          tx,
+          user.id,
+          plan.split!.moveOverrideIds,
+          new Date(newSeries.startDate),
+          timeZone,
+        )
+        return created
+      })
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      await shiftOverridesByDelta(
-        user.id,
-        plan.split.moveOverrideIds,
-        new Date(newSeries.startDate),
-        timeZone,
-      )
       const seriesEvents = await loadSeriesView(
         user,
         [newMaster.id, masterRow.id],
@@ -1267,7 +1140,6 @@ const postHandler = async function POST(request: NextRequest) {
     // its override silently deletes the instance; an override without the
     // exdate duplicates it.
     const upsert = plan.overrideUpsert!
-    const encryptedOverride = encryptMergedFields(upsert.id, upsert.fields)
     const stored = await getDb().transaction(async (tx) => {
       if (plan.exdateToAdd) {
         await tx
@@ -1284,47 +1156,8 @@ const postHandler = async function POST(request: NextRequest) {
           )
       }
 
-      let row
-      if (upsert.isNew) {
-        // Upsert on the (seriesId, recurrenceId) unique index: two
-        // concurrent single-edits of the same occurrence resolve to one row
-        // (last writer wins) instead of a 500.
-        ;[row] = await tx
-          .insert(calendarEvents)
-          .values({
-            id: upsert.id,
-            userId: user.id,
-            seriesId: upsert.seriesId,
-            recurrenceId: upsert.recurrenceId,
-            createdAt: upsert.fields.createdAt as Date,
-            updatedAt: upsert.fields.updatedAt as Date,
-            ...encryptedOverride,
-          } as typeof calendarEvents.$inferInsert)
-          .onConflictDoUpdate({
-            target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
-            set: { ...encryptedOverride, updatedAt: new Date() },
-          })
-          .returning()
-      } else {
-        ;[row] = await tx
-          .update(calendarEvents)
-          .set({ ...encryptedOverride, updatedAt: new Date() })
-          .where(
-            and(
-              eq(calendarEvents.id, upsert.id),
-              eq(calendarEvents.userId, user.id),
-            ),
-          )
-          .returning()
-      }
-      return row
+      return writeInstanceOverride(tx, user.id, upsert)
     })
-
-    await invalidateEventCache(
-      user.id,
-      masterRow.startDate.toISOString(),
-      masterRow.endDate.toISOString(),
-    )
 
     const storedDecrypted = stored
       ? (decryptEvent(stored) as unknown as EventRow)
@@ -1346,13 +1179,18 @@ const postHandler = async function POST(request: NextRequest) {
     return NextResponse.json({ event: withInvites })
   }
 
+  // One unfiltered read, reused for both the authorisation decision and the
+  // merge base. The row has to be visible even when it belongs to somebody
+  // else — the 403 depends on seeing the foreign `userId`, and a
+  // userId-scoped read would instead fall through to the create path and
+  // upsert over a stranger's row. What closes the check-then-act window is the
+  // `targetWhere` on the upsert further down: if the row is deleted and
+  // recreated under a different owner between this read and that write, the
+  // conflict target no longer matches and nothing is overwritten. Previously
+  // this read the row, compared owners in JS, then re-read it unfiltered and
+  // upserted on `id` alone.
   const [old] = await getDb()
-    .select({
-      id: calendarEvents.id,
-      startDate: calendarEvents.startDate,
-      endDate: calendarEvents.endDate,
-      userId: calendarEvents.userId,
-    })
+    .select()
     .from(calendarEvents)
     .where(eq(calendarEvents.id, id))
 
@@ -1360,19 +1198,9 @@ const postHandler = async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   if (old) {
-    await invalidateEventCache(
-      user.id,
-      old.startDate.toISOString(),
-      old.endDate.toISOString(),
-    )
   }
 
-  const [fullOld] = isUpdate
-    ? await getDb()
-        .select()
-        .from(calendarEvents)
-        .where(eq(calendarEvents.id, id))
-    : [undefined]
+  const fullOld = isUpdate ? old : undefined
 
   if (isUpdate && fullOld && fullOld.seriesId !== null) {
     const overrideRow = decryptEvent(fullOld) as unknown as EventRow
@@ -1393,9 +1221,6 @@ const postHandler = async function POST(request: NextRequest) {
         ),
       )
       .returning()
-    if (overrideRow.seriesId !== null) {
-      await invalidateMasterCache(user.id, overrideRow.seriesId)
-    }
     const [withInvites] = await enrichEventsWithInvites(
       [decryptEvent(updated)],
       user.id,
@@ -1474,31 +1299,34 @@ const postHandler = async function POST(request: NextRequest) {
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await getDb()
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, seriesRow.id),
-            eq(calendarEvents.userId, user.id),
-          ),
-        )
-        .returning()
-      await invalidateEventCache(
-        user.id,
-        seriesRow.startDate.toISOString(),
-        seriesRow.endDate.toISOString(),
-      )
-      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
-        const overrides = await fetchOverrides(seriesRow.id)
-        await shiftOverridesByDelta(
-          user.id,
-          overrides.map((o) => o.id),
-          nextStartDate,
-          timeZone,
-          dayDelta,
-        )
-      }
+      // The master's move and its overrides' re-stamps are one unit. Overrides
+      // are matched to occurrences by stamp, so a master that moved while some
+      // overrides kept the old stamps leaves those overrides pointing at slots
+      // the series no longer generates — orphan duplicates, exactly what the
+      // remap exists to prevent.
+      const [updated] = await getDb().transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, seriesRow.id),
+              eq(calendarEvents.userId, user.id),
+            ),
+          )
+          .returning()
+        if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+          await remapSeriesOverrideStamps(
+            tx,
+            user.id,
+            seriesRow.id,
+            nextStartDate,
+            timeZone,
+            dayDelta,
+          )
+        }
+        return [row]
+      })
       const updatedRow = decryptEvent(updated) as unknown as EventRow
       const [withInvites] = await enrichEventsWithInvites(
         [updatedRow],
@@ -1521,7 +1349,7 @@ const postHandler = async function POST(request: NextRequest) {
       overrides,
       recurrenceId,
       applyTo,
-      fields: submittedFields,
+      fields: { ...submittedFields, rrule: rawRrule },
       now: new Date(),
       timeZone,
     })
@@ -1534,18 +1362,26 @@ const postHandler = async function POST(request: NextRequest) {
       ) {
         newSeries.id = body.split_id
       }
-      const newMaster = await applySplitPlan(user.id, plan, seriesRow, timeZone)
+      const newMaster = await getDb().transaction(async (tx) => {
+        const created = await applySplitPlan(user.id, plan, seriesRow, {
+          db: tx,
+          timeZone,
+        })
+        if (!created) return null
+        await shiftOverrideStamps(
+          tx,
+          user.id,
+          plan.split!.moveOverrideIds,
+          new Date(newSeries.startDate),
+          timeZone,
+        )
+        return created
+      })
       if (!newMaster)
         return NextResponse.json(
           { error: 'Failed to split series' },
           { status: 500 },
         )
-      await shiftOverridesByDelta(
-        user.id,
-        plan.split.moveOverrideIds,
-        new Date(newSeries.startDate),
-        timeZone,
-      )
       const seriesEvents = await loadSeriesView(
         user,
         [newMaster.id, seriesRow.id],
@@ -1604,12 +1440,6 @@ const postHandler = async function POST(request: NextRequest) {
         .returning()
     }
 
-    await invalidateEventCache(
-      user.id,
-      seriesRow.startDate.toISOString(),
-      seriesRow.endDate.toISOString(),
-    )
-
     const storedDecrypted = stored
       ? (decryptEvent(stored) as unknown as EventRow)
       : null
@@ -1667,6 +1497,12 @@ const postHandler = async function POST(request: NextRequest) {
     })
     .onConflictDoUpdate({
       target: calendarEvents.id,
+      // An update may only ever touch a row the caller still owns. Every other
+      // id-scoped write in the app carries `eq(userId, …)` in the statement
+      // itself (categories, countdowns, the invite PATCH); this is where the
+      // event write makes that guarantee stick rather than relying on the
+      // check-then-act above.
+      targetWhere: eq(calendarEvents.userId, user.id),
       set: {
         title: encryptField(id, body.title) ?? '',
         description: encryptField(id, body.description),
@@ -1687,14 +1523,37 @@ const postHandler = async function POST(request: NextRequest) {
     })
     .returning()
 
-  await invalidateEventCache(user.id, body.startDate, body.endDate)
+  // The event editor creates a Meeting the moment the organiser asks for one,
+  // before this row exists, so its link is copyable immediately. Such a row is
+  // provisional (it expires) until the event it points at actually saves — which
+  // is here. Committed server-side rather than by a follow-up call from the
+  // client: a client that crashes or loses the network between saving the event
+  // and confirming the meeting would otherwise leave a real Event Meeting
+  // quietly expiring. Idempotent and organiser-scoped, and a no-op for the
+  // events that have no meeting. Never fails the save — the event is written.
+  try {
+    await commitMeetingForEvent(getDb(), id, user.id)
+  } catch (error) {
+    console.error(
+      '[calendar:events] committing the event meeting failed',
+      error,
+    )
+  }
 
   const createdRow = decryptEvent(event)
   if (upsertRrule !== null) {
     const seriesEvents = await loadSeriesView(user, [createdRow.id], timeZone)
     return NextResponse.json({ event: createdRow, seriesEvents })
   }
-  return NextResponse.json({ event: createdRow })
+  const [withMeeting] = await enrichEventsWithInvites(
+    [{ ...createdRow, instanceId: createdRow.id }],
+    user.id,
+    user.email,
+  )
+  // The response is what the SWR cache is patched with, so it must carry the
+  // meeting or the preview would show none until the next full refetch — the
+  // "no link until you refresh" bug.
+  return NextResponse.json({ event: withMeeting })
 }
 
 const deleteHandler = async function DELETE(request: NextRequest) {
@@ -1776,11 +1635,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
               ),
             )
         })
-        await invalidateEventCache(
-          user.id,
-          masterRow.startDate.toISOString(),
-          masterRow.endDate.toISOString(),
-        )
       } else {
         await getDb()
           .update(calendarEvents)
@@ -1796,11 +1650,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
               eq(calendarEvents.userId, user.id),
             ),
           )
-        await invalidateEventCache(
-          user.id,
-          masterRow.startDate.toISOString(),
-          masterRow.endDate.toISOString(),
-        )
       }
       return NextResponse.json({ success: true })
     }
@@ -1815,16 +1664,15 @@ const deleteHandler = async function DELETE(request: NextRequest) {
       now: new Date(),
       timeZone,
     })
-    const newMaster = await applySplitPlan(user.id, plan, masterRow, timeZone)
+    const newMaster = await applySplitPlan(user.id, plan, masterRow, {
+      timeZone,
+    })
     if (newMaster) {
-      await getDb()
-        .delete(calendarEvents)
-        .where(
-          and(
-            eq(calendarEvents.id, newMaster.id),
-            eq(calendarEvents.userId, user.id),
-          ),
-        )
+      // Through deleteRow, never a bare delete: the split just re-pointed the
+      // Series' Meeting at this new master (ADR-0019), and the meeting cascade
+      // lives in deleteRow. Deleting the row directly left a joinable room
+      // attached to an event that no longer exists.
+      await deleteRow(user.id, newMaster as unknown as EventRow)
     }
     const seriesEvents = await loadSeriesView(user, [masterRow.id], timeZone)
     return NextResponse.json({ success: true, seriesEvents })
@@ -1840,7 +1688,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
 
   if (old.seriesId !== null) {
     await deleteRow(user.id, old as unknown as EventRow)
-    await invalidateMasterCache(user.id, old.seriesId)
     return NextResponse.json({ success: true })
   }
 
@@ -1870,16 +1717,12 @@ const deleteHandler = async function DELETE(request: NextRequest) {
     })
 
     if (plan.split) {
-      const newMaster = await applySplitPlan(user.id, plan, seriesRow, timeZone)
+      const newMaster = await applySplitPlan(user.id, plan, seriesRow, {
+        timeZone,
+      })
       if (newMaster) {
-        await getDb()
-          .delete(calendarEvents)
-          .where(
-            and(
-              eq(calendarEvents.id, newMaster.id),
-              eq(calendarEvents.userId, user.id),
-            ),
-          )
+        // See above: deleteRow carries the meeting cascade.
+        await deleteRow(user.id, newMaster as unknown as EventRow)
       }
       const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
       return NextResponse.json({ success: true, seriesEvents })
@@ -1906,11 +1749,6 @@ const deleteHandler = async function DELETE(request: NextRequest) {
           ),
         )
     })
-    await invalidateEventCache(
-      user.id,
-      seriesRow.startDate.toISOString(),
-      seriesRow.endDate.toISOString(),
-    )
     const seriesEvents = await loadSeriesView(user, [seriesRow.id], timeZone)
     return NextResponse.json({ success: true, seriesEvents })
   }
@@ -1938,17 +1776,42 @@ async function withReminderReconciliation(
     .json()
     .catch(() => null)
 
+  const user = await getAuthedUser()
+  const rawId = (peek as { id?: unknown } | null)?.id
+  const roots = new Set<string>()
+  if (typeof rawId === 'string') {
+    roots.add(parseInstanceId(rawId)?.seriesId ?? rawId)
+    if (user && !isInstanceId(rawId)) {
+      const [before] = await getDb()
+        .select({ seriesId: calendarEvents.seriesId })
+        .from(calendarEvents)
+        .where(
+          and(eq(calendarEvents.id, rawId), eq(calendarEvents.userId, user.id)),
+        )
+      if (before?.seriesId) roots.add(before.seriesId)
+    }
+  }
+
   const response = await handler(request)
   if (response.status < 200 || response.status >= 300) return response
 
-  const user = await getAuthedUser()
   if (!user) return response
-
-  const rawId = (peek as { id?: unknown } | null)?.id
-  if (typeof rawId !== 'string') return response
-  const eventId = isInstanceId(rawId)
-    ? (parseInstanceId(rawId)?.seriesId ?? rawId)
-    : rawId
+  const body = await response
+    .clone()
+    .json()
+    .catch(() => ({}))
+  if (body.event?.id)
+    roots.add(
+      body.event.seriesId ??
+        parseInstanceId(body.event.id)?.seriesId ??
+        body.event.id,
+    )
+  for (const event of body.seriesEvents ?? []) {
+    if (typeof event.id === 'string')
+      roots.add(
+        event.seriesId ?? parseInstanceId(event.id)?.seriesId ?? event.id,
+      )
+  }
 
   try {
     const { reconcileEventReminders, SendQuotaExceeded } =
@@ -1956,18 +1819,18 @@ async function withReminderReconciliation(
     const wantsEmail = (peek as { emailReminder?: unknown } | null)
       ?.emailReminder
     try {
-      await reconcileEventReminders({
-        userId: user.id,
-        eventId,
-        // A quota refusal is only worth surfacing when the user just asked for
-        // email reminders; on unrelated edits it is noise.
-        strictQuota: wantsEmail === true,
-      })
+      for (const eventId of roots)
+        await reconcileEventReminders({
+          userId: user.id,
+          eventId,
+          // A quota refusal is only worth surfacing when the user just asked for
+          // email reminders; on unrelated edits it is noise.
+          strictQuota: wantsEmail === true,
+        })
     } catch (error) {
       if (error instanceof SendQuotaExceeded) {
         // The event was saved. Report the refusal alongside it rather than
         // failing the save — see ADR-0010.
-        const body = await response.json().catch(() => ({}))
         return NextResponse.json(
           { ...body, reminderWarning: error.message },
           { status: response.status },

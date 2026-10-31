@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest'
+const { stubEnv, unstubAllEnvs } = await import('./../../support/stubs')
+await import('./../../support/dom')
+import { describe, it, expect, beforeAll, vi } from 'bun:test'
 
 beforeAll(() => {
   process.env.SALT = 'test-salt-value-at-least-16-chars!!'
@@ -137,39 +139,37 @@ describe('field-crypto', () => {
   it('decryptFieldStrict throws when the salt has been rotated', async () => {
     const originalSalt = process.env.SALT
 
-    vi.resetModules()
-    vi.stubEnv('SALT', 'A'.repeat(20))
-    const modA = await import('@/lib/field-crypto')
+    stubEnv('SALT', 'A'.repeat(20))
+    const modA =
+      await import('../../../apps/calendar/lib/field-crypto.ts?salt=A')
     const encrypted = modA.encryptField('row-rotate', 'secret')!
 
-    vi.resetModules()
-    vi.stubEnv('SALT', 'B'.repeat(20))
-    const modB = await import('@/lib/field-crypto')
+    stubEnv('SALT', 'B'.repeat(20))
+    const modB =
+      await import('../../../apps/calendar/lib/field-crypto.ts?salt=B')
 
     expect(() => modB.decryptFieldStrict('row-rotate', encrypted)).toThrow(
       modB.FieldDecryptionError,
     )
 
-    vi.unstubAllEnvs()
-    vi.resetModules()
+    unstubAllEnvs()
     process.env.SALT = originalSalt
   })
 
   it('encryptField throws when SALT is missing or too short', async () => {
     const originalSalt = process.env.SALT
 
-    vi.resetModules()
-    vi.stubEnv('SALT', '')
-    const missing = await import('@/lib/field-crypto')
+    stubEnv('SALT', '')
+    const missing =
+      await import('../../../apps/calendar/lib/field-crypto.ts?salt=missing')
     expect(() => missing.encryptField('row-x', 'v')).toThrow(/SALT/)
 
-    vi.resetModules()
-    vi.stubEnv('SALT', 'short')
-    const tooShort = await import('@/lib/field-crypto')
+    stubEnv('SALT', 'short')
+    const tooShort =
+      await import('../../../apps/calendar/lib/field-crypto.ts?salt=short')
     expect(() => tooShort.encryptField('row-x', 'v')).toThrow(/SALT/)
 
-    vi.unstubAllEnvs()
-    vi.resetModules()
+    unstubAllEnvs()
     process.env.SALT = originalSalt
   })
 })

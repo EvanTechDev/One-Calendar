@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * Characterization tests for the MCP event tools' mutation layer
  * (updateEvent/deleteEvent). They pin the CURRENT write behavior — including
@@ -6,30 +6,63 @@
  * remap on 'all' updates) — so plan 002 can flip exactly the intended
  * assertions. Uses the same fake db harness as the route tests.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { getFakeDb } from '../../api/route-test-db'
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const reminderCalls = (() =>
+  vi.fn(
+    async (_params: {
+      userId: string
+      eventId: string
+      strictQuota?: boolean
+    }) => ({ scheduled: 0, cancelled: 0 }),
+  ))()
+moduleMock.module('@/lib/reminders/reconcile', () => ({
+  reconcileEventReminders: reminderCalls,
+  SendQuotaExceeded: class extends Error {},
+}))
+
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   const { drizzleOperatorsMock } = await import('../../api/route-test-db')
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', async () => {
+moduleMock.module('@/lib/drizzle/client', async () => {
   const { getFakeDb } = await import('../../api/route-test-db')
   return { getDb: () => getFakeDb().db }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
-  decryptEvent: (e: unknown) => e,
+moduleMock.module('@/lib/api-helpers', () => ({
+  decryptEvent: (e: Record<string, unknown>) => ({
+    seriesId: null,
+    recurrenceId: null,
+    rrule: null,
+    exdate: null,
+    ...e,
+  }),
 }))
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
+  decryptJsonField: (_id: string, v: unknown) => v,
+  decryptFieldStrict: (_id: string, v: unknown) => v,
+  looksLikeEnvelope: () => true,
 }))
 
-import { updateEvent, deleteEvent } from '@/lib/mcp/event-tools'
+import type { EventRow } from '@/lib/event-service'
+
+moduleMock.module('@/lib/mcp/settings-tools', () => ({
+  getSettings: vi.fn(async () => ({ timezone: 'UTC' })),
+}))
+const { updateEvent, deleteEvent, listEvents, getEvent } =
+  await import('@/lib/mcp/event-tools')
+
+const { expandRows } = await import('@/lib/event-service')
+
+const { getSettings } = await import('@/lib/mcp/settings-tools')
 
 const fake = getFakeDb()
 
@@ -94,9 +127,44 @@ function seedOverride(
 
 beforeEach(() => {
   fake.reset()
+  reminderCalls.mockClear()
+  reminderCalls.mockImplementation(async ({ eventId }) => {
+    fake.ops.push(`reminder:${eventId}`)
+    return { scheduled: 0, cancelled: 0 }
+  })
+  getSettings.mockResolvedValue({ timezone: 'UTC' })
 })
 
 describe('MCP event tool mutations (characterization)', () => {
+  it('reconciles both sides of a following split only after the transaction commits', async () => {
+    seedMaster({ emailReminder: true, notificationMinutes: 15 })
+    const result = await updateEvent('u1', 'm1_20260810T090000Z', {
+      apply_to: 'following',
+      title: 'New tail',
+    })
+    expect(result).toBeTruthy()
+    expect(reminderCalls.mock.calls.map(([p]) => p.eventId)).toEqual([
+      'm1',
+      result!.seriesId ?? result!.id,
+    ])
+    expect(fake.ops.indexOf('reminder:m1')).toBeGreaterThan(
+      fake.ops.lastIndexOf('tx:commit'),
+    )
+  })
+
+  it('persists reminder opt-in through the ordinary MCP update path', async () => {
+    seedMaster({ rrule: null, emailReminder: false })
+    await updateEvent('u1', 'm1', {
+      email_reminder: true,
+      notification_minutes: 60,
+    })
+    expect(fake.row('m1')?.emailReminder).toBe(true)
+    expect(reminderCalls).toHaveBeenCalledWith({
+      userId: 'u1',
+      eventId: 'm1',
+      strictQuota: true,
+    })
+  })
   it('characterizes MCP deleteEvent single with override: deletes override AND adds exdate', async () => {
     seedMaster()
     seedOverride('o1', '20260810T090000Z')
@@ -127,11 +195,167 @@ describe('MCP event tool mutations (characterization)', () => {
     // the master keeps its anchor day and adopts the new clock, stored
     // exdates follow the clock, and override stamps are re-mapped so the
     // edited instance keeps matching its occurrence.
-    // NOTE: MCP passes no timeZone, so the clamp/remaps use server-local day
-    // parts — tests run with UTC-equivalent expectations because the stamps
-    // and dates here are all UTC-midnight-aligned days at fixed clocks.
+    // The user's timezone is UTC in this fixture.
     expect(fake.row('m1')!.startDate).toEqual(day(2026, 8, 3, 11))
     expect(fake.row('m1')!.exdate).toEqual(['20260817T110000Z'])
     expect(fake.row('o1')!.recurrenceId).toBe('20260810T110000Z')
+  })
+
+  it('updateEvent single colour-only change creates a complete override row', async () => {
+    seedMaster()
+
+    const result = await updateEvent('u1', 'm1_20260810T090000Z', {
+      apply_to: 'single',
+      color: 'blue',
+    })
+
+    expect(result).not.toBeNull()
+    const override = fake.rows().find((r) => r.seriesId === 'm1')
+    expect(override).toBeDefined()
+    expect(override!.recurrenceId).toBe('20260810T090000Z')
+    // A fresh override must be a complete row — NOT NULL columns inherited
+    // from the occurrence it edits — otherwise the insert fails and the agent
+    // sees 'Internal server error' (CORE-219).
+    expect(override!.title).toBe('Team sync')
+    expect(override!.startDate).toEqual(day(2026, 8, 10, 9))
+    expect(override!.endDate).toEqual(day(2026, 8, 10, 9, 30))
+    expect(override!.isAllDay).toBe(false)
+    expect(override!.status).toBe('confirmed')
+    expect(override!.color).toBe('bg-[#E6F6FD]')
+    expect(fake.row('m1')!.exdate).toEqual(['20260810T090000Z'])
+  })
+
+  it('updateEvent following colour-only change keeps the pattern day', async () => {
+    // Mon/Thu/Sat series anchored Monday 2026-10-05 09:00Z.
+    seedMaster({
+      startDate: day(2026, 10, 5, 9),
+      endDate: day(2026, 10, 5, 9, 30),
+      rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TH,SA;UNTIL=20261031T000000Z',
+    })
+
+    const result = await updateEvent('u1', 'm1_20261015T090000Z', {
+      apply_to: 'following',
+      color: 'blue',
+    })
+
+    expect(result).not.toBeNull()
+    const tail = fake
+      .rows()
+      .find((r) => r.id !== 'm1' && !r.seriesId && r.rrule)
+    expect(tail).toBeDefined()
+    expect(tail!.startDate).toEqual(day(2026, 10, 15, 9))
+    expect(tail!.endDate).toEqual(day(2026, 10, 15, 9, 30))
+    expect(tail!.title).toBe('Team sync')
+    expect(tail!.color).toBe('bg-[#E6F6FD]')
+    expect(tail!.rrule).toContain('BYDAY=MO,TH,SA')
+  })
+
+  it.each([false, true])(
+    'lists a single-edited occurrence with following split=%s',
+    async (split) => {
+      getSettings.mockResolvedValue({ timezone: 'Asia/Shanghai' })
+      seedMaster({
+        startDate: new Date('2026-10-04T23:45:00Z'),
+        endDate: new Date('2026-10-05T00:15:00Z'),
+        rrule: 'FREQ=WEEKLY;INTERVAL=1;UNTIL=20261030T160000Z;BYDAY=MO,TH,SA',
+      })
+      const query = {
+        start_date: '2026-10-05T00:00:00+08:00',
+        end_date: '2026-10-31T00:00:00+08:00',
+        query: 'Team sync',
+        limit: 100,
+      }
+      const before = await listEvents('u1', query)
+      expect(before.pagination.total).toBe(11)
+      const editedId = 'm1_20261007T234500Z'
+      await updateEvent('u1', editedId, { apply_to: 'single', color: 'green' })
+      if (split) {
+        await updateEvent('u1', 'm1_20261014T234500Z', {
+          apply_to: 'following',
+          color: 'purple',
+        })
+      }
+      const after = await listEvents('u1', query)
+      const edited = await getEvent('u1', editedId)
+      expect(after.pagination.total).toBe(11)
+      expect(after.events.map((e) => e.startDate)).toEqual(
+        before.events.map((e) => e.startDate),
+      )
+      expect(after.events.find((e) => e.id === editedId)).toMatchObject({
+        startDate: edited!.startDate,
+        endDate: edited!.endDate,
+        color: 'bg-[#E7F8F2]',
+        seriesId: 'm1',
+        recurrenceId: '20261007T234500Z',
+      })
+      // A real deletion removes the override too; it must not be restored by
+      // the same list merge that keeps edited occurrences visible.
+      await deleteEvent('u1', editedId, 'single')
+      const deleted = await listEvents('u1', query)
+      expect(deleted.pagination.total).toBe(10)
+      expect(deleted.events.some((e) => e.id === editedId)).toBe(false)
+    },
+  )
+
+  it('an all-day colour-only override retains the organiser midnight', async () => {
+    getSettings.mockResolvedValue({ timezone: 'Asia/Shanghai' })
+    seedMaster({
+      startDate: new Date('2026-10-04T16:00:00Z'),
+      endDate: new Date('2026-10-05T16:00:00Z'),
+      isAllDay: true,
+    })
+    const id = 'm1_20261012'
+    const before = await getEvent('u1', id)
+    const after = await updateEvent('u1', id, {
+      apply_to: 'single',
+      color: 'blue',
+    })
+    expect(before!.startDate).toEqual(new Date('2026-10-11T16:00:00Z'))
+    expect(after).toMatchObject({
+      title: 'Team sync',
+      startDate: before!.startDate,
+      endDate: before!.endDate,
+      isAllDay: true,
+      color: 'bg-[#E6F6FD]',
+    })
+  })
+
+  it('MCP query then following colour edit preserves the dates shown in the user timezone', async () => {
+    getSettings.mockResolvedValue({ timezone: 'Asia/Shanghai' })
+    seedMaster({
+      startDate: new Date('2026-10-04T23:00:00Z'),
+      endDate: new Date('2026-10-04T23:30:00Z'),
+      rrule: 'FREQ=WEEKLY;BYDAY=MO,TH,SA;UNTIL=20261031T000000Z',
+    })
+    const window = {
+      windowStart: day(2026, 10, 1),
+      windowEnd: day(2026, 11, 1),
+      timezone: 'Asia/Shanghai',
+    }
+    const before = expandRows(fake.rows() as unknown as EventRow[], window)
+    const queried = await listEvents('u1', {
+      start_date: window.windowStart.toISOString(),
+      end_date: window.windowEnd.toISOString(),
+    })
+    expect(queried.events.map((e) => e.id)).toEqual(
+      before.map((e) => e.instanceId),
+    )
+    const selected = queried.events[4]
+    await updateEvent('u1', selected.id as string, {
+      apply_to: 'following',
+      color: 'blue',
+    })
+    const rows = fake
+      .rows()
+      .map((r) => ({ ...r, seriesId: r.seriesId ?? null }))
+    const after = expandRows(rows as unknown as EventRow[], window)
+    expect(after.map((e) => e.startDate.toISOString()).sort()).toEqual(
+      before.map((e) => e.startDate.toISOString()).sort(),
+    )
+    expect(
+      after
+        .filter((e) => e.startDate >= before[4].startDate)
+        .every((e) => e.color === 'bg-[#E6F6FD]'),
+    ).toBe(true)
   })
 })

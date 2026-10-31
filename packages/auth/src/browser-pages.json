@@ -1,0 +1,12 @@
+{
+  "paths": [
+    "/",
+    "/home",
+    "/app",
+    "/desktop/settings",
+    "/privacy",
+    "/terms",
+    "/changelog"
+  ],
+  "prefixes": ["/invite/"]
+}

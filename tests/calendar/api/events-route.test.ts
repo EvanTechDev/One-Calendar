@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * Characterization tests for the events REST route's series mutation layer
  * (POST with body.id = update, DELETE). They pin the CURRENT write behavior
@@ -9,41 +9,49 @@
  * NOTE: response bodies are deliberately not asserted (only the db op log);
  * see plan 001 maintenance notes.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 import { getFakeDb } from './route-test-db'
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const reminderCalls = (() =>
+  vi.fn(
+    async (_params: {
+      userId: string
+      eventId: string
+      strictQuota?: boolean
+    }) => ({ scheduled: 0, cancelled: 0 }),
+  ))()
+moduleMock.module('@/lib/reminders/reconcile', () => ({
+  reconcileEventReminders: reminderCalls,
+  SendQuotaExceeded: class extends Error {},
+}))
+
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   const { drizzleOperatorsMock } = await import('./route-test-db')
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', async () => {
+moduleMock.module('@/lib/drizzle/client', async () => {
   const { getFakeDb } = await import('./route-test-db')
   return { getDb: () => getFakeDb().db }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'u1', email: 'u1@example.com' }),
   decryptEvent: (e: unknown) => e,
 }))
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   encryptField: (_id: string, v: unknown) => v,
   encryptJsonField: (_id: string, v: unknown) => v,
+  decryptFieldStrict: (_id: string, v: unknown) => v,
+  looksLikeEnvelope: () => true,
 }))
 
-vi.mock('@/lib/cache/events', () => ({
-  getCachedEvents: async () => null,
-  setCachedEvents: async () => {},
-  invalidateEventCache: async () => {},
-  groupByMonth: () => ({}),
-}))
-
-vi.mock('@/lib/cache/keys', () => ({ fullMonthRange: () => [] }))
-
-import { POST, DELETE } from '@/app/api/events/route'
+moduleMock.module('@/lib/months', () => ({ fullMonthRange: () => [] }))
+const { POST, DELETE } = await import('@/app/api/events/route')
 
 const fake = getFakeDb()
 
@@ -131,9 +139,44 @@ const baseUpdateFields = {
 
 beforeEach(() => {
   fake.reset()
+  reminderCalls.mockClear()
+  reminderCalls.mockImplementation(async ({ eventId }) => {
+    fake.ops.push(`reminder:${eventId}`)
+    return { scheduled: 0, cancelled: 0 }
+  })
 })
 
 describe('events route series mutations (characterization)', () => {
+  it.each(['m1', 'm1_20260810T090000Z'])(
+    'saves an edited recurrence rule on the following series via %s',
+    async (id) => {
+      seedMaster({ rrule: 'FREQ=WEEKLY;BYDAY=MO;COUNT=8' })
+      const res = await POST(
+        putRequest({
+          ...baseUpdateFields,
+          id,
+          apply_to: 'following',
+          rrule: 'FREQ=DAILY;INTERVAL=2;COUNT=3',
+        }),
+      )
+      expect(res.status).toBe(200)
+      const tail = fake
+        .rows()
+        .find((row) => row.id !== 'm1' && !row.seriesId && row.rrule)
+      expect(tail?.rrule).toContain('FREQ=DAILY')
+      expect(tail?.rrule).toContain('INTERVAL=2')
+      expect(tail?.rrule).toContain('COUNT=3')
+      expect(reminderCalls.mock.calls.map(([p]) => p.eventId)).toEqual([
+        'm1',
+        tail!.id,
+      ])
+      expect(fake.ops.indexOf('reminder:m1')).toBeGreaterThan(
+        fake.ops.lastIndexOf('tx:commit'),
+      )
+      if (id !== 'm1') expect(fake.row('m1')?.rrule).toContain('FREQ=WEEKLY')
+    },
+  )
+
   it('characterizes DELETE single (instance id) with override: deletes override AND adds exdate', async () => {
     seedMaster()
     seedOverride('o1', '20260810T090000Z')

@@ -1,0 +1,12 @@
+{
+  "commit": "94340746dd308d124cc2b6641671bee61b7b8de7",
+  "workflowRun": "https://github.com/EvanTechDev/One-Calendar/actions/runs/37400261826",
+  "viewport": { "width": 1280, "height": 900 },
+  "date": "2026-10-05T09:00:00.000Z",
+  "language": "en",
+  "timezone": "UTC",
+  "theme": "light",
+  "view": "week",
+  "data": "empty calendar",
+  "scope": "Shared calendar application and global stylesheet in the browser fixture"
+}

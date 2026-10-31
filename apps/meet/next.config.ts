@@ -1,10 +1,33 @@
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { NextConfig } from 'next'
+import { withBotId } from 'botid/next/config'
+
+const currentDir = dirname(fileURLToPath(import.meta.url))
+const packageJson = JSON.parse(
+  readFileSync(join(currentDir, 'package.json'), 'utf8'),
+)
+
+const getGitCommit = () => {
+  try {
+    return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
+  } catch {
+    return 'unknown'
+  }
+}
 
 const nextConfig: NextConfig = {
   // Room connection is managed imperatively; double-invoked effects under
   // strict mode cause connect/disconnect churn.
   reactStrictMode: false,
-  transpilePackages: ['@zntr/ui', '@zntr/utils', '@zntr/auth'],
+  transpilePackages: [
+    '@zntr/ui',
+    '@zntr/utils',
+    '@zntr/auth',
+    '@zntr/meetings',
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -12,12 +35,37 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24,
   },
+  // The settings dialog's About tab reports these. Same three names and same
+  // derivation as the calendar's next.config.ts, so the two apps' About panels
+  // mean the same thing by "commit".
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+    NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
+  async redirects() {
+    return [
+      {
+        // Join URLs moved from /rooms/<code> to /<code> (ADR 0019), which left
+        // every link already shared in a calendar invite or a chat message
+        // 404ing. Safe for encrypted meetings: the E2EE passphrase lives in the
+        // URL hash, which browsers never send to the server and preserve across
+        // a redirect.
+        source: '/rooms/:code',
+        destination: '/:code',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // The room UI carries mic/camera/screen-share controls; framing it
+          // elsewhere would let a hostile page trick users into clicking them.
+          { key: 'X-Frame-Options', value: 'DENY' },
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
@@ -32,4 +80,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withBotId(nextConfig)

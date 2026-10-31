@@ -1,15 +1,18 @@
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionCookie } from '@zntr/auth'
+// The dedicated subpath, not the `@zntr/auth` barrel: the barrel re-exports
+// `./server` (createAuth — the better-auth server plus the drizzle adapter),
+// and this file runs in edge middleware where neither is needed. The subpath
+// exists for the same reason, and also because `better-auth` is a dependency of
+// `@zntr/auth` rather than of this app, so it does not resolve from here.
+import { getSessionCookie } from '@zntr/auth/better-auth-cookies'
+import { BOT_ID_PROXY_PREFIX } from '@zntr/auth/bot-policy'
 
 export function getCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === 'development'
   return [
     "default-src 'self'",
-    "script-src 'self' 'nonce-" +
-      nonce +
-      "' https://challenges.cloudflare.com" +
-      (isDev ? " 'unsafe-eval'" : ''),
+    "script-src 'self' 'nonce-" + nonce + "'" + (isDev ? " 'unsafe-eval'" : ''),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
@@ -18,7 +21,7 @@ export function getCsp(nonce: string): string {
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
-    "frame-src 'self' https://challenges.cloudflare.com https://accounts.google.com https://appleid.apple.com https://github.com https://login.microsoftonline.com",
+    "frame-src 'self' https://accounts.google.com https://appleid.apple.com https://github.com https://login.microsoftonline.com",
     "form-action 'self'",
   ].join('; ')
 }
@@ -29,6 +32,7 @@ export function getCsp(nonce: string): string {
  */
 export function isCspExemptPath(pathname: string): boolean {
   return (
+    pathname.startsWith(BOT_ID_PROXY_PREFIX) ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/static/') ||
     pathname === '/favicon.ico' ||
@@ -47,20 +51,12 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/app', request.url))
   }
 
-  if (isLoggedIn && ['/sign-in', '/sign-up'].includes(pathname)) {
-    return NextResponse.redirect(new URL('/app', request.url))
-  }
-
   if (!isLoggedIn && pathname === '/landing') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
   if (!isLoggedIn && pathname.startsWith('/app')) {
     return NextResponse.redirect(new URL('/sign-up', request.url))
-  }
-
-  if (!isLoggedIn && pathname.startsWith('/oauth/authorize')) {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
   }
 
   if (isCspExemptPath(pathname)) {
@@ -90,6 +86,6 @@ export const config = {
      * CSP covers pages like /invite/[token], /privacy and /terms, which the
      * previous explicit path list silently left unprotected.
      */
-    '/((?!api/|_next/static/|_next/image/|favicon.ico|icons/|manifest.webmanifest|sw.js|icon.svg|user.png).*)',
+    '/((?!api/|_next/static/|_next/image/|favicon.ico|icons/|manifest.webmanifest|sw.js|icon.svg|logo-light.svg|logo-dark.svg|user.png).*)',
   ],
 }

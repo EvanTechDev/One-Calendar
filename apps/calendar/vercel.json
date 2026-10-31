@@ -1,16 +1,20 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "bun install --frozen-lockfile --cwd ../..",
+  "functions": {
+    "app/api/agent/chat/route.ts": {
+      "supportsCancellation": true
+    }
+  },
   "crons": [
     {
       "path": "/api/blob/check",
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/mcp/cleanup",
-      "schedule": "0 1 * * *"
-    },
-    {
       "path": "/api/reminders/topup",
       "schedule": "0 2 * * *"
     }
-  ]
+  ],
+  "bunVersion": "1.4.x"
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@zntr/ui/button'
-import { ArrowRightIcon, Asterisk } from 'lucide-react'
+import { ArrowRightIcon } from 'lucide-react'
 import Link from 'next/link'
 
 const stars = Array.from({ length: 165 }, (_, i) => ({
@@ -82,9 +82,13 @@ export function CallToAction() {
 
       <div className="relative flex flex-col justify-center items-center h-full w-full px-6 py-20 md:py-28">
         <div className="mb-8 flex items-center justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-[2rem] bg-black/30 backdrop-blur-md ring-1 ring-white/20">
-            <Asterisk className="h-10 w-10 text-white" strokeWidth={3} />
-          </div>
+          <img
+            alt="Zentra Calendar app icon"
+            className="size-24 drop-shadow-lg md:size-28"
+            height={112}
+            src="/product-logo.svg"
+            width={112}
+          />
         </div>
 
         <div className="space-y-4 mb-2">
@@ -92,8 +96,8 @@ export function CallToAction() {
             Ready to take control of your time?
           </h2>
           <p className="text-balance text-center text-neutral-300/90 text-base md:text-lg max-w-lg mx-auto">
-            One Calendar helps you keep every event, reminder, and schedule in
-            sync. Free forever.
+            Let your agent handle the scheduling. Zentra Calendar keeps every
+            event, reminder, and RSVP in sync. Free forever.
           </p>
         </div>
 

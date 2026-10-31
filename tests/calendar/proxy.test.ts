@@ -1,6 +1,9 @@
-import crypto from 'crypto'
-import { describe, expect, it } from 'vitest'
-import { getCsp, isCspExemptPath } from '@/proxy'
+await import('./../support/dom')
+const { default: crypto } = await import('crypto')
+import { describe, expect, it } from 'bun:test'
+const { NextRequest } = await import('next/server')
+const { default: proxy, getCsp, isCspExemptPath } = await import('@/proxy')
+const { BOT_ID_PROXY_PREFIX } = await import('@zntr/auth/bot-policy')
 
 // The contract under test: Next extracts the nonce from the request CSP header
 // with exactly this regex (see get-script-nonce-from-header.js).
@@ -33,6 +36,18 @@ describe('getCsp nonce format', () => {
 })
 
 describe('isCspExemptPath', () => {
+  it('lets BotID own its same-origin challenge framing policy', () => {
+    const path = `${BOT_ID_PROXY_PREFIX}challenge.v2.min.js`
+    expect(isCspExemptPath(path)).toBe(true)
+    expect(isCspExemptPath('/149e9513-01fa-4fb0-aad4-566afd725d1b/other')).toBe(
+      false,
+    )
+    expect(
+      proxy(new NextRequest(`https://calendar.example${path}`)).headers.get(
+        'Content-Security-Policy',
+      ),
+    ).toBeNull()
+  })
   it('exempts API routes and static assets', () => {
     expect(isCspExemptPath('/api/events')).toBe(true)
     expect(isCspExemptPath('/_next/static/chunk.js')).toBe(true)
@@ -56,5 +71,20 @@ describe('CSP policy invariants', () => {
     expect(csp).toContain("frame-ancestors 'none'")
     expect(csp).toContain("base-uri 'self'")
     expect(csp).toContain("default-src 'self'")
+  })
+})
+
+describe('authentication redirects', () => {
+  it('does not treat a cookie as a validated session on sign-in', () => {
+    const request = new NextRequest('https://calendar.example/sign-in', {
+      headers: {
+        cookie: 'better-auth.session_token=stale-or-unreadable',
+      },
+    })
+
+    const response = proxy(request)
+
+    expect(response.headers.get('location')).toBeNull()
+    expect(response.headers.get('x-middleware-next')).toBe('1')
   })
 })

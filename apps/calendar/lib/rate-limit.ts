@@ -1,51 +1,37 @@
-import { withRedis } from '@/lib/cache/client'
+import { getDb } from '@/lib/drizzle/client'
+import {
+  checkFixedWindowLimit as countAgainst,
+  cleanupRateLimitCounters as dropClosedCounters,
+} from '@zntr/auth/rate-limit'
 
-export interface RateLimitResult {
-  allowed: boolean
-  /** Seconds until the current window resets — for the Retry-After header. */
-  retryAfter: number
-}
+export type { RateLimitResult } from '@zntr/auth/rate-limit'
 
 /**
- * Fixed-window counter, one Redis key per (name, subject, window).
- *
- * Fails OPEN: if Redis is unavailable the request is allowed, matching the
- * posture of the rest of the cache layer (see lib/cache/client.ts). This is a
- * brake on casual abuse and runaway clients, not a security guarantee.
- *
- * A fixed window permits up to 2x the limit across a window boundary. That is
- * accepted here: the alternative (sliding window) costs more round trips than
- * these endpoints justify.
+ * The shared fixed-window counter, bound to this app's database handle so a
+ * call site reads `checkFixedWindowLimit({ ... })`. The implementation and the
+ * table it counts live in `@zntr/auth` because the meet app limits against the
+ * same rows and the two apps cannot import each other.
  */
-export async function checkFixedWindowLimit(options: {
+export function checkFixedWindowLimit(options: {
   name: string
   subject: string
   limit: number
   windowSeconds: number
-}): Promise<RateLimitResult> {
-  const { name, subject, limit, windowSeconds } = options
-  const nowSeconds = Math.floor(Date.now() / 1000)
-  const bucket = Math.floor(nowSeconds / windowSeconds)
-  const key = `rl:${name}:${subject}:${bucket}`
-  const retryAfter = (bucket + 1) * windowSeconds - nowSeconds
+}) {
+  return countAgainst(getDb(), options)
+}
 
-  return withRedis<RateLimitResult>(
-    async (redis) => {
-      const count = await redis.incr(key)
-      if (count === 1) {
-        // Two windows of slack so a late reader still sees the count.
-        await redis.expire(key, windowSeconds * 2)
-      }
-      return { allowed: count <= limit, retryAfter }
-    },
-    async () => ({ allowed: true, retryAfter }),
-  )
+/** Drops counters whose window has closed. Run from the maintenance cron. */
+export function cleanupRateLimitCounters() {
+  return dropClosedCounters(getDb())
 }
 
 /**
- * Best-effort client IP. Values are attacker-controllable behind a proxy that
- * does not normalise them, so IP-keyed limits are a speed bump only — never use
- * one where a per-user limit is possible.
+ * Best-effort client IP.
+ *
+ * Values are attacker-controllable behind a proxy that does not normalise
+ * them, so IP-keyed limits are a speed bump only — never use one where a
+ * per-user limit is possible.
  */
 export function clientIpFrom(request: Request): string {
   return (

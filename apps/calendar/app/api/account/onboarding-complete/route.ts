@@ -3,6 +3,7 @@ import { getDb } from '@/lib/drizzle/client'
 import { settings } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { getAuthedUser } from '@/lib/api-helpers'
+import { settingsPatchSchema, type SettingsData } from '@/lib/validation'
 
 export const runtime = 'nodejs'
 
@@ -13,13 +14,17 @@ export async function POST(request: Request) {
 
   const db = getDb()
 
-  let onboardingData: Record<string, unknown> = {}
+  let onboardingData: SettingsData = {}
   try {
     const body = await request.json()
-    const raw = body.settings || {}
-    onboardingData = { ...raw }
-    if (raw.firstDayOfWeek !== undefined) {
-      onboardingData.firstDayOfWeek = Number(raw.firstDayOfWeek)
+    // Validated against the same schema as PUT /api/settings, for the same
+    // reason: this route merges its share of the blob in, and it was the only
+    // writer of a key (`onboardingCompleted`) that the SettingsData type did
+    // not mention. Unknown keys are dropped, not rejected.
+    const raw = body?.settings
+    if (raw !== undefined && raw !== null && typeof raw === 'object') {
+      const parsed = settingsPatchSchema.safeParse(raw)
+      if (parsed.success) onboardingData = parsed.data
     }
   } catch {
     // No body or invalid JSON - just mark as complete
@@ -31,8 +36,12 @@ export async function POST(request: Request) {
     .where(eq(settings.userId, currentUser.id))
     .limit(1)
 
-  const currentData = ((existing[0]?.data as Record<string, unknown>) || {})
-  const mergedData = { ...currentData, ...onboardingData, onboardingCompleted: true }
+  const currentData = (existing[0]?.data as Record<string, unknown>) || {}
+  const mergedData = {
+    ...currentData,
+    ...onboardingData,
+    onboardingCompleted: true,
+  }
 
   if (existing.length > 0) {
     await db

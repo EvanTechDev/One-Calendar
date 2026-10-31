@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * `list_my_event_invites` reported `rsvp_status: invite.status` — the column
  * ADR-0012 (an RSVP must name the occurrence it answers) declares meaningless
@@ -6,25 +6,25 @@
  * series-wide value, usually "pending", with no way to tell what they had said
  * about any date.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { getFakeDb } from '../../api/route-test-db'
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   const { drizzleOperatorsMock } = await import('../../api/route-test-db')
   return { ...actual, ...drizzleOperatorsMock }
 })
 
-vi.mock('@/lib/drizzle/client', async () => {
+moduleMock.module('@/lib/drizzle/client', async () => {
   const { getFakeDb } = await import('../../api/route-test-db')
   return { getDb: () => getFakeDb().db }
 })
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   decryptEvent: (e: unknown) => e,
 }))
-
-import { listMyEventInvites } from '@/lib/mcp/participant-tools'
+const { listMyEventInvites } = await import('@/lib/mcp/participant-tools')
 
 const fake = getFakeDb()
 

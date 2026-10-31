@@ -8,6 +8,8 @@ import {
   user,
 } from '@/lib/drizzle/schema'
 import { decryptField } from '@/lib/field-crypto'
+import { getMeetingForEvent } from '@zntr/meetings'
+import { meetingUrl } from '@/lib/meetings'
 import {
   getInviteByToken,
   getInvitesByToken,
@@ -26,8 +28,8 @@ import {
   DEFAULT_EXPANSION_WINDOW_MS,
   MAX_EXPANSION,
   describeRecurrence,
-  expandSeries,
-} from '@/lib/recurrence/engine'
+  expandSeriesView,
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { firstZodMessage, invitePatchSchema } from '@/lib/validation'
 import {
@@ -35,6 +37,7 @@ import {
   clientIpFrom,
   rateLimitedResponse,
 } from '@/lib/rate-limit'
+import { getAuthedUser } from '@/lib/api-helpers'
 
 export const runtime = 'nodejs'
 
@@ -98,15 +101,12 @@ export const GET = async function GET(
     .from(user)
     .where(eq(user.id, event.userId))
 
-  const [participant] = invite.email
-    ? await getDb()
-        .select({ id: user.id, name: user.name })
-        .from(user)
-        .where(eq(user.email, invite.email.toLowerCase().trim()))
-        .limit(1)
-    : []
+  const currentUser = await getAuthedUser()
+  const isMatchingParticipant =
+    !!currentUser?.email &&
+    currentUser.email.toLowerCase().trim() === invite.email.toLowerCase().trim()
 
-  const participantCategories = participant
+  const participantCategories = isMatchingParticipant
     ? await getDb()
         .select({
           id: calendarCategories.id,
@@ -114,7 +114,7 @@ export const GET = async function GET(
           color: calendarCategories.color,
         })
         .from(calendarCategories)
-        .where(eq(calendarCategories.userId, participant.id))
+        .where(eq(calendarCategories.userId, currentUser.id))
         .orderBy(calendarCategories.sortOrder)
     : []
 
@@ -131,6 +131,12 @@ export const GET = async function GET(
   }
   let occurrences: GrantedOccurrence[] | null = null
   let recurrenceSummary: string | null = null
+
+  // A Series carries its Meeting on the master row (ADR-0019).
+  const eventMeeting = await getMeetingForEvent(
+    getDb(),
+    event.seriesId ?? event.id,
+  )
 
   if (isSeries) {
     recurrenceSummary = describeRecurrence(event.rrule!, false)
@@ -150,11 +156,23 @@ export const GET = async function GET(
               .where(eq(calendarEvents.id, grant.eventId))
       if (!segment?.rrule) continue
 
-      const exceptions = await getInviteOccurrences(grant.id)
+      const [exceptions, overrides] = await Promise.all([
+        getInviteOccurrences(grant.id),
+        getDb()
+          .select()
+          .from(calendarEvents)
+          .where(
+            and(
+              eq(calendarEvents.seriesId, segment.id),
+              eq(calendarEvents.userId, segment.userId),
+            ),
+          ),
+      ])
       const baseline = baselineOf(grant)
 
-      for (const instance of expandSeries(
-        segment,
+      for (const instance of expandSeriesView(
+        [segment],
+        overrides,
         new Date(Date.now() - DEFAULT_EXPANSION_WINDOW_MS),
         new Date(Date.now() + DEFAULT_EXPANSION_WINDOW_MS),
         MAX_EXPANSION,
@@ -162,6 +180,7 @@ export const GET = async function GET(
         // the organiser scoped the invite.
         timeZone,
       )) {
+        if (!instance.recurrenceId) continue
         if (
           !canParticipantSeeOccurrence(
             baseline,
@@ -203,6 +222,12 @@ export const GET = async function GET(
         color: event.color,
         /** Human-readable only. Deliberately not the rrule. */
         recurrenceSummary,
+        /**
+         * The Event Meeting's join link, when one is attached. Holding the
+         * link is what admits someone to a meeting (ADR-0019); the invite
+         * token's only role here is revealing it.
+         */
+        meetingUrl: eventMeeting ? meetingUrl(eventMeeting.id) : null,
       },
       /** Null for a non-recurring event. */
       occurrences,
@@ -212,7 +237,7 @@ export const GET = async function GET(
       inviter: owner
         ? { name: owner.name, image: owner.image }
         : { name: 'Someone' },
-      isRegisteredUser: !!participant,
+      isRegisteredUser: isMatchingParticipant,
       categories: participantCategories.map((cat) => ({
         id: cat.id,
         name: decryptField(cat.id, cat.name) ?? cat.name,
@@ -273,26 +298,18 @@ export const PATCH = async function PATCH(
   }
 
   if (categoryId !== undefined) {
-    const [event] = await getDb()
-      .select({ userId: calendarEvents.userId })
-      .from(calendarEvents)
-      .where(eq(calendarEvents.id, invite.eventId))
-
-    if (!event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
-    }
-
-    const [participant] = await getDb()
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.email, invite.email.toLowerCase().trim()))
-      .limit(1)
-
-    if (!participant) {
+    const currentUser = await getAuthedUser()
+    if (!currentUser?.email) {
       return NextResponse.json(
-        { error: 'Participant is not a registered user' },
-        { status: 400 },
+        { error: 'Authentication required' },
+        { status: 401 },
       )
+    }
+    if (
+      currentUser.email.toLowerCase().trim() !==
+      invite.email.toLowerCase().trim()
+    ) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     if (categoryId === '__uncategorized__') {
@@ -306,7 +323,7 @@ export const PATCH = async function PATCH(
       .where(
         and(
           eq(calendarCategories.id, categoryId),
-          eq(calendarCategories.userId, participant.id),
+          eq(calendarCategories.userId, currentUser.id),
         ),
       )
 
@@ -332,6 +349,25 @@ export const DELETE = async function DELETE(
   const invite = await getInviteByToken(token)
   if (!invite) {
     return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
+  }
+
+  // Removing the event from the recipient's calendar is a destructive write on
+  // somebody else's account, so the token alone is not authority for it: a
+  // forwarded link is enough to revoke the grant, silently dropping the event
+  // out of the legitimate participant's merged view. The token is still what
+  // RESOLVES the invite, but the caller must also prove they are the invitee.
+  // Mirrors the check the sibling PATCH category branch already runs.
+  const currentUser = await getAuthedUser()
+  if (!currentUser?.email) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 },
+    )
+  }
+  if (
+    currentUser.email.toLowerCase().trim() !== invite.email.toLowerCase().trim()
+  ) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   await removeParticipantFromCalendar(token)

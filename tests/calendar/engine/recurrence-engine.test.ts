@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   MAX_EXPANSION,
   adaptRuleToStart,
   buildInstanceId,
@@ -16,8 +17,11 @@ import {
   rruleToParts,
   toRfcStamp,
   withUntil,
-} from '@/lib/recurrence/engine'
-import type { RecurrenceEvent, RruleParts } from '@/lib/recurrence'
+} = await import('@zntr/ui/calendar/lib/recurrence/engine')
+import type {
+  RecurrenceEvent,
+  RruleParts,
+} from '@zntr/ui/calendar/lib/recurrence'
 
 function day(y: number, m: number, d: number, h = 0, min = 0, s = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, s))
@@ -423,6 +427,7 @@ describe('expandSeries', () => {
   it('returns only occurrences inside a later window in order', () => {
     const series = makeSeries({
       startDate: day(2023, 12, 15),
+      endDate: day(2023, 12, 16),
       rrule: 'FREQ=DAILY',
     })
     const result = expandSeries(series, day(2023, 12, 29), day(2024, 1, 4))
@@ -435,6 +440,19 @@ describe('expandSeries', () => {
       '20240103',
       '20240104',
     ])
+  })
+
+  it('retains occurrences that start before the window but still overlap it', () => {
+    const series = makeSeries({
+      startDate: day(2023, 12, 15),
+      endDate: day(2023, 12, 18),
+      rrule: 'FREQ=DAILY;COUNT=2',
+    })
+    const result = expandSeries(series, day(2023, 12, 18), day(2023, 12, 19))
+    expect(result.map((instance) => instance.recurrenceId)).toEqual([
+      '20231216',
+    ])
+    expect(result[0].endDate).toEqual(day(2023, 12, 19))
   })
 
   it('returns empty for non-series events and inverted windows', () => {
@@ -781,9 +799,39 @@ describe('describeRecurrence', () => {
   })
 
   it('describes interval + count (en)', () => {
+    // Abbreviated weekdays, because they now come from the locale file's
+    // `weekdays` array rather than a hardcoded English long-form list. That
+    // array is what every other weekday surface renders, and it is the only
+    // weekday list translated in all 35 locales — the long-form one existed
+    // in English alone, which is why 33 languages read this line in English.
     expect(
       describeRecurrence('FREQ=WEEKLY;INTERVAL=2;BYDAY=SU,TH;COUNT=8', false),
-    ).toBe('Every 2 weeks · Thursday, Sunday · 8 times')
+    ).toBe('Every 2 weeks · Thu, Sun · 8 times')
+  })
+
+  it('describes a rule in a language that is neither English nor Chinese', () => {
+    // The regression this guards: `describeRecurrence` took an `isZh` boolean,
+    // so every one of the other 33 locales fell through to English.
+    const nb = describeRecurrence('FREQ=WEEKLY;BYDAY=MO,TU', 'nb')
+    expect(nb).toBe('Ukentlig · Man, Tir')
+    expect(nb).not.toContain('Weekly')
+
+    // An unknown tag still degrades to English rather than throwing or
+    // rendering "undefined", matching the i18n barrel's own fallback.
+    expect(
+      describeRecurrence('FREQ=WEEKLY;BYDAY=MO', 'not-a-locale' as never),
+    ).toBe('Weekly · Mon')
+  })
+
+  it('avoids English ordinal suffixes outside English', () => {
+    // "15th" is English grammar. Appending it to a Norwegian sentence was the
+    // bug; other locales get the `recurrenceDayOfMonth` template instead.
+    expect(describeRecurrence('FREQ=MONTHLY;BYMONTHDAY=15', false)).toBe(
+      'Monthly · 15th',
+    )
+    const nb = describeRecurrence('FREQ=MONTHLY;BYMONTHDAY=15', 'nb')
+    expect(nb).not.toContain('15th')
+    expect(nb).toContain('15')
   })
 
   it('describes monthly by setpos (zh)', () => {
@@ -807,7 +855,7 @@ describe('describeRecurrence', () => {
         'FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=15;UNTIL=20271231',
         false,
       ),
-    ).toBe('Yearly · Jan 15 · until 20271231')
+    ).toBe('Yearly · Jan 15 · until Dec 31, 2027')
   })
 
   it('falls back to the raw rule when it cannot be parsed', () => {

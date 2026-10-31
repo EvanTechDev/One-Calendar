@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * `GET /api/invites?eventId=<instanceId>` is the organiser's polled participant
  * list — `event-preview.tsx` refreshes it every 15 seconds and REPLACES the
@@ -14,24 +14,24 @@
  * by stamp and already uses `rsvpForOccurrence`; see
  * ADR-0008 (visibility is decided in one place, shared by every reader).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 
-const store = vi.hoisted(() => ({
+const store = (() => ({
   invites: [] as Array<Record<string, unknown>>,
   occurrences: [] as Array<Record<string, unknown>>,
   events: [] as Array<Record<string, unknown>>,
   users: [] as Array<Record<string, unknown>>,
-}))
+}))()
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'organiser', email: 'o@example.com' }),
   decryptEvent: (e: unknown) => e,
 }))
 
-vi.mock('@/lib/invites/invite-service', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/lib/invites/invite-service')>()
+const originalModule1 = { ...(await import('@/lib/invites/invite-service')) }
+moduleMock.module('@/lib/invites/invite-service', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     getInvitesForEvent: async (eventId: string) =>
@@ -55,9 +55,9 @@ vi.mock('@/lib/invites/invite-service', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/invites/scoped-invites', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/lib/invites/scoped-invites')>()
+const originalModule2 = { ...(await import('@/lib/invites/scoped-invites')) }
+moduleMock.module('@/lib/invites/scoped-invites', async () => {
+  const actual = originalModule2
   return {
     ...actual,
     resolveParticipantTarget: async (eventId: string) => {
@@ -71,7 +71,7 @@ vi.mock('@/lib/invites/scoped-invites', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -86,8 +86,9 @@ vi.mock('@/lib/drizzle/client', () => ({
   }),
 }))
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule3 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule3
   return {
     ...actual,
     eq:
@@ -104,16 +105,17 @@ vi.mock('drizzle-orm', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   decryptField: (_id: string, v: unknown) => v,
+  decryptFieldStrict: (_id: string, v: unknown) => v,
+  looksLikeEnvelope: () => true,
 }))
 
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true, retryAfter: 0 }),
   rateLimitedResponse: () => new Response(null, { status: 429 }),
 }))
-
-import { GET } from '@/app/api/invites/route'
+const { GET } = await import('@/app/api/invites/route')
 
 const MASTER = 'm1'
 const DAY1 = '20260822T110000Z'

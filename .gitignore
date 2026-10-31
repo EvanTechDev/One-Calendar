@@ -40,9 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# turbo
-.turbo
-
 .env*.local
 .audit/
 .evlog/

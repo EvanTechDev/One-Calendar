@@ -1,0 +1,237 @@
+'use client'
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { WifiOff, LoaderCircle, ArrowRight } from 'lucide-react'
+import { Dialog as DialogPrimitive } from 'radix-ui'
+import { Button } from '@zntr/ui/button'
+import {
+  CalendarHostProvider,
+  useCalendarHost,
+} from '@zntr/utils/calendar-host'
+import { useLanguage } from '@zntr/i18n/calendar'
+
+const ConnectionContext = createContext(false)
+export const useCalendarDisconnected = () => useContext(ConnectionContext)
+
+export function NoInternet({
+  retry,
+  checking = false,
+}: {
+  retry: () => void
+  checking?: boolean
+}) {
+  const [language] = useLanguage()
+  const zh = language.startsWith('zh')
+  return (
+    <section
+      className="bg-background text-foreground fixed inset-0 z-[1000] flex min-h-dvh flex-col px-8 py-8"
+      role="alert"
+      aria-live="polite"
+    >
+      <div className="m-auto w-full max-w-md py-16">
+        <div className="bg-muted mb-7 flex size-14 items-center justify-center rounded-2xl">
+          <WifiOff
+            className="text-muted-foreground size-6"
+            aria-hidden="true"
+          />
+        </div>
+        <p className="text-muted-foreground mb-3 text-xs font-medium tracking-widest">
+          {zh ? '连接已中断' : 'CONNECTION LOST'}
+        </p>
+        <h1
+          id="calendar-connection-title"
+          className="mb-4 text-3xl font-semibold tracking-tight"
+        >
+          {zh ? '暂时无法连接' : 'No internet connection'}
+        </h1>
+        <p
+          id="calendar-connection-description"
+          className="text-muted-foreground mb-8 text-sm leading-7"
+        >
+          {zh
+            ? '请检查网络连接。当前日历会保留在这里，连接恢复后即可继续。'
+            : 'Check your connection. Your calendar is staying right here, ready to continue when you reconnect.'}
+        </p>
+        <Button onClick={retry} disabled={checking}>
+          {checking ? (
+            <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
+          ) : null}
+          {checking
+            ? zh
+              ? '正在连接…'
+              : 'Reconnecting…'
+            : zh
+              ? '重新连接'
+              : 'Try again'}
+          {!checking ? <ArrowRight className="size-4" /> : null}
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+/** Keep children mounted: no navigation, new SWR cache, or discarded editor state. */
+export function ConnectionBoundary({
+  children,
+  checkConnection,
+  onReconnect,
+}: {
+  children: ReactNode
+  checkConnection?: () => Promise<boolean>
+  onReconnect?: () => void | Promise<void>
+}) {
+  const host = useCalendarHost()
+  const [disconnected, setDisconnected] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [initialConnectionCheck, setInitialConnectionCheck] = useState(
+    Boolean(checkConnection),
+  )
+  const inFlight = useRef(false)
+  const disconnectedRef = useRef(disconnected)
+  disconnectedRef.current = disconnected
+  const retryRef = useRef<() => Promise<void>>(async () => {})
+  const request = useMemo<typeof fetch>(
+    () => async (input, init) => {
+      try {
+        return await host.request(input, init)
+      } catch (error) {
+        if (
+          !(
+            typeof error === 'object' &&
+            error !== null &&
+            'name' in error &&
+            error.name === 'AbortError'
+          )
+        )
+          // Native failures include account changes and local validation errors.
+          // Only a separate reachability failure establishes a network outage.
+          void retryRef.current()
+        throw error
+      }
+    },
+    [host.request],
+  )
+  const retry = useCallback(async () => {
+    if (inFlight.current) return
+    inFlight.current = true
+    setChecking(true)
+    try {
+      const connected = checkConnection
+        ? await checkConnection()
+        : await host
+            .request('/api/connection', { cache: 'no-store' })
+            .then(() => true)
+      if (connected) {
+        setDisconnected(false)
+        if (disconnectedRef.current) {
+          // Session/API errors do not invalidate the successful network probe.
+          try {
+            await onReconnect?.()
+          } catch {
+            /* The host owns session errors. */
+          }
+          window.dispatchEvent(new Event('zentra-reconnected'))
+        }
+      } else setDisconnected(true)
+    } catch {
+      setDisconnected(true)
+    } finally {
+      inFlight.current = false
+      setChecking(false)
+    }
+  }, [checkConnection, host.request, onReconnect])
+  retryRef.current = retry
+  useEffect(() => {
+    const offline = () => setDisconnected(true)
+    const online = () => {
+      void retry()
+    }
+    if (!navigator.onLine) offline()
+    window.addEventListener('offline', offline)
+    window.addEventListener('online', online)
+    return () => {
+      window.removeEventListener('offline', offline)
+      window.removeEventListener('online', online)
+    }
+  }, [retry])
+  useEffect(() => {
+    // Native session restoration can fail without a fetch from the calendar.
+    // A failed reachability probe covers this case without resetting identity.
+    if (!checkConnection) return
+    let active = true
+    const probe = async () => {
+      await retryRef.current()
+      if (active) setInitialConnectionCheck(false)
+    }
+    void probe()
+    const interval = window.setInterval(probe, 30_000)
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [checkConnection])
+  useEffect(() => {
+    if (!disconnected) return
+    const interval = window.setInterval(() => {
+      void retryRef.current()
+    }, 10_000)
+    return () => window.clearInterval(interval)
+  }, [disconnected])
+  const connectedHost = useMemo(() => ({ ...host, request }), [host, request])
+  useLayoutEffect(() => {
+    if (!disconnected) return
+    // Existing editor/settings portals stay mounted. Their outside-interaction
+    // handlers must not interpret recovery controls as dismissing a draft.
+    const preserveOpenForms = (event: Event) => event.preventDefault()
+    const events = [
+      'dismissableLayer.pointerDownOutside',
+      'dismissableLayer.focusOutside',
+    ]
+    for (const name of events)
+      document.addEventListener(name, preserveOpenForms, true)
+    return () => {
+      for (const name of events)
+        document.removeEventListener(name, preserveOpenForms, true)
+    }
+  }, [disconnected])
+  return (
+    <ConnectionContext.Provider value={disconnected}>
+      <CalendarHostProvider value={connectedHost}>
+        <div
+          inert={disconnected}
+          style={disconnected ? { visibility: 'hidden' } : undefined}
+        >
+          {children}
+        </div>
+        {disconnected ? (
+          <DialogPrimitive.Root open>
+            <DialogPrimitive.Portal>
+              <DialogPrimitive.Content
+                className="fixed inset-0 z-[1000] outline-none"
+                aria-labelledby="calendar-connection-title"
+                aria-describedby="calendar-connection-description"
+                onEscapeKeyDown={(event) => event.preventDefault()}
+                onInteractOutside={(event) => event.preventDefault()}
+              >
+                <NoInternet
+                  retry={() => void retry()}
+                  checking={checking || initialConnectionCheck}
+                />
+              </DialogPrimitive.Content>
+            </DialogPrimitive.Portal>
+          </DialogPrimitive.Root>
+        ) : null}
+      </CalendarHostProvider>
+    </ConnectionContext.Provider>
+  )
+}

@@ -1,11 +1,17 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import { useNotifications } from '@/hooks/use-notifications'
-import type { CalendarEvent } from '@/components/app/calendar'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../support/dom')
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test'
+const { renderHook } = await import('../host-render')
 
-const checkPendingNotifications = vi.hoisted(() => vi.fn())
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
 
-vi.mock('@/lib/notifications', () => ({ checkPendingNotifications }))
+const checkPendingNotifications = (() => vi.fn())()
+
+moduleMock.module('@zntr/ui/calendar/lib/notifications', () => ({
+  checkPendingNotifications,
+}))
+const { useNotifications } =
+  await import('@zntr/ui/calendar/hooks/use-notifications')
 
 function event(id: string): CalendarEvent {
   return {

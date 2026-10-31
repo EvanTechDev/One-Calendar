@@ -25,15 +25,20 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zntr/ui/tabs'
+import { toast } from 'sonner'
 import { cn } from '@zntr/utils'
 import { isLowPowerDevice } from '@/lib/meet-utils'
+import { BACKGROUND_IMAGES } from '@/lib/backgrounds'
+import { imageIsUsable } from '@/lib/join-preferences'
+import { loadUserChoices, saveUserChoices } from '@/lib/user-choices'
+import type { BackgroundEffect } from '@/lib/backgrounds'
 
-type BackgroundEffect = 'none' | 'blur' | 'office' | 'mountains'
-
-const BACKGROUND_IMAGES: Record<'office' | 'mountains', string> = {
-  office: '/backgrounds/office.jpg',
-  mountains: '/backgrounds/mountains.jpg',
-}
+/**
+ * Which background is applied per camera track. LiveKit's processor only
+ * reports its kind ("virtual-background"), not which image, so the dialog
+ * would otherwise lose the selection every time it reopens.
+ */
+const appliedBackgrounds = new Map<string, BackgroundEffect>()
 
 export function SettingsDialog({
   open,
@@ -122,11 +127,22 @@ function BackgroundEffects() {
     return undefined
   }, [cameraTrack])
 
-  // Reflect the currently applied processor when the dialog reopens.
+  // Reflect the currently applied processor when the dialog reopens. The
+  // processor name cannot tell two virtual backgrounds apart, so the applied
+  // choice is remembered per track id — otherwise reopening the dialog would
+  // claim no background is active while one clearly is.
   useEffect(() => {
-    const name = localVideoTrack?.getProcessor()?.name
-    if (name === 'background-blur') setEffect('blur')
-    else if (name !== 'virtual-background') setEffect('none')
+    if (!localVideoTrack) return
+    const name = localVideoTrack.getProcessor()?.name
+    if (name === 'background-blur') {
+      setEffect('blur')
+      return
+    }
+    if (name === 'virtual-background') {
+      setEffect(appliedBackgrounds.get(localVideoTrack.sid ?? '') ?? 'office')
+      return
+    }
+    setEffect('none')
   }, [localVideoTrack])
 
   const applyEffect = async (next: BackgroundEffect) => {
@@ -138,11 +154,24 @@ function BackgroundEffects() {
       } else if (next === 'blur') {
         await localVideoTrack.setProcessor(BackgroundBlur(10))
       } else {
-        await localVideoTrack.setProcessor(
-          VirtualBackground(BACKGROUND_IMAGES[next]),
-        )
+        const url = BACKGROUND_IMAGES[next]
+        if (!(await imageIsUsable(url))) {
+          // Fall back rather than leave a processor that quietly does nothing.
+          toast.error('That background image could not be loaded')
+          return
+        }
+        await localVideoTrack.setProcessor(VirtualBackground(url))
       }
+      if (localVideoTrack.sid) {
+        appliedBackgrounds.set(localVideoTrack.sid, next)
+      }
+      // Persisted into the same store the dashboard's Preferences tab writes,
+      // so a choice made in-meeting is also the default next join. One answer
+      // to "what is my background", not two.
+      saveUserChoices({ backgroundEffect: next })
       setEffect(next)
+    } catch {
+      toast.error('That background effect is not supported on this device')
     } finally {
       setApplying(false)
     }
@@ -224,6 +253,14 @@ function NoiseFilterSection() {
       },
     })
 
+  // The hook's state starts false regardless of what is attached to the track,
+  // and applyJoinPreferences may already have attached the filter on connect —
+  // so without this the switch reads "off" while noise IS being suppressed.
+  // The hook's effect is idempotent when the processor is already the Krisp one.
+  useEffect(() => {
+    if (loadUserChoices().noiseFilterEnabled) setNoiseFilterEnabled(true)
+  }, [setNoiseFilterEnabled])
+
   return (
     <div className="flex items-center justify-between">
       <div className="space-y-0.5">
@@ -236,7 +273,12 @@ function NoiseFilterSection() {
         id="noise-filter"
         checked={isNoiseFilterEnabled}
         disabled={isNoiseFilterPending}
-        onCheckedChange={(checked) => setNoiseFilterEnabled(checked)}
+        onCheckedChange={(checked) => {
+          setNoiseFilterEnabled(checked)
+          // Same store as the dashboard's Preferences tab, so this is also the
+          // default on the next join.
+          saveUserChoices({ noiseFilterEnabled: checked })
+        }}
       />
     </div>
   )

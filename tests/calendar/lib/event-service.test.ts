@@ -1,13 +1,15 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   expandRows,
   firstStampOfSeries,
   planInstanceChange,
   resolveInstance,
   resolveMasterEditStamp,
-  type EventRow,
-} from '@/lib/event-service'
-import { parseRfcStamp } from '@/lib/recurrence/engine'
+} = await import('@/lib/event-service')
+import type { EventRow } from '@/lib/event-service'
+const { parseRfcStamp } =
+  await import('@zntr/ui/calendar/lib/recurrence/engine')
 
 function day(y: number, m: number, d: number, h = 0, min = 0, s = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, s))
@@ -186,7 +188,7 @@ describe('expandRows', () => {
     )
   })
 
-  it('exdate suppresses an occurrence even when an override row still exists (post-delete state)', () => {
+  it('keeps an exdated occurrence when its override still exists (single edit)', () => {
     const master = makeDailySeries({
       startDate: day(2024, 1, 1),
       endDate: day(2024, 1, 1, 1),
@@ -205,8 +207,11 @@ describe('expandRows', () => {
       windowEnd: day(2024, 1, 3),
     })
     expect(results.some((e) => e.recurrenceId === '20240102T000000Z')).toBe(
-      false,
+      true,
     )
+    expect(
+      results.filter((e) => e.recurrenceId === '20240102T000000Z'),
+    ).toHaveLength(1)
   })
 
   it('passes through a stranded override whose master is missing (route nulls seriesId first)', () => {
@@ -333,7 +338,7 @@ describe('planInstanceChange', () => {
     expect(upsert.seriesId).toBe(master.id)
     expect(upsert.recurrenceId).toBe('20240105T100000Z')
     expect(upsert.fields.title).toBe('Edited sync')
-    expect(upsert.fields.startDate).toBeUndefined()
+    expect(upsert.fields.startDate).toEqual(new Date('2024-01-05T10:00:00Z'))
   })
 
   it('does not re-add the exdate when it is already present', () => {

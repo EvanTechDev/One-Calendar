@@ -1,5 +1,8 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
+import {
+  McpServer,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  type AuthInfo,
+} from '@modelcontextprotocol/server'
 import { z } from 'zod'
 import {
   COLOR_HEX_LIST,
@@ -12,8 +15,8 @@ import {
   COUNTDOWN_ICON_ENUM,
   COUNTDOWN_ICON_GROUPS,
   COUNTDOWN_ICON_NAMES,
-} from '@/lib/countdown-icons'
-import { InvalidEventQueryError, ParticipantError } from './errors'
+} from '@zntr/ui/calendar/lib/countdown-icons'
+import { clientErrorMessage, isClientError } from './errors'
 import { withToolAudit } from './tool-audit'
 
 const SCOPE_EVENTS_READ = 'events:read'
@@ -139,20 +142,48 @@ function respondCliError(err: unknown): {
   content: { type: 'text'; text: string }[]
   isError: true
 } {
-  const message =
-    err instanceof InvalidEventQueryError || err instanceof ParticipantError
-      ? err.message
-      : 'Invalid request'
   return {
     content: [
-      { type: 'text' as const, text: JSON.stringify({ error: message }) },
+      {
+        type: 'text' as const,
+        text: JSON.stringify({ error: clientErrorMessage(err) }),
+      },
     ],
     isError: true as const,
   }
 }
 
+/**
+ * The one place a tool decides what to do about a failure.
+ *
+ * Both branches matter. A client error keeps its message, because "no events
+ * match that range" is the answer the caller asked for. Anything else goes to
+ * `respondError`, which logs it and says nothing — flattening a bug into a
+ * polite "Invalid request" would hide it, and handing a caller the text of an
+ * unexpected failure would leak internals.
+ *
+ * Every tool uses this, so whether an error is the caller's fault is decided
+ * once by {@link isClientError} rather than thirty times by a name each
+ * registration remembered to check.
+ */
+function respondToolError(err: unknown) {
+  return isClientError(err) ? respondCliError(err) : respondError(err)
+}
+
 function respondMessage(msg: string) {
   return { content: [{ type: 'text' as const, text: msg }] }
+}
+
+type LegacyToolServer = McpServer & {
+  tool<S extends z.ZodRawShape>(
+    name: string,
+    description: string,
+    shape: S,
+    handler: (
+      params: z.infer<z.ZodObject<S>>,
+      extra: { authInfo?: AuthInfo },
+    ) => Promise<unknown>,
+  ): unknown
 }
 
 /**
@@ -161,40 +192,45 @@ function respondMessage(msg: string) {
  * tool added later is audited by default rather than silently escaping the
  * log.
  */
-function withAuditedTools(server: McpServer): McpServer {
-  const originalTool = server.tool.bind(server)
-  const patched = ((...args: unknown[]) => {
-    const name = args[0]
-    const handlerIndex = args.length - 1
-    const handler = args[handlerIndex]
-    if (typeof name === 'string' && typeof handler === 'function') {
-      const wrapped = withToolAudit(
-        name,
-        handler as (
-          params: Record<string, unknown>,
-          extra: { authInfo?: AuthInfo },
-        ) => Promise<unknown>,
-      )
-      const next = [...args]
-      next[handlerIndex] = wrapped
-      return (originalTool as (...a: unknown[]) => unknown)(...next)
-    }
-    return (originalTool as (...a: unknown[]) => unknown)(...args)
-  }) as typeof server.tool
-  server.tool = patched
-  return server
+function withAuditedTools(server: McpServer): LegacyToolServer {
+  const legacy = server as LegacyToolServer
+  legacy.tool = ((
+    name: string,
+    description: string,
+    shape: z.ZodRawShape,
+    handler: (
+      params: Record<string, unknown>,
+      extra: { authInfo?: AuthInfo },
+    ) => Promise<unknown>,
+  ) => {
+    const audited = withToolAudit(name, handler)
+    return server.registerTool(
+      name,
+      { description, inputSchema: shape } as never,
+      ((params: Record<string, unknown>, context: unknown) => {
+        const http = (context as { http?: { authInfo?: AuthInfo } }).http
+        return audited(params, { authInfo: http?.authInfo })
+      }) as never,
+    )
+  }) as LegacyToolServer['tool']
+  return legacy
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer(
-    { name: 'One Calendar MCP', version: '1.0.0' },
-    { capabilities: { tools: {} } },
+  const server = withAuditedTools(
+    new McpServer(
+      { name: 'Zentra Calendar MCP', version: '2.0.0' },
+      {
+        capabilities: { tools: {} },
+        supportedProtocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+        enforceStrictCapabilities: true,
+      },
+    ),
   )
-
-  withAuditedTools(server)
 
   registerEventTools(server)
   registerEventParticipantTools(server)
+  registerAnalyticsTools(server)
   registerCategoryTools(server)
   registerCountdownTools(server)
   registerSettingsTools(server)
@@ -204,7 +240,121 @@ export function createServer(): McpServer {
   return server
 }
 
-function registerEventTools(server: McpServer): void {
+const ANALYTICS_RANGE_SHAPE = {
+  days: z
+    .number()
+    .optional()
+    .describe(
+      'Relative window: the last N days including today (1-366, default 30). Mutually exclusive with start_date/end_date.',
+    ),
+  start_date: z
+    .string()
+    .optional()
+    .describe('Absolute range start (ISO 8601); requires end_date'),
+  end_date: z
+    .string()
+    .optional()
+    .describe('Absolute range end (ISO 8601); requires start_date'),
+  timezone: z
+    .string()
+    .optional()
+    .describe(
+      'IANA timezone for day/hour bucketing (defaults to the user settings timezone)',
+    ),
+}
+
+function registerAnalyticsTools(server: LegacyToolServer): void {
+  server.tool(
+    'get_analytics_summary',
+    `Get aggregated schedule statistics for a date range: total events,
+scheduled hours, busy days, average event length, per-category breakdown,
+and (by default) a comparison against the immediately preceding period of
+the same length. Recurring series are counted per occurrence. Use this
+instead of listing events when the user asks "how busy was I", "how much
+time did I spend on X", or wants trends.`,
+    {
+      ...ANALYTICS_RANGE_SHAPE,
+      compare_previous_period: z
+        .boolean()
+        .optional()
+        .describe(
+          'Include deltas vs the preceding period of equal length (default true)',
+        ),
+      include_category_names: z
+        .boolean()
+        .optional()
+        .describe(
+          'Resolve category ids to names (requires the categories:read scope)',
+        ),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      if (params.include_category_names) {
+        requireScope(extra.authInfo, SCOPE_CATEGORIES_READ)
+      }
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { getAnalyticsSummary } = await import('./analytics-tools')
+        return respond(await getAnalyticsSummary(userId, params))
+      } catch (err) {
+        return respondToolError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'get_time_distribution',
+    `Get how events distribute across weekdays and hours of the day for a
+date range: per-weekday counts and scheduled hours (weekday 0 = Monday),
+a 24-bucket start-hour histogram, a 7x24 punch-card matrix, and the densest
+2-hour start window. All-day events count toward weekdays but not hours.`,
+    ANALYTICS_RANGE_SHAPE,
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { getTimeDistribution } = await import('./analytics-tools')
+        return respond(await getTimeDistribution(userId, params))
+      } catch (err) {
+        return respondToolError(err)
+      }
+    },
+  )
+
+  server.tool(
+    'get_analytics_insights',
+    `Get rule-based schedule insights for a date range, each with a type,
+severity (warning | info | positive) and structured data: volume trends vs
+the previous period, overloaded days, busy-day streaks, missing rest days,
+schedule fragmentation, category share shifts, peak hours, consistently
+free weekdays, and planning lead time. Ideal for answering "how is my
+schedule looking" or generating a weekly review.`,
+    {
+      ...ANALYTICS_RANGE_SHAPE,
+      include_category_names: z
+        .boolean()
+        .optional()
+        .describe(
+          'Resolve category ids to names (requires the categories:read scope)',
+        ),
+    },
+    async (params, extra) => {
+      requireScope(extra.authInfo, SCOPE_EVENTS_READ)
+      if (params.include_category_names) {
+        requireScope(extra.authInfo, SCOPE_CATEGORIES_READ)
+      }
+      const userId = getUserId(extra.authInfo)
+      try {
+        const { getAnalyticsInsights } = await import('./analytics-tools')
+        return respond(await getAnalyticsInsights(userId, params))
+      } catch (err) {
+        return respondToolError(err)
+      }
+    },
+  )
+}
+
+function registerEventTools(server: LegacyToolServer): void {
   server.tool(
     'list_events',
     `List calendar events with structured filtering, full-text search, sorting,
@@ -313,8 +463,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
           }),
         )
       } catch (err) {
-        if (err instanceof InvalidEventQueryError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -338,7 +487,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         if (!result) return respondMessage('Event not found')
         return respond(result)
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -386,8 +535,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         return respond(await createEvent(userId, params))
       } catch (err) {
         // A reminder-quota refusal is user-facing, not an internal error.
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -444,8 +592,7 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
       } catch (err) {
         // A reminder-quota refusal is a user-facing 4xx, not an internal error;
         // respondError would flatten it to 'Internal server error'.
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -474,13 +621,13 @@ single array are OR-ed. Ranges match events that overlap the interval.`,
         await deleteEvent(userId, params.event_id, params.apply_to)
         return respondMessage('Event deleted')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
 }
 
-function registerEventParticipantTools(server: McpServer): void {
+function registerEventParticipantTools(server: LegacyToolServer): void {
   server.tool(
     'add_event_participants',
     'Invite participants to an event. Sends invitation emails by default. For a recurring event, accepts an occurrence id and an apply_to scope; re-adding someone previously removed reuses their original invite link and sends no new email.',
@@ -522,8 +669,7 @@ function registerEventParticipantTools(server: McpServer): void {
           ),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -544,8 +690,7 @@ function registerEventParticipantTools(server: McpServer): void {
           await resendEventInvite(userId, params.event_id, params.email),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -581,8 +726,7 @@ function registerEventParticipantTools(server: McpServer): void {
           ),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -600,8 +744,7 @@ function registerEventParticipantTools(server: McpServer): void {
         const { listEventParticipants } = await import('./participant-tools')
         return respond(await listEventParticipants(userId, params.event_id))
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -635,8 +778,7 @@ function registerEventParticipantTools(server: McpServer): void {
           ),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -657,8 +799,7 @@ function registerEventParticipantTools(server: McpServer): void {
           await removeEventFromMyCalendar(userEmail, params.invite_token),
         )
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -681,14 +822,13 @@ function registerEventParticipantTools(server: McpServer): void {
         const { listMyEventInvites } = await import('./participant-tools')
         return respond(await listMyEventInvites(userEmail, params.status))
       } catch (err) {
-        if (err instanceof ParticipantError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
 }
 
-function registerCategoryTools(server: McpServer): void {
+function registerCategoryTools(server: LegacyToolServer): void {
   server.tool(
     'list_categories',
     'List all categories',
@@ -700,7 +840,7 @@ function registerCategoryTools(server: McpServer): void {
         const { listCategories } = await import('./category-tools')
         return respond(await listCategories(userId))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -720,7 +860,7 @@ function registerCategoryTools(server: McpServer): void {
         const { createCategory } = await import('./category-tools')
         return respond(await createCategory(userId, params))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -744,7 +884,7 @@ function registerCategoryTools(server: McpServer): void {
         if (!result) return respondMessage('Category not found')
         return respond(result)
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -761,13 +901,13 @@ function registerCategoryTools(server: McpServer): void {
         await deleteCategory(userId, params.category_id)
         return respondMessage('Category deleted')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
 }
 
-function registerCountdownTools(server: McpServer): void {
+function registerCountdownTools(server: LegacyToolServer): void {
   server.tool(
     'list_countdown_icons',
     `List the icon names accepted by create_countdown and update_countdown,
@@ -809,7 +949,7 @@ grouped by occasion. Any other value is rejected.`,
           ),
         )
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -833,7 +973,7 @@ grouped by occasion. Any other value is rejected.`,
         const { createCountdown } = await import('./countdown-tools')
         return respond(await createCountdown(userId, params))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -861,7 +1001,7 @@ grouped by occasion. Any other value is rejected.`,
         if (!result) return respondMessage('Countdown not found')
         return respond(result)
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -878,13 +1018,13 @@ grouped by occasion. Any other value is rejected.`,
         await deleteCountdown(userId, params.countdown_id)
         return respondMessage('Countdown deleted')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
 }
 
-function registerSettingsTools(server: McpServer): void {
+function registerSettingsTools(server: LegacyToolServer): void {
   server.tool(
     'get_settings',
     'Get user settings',
@@ -896,7 +1036,7 @@ function registerSettingsTools(server: McpServer): void {
         const { getSettings } = await import('./settings-tools')
         return respond(await getSettings(userId))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -923,13 +1063,13 @@ function registerSettingsTools(server: McpServer): void {
         await updateSettings(userId, params)
         return respondMessage('Settings updated')
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
 }
 
-function registerProfileTool(server: McpServer): void {
+function registerProfileTool(server: LegacyToolServer): void {
   server.tool(
     'get_profile',
     'Get current user info (name, email, etc.)',
@@ -941,13 +1081,13 @@ function registerProfileTool(server: McpServer): void {
         const { getProfile } = await import('./profile-tools')
         return respond(await getProfile(userId))
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
 }
 
-function registerBookmarkTools(server: McpServer): void {
+function registerBookmarkTools(server: LegacyToolServer): void {
   server.tool(
     'bookmark_event',
     'Bookmark an event so it can be found quickly later',
@@ -961,8 +1101,7 @@ function registerBookmarkTools(server: McpServer): void {
           await bookmarkEvent(userId, { eventId: params.event_id }),
         )
       } catch (err) {
-        if (err instanceof InvalidEventQueryError) return respondCliError(err)
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -988,7 +1127,7 @@ function registerBookmarkTools(server: McpServer): void {
           }),
         )
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )
@@ -1006,7 +1145,7 @@ function registerBookmarkTools(server: McpServer): void {
           await removeBookmark(userId, { eventId: params.event_id }),
         )
       } catch (err) {
-        return respondError(err)
+        return respondToolError(err)
       }
     },
   )

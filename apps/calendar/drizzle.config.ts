@@ -1,7 +1,11 @@
 import { defineConfig } from 'drizzle-kit'
 
 export default defineConfig({
-  schema: './lib/drizzle/schema.ts',
+  // The meetings tables live in the shared @zntr/meetings package but their
+  // migrations belong here, the repo's single migration home (ADR 0017).
+  // The package's readonly-calendar.ts is deliberately excluded: it only
+  // describes calendar_events for joins and must never generate DDL.
+  schema: ['./lib/drizzle/schema.ts', '../../packages/meetings/src/schema.ts'],
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {

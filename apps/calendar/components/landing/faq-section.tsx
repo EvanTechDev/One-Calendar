@@ -8,33 +8,33 @@ import {
 const faqs = [
   {
     value: 'what-is',
-    question: 'What is One Calendar?',
+    question: 'What is Zentra Calendar?',
     answer:
-      'A privacy-first, weekly-focused open-source calendar built for clarity and control. It respects your privacy, provides a smooth local-first planning experience, and keeps the system understandable.',
+      'The next gen calendar powered by AI agent. Connect an agent over MCP to plan your week, create and move events, and set reminders in conversation, while the calendar itself stays fast, keyboard-driven, and understandable.',
   },
   {
     value: 'how-is-it-different',
-    question: 'What makes One Calendar different?',
+    question: 'What makes Zentra Calendar different?',
     answer:
-      'Most modern calendar tools are overloaded with automation, notifications, and analytics. One Calendar takes a different approach: it respects user privacy, provides a smooth local-first planning experience, and keeps the system understandable. It is built for individuals and small teams who value clarity over complexity.',
+      'Most calendar tools bolt AI onto a closed platform. Zentra Calendar is open source and agent-native: your AI connects through MCP with scoped keys you control, and everything it can do, you can audit. Built for individuals and small teams who want automation without losing clarity.',
   },
   {
-    value: 'privacy',
-    question: 'Is One Calendar really privacy-first?',
+    value: 'agent',
+    question: 'How does the AI agent work?',
     answer:
-      'Yes. There is no AI tracking, no behavioral profiling or data mining, and zero third-party tracking scripts by default. You get user-controlled exports for backup and portability without lock-in, and secure authentication via hardened session management with Better Auth.',
+      'Zentra Calendar ships an MCP (Model Context Protocol) server. Connect Claude, Cursor, or any MCP client with a scoped API key or OAuth, and your agent can read your schedule, create and reschedule events, and manage reminders. You grant scopes per key and can revoke access at any time.',
   },
   {
     value: 'features',
-    question: 'What features does One Calendar offer?',
+    question: 'What features does Zentra Calendar offer?',
     answer:
-      'Weekly planning with drag & drop scheduling, inline editing, and keyboard-friendly interactions. Event management with rich metadata, precise time control, optimistic UI for instant updates, and reliable persistence via Drizzle. Privacy & security features, cloud sync, theme configuration, locale-aware formatting, and internationalization (i18n).',
+      'Drag and drop weekly planning, inline editing, and keyboard-first interactions. Recurring events with per-occurrence edit scopes, email invitations with RSVP, in-app and email reminders, ICS import and export, cloud sync, 34 languages, and light and dark themes.',
   },
   {
     value: 'open-source',
-    question: 'Is One Calendar open-source?',
+    question: 'Is Zentra Calendar open-source?',
     answer:
-      'Yes, it is completely open-source. You can self-host it with Drizzle ORM and PostgreSQL, giving you full control over your data.',
+      'Yes, completely. You can self-host the whole stack with PostgreSQL and Drizzle ORM, giving you full control over your data and your agent integrations.',
   },
 ]
 
@@ -46,8 +46,8 @@ export function FaqSection() {
           Frequently Asked <span className="text-foreground">Questions</span>
         </h2>
         <p className="text-muted-foreground text-sm max-w-[50ch] mx-auto leading-relaxed">
-          Everything you need to know about One Calendar. Can&apos;t find what
-          you&apos;re looking for? Check out the docs or contact us.
+          Everything you need to know about Zentra Calendar. Can&apos;t find
+          what you&apos;re looking for? Check out the docs or contact us.
         </p>
       </div>
       <Accordion type="single" collapsible>

@@ -7,10 +7,14 @@ import {
 import { eq, and, lt, gt, inArray, or, isNotNull, type SQL } from 'drizzle-orm'
 import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
+import { deleteMeetingsForEvent, moveMeetingToEvent } from '@zntr/meetings'
 import { normalizeColor } from './colors'
+import {
+  EVENT_COLOR_VALUES,
+  PALETTE_TO_EVENT_COLOR,
+} from '@zntr/ui/calendar/lib/event-colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
-import { invalidateEventCache } from '@/lib/cache/events'
 import {
   expandRows,
   resolveMasterEditStamp,
@@ -35,34 +39,40 @@ import {
   translateRuleByDays,
   translateStampsByDays,
   wallClockDayDelta,
+  weekdayIndexInTz,
   withUntil,
-} from '@/lib/recurrence/engine'
+  partsInTz,
+  tzOffsetMs,
+} from '@zntr/ui/calendar/lib/recurrence/engine'
+import { isValidTimezone } from '@zntr/ui/calendar/lib/timezone'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
-import { RRule } from 'rrule'
+import {
+  baselineOf,
+  getOccurrencesForInvites,
+} from '@/lib/invites/invite-service'
+import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
+import { normalizeEmails as normalizeEmailsShared } from '@zntr/ui/calendar/lib/email'
+import {
+  encryptMergedFields,
+  isValidRrule,
+  isValidStamp,
+  remapSeriesOverrideStamps,
+  shiftOverrideStamps,
+  writeInstanceOverride,
+  type EventWriteDb,
+} from '@/lib/event-write'
 import crypto from 'crypto'
 
 export type EventStatus = 'confirmed' | 'tentative' | 'cancelled'
-export const EVENT_STATUSES: EventStatus[] = [
-  'confirmed',
-  'tentative',
-  'cancelled',
-]
+const EVENT_STATUSES: EventStatus[] = ['confirmed', 'tentative', 'cancelled']
 
 export type TimePreset =
-  | 'today'
-  | 'this_week'
-  | 'next_week'
-  | 'upcoming'
-  | 'past'
-export type EventSortField =
-  | 'start_date'
-  | 'end_date'
-  | 'created_at'
-  | 'updated_at'
-export type EventSearchField = 'title' | 'description' | 'location'
+  'today' | 'this_week' | 'next_week' | 'upcoming' | 'past'
+type EventSortField = 'start_date' | 'end_date' | 'created_at' | 'updated_at'
+type EventSearchField = 'title' | 'description' | 'location'
 export type ParticipantMode = 'any' | 'all'
 
-export const EVENT_FIELD_WHITELIST = [
+const EVENT_FIELD_WHITELIST = [
   'id',
   'title',
   'description',
@@ -97,6 +107,8 @@ const EVENT_FIELD_ALIASES: Record<string, string> = {
 }
 
 export interface ListEventsParams {
+  /** Internal AI scan; do not discard candidates by lexical relevance. */
+  searchCandidates?: boolean
   // Compatible legacy parameters.
   start_date?: string
   end_date?: string
@@ -117,6 +129,14 @@ export interface ListEventsParams {
     is_all_day?: boolean
     participants?: {
       emails?: string[]
+      /**
+       * Display names to match, case-insensitively, against the stored
+       * participant names and the local part of their addresses. This exists
+       * because "the meeting with Alex" is how people speak and an address is
+       * not: the semantic-search model is given the user's own words and must
+       * never invent an address to search with.
+       */
+      names?: string[]
       mode?: ParticipantMode
       exists?: boolean
     }
@@ -141,107 +161,67 @@ export interface ListEventsParams {
 }
 
 const MAX_PAGE_LIMIT = 100
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PALETTE_TO_EVENT_COLOR: Record<string, string> = {
-  'bg-blue-500': 'bg-[#E6F6FD]',
-  'bg-green-500': 'bg-[#E7F8F2]',
-  'bg-yellow-500': 'bg-[#FEF5E6]',
-  'bg-amber-500': 'bg-[#FEF5E6]',
-  'bg-red-500': 'bg-[#FFE4E6]',
-  'bg-purple-500': 'bg-[#F3EEFE]',
-  'bg-pink-500': 'bg-[#FCE7F3]',
-  'bg-indigo-500': 'bg-[#EEF2FF]',
-  'bg-orange-500': 'bg-[#FFF0E5]',
-  'bg-teal-500': 'bg-[#E6FAF7]',
-}
-
-const EVENT_COLOR_VALUES = new Set([
-  'bg-[#E6F6FD]',
-  'bg-[#E7F8F2]',
-  'bg-[#FEF5E6]',
-  'bg-[#FFE4E6]',
-  'bg-[#F3EEFE]',
-  'bg-[#FCE7F3]',
-  'bg-[#EEF2FF]',
-  'bg-[#FFF0E5]',
-  'bg-[#E6FAF7]',
-])
 
 // ---------------------------------------------------------------------------
 // Pure helpers (unit-testable)
 // ---------------------------------------------------------------------------
 
-export function tzOffsetMs(date: Date, timeZone: string): number {
+/**
+ * The calendar date `date` falls on in `timeZone`.
+ *
+ * The zone is a caller-supplied tool argument, so an unrecognised one has to
+ * come back as a query error rather than a silent wrong answer — the engine's
+ * primitives throw `RangeError` from the `Intl` constructor, which is what this
+ * converts.
+ */
+function localDateParts(
+  date: Date,
+  timeZone: string,
+): { year: number; month: number; day: number } {
   try {
-    const dtf = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      timeZoneName: 'longOffset',
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-    const tzPart =
-      dtf.formatToParts(date).find((p) => p.type === 'timeZoneName')?.value ??
-      ''
-    const match = tzPart.match(/([+-])(\d{2}):(\d{2})/)
-    if (!match) return 0
-    const sign = match[1] === '-' ? -1 : 1
-    return sign * (Number(match[2]) * 60 + Number(match[3])) * 60 * 1000
-  } catch {
-    return 0
-  }
-}
-
-const WEEKDAY_INDEX: Record<string, number> = {
-  Sun: 0,
-  Mon: 1,
-  Tue: 2,
-  Wed: 3,
-  Thu: 4,
-  Fri: 5,
-  Sat: 6,
-}
-
-function localDateParts(date: Date, timeZone: string) {
-  let parts: Intl.DateTimeFormatPart[]
-  try {
-    parts = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      weekday: 'short',
-    }).formatToParts(date)
+    const p = partsInTz(date, timeZone)
+    return { year: p.year, month: p.month, day: p.day }
   } catch {
     throw new InvalidEventQueryError(`Invalid timezone: ${timeZone}`)
   }
-  const map: Record<string, string> = {}
-  for (const p of parts) {
-    if (p.type !== 'literal') map[p.type] = p.value
-  }
-  return {
-    year: Number(map.year),
-    month: Number(map.month),
-    day: Number(map.day),
-    weekday: map.weekday ?? '',
-  }
 }
 
+/**
+ * Days from the Monday of `date`'s week, in the zone's calendar.
+ */
 function daysFromMonday(date: Date, timeZone: string): number {
-  const idx = WEEKDAY_INDEX[localDateParts(date, timeZone).weekday] ?? 0
-  return (idx + 6) % 7
+  try {
+    return (weekdayIndexInTz(date, timeZone) + 6) % 7
+  } catch {
+    throw new InvalidEventQueryError(`Invalid timezone: ${timeZone}`)
+  }
 }
 
+/**
+ * Midnight at the start of `date`'s local day, as an instant.
+ *
+ * The offset is read twice on purpose. Reading it once at the wall-clock value
+ * read as if it were UTC — which is what the recurrence engine's
+ * `wallClockToInstant` does — is correct except when a DST transition falls
+ * between that guess and the true instant. Resolving it a second time at the
+ * first guess's result closes that window, and it is why this iteration is not
+ * folded into `wallClockToInstant`: the two serve different ranges, and
+ * collapsing them would quietly move weekly boundaries by an hour twice a year.
+ */
 function localMidnightInTz(date: Date, timeZone: string): Date {
   const { year, month, day } = localDateParts(date, timeZone)
-  const candidate = Date.UTC(year, month - 1, day) - tzOffsetMs(date, timeZone)
-  return new Date(
-    Date.UTC(year, month - 1, day) - tzOffsetMs(new Date(candidate), timeZone),
-  )
+  const naive = Date.UTC(year, month - 1, day)
+  const firstGuess = naive - offsetAt(timeZone, date.getTime())
+  return new Date(naive - offsetAt(timeZone, firstGuess))
+}
+
+/** The zone's offset at an instant, with an unrecognised zone as a query error. */
+function offsetAt(timeZone: string, utcMs: number): number {
+  try {
+    return tzOffsetMs(timeZone, utcMs)
+  } catch {
+    throw new InvalidEventQueryError(`Invalid timezone: ${timeZone}`)
+  }
 }
 
 function mondayOfWeek(date: Date, timeZone: string): Date {
@@ -333,14 +313,15 @@ export function resolveTimeRange(
   }
 }
 
+/**
+ * Duplicates collapse rather than error: writing the whole participant list
+ * back onto an event is idempotent, and `add_event_participants` is the tool
+ * that treats a repeat as a mistake.
+ */
 export function normalizeEmails(emails: string[]): string[] {
-  const normalized = [...new Set(emails.map((e) => e.trim().toLowerCase()))]
-  for (const email of normalized) {
-    if (!EMAIL_REGEX.test(email)) {
-      throw new InvalidEventQueryError(`Invalid participant email: ${email}`)
-    }
-  }
-  return normalized
+  return normalizeEmailsShared(emails, {
+    invalid: (message) => new InvalidEventQueryError(message),
+  })
 }
 
 export function colorCandidates(value: string): string[] {
@@ -459,8 +440,7 @@ export function extractParticipantEmails(participants: unknown): string[] {
 export function matchesParticipantFilter(
   emails: Set<string>,
   emailsFilter:
-    | { emails?: string[]; mode?: ParticipantMode; exists?: boolean }
-    | undefined,
+    { emails?: string[]; mode?: ParticipantMode; exists?: boolean } | undefined,
 ): boolean {
   if (!emailsFilter) return true
   if (typeof emailsFilter.exists === 'boolean') {
@@ -476,27 +456,63 @@ export function matchesParticipantFilter(
   return target.some((email) => emails.has(email))
 }
 
+/**
+ * Every string a participant can be called: the stored display name, and the
+ * local part of the address for entries that carry only one.
+ *
+ * The name is stored separately from the address on purpose. Matching on
+ * addresses alone means "the meeting with Alex" can only be answered by
+ * whoever already knows Alex's address, which is precisely what a half-remembered
+ * search does not.
+ */
+export function extractParticipantNames(participants: unknown): string[] {
+  if (!Array.isArray(participants)) return []
+  const names: string[] = []
+  for (const entry of participants) {
+    if (typeof entry === 'string') {
+      names.push(localPart(entry))
+      continue
+    }
+    if (entry && typeof entry === 'object') {
+      const { name, email } = entry as { name?: unknown; email?: unknown }
+      if (typeof name === 'string' && name.trim()) {
+        names.push(name.trim().toLowerCase())
+      } else if (typeof email === 'string' && email.trim()) {
+        names.push(localPart(email))
+      }
+    }
+  }
+  return names
+}
+
+function localPart(address: string): string {
+  return address.trim().toLowerCase().split('@')[0]
+}
+
+/**
+ * Name matching, deliberately looser than the email match: a substring hit.
+ * Users type "Alex" for "Alex Chen" and "wang" for "Wang Fang" without
+ * knowing which is which, and a search that answers "nothing found" for a
+ * person it clearly could have found is worse than a slightly wide one.
+ */
+export function matchesParticipantNames(
+  names: Set<string>,
+  target: string[],
+  mode: ParticipantMode | undefined,
+): boolean {
+  if (target.length === 0) return true
+  const needles = target.map((n) => n.trim().toLowerCase()).filter(Boolean)
+  if (needles.length === 0) return true
+  const hit = (needle: string) =>
+    names.size > 0 &&
+    [...names].some((name) => name.includes(needle) || needle.includes(name))
+  if (mode === 'all') return needles.every(hit)
+  return needles.some(hit)
+}
+
 // ---------------------------------------------------------------------------
 // Recurring events helpers
 // ---------------------------------------------------------------------------
-
-function isValidRrule(rule: string | null): boolean {
-  if (rule === null) return true
-  try {
-    return typeof RRule.fromString(rule).options.freq === 'number'
-  } catch {
-    return false
-  }
-}
-
-function isValidStamp(stamp: string): boolean {
-  try {
-    parseRfcStamp(stamp)
-    return true
-  } catch {
-    return false
-  }
-}
 
 function validateRecurringArguments(
   rrule: string | null,
@@ -520,6 +536,7 @@ function validateRecurringArguments(
 }
 
 function mcpFieldsToEventRow(data: {
+  rrule?: string | null
   title?: string
   description?: string | null
   location?: string | null
@@ -532,6 +549,7 @@ function mcpFieldsToEventRow(data: {
   notification_minutes?: number | null
 }): Partial<EventRow> {
   const fields: Partial<EventRow> = {}
+  if (data.rrule !== undefined) fields.rrule = data.rrule
   if (data.title !== undefined) fields.title = data.title
   if (data.description !== undefined) fields.description = data.description
   if (data.location !== undefined) fields.location = data.location
@@ -549,78 +567,22 @@ function mcpFieldsToEventRow(data: {
   return fields
 }
 
-function encryptMergedFields(
-  rowId: string,
-  fields: Record<string, unknown>,
-): Record<string, unknown> {
-  const encrypted: Record<string, unknown> = {}
-  if (fields.title !== undefined)
-    encrypted.title = encryptField(rowId, fields.title as string) ?? ''
-  if (fields.description !== undefined)
-    encrypted.description = encryptField(rowId, fields.description as string)
-  if (fields.location !== undefined)
-    encrypted.location = encryptField(rowId, fields.location as string)
-  if (fields.startDate !== undefined) encrypted.startDate = fields.startDate
-  if (fields.endDate !== undefined) encrypted.endDate = fields.endDate
-  if (fields.isAllDay !== undefined) encrypted.isAllDay = fields.isAllDay
-  if (fields.status !== undefined) encrypted.status = fields.status
-  if (fields.color !== undefined) encrypted.color = fields.color
-  if (fields.categoryId !== undefined) encrypted.categoryId = fields.categoryId
-  if (fields.notificationMinutes !== undefined)
-    encrypted.notificationMinutes = fields.notificationMinutes
-  return encrypted
-}
-
-/**
- * The user's IANA timezone from their settings, or undefined when unset or
- * invalid. Recurrence day math (split boundaries, whole-pattern day shifts,
- * all-day stamps) must run in the user's zone, not the server's, or an edit
- * made near midnight lands on the wrong day.
- */
-/**
- * Drops the cached month buckets a series touches. MCP mutations previously
- * skipped this, so a tool-driven edit left the web UI serving stale months
- * from Redis until the TTL expired. Never throws: a cache miss is safe, a
- * failed tool call is not.
- */
-async function invalidateSeriesCache(
-  userId: string,
-  rows: Array<
-    { startDate: Date | string; endDate: Date | string } | null | undefined
-  >,
-): Promise<void> {
-  for (const row of rows) {
-    if (!row) continue
-    try {
-      const start = new Date(row.startDate)
-      const end = new Date(row.endDate)
-      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue
-      await invalidateEventCache(userId, start.toISOString(), end.toISOString())
-    } catch {
-      // Cache invalidation is best-effort.
-    }
-  }
-}
-
-async function resolveUserTimeZone(
-  userId: string,
-): Promise<string | undefined> {
+async function resolveUserTimeZone(userId: string): Promise<string> {
   try {
     const settings = (await getSettings(userId)) as Record<string, unknown>
     const tz = settings.timezone
-    if (typeof tz !== 'string' || tz.trim().length === 0) return undefined
-    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    if (typeof tz !== 'string' || !isValidTimezone(tz)) return 'UTC'
     return tz
   } catch {
-    return undefined
+    return 'UTC'
   }
 }
 
-type BaseDb = Awaited<ReturnType<typeof getDb>>
-type TxDb = Parameters<Parameters<BaseDb['transaction']>[0]>[0]
 /** Either the singleton connection or a transaction executor — helpers that
- * take this can participate in a caller's transaction unchanged. */
-type Db = BaseDb | TxDb
+ * take this can participate in a caller's transaction unchanged. Shared with the
+ * REST write path via `EventWriteDb`, because the two must accept the same
+ * transactions: a meeting cascade is driven from both. */
+type Db = EventWriteDb
 
 async function deleteCalendarEventRow(
   db: Db,
@@ -628,6 +590,11 @@ async function deleteCalendarEventRow(
   eventId: string,
 ): Promise<void> {
   await db.delete(eventInvites).where(eq(eventInvites.eventId, eventId))
+  // Event Meetings have no database FK back to this table on purpose
+  // (ADR-0017), so the cascade is explicit — exactly as the REST route's
+  // deleteRow does it. This function is the single delete path behind every MCP
+  // delete call site, so omitting it orphaned a joinable room on each one.
+  await deleteMeetingsForEvent(db, eventId)
   await db
     .delete(calendarEvents)
     .where(
@@ -644,44 +611,6 @@ async function fetchSeriesOverrides(
     .from(calendarEvents)
     .where(eq(calendarEvents.seriesId, seriesId))
   return rows.map(decryptEvent)
-}
-
-async function shiftMovedOverrides(
-  db: Db,
-  userId: string,
-  ids: string[],
-  clockSource: Date,
-  timeZone?: string,
-  dayDelta = 0,
-): Promise<void> {
-  if (ids.length === 0) return
-  const rows = await db
-    .select()
-    .from(calendarEvents)
-    .where(
-      and(inArray(calendarEvents.id, ids), eq(calendarEvents.userId, userId)),
-    )
-  for (const row of rows) {
-    if (!row.recurrenceId) continue
-    const newStamp =
-      dayDelta !== 0
-        ? translateStampsByDays(
-            [row.recurrenceId],
-            dayDelta,
-            clockSource,
-            timeZone,
-          )![0]
-        : shiftExdates([row.recurrenceId], clockSource, timeZone)![0]
-    await db
-      .update(calendarEvents)
-      .set({
-        recurrenceId: newStamp,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(calendarEvents.id, row.id), eq(calendarEvents.userId, userId)),
-      )
-  }
 }
 
 async function applySplitPlan(
@@ -739,6 +668,12 @@ async function applySplitPlan(
     timeZone,
   })
 
+  // The Series' single Meeting follows the tail, the part participants will
+  // actually attend (ADR-0019) — the same unconditional move the REST split
+  // does. Must precede the empty-master delete below, whose cascade would
+  // otherwise take the meeting with it.
+  await moveMeetingToEvent(db, master.id, newId)
+
   if (split.masterBecomesEmpty) {
     // Same as the REST route: a truncated master that renders nothing is
     // deleted rather than kept as an invisible zombie row.
@@ -784,40 +719,7 @@ async function applySinglePlan(
       )
   }
 
-  const encrypted = encryptMergedFields(upsert.id, upsert.fields)
-  let stored
-  if (upsert.isNew) {
-    // Upsert on the (seriesId, recurrenceId) unique index: a double-submit
-    // resolves to one row (last writer wins) instead of erroring.
-    ;[stored] = await db
-      .insert(calendarEvents)
-      .values({
-        id: upsert.id,
-        userId,
-        seriesId: upsert.seriesId,
-        recurrenceId: upsert.recurrenceId,
-        createdAt: upsert.fields.createdAt as Date,
-        updatedAt: upsert.fields.updatedAt as Date,
-        ...encrypted,
-      } as typeof calendarEvents.$inferInsert)
-      .onConflictDoUpdate({
-        target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
-        set: { ...encrypted, updatedAt: new Date() },
-      })
-      .returning()
-  } else {
-    ;[stored] = await db
-      .update(calendarEvents)
-      .set({ ...encrypted, updatedAt: new Date() })
-      .where(
-        and(
-          eq(calendarEvents.id, upsert.id),
-          eq(calendarEvents.userId, userId),
-        ),
-      )
-      .returning()
-  }
-
+  const stored = await writeInstanceOverride(db, userId, upsert)
   return stored ? decryptEvent(stored) : null
 }
 
@@ -825,7 +727,8 @@ async function applySinglePlan(
 // listEvents
 // ---------------------------------------------------------------------------
 
-export async function listEvents(
+/** One materialization of the user's candidates, before presentation paging. */
+export async function listEventCandidates(
   userId: string,
   params: ListEventsParams = {},
 ) {
@@ -852,15 +755,7 @@ export async function listEvents(
     : legacyQuery || undefined
   const searchFields = hasStructuredSearch ? params.search!.fields : undefined
 
-  const settings = await getSettings(userId)
-  const defaultTimezone = (settings as Record<string, unknown>).timezone as
-    | string
-    | undefined
-
-  const { page, limit } = validatePagination(
-    params.pagination?.page ?? params.page,
-    params.pagination?.limit ?? params.limit,
-  )
+  const defaultTimezone = await resolveUserTimeZone(userId)
 
   const sqlFilters: SQL[] = [eq(calendarEvents.userId, userId)]
 
@@ -929,6 +824,11 @@ export async function listEvents(
   if (participantFilter?.emails && participantFilter.emails.length > 0) {
     participantEmails = normalizeEmails(participantFilter.emails)
   }
+  // Names are matched in memory like the addresses, not in SQL: they live in
+  // the encrypted participants jsonb, so SQL cannot see them.
+  const participantNames = (participantFilter?.names ?? [])
+    .map((name) => name.trim())
+    .filter(Boolean)
 
   const rows = await db
     .select()
@@ -945,31 +845,49 @@ export async function listEvents(
       ),
     )
 
-  let events = rows.map(decryptEvent)
   const recurring = recurringRows.map(decryptEvent)
   const recurringIds = new Set(recurring.map((e) => e.id))
-  const plainRows = events.filter((e) => !recurringIds.has(e.id))
+  const plainRows = rows
+    .filter((e) => !recurringIds.has(e.id))
+    .map(decryptEvent)
+  let events = plainRows
 
   if (timeRange.start || timeRange.end) {
     events = expandRows([...plainRows, ...recurring], {
       windowStart: timeRange.start,
       windowEnd: timeRange.end,
+      timezone: defaultTimezone,
     }).map((e) =>
       e.recurrenceId !== null
         ? ({ ...e, id: e.instanceId } as ReturnType<typeof decryptEvent>)
         : (e as ReturnType<typeof decryptEvent>),
     )
   } else {
-    events = plainRows
+    // An unbounded semantic lookup searches stored series too. Expanding an
+    // infinite rule without a window would invent an arbitrary cutoff; its
+    // master remains a navigable result instead of disappearing entirely.
+    events = params.searchCandidates ? [...plainRows, ...recurring] : plainRows
+  }
+
+  // Recurrence expansion reads masters separately from the SQL-filtered rows.
+  // Reapply hard constraints to those results before semantic scoring.
+  if (params.searchCandidates) {
+    events = events.filter(
+      (event) =>
+        (!timeRange.start || new Date(event.endDate) > timeRange.start) &&
+        (!timeRange.end || new Date(event.startDate) < timeRange.end) &&
+        (!params.filter?.category_ids?.length ||
+          (event.categoryId !== null &&
+            event.categoryId !== undefined &&
+            params.filter.category_ids.includes(event.categoryId))),
+    )
   }
 
   // Merge invite emails into participants so returned events show the full
   // participant set, not just the ones stored on the event row.
-  const emailSets = await buildParticipantEmailSets([
-    ...new Set(events.map((e) => (e.seriesId ?? e.id) as string)),
-  ])
+  const emailSets = await buildParticipantEmailSets(events)
   for (const event of events) {
-    const inviteEmails = emailSets.get((event.seriesId ?? event.id) as string)
+    const inviteEmails = emailSets.get(event.id)
     if (inviteEmails && inviteEmails.size > 0) {
       event.participants = mergeParticipantEmails(
         event.participants,
@@ -994,10 +912,14 @@ export async function listEvents(
     )
   }
 
-  if (participantFilter || participantEmails) {
+  if (participantFilter || participantEmails || participantNames.length > 0) {
     const normalizedTarget = participantEmails
     events = events.filter((event) => {
       const emails = new Set(extractParticipantEmails(event.participants))
+      // Names are matched off the same decrypted jsonb the emails come from,
+      // and invite addresses are already merged in above, so both see the full
+      // participant set.
+      const names = new Set(extractParticipantNames(event.participants))
       if (normalizedTarget && normalizedTarget.length > 0) {
         const mode = participantFilter?.mode ?? 'any'
         const matches = matchesParticipantFilter(emails, {
@@ -1005,6 +927,16 @@ export async function listEvents(
           mode,
         })
         if (!matches) return false
+      }
+      if (
+        participantNames.length > 0 &&
+        !matchesParticipantNames(
+          names,
+          participantNames,
+          participantFilter?.mode ?? 'any',
+        )
+      ) {
+        return false
       }
       if (typeof participantFilter?.exists === 'boolean') {
         return matchesParticipantFilter(emails, {
@@ -1042,6 +974,19 @@ export async function listEvents(
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
   })
 
+  return events
+}
+
+export async function listEvents(
+  userId: string,
+  params: ListEventsParams = {},
+) {
+  const { page, limit } = validatePagination(
+    params.pagination?.page ?? params.page,
+    params.pagination?.limit ?? params.limit,
+  )
+  const events = await listEventCandidates(userId, params)
+
   const total = events.length
   const offset = (page - 1) * limit
   const paged = events.slice(offset, offset + limit)
@@ -1065,22 +1010,49 @@ export async function listEvents(
 }
 
 async function buildParticipantEmailSets(
-  eventIds: string[],
+  events: ReturnType<typeof decryptEvent>[],
 ): Promise<Map<string, Set<string>>> {
   const emailSets = new Map<string, Set<string>>()
+  const eventIds = [
+    ...new Set(events.map((event) => event.seriesId ?? event.id)),
+  ]
   if (eventIds.length === 0) return emailSets
-  for (const id of eventIds) emailSets.set(id, new Set())
 
   const invites = await getDb()
     .select({
+      id: eventInvites.id,
       eventId: eventInvites.eventId,
       email: eventInvites.email,
+      baselineKind: eventInvites.baselineKind,
+      fromStamp: eventInvites.fromStamp,
+      untilStamp: eventInvites.untilStamp,
     })
     .from(eventInvites)
     .where(inArray(eventInvites.eventId, eventIds))
 
+  const exceptions = await getOccurrencesForInvites(invites.map((i) => i.id))
+  const byEvent = new Map<string, typeof invites>()
   for (const invite of invites) {
-    emailSets.get(invite.eventId)?.add(invite.email.toLowerCase())
+    const group = byEvent.get(invite.eventId) ?? []
+    group.push(invite)
+    byEvent.set(invite.eventId, group)
+  }
+  for (const event of events) {
+    const emails = new Set<string>()
+    for (const invite of byEvent.get(event.seriesId ?? event.id) ?? []) {
+      // Unbounded master results intentionally aggregate the series' invitees.
+      // An instance (including a moved override) uses its original stamp.
+      if (
+        !event.recurrenceId ||
+        canParticipantSeeOccurrence(
+          baselineOf(invite),
+          exceptions.get(invite.id) ?? [],
+          event.recurrenceId,
+        )
+      )
+        emails.add(invite.email.toLowerCase())
+    }
+    emailSets.set(event.id, emails)
   }
 
   return emailSets
@@ -1109,6 +1081,7 @@ export async function getEvent(userId: string, eventId: string) {
       decryptEvent(master) as unknown as EventRow,
       parsedId.recurrenceId,
       overrides,
+      await resolveUserTimeZone(userId),
     )
     if (!resolved) return null
     return { ...resolved, id: eventId, instanceId: eventId }
@@ -1173,10 +1146,6 @@ export async function createEvent(
     .returning()
 
   const created = decryptEvent(event)
-  // Keep the web UI's cached months in step with tool-driven creates.
-  await invalidateSeriesCache(userId, [
-    { startDate: created.startDate, endDate: created.endDate },
-  ])
   // An agent that set email_reminder must actually get scheduled emails, and a
   // quota refusal must reach it — otherwise the checkbox appears set with no
   // emails behind it, and a quota refusal must reach the agent rather than
@@ -1199,6 +1168,7 @@ async function updateEventImpl(
     color?: string | null
     category_id?: string | null
     notification_minutes?: number | null
+    email_reminder?: boolean
     rrule?: string | null
     exdate?: string[] | null
     apply_to?: ApplyTo
@@ -1250,8 +1220,7 @@ async function updateEventImpl(
       // pattern by the move's day distance, adapt the rule, remap stored
       // exdates, then re-stamp overrides — otherwise an MCP "all events"
       // change orphans every single-instance override and resurrects exdated
-      // occurrences. No timeZone is threaded through MCP (deferred finding);
-      // helpers fall back to server-local day parts.
+      // occurrences. Query and mutation use the same organiser timezone.
       const prevStartDate = masterRow.startDate
       const nextStartDate =
         (fields.startDate as Date | undefined) ?? prevStartDate
@@ -1326,27 +1295,33 @@ async function updateEventImpl(
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await db
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, masterRow.id),
-            eq(calendarEvents.userId, userId),
-          ),
-        )
-        .returning()
-      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
-        const seriesOverrides = await fetchSeriesOverrides(db, masterRow.id)
-        await shiftMovedOverrides(
-          db,
-          userId,
-          seriesOverrides.map((o) => o.id),
-          nextStartDate,
-          timeZone,
-          dayDelta,
-        )
-      }
+      // The master's move and its overrides' re-stamps are one unit, exactly as in
+      // the REST handler: overrides are matched to occurrences by stamp, so a
+      // master that moved while some overrides kept the old stamps leaves those
+      // overrides pointing at slots the series no longer generates.
+      const [updated] = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, masterRow.id),
+              eq(calendarEvents.userId, userId),
+            ),
+          )
+          .returning()
+        if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+          await remapSeriesOverrideStamps(
+            tx,
+            userId,
+            masterRow.id,
+            nextStartDate,
+            timeZone,
+            dayDelta,
+          )
+        }
+        return [row]
+      })
       return decryptEvent(updated)
     }
 
@@ -1372,7 +1347,7 @@ async function updateEventImpl(
           timeZone,
         )
         if (!created) return null
-        await shiftMovedOverrides(
+        await shiftOverrideStamps(
           tx,
           userId,
           plan.split!.moveOverrideIds,
@@ -1388,10 +1363,12 @@ async function updateEventImpl(
       applySinglePlan(tx, userId, masterRow, plan),
     )
     if (!stored) return null
-    const resolved = resolveInstance(masterRow, parsedId.recurrenceId, [
-      stored,
-      ...overrides,
-    ] as unknown as EventRow[])
+    const resolved = resolveInstance(
+      masterRow,
+      parsedId.recurrenceId,
+      [stored, ...overrides] as unknown as EventRow[],
+      timeZone,
+    )
     if (!resolved) return null
     return { ...resolved, id: eventId, instanceId: eventId }
   }
@@ -1487,27 +1464,29 @@ async function updateEventImpl(
             : {}),
         updatedAt: new Date(),
       }
-      const [updated] = await db
-        .update(calendarEvents)
-        .set(set)
-        .where(
-          and(
-            eq(calendarEvents.id, seriesRow.id),
-            eq(calendarEvents.userId, userId),
-          ),
-        )
-        .returning()
-      if (nextStartDate.getTime() !== prevStartDate.getTime()) {
-        const seriesOverrides = await fetchSeriesOverrides(db, seriesRow.id)
-        await shiftMovedOverrides(
-          db,
-          userId,
-          seriesOverrides.map((o) => o.id),
-          nextStartDate,
-          timeZone,
-          dayDelta,
-        )
-      }
+      const [updated] = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(calendarEvents)
+          .set(set)
+          .where(
+            and(
+              eq(calendarEvents.id, seriesRow.id),
+              eq(calendarEvents.userId, userId),
+            ),
+          )
+          .returning()
+        if (nextStartDate.getTime() !== prevStartDate.getTime()) {
+          await remapSeriesOverrideStamps(
+            tx,
+            userId,
+            seriesRow.id,
+            nextStartDate,
+            timeZone,
+            dayDelta,
+          )
+        }
+        return [row]
+      })
       return decryptEvent(updated)
     }
 
@@ -1540,7 +1519,7 @@ async function updateEventImpl(
           timeZone,
         )
         if (!created) return null
-        await shiftMovedOverrides(
+        await shiftOverrideStamps(
           tx,
           userId,
           plan.split!.moveOverrideIds,
@@ -1556,10 +1535,12 @@ async function updateEventImpl(
       applySinglePlan(tx, userId, seriesRow, plan),
     )
     if (!stored) return null
-    const resolved = resolveInstance(seriesRow, recurrenceId, [
-      stored,
-      ...overrides,
-    ] as unknown as EventRow[])
+    const resolved = resolveInstance(
+      seriesRow,
+      recurrenceId,
+      [stored, ...overrides] as unknown as EventRow[],
+      timeZone,
+    )
     if (!resolved) return null
     return { ...resolved, id: eventId, instanceId: eventId }
   }
@@ -1582,6 +1563,8 @@ async function updateEventImpl(
   if (data.category_id !== undefined) values.categoryId = data.category_id
   if (data.notification_minutes !== undefined)
     values.notificationMinutes = data.notification_minutes
+  if (data.email_reminder !== undefined)
+    values.emailReminder = data.email_reminder
   if (data.rrule !== undefined) values.rrule = rawRrule
   if (data.exdate !== undefined) values.exdate = data.exdate
   values.updatedAt = new Date()
@@ -1769,20 +1752,24 @@ async function deleteEventImpl(
 }
 
 /**
- * Snapshot of the rows a mutation may touch, used to drop the right cached
- * month buckets afterwards. Reads the master (or the instance's series) plus
- * its overrides so a split/day-move invalidates both the old and new spans.
+ * The series roots whose scheduled reminders a mutation may have disturbed,
+ * read BEFORE the mutation runs. Reads the master (or the instance's series)
+ * plus its overrides, so a split or series move surfaces the old root as well
+ * as the new one.
+ *
+ * This is the before-image: after a split, the rows that carried the old root
+ * have already been reassigned, so the root that needs its reminders cleared
+ * is no longer discoverable from the table.
  */
-async function seriesCacheSpans(
+async function seriesReminderRoots(
   userId: string,
   eventId: string,
-): Promise<Array<{ startDate: Date; endDate: Date }>> {
+): Promise<string[]> {
   try {
-    const db = await getDb()
     const parsed = isInstanceId(eventId) ? parseInstanceId(eventId) : null
     const rootId = parsed?.seriesId ?? eventId
-    const rows = await db
-      .select()
+    const rows = await getDb()
+      .select({ id: calendarEvents.id, seriesId: calendarEvents.seriesId })
       .from(calendarEvents)
       .where(
         and(
@@ -1793,10 +1780,7 @@ async function seriesCacheSpans(
           eq(calendarEvents.userId, userId),
         ),
       )
-    return rows.map((r) => ({
-      startDate: new Date(r.startDate),
-      endDate: new Date(r.endDate),
-    }))
+    return rows.map((r) => r.seriesId ?? r.id)
   } catch {
     return []
   }
@@ -1836,15 +1820,23 @@ export async function updateEvent(
   ...args: Parameters<typeof updateEventImpl>
 ): ReturnType<typeof updateEventImpl> {
   const [userId, eventId, data] = args
-  const before = await seriesCacheSpans(userId, eventId)
+  const before = await seriesReminderRoots(userId, eventId)
   const result = await updateEventImpl(...args)
-  const after = await seriesCacheSpans(userId, eventId)
-  await invalidateSeriesCache(userId, [...before, ...after])
   await reconcileReminders(
     userId,
     eventId,
     (data as { email_reminder?: unknown } | undefined)?.email_reminder === true,
   )
+  const originalRoot = parseInstanceId(eventId)?.seriesId ?? eventId
+  const changedRoots = new Set([
+    ...before,
+    ...(result
+      ? [result.seriesId ?? parseInstanceId(result.id)?.seriesId ?? result.id]
+      : []),
+  ])
+  changedRoots.delete(originalRoot)
+  for (const root of changedRoots)
+    await reconcileReminders(userId, root, data.email_reminder === true)
   return result
 }
 
@@ -1852,8 +1844,11 @@ export async function deleteEvent(
   ...args: Parameters<typeof deleteEventImpl>
 ): Promise<void> {
   const [userId, eventId] = args
-  const before = await seriesCacheSpans(userId, eventId)
+  const before = await seriesReminderRoots(userId, eventId)
   await deleteEventImpl(...args)
-  await invalidateSeriesCache(userId, before)
   await reconcileReminders(userId, eventId, false)
+  for (const root of new Set(before)) {
+    if (root !== (parseInstanceId(eventId)?.seriesId ?? eventId))
+      await reconcileReminders(userId, root, false)
+  }
 }

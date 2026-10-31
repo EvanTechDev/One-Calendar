@@ -6,6 +6,7 @@ import { GeistSans } from 'geist/font/sans'
 import { cn } from '@zntr/utils'
 import type { Metadata } from 'next'
 import type React from 'react'
+import { APP_SUBTITLE, APP_TITLE } from '@/lib/metadata'
 
 const geistHeading = Geist({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -16,9 +17,6 @@ const instrumentSans = Instrument_Sans({
   variable: '--font-instrument-sans',
 })
 
-export const APP_TITLE = 'One Calendar'
-export const APP_SUBTITLE = 'Your life, stay safe.'
-
 export const metadata: Metadata = {
   title: APP_TITLE,
   description: APP_SUBTITLE,
@@ -27,12 +25,6 @@ export const metadata: Metadata = {
     title: APP_TITLE,
     description: APP_SUBTITLE,
     url: '/',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@One__Cal',
-    title: APP_TITLE,
-    description: APP_SUBTITLE,
   },
 }
 

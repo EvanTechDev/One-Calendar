@@ -1,4 +1,3 @@
-// @vitest-environment node
 /**
  * describeRecurrence must work in a route handler.
  *
@@ -11,8 +10,8 @@
  * The `node` environment above is the point of this file: the rest of the engine
  * suite runs in jsdom, which masked the problem.
  */
-import { describe, it, expect } from 'vitest'
-import { describeRecurrence } from '@/lib/recurrence/engine'
+import { describe, it, expect } from 'bun:test'
+import { describeRecurrence } from '@zntr/ui/calendar/lib/recurrence/engine'
 
 describe('describeRecurrence in a server environment', () => {
   it('describes a daily rule', () => {
@@ -47,6 +46,13 @@ describe('describeRecurrence in a server environment', () => {
     expect(describeRecurrence('FREQ=DAILY;COUNT=5', false)).not.toContain(
       'undefined',
     )
+  })
+
+  it('formats UNTIL as a readable localized calendar date', () => {
+    const rule = 'FREQ=DAILY;UNTIL=20261031T000000Z'
+    expect(describeRecurrence(rule, 'en')).toContain('Oct 31, 2026')
+    expect(describeRecurrence(rule, 'zh-CN')).toContain('2026年10月31日')
+    expect(describeRecurrence(rule, 'en')).not.toMatch(/T\d{6}Z/)
   })
 
   it('handles BYSETPOS and BYMONTHDAY', () => {

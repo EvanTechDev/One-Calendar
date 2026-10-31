@@ -1,0 +1,982 @@
+'use client'
+
+import { toCalendarDate } from '#calendar/lib/zoned-date'
+
+import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import {
+  useLiveAnchorRect,
+  pickPopoverSide,
+  buildAnchorStyle,
+} from '#calendar/hooks/use-anchored-popover'
+import {
+  Edit2,
+  Trash2,
+  X,
+  MapPin,
+  Users,
+  Calendar,
+  Bell,
+  AlignLeft,
+  ChevronDown,
+  Bookmark,
+  MoreHorizontal,
+  Send,
+  UserMinus,
+  Repeat,
+  ClipboardCopy,
+  Video,
+} from 'lucide-react'
+import { Button } from '@zntr/ui/button'
+import { Badge } from '@zntr/ui/badge'
+import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
+import { ButtonGroup } from '@zntr/ui/button-group'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@zntr/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@zntr/ui/select'
+import { format } from 'date-fns'
+import type { CalendarEvent } from '#calendar/lib/calendar-types'
+import type { Language } from '@zntr/i18n/calendar'
+import { translations } from '@zntr/i18n/calendar'
+import { dateLocale } from '#calendar/lib/date-locale'
+import { cn } from '@zntr/utils'
+import { useCalendar } from '#calendar/components/providers/calendar-context'
+import { useBookmarks } from '#calendar/components/providers/data-provider'
+import { Popover, PopoverAnchor, PopoverContent } from '@zntr/ui/popover'
+import { RemoveScroll } from 'react-remove-scroll'
+import { toast } from 'sonner'
+import { useCalendarHost, useCalendarRequest } from '@zntr/utils/calendar-host'
+import { describeRecurrence } from '#calendar/lib/recurrence/engine'
+import {
+  TAILWIND_BG_TO_HEX,
+  getEventAccentColor,
+} from '#calendar/lib/event-colors'
+import { childOverlayProps } from '#calendar/lib/popover-nesting'
+import { MeetingLinkControls } from '#calendar/components/app/event/event-meeting-link'
+import { useMeetingTiming } from '#calendar/hooks/use-meeting-timing'
+import { isJoinUrgent } from '#calendar/lib/meeting-timing'
+import { messageOr } from '#calendar/lib/fetch-json'
+
+export interface EventInvite {
+  id: string
+  email: string
+  status: 'pending' | 'accepted' | 'maybe' | 'declined'
+  inviteToken: string
+  emailSent: boolean
+  addedToCalendar: boolean
+  userName: string | null
+  userImage: string | null
+  /**
+   * The emailed link died before the participant joined; "Resend Invite"
+   * mints a fresh one (ADR-0013). Optional because older payloads may omit it.
+   */
+  inviteExpired?: boolean
+}
+
+function CategoryDot({ color }: { color?: string }) {
+  // Category colours are stored as Tailwind class names ('bg-blue-500'), not
+  // CSS colours — passing one to backgroundColor is silently invalid and
+  // every dot rendered gray. Translate through the shared map; accept a raw
+  // CSS colour as-is for callers that already resolved one.
+  const resolved = color
+    ? (TAILWIND_BG_TO_HEX[color] ?? (color.startsWith('bg-') ? null : color))
+    : null
+  return (
+    <span
+      aria-hidden
+      className="inline-block size-2.5 shrink-0 rounded-full"
+      style={{ backgroundColor: resolved || 'var(--muted-foreground)' }}
+    />
+  )
+}
+
+interface EventPreviewProps {
+  event: CalendarEvent | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onEdit: () => void
+  onDelete: () => void
+  _onDuplicate: () => void
+  language: Language
+  _timezone: string
+  anchorRect?: DOMRect | null
+  anchorElement?: HTMLElement | null
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
+  onInvitesChange?: (eventId: string, invites: EventInvite[]) => void
+  onCategoryChange?: (eventId: string, calendarId: string | null) => void
+}
+
+export default function EventPreview({
+  event,
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+  _onDuplicate,
+  language,
+  _timezone,
+  anchorRect = null,
+  anchorElement,
+  scrollContainerRef,
+  onInvitesChange,
+  onCategoryChange,
+}: EventPreviewProps) {
+  const { calendars, events } = useCalendar()
+  const _t = translations[language]
+  const locale = dateLocale(language)
+  const [participantsOpen, setParticipantsOpen] = useState(false)
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [invites, setInvites] = useState<EventInvite[]>(event?.invites ?? [])
+  const {
+    session: { data: session },
+    request,
+    origin,
+  } = useCalendarHost()
+  const fetchJson = useCalendarRequest()
+  const _isSignedIn = Boolean(session?.user)
+  const { bookmarks, createBookmark, deleteBookmark } = useBookmarks()
+  const ignoreOutsideUntilRef = useRef(0)
+  useEffect(() => {
+    if (open) {
+      ignoreOutsideUntilRef.current = Date.now() + 150
+    }
+  }, [open])
+
+  const invitesRef = useRef<EventInvite[]>([])
+  useEffect(() => {
+    invitesRef.current = invites
+  }, [invites])
+
+  // Anchor resolution shared with the event editor, so the two popovers
+  // position identically (CORE-191).
+  const effectiveAnchorRect = useLiveAnchorRect({
+    open,
+    anchorElement,
+    anchorSelector: event ? `[data-event-id="${CSS.escape(event.id)}"]` : null,
+    anchorRect,
+    scrollContainerRef,
+  })
+
+  const isSameInvites = (a: EventInvite[], b: EventInvite[]) =>
+    a.length === b.length &&
+    a.every((invite, index) => {
+      const other = b[index]
+      return (
+        other &&
+        invite.id === other.id &&
+        invite.status === other.status &&
+        invite.emailSent === other.emailSent &&
+        invite.addedToCalendar === other.addedToCalendar
+      )
+    })
+
+  useEffect(() => {
+    if (!open || !event || event.viewOnly) return
+
+    let cancelled = false
+    const pollInvites = async () => {
+      try {
+        const response = await request(
+          `/api/invites?eventId=${encodeURIComponent(event.id)}`,
+        )
+        if (!response.ok || cancelled) return
+        const data = await response.json()
+        const next = data?.invites
+        if (!Array.isArray(next) || cancelled) return
+        const changed = !isSameInvites(invitesRef.current, next)
+        setInvites((prev) => (isSameInvites(prev, next) ? prev : next))
+        if (changed) onInvitesChange?.(event.id, next)
+      } catch {}
+    }
+
+    const timerId = window.setInterval(pollInvites, 15000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timerId)
+    }
+  }, [open, event, onInvitesChange, request])
+
+  useEffect(() => {
+    if (event) {
+      const isCurrentEventBookmarked = bookmarks.some(
+        (bookmark: any) => bookmark.eventId === event.id,
+      )
+      setIsBookmarked(isCurrentEventBookmarked)
+    }
+  }, [event, bookmarks])
+
+  useEffect(() => {
+    if (event) {
+      setInvites(event.invites ?? [])
+    }
+  }, [event])
+
+  // The Meeting arrives with the event, not from a per-preview fetch. It used
+  // to be looked up in an effect here, which cost a visible beat on open and —
+  // because the popover reads the SWR-cached event list — showed nothing at all
+  // until a manual refresh after a save. Still resolved by lookup rather than a
+  // column on the event row (ADR-0019); that lookup just happens once, in the
+  // events query, instead of once per surface.
+  const timing = useMeetingTiming(open && event ? event : null)
+  const meeting = event?.meeting ?? null
+
+  if (!event || !open) return null
+
+  const getCalendarName = () => {
+    if (!event) return ''
+    const calendar = calendars.find((cal) => cal.id === event.calendarId)
+    return calendar ? calendar.name : ''
+  }
+
+  const formatDateRange = () => {
+    const startDate =
+      event.isAllDay || !_timezone
+        ? new Date(event.startDate)
+        : toCalendarDate(new Date(event.startDate), _timezone)
+    const endDate =
+      event.isAllDay || !_timezone
+        ? new Date(event.endDate)
+        : toCalendarDate(new Date(event.endDate), _timezone)
+    const dateFormat = 'yyyy-MM-dd HH:mm'
+    const startFormatted = format(startDate, dateFormat, { locale })
+    const endFormatted = format(endDate, dateFormat, { locale })
+    return `${startFormatted} – ${endFormatted}`
+  }
+
+  const formatNotificationTime = () => {
+    if (event.notification === null || event.notification === undefined) {
+      return _t.noReminder
+    }
+    if (event.notification === 0) return _t.atEventTime
+    if (event.notification % 60 === 0) {
+      return _t.hourBefore.replace('{hours}', String(event.notification / 60))
+    }
+    return _t.minutesBefore.replace('{minutes}', String(event.notification))
+  }
+
+  const seriesMaster = event.seriesId
+    ? events.find((e) => e.id === event.seriesId)
+    : undefined
+  // The active locale, not `isZh`: passing the boolean meant every language
+  // except Chinese read this one line in English.
+  const recurrenceSummary = event.rrule
+    ? describeRecurrence(event.rrule, language)
+    : seriesMaster?.rrule
+      ? describeRecurrence(seriesMaster.rrule, language)
+      : null
+
+  const _getInitials = (name: string) => name.charAt(0).toUpperCase()
+
+  const _hasParticipants =
+    event.participants &&
+    event.participants.length > 0 &&
+    event.participants.some((p) => p.trim() !== '')
+
+  const toggleParticipants = () => setParticipantsOpen(!participantsOpen)
+
+  const isRecurring = !!event?.rrule || !!event?.seriesId
+  /**
+   * Mirrors the event dialog's `canAllScope`: "all events" is only offered on
+   * the series' first occurrence. A raw master row IS the series root, so "all"
+   * stays allowed there.
+   */
+  const isRawMasterTarget =
+    !!event?.rrule && !event?.seriesId && !event?.recurrenceId
+  const canAllScope =
+    !!event && (isRawMasterTarget || event.isFirstInstance === true)
+
+  const toggleBookmark = async () => {
+    if (!event) return
+    if (isBookmarked) {
+      const bm = bookmarks.find((b: any) => b.eventId === event.id)
+      if (bm) {
+        await deleteBookmark(bm.id)
+      }
+      setIsBookmarked(false)
+      toast(_t.bookmarkRemoved, {
+        description: _t.eventRemovedFromBookmarks,
+      })
+    } else {
+      await createBookmark({ eventId: event.id })
+      setIsBookmarked(true)
+      toast(_t.bookmarkAdded, {
+        description: _t.eventAddedToBookmarks,
+      })
+    }
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onDelete()
+  }
+
+  const handleResendInvite = async (inviteId: string) => {
+    if (!event) return
+    try {
+      // Through fetchJson, not bare fetch: `fetch` only rejects when the request
+      // never completed, so a 403 or a 500 resolved normally and this reported
+      // "Invitation sent" for an invite that was not sent.
+      await fetchJson('/api/invites/manage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      })
+      toast.success(_t.invitationSent)
+    } catch (error) {
+      toast.error(messageOr(error, _t.invitationSendFailed))
+    }
+  }
+
+  /**
+   * Removes a participant from the chosen occurrences.
+   *
+   * For a recurring event the scope follows the same rule as an event edit:
+   * `all` only on the series' first occurrence, `following` elsewhere. See
+   * ADR-0007 (participant scope follows the same rules as event scope).
+   */
+  const handleRemoveParticipant = async (
+    inviteId: string,
+    scope: 'single' | 'following' | 'all' = 'all',
+  ) => {
+    if (!event) return
+    try {
+      const params = new URLSearchParams({ id: inviteId, scope })
+      if (isRecurring) params.set('occurrenceId', event.id)
+      await fetchJson(`/api/invites/manage?${params}`, {
+        method: 'DELETE',
+      })
+      // Correct for every scope here: the participant is gone from the
+      // occurrence being viewed, which is what this list shows. The 15-second
+      // poll reconciles the grant's remaining occurrences.
+      setInvites((prev) => prev.filter((i) => i.id !== inviteId))
+      toast.success(_t.participantRemoved)
+    } catch (error) {
+      toast.error(messageOr(error, _t.participantRemoveFailed))
+    }
+  }
+
+  /**
+   * Copies a participant's own invite link so the organiser can share it
+   * directly (e.g. over chat) instead of relying on the invite email. The
+   * token is per-participant, so each row copies a distinct link.
+   */
+  const handleCopyInviteLink = async (inviteToken: string) => {
+    const url = `${origin ?? window.location.origin}/invite/${inviteToken}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success(_t.inviteLinkCopied)
+    } catch {
+      // Clipboard access can be denied (insecure context, permission policy).
+      toast.error(_t.copyInviteLinkFailed)
+    }
+  }
+
+  const handleViewOnlyRsvp = async (
+    newStatus: 'accepted' | 'maybe' | 'declined',
+  ) => {
+    if (!event) return
+    const dbInvite = invites.find(
+      (i) => i.email === session?.user?.email?.toLowerCase(),
+    )
+    if (!dbInvite) return
+    try {
+      // Each occurrence of a recurring event carries its own answer, so the
+      // stamp is required. Omitting it wrote the invite-level status instead —
+      // which the calendar never reads — so the answer appeared to do nothing
+      // and every occurrence stayed "pending".
+      //
+      // The session endpoint, not the token one: the emailed link expires but
+      // the grant does not, so answering from the calendar must keep working
+      // after the link dies (ADR-0013).
+      await fetchJson('/api/invites/self', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteToken: dbInvite.inviteToken,
+          status: newStatus,
+          ...(event.recurrenceId ? { recurrenceId: event.recurrenceId } : {}),
+        }),
+      })
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === dbInvite.id ? { ...i, status: newStatus } : i,
+        ),
+      )
+    } catch (error) {
+      toast.error(messageOr(error, _t.rsvpUpdateFailed))
+    }
+  }
+
+  const userInvite = invites.find(
+    (i) => i.email === session?.user?.email?.toLowerCase(),
+  )
+
+  const organizerInfo = event.viewOnly
+    ? (event.organizer ?? null)
+    : session?.user
+      ? {
+          name: session.user.name || '',
+          email: session.user.email || '',
+          image: session.user.image ?? null,
+        }
+      : null
+
+  const handleViewOnlyCategoryChange = async (calendarId: string) => {
+    if (!event || !userInvite) return
+    const value = calendarId === '__uncategorized__' ? null : calendarId
+    try {
+      // Session-authenticated: the invite link may have expired by now, but
+      // the grant persists (ADR-0013).
+      //
+      // fetchJson, not bare fetch: a rejected HTTP status resolved normally
+      // here, so `onCategoryChange` moved the event locally and the popover
+      // showed it in the new calendar while the server still had it in the old
+      // one — a silent divergence with no error to notice.
+      await fetchJson('/api/invites/self', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteToken: userInvite.inviteToken,
+          categoryId: value ?? '__uncategorized__',
+        }),
+      })
+      onCategoryChange?.(event.id, value)
+    } catch (error) {
+      toast.error(messageOr(error, _t.moveEventFailed))
+    }
+  }
+
+  const popoverSide = pickPopoverSide(effectiveAnchorRect, 460, 520)
+  const anchorStyle = buildAnchorStyle(
+    effectiveAnchorRect,
+    popoverSide,
+    scrollContainerRef?.current,
+  )
+
+  const anchorNode = (
+    <PopoverAnchor asChild>
+      <div style={anchorStyle} />
+    </PopoverAnchor>
+  )
+
+  const renderedAnchor =
+    effectiveAnchorRect && scrollContainerRef?.current
+      ? createPortal(anchorNode, scrollContainerRef.current)
+      : anchorNode
+
+  return (
+    <RemoveScroll enabled={open}>
+      <Popover open={open} onOpenChange={onOpenChange} modal={false}>
+        {renderedAnchor}
+        <PopoverContent
+          key={event.id}
+          // Tagged as a CHILD OVERLAY: when this preview was opened from a
+          // row of a month/year view's "N more events" list, that list is its
+          // parent, and Radix — which portals this content to <body>, outside
+          // the list's layer — would read every interaction here as an
+          // outside click and close the list too. See lib/popover-nesting.
+          {...childOverlayProps}
+          side={popoverSide}
+          align="center"
+          sideOffset={12}
+          collisionPadding={20}
+          // Same height discipline as the editor: cap at what actually fits
+          // (Radix subtracts browser chrome), scroll inside.
+          // `mobile-fullscreen`: below 768px this popover becomes a
+          // full-screen overlay (ADR-0019); the rule lives in globals.css.
+          // There the desktop zoom entrance reads as a jump on a full-screen
+          // surface, so the mobile variant slides up instead.
+          className="mobile-fullscreen w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] overflow-y-auto rounded-xl p-0 max-md:data-open:zoom-in-100 max-md:data-open:slide-in-from-bottom-8 max-md:data-closed:zoom-out-100 max-md:data-closed:slide-out-to-bottom-8 max-md:duration-200"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onInteractOutside={(e) => {
+            if (Date.now() < ignoreOutsideUntilRef.current) {
+              e.preventDefault()
+              return
+            }
+            const target = e.target instanceof Element ? e.target : null
+            if (target?.closest('[data-event-id]')) {
+              e.preventDefault()
+              return
+            }
+            onOpenChange(false)
+          }}
+        >
+          <div className="flex justify-between items-center p-5">
+            <div className="w-24" />
+            <div className="flex space-x-2 ml-auto">
+              {!event.viewOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit()}
+                  className="h-8 w-8"
+                >
+                  <Edit2 className="h-5 w-5" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleBookmark}
+                className="h-8 w-8"
+              >
+                <Bookmark
+                  className={cn(
+                    'h-5 w-5',
+                    isBookmarked ? 'fill-blue-500 text-blue-500' : '',
+                  )}
+                />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDeleteClick}
+                className="h-8 w-8"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onOpenChange(false)}
+                className="h-8 w-8 ml-2"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="px-5 pb-5 flex">
+            <div
+              className="w-2 self-stretch rounded-full mr-4"
+              style={{ backgroundColor: getEventAccentColor(event.color) }}
+            />
+
+            <div className="flex-1">
+              <h2
+                className="mb-1 text-2xl font-bold break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                }}
+              >
+                {event.title}
+              </h2>
+              <p className="text-muted-foreground">{formatDateRange()}</p>
+            </div>
+          </div>
+
+          <div className="px-5 pb-5 space-y-4">
+            {event.location && event.location.trim() !== '' && (
+              <div className="flex items-start">
+                <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{event.location}</p>
+                </div>
+              </div>
+            )}
+
+            {meeting && (
+              <div className="flex items-start">
+                <Video className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <MeetingLinkControls
+                  meeting={meeting}
+                  urgent={isJoinUrgent(timing)}
+                  live={timing === 'live'}
+                />
+              </div>
+            )}
+
+            {invites.length > 0 && (
+              <div className="flex items-start">
+                <Users className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="flex min-w-0 items-center justify-between gap-2 cursor-pointer"
+                    onClick={toggleParticipants}
+                  >
+                    {/* `min-w-0 truncate`: a locale that spells this out (e.g.
+                        Swahili "washiriki", Greek "συμμετέχοντες") pushed the
+                        chevron out of the popover without it. */}
+                    <p className="min-w-0 truncate">
+                      {_t.participantsCount.replace(
+                        '{count}',
+                        String(invites.length),
+                      )}
+                    </p>
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 shrink-0 transition-transform duration-200',
+                        participantsOpen ? 'transform rotate-180' : '',
+                      )}
+                    />
+                  </div>
+                  {participantsOpen && (
+                    <div className="mt-2 space-y-2">
+                      {organizerInfo &&
+                        (organizerInfo.name || organizerInfo.email) && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center min-w-0">
+                              <Avatar size="sm">
+                                {organizerInfo.image ? (
+                                  <AvatarImage src={organizerInfo.image} />
+                                ) : null}
+                                <AvatarFallback>
+                                  {(
+                                    organizerInfo.name ||
+                                    organizerInfo.email ||
+                                    '?'
+                                  )
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="ml-2 truncate text-sm">
+                                {organizerInfo.name || organizerInfo.email}
+                              </span>
+                              <span className="ml-1.5 shrink-0">
+                                <Badge className="bg-muted text-muted-foreground">
+                                  {_t.organizer}
+                                </Badge>
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      {invites.map((invite) => (
+                        <div
+                          key={invite.id}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center min-w-0">
+                            <Avatar size="sm">
+                              {invite.userImage ? (
+                                <AvatarImage src={invite.userImage} />
+                              ) : null}
+                              <AvatarFallback>
+                                {invite.email.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="ml-2 truncate text-sm">
+                              {invite.userName || invite.email}
+                            </span>
+                            <span className="ml-1.5 shrink-0">
+                              <Badge
+                                variant={
+                                  invite.status === 'accepted'
+                                    ? 'default'
+                                    : invite.status === 'declined'
+                                      ? 'destructive'
+                                      : invite.status === 'maybe'
+                                        ? 'secondary'
+                                        : 'outline'
+                                }
+                                className={cn(
+                                  invite.status === 'accepted' &&
+                                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                                  invite.status === 'pending' &&
+                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                                  invite.status === 'declined' &&
+                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                                )}
+                              >
+                                {invite.status === 'accepted'
+                                  ? _t.accepted
+                                  : invite.status === 'declined'
+                                    ? _t.declined
+                                    : invite.status === 'maybe'
+                                      ? _t.maybe
+                                      : _t.pending}
+                              </Badge>
+                            </span>
+                            {invite.inviteExpired ? (
+                              // The link died before they joined — they cannot
+                              // act until the organiser resends (ADR-0013).
+                              <span className="ml-1.5 shrink-0">
+                                <Badge
+                                  variant="outline"
+                                  className="whitespace-nowrap"
+                                >
+                                  {_t.inviteExpired}
+                                </Badge>
+                              </span>
+                            ) : null}
+                          </div>
+                          {!event.viewOnly && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 shrink-0"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              {/* `w-auto`, because the shared default is
+                                  `w-(--radix-dropdown-menu-trigger-width)`:
+                                  the trigger here is a 32px icon button, so the
+                                  menu was locked to 32px and items like "Copy
+                                  invite link" wrapped inside it. `min-w-52`
+                                  only raised the floor, it did not release the
+                                  width. Tailwind emits `w-auto` after the
+                                  default, so this one wins. The component's own
+                                  `min-w-32` still applies as a lower bound. */}
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-auto"
+                              >
+                                {!invite.emailSent ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleResendInvite(invite.id)
+                                    }
+                                  >
+                                    <Send className="mr-2 h-4 w-4 shrink-0" />
+                                    {_t.sendInvite}
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleResendInvite(invite.id)
+                                    }
+                                  >
+                                    <Send className="mr-2 h-4 w-4 shrink-0" />
+                                    {_t.resendInvite}
+                                  </DropdownMenuItem>
+                                )}
+                                {invite.inviteToken ? (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleCopyInviteLink(invite.inviteToken)
+                                    }
+                                  >
+                                    <ClipboardCopy className="mr-2 h-4 w-4 shrink-0" />
+                                    {_t.copyInviteLink}
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {isRecurring ? (
+                                  <>
+                                    <DropdownMenuItem
+                                      className="text-destructive"
+                                      onClick={() =>
+                                        handleRemoveParticipant(
+                                          invite.id,
+                                          'single',
+                                        )
+                                      }
+                                    >
+                                      <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                      {_t.removeParticipantThisEvent}
+                                    </DropdownMenuItem>
+                                    {canAllScope ? (
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() =>
+                                          handleRemoveParticipant(
+                                            invite.id,
+                                            'all',
+                                          )
+                                        }
+                                      >
+                                        <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                        {_t.removeParticipantAllEvents}
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() =>
+                                          handleRemoveParticipant(
+                                            invite.id,
+                                            'following',
+                                          )
+                                        }
+                                      >
+                                        <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                        {_t.removeParticipantThisAndFollowing}
+                                      </DropdownMenuItem>
+                                    )}
+                                  </>
+                                ) : (
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() =>
+                                      handleRemoveParticipant(invite.id, 'all')
+                                    }
+                                  >
+                                    <UserMinus className="mr-2 h-4 w-4 shrink-0" />
+                                    {_t.removeParticipant}
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(getCalendarName() || (event.viewOnly && userInvite)) && (
+              <div className="flex items-start">
+                <Calendar className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  {event.viewOnly && userInvite ? (
+                    <Select
+                      value={event.calendarId || '__uncategorized__'}
+                      onValueChange={handleViewOnlyCategoryChange}
+                    >
+                      {/* A stock trigger on purpose: default size, natural
+                          width. The colour dot before the name carries the
+                          category colour. */}
+                      <SelectTrigger aria-label={_t.selectCalendar}>
+                        <SelectValue placeholder={_t.selectCalendar}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <CategoryDot
+                              color={
+                                calendars.find(
+                                  (cal) => cal.id === event.calendarId,
+                                )?.color
+                              }
+                            />
+                            {getCalendarName() || _t.uncategorized}
+                          </span>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        <SelectItem value="__uncategorized__">
+                          <span className="inline-flex items-center gap-2">
+                            <CategoryDot />
+                            {_t.uncategorized}
+                          </span>
+                        </SelectItem>
+                        {calendars.map((calendar) => (
+                          <SelectItem key={calendar.id} value={calendar.id}>
+                            <span className="inline-flex items-center gap-2">
+                              <CategoryDot color={calendar.color} />
+                              {calendar.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p>{getCalendarName()}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {recurrenceSummary && (
+              <div className="flex items-start">
+                <Repeat className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p>{recurrenceSummary}</p>
+                </div>
+              </div>
+            )}
+
+            {event.notification !== null &&
+              event.notification !== undefined && (
+                <div className="flex items-start">
+                  <Bell className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p>{formatNotificationTime()}</p>
+                    {/* Shown only when it is actually true — the old copy
+                        claimed email unconditionally and no email existed. */}
+                    {event.emailReminder === true && (
+                      <p className="text-sm text-muted-foreground">
+                        {_t.emailReminder}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {event.description && event.description.trim() !== '' && (
+              <div className="flex items-start">
+                <AlignLeft className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <p
+                    className="whitespace-pre-wrap break-words break-all overflow-hidden [overflow-wrap:anywhere]"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 4,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
+                    {event.description}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {event.viewOnly && userInvite && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">{_t.yourResponse}</p>
+                {/*
+                  Each occurrence is answered independently, so say which one
+                  this is. Without it the buttons look like they set a single
+                  answer for the whole series.
+                */}
+                {isRecurring && (
+                  <p className="text-xs text-muted-foreground">
+                    {_t.responseAppliesToThisDateOnly}
+                  </p>
+                )}
+                {/*
+                  `w-full` plus `flex-1` per button, not ButtonGroup's default
+                  `w-fit`: "Yes/Maybe/No" is three short words in English and
+                  three long ones almost everywhere else (nb "Kanskje", el
+                  "Ίσως", lt "Galbūt"), so a fit-width group grew past the
+                  popover instead of dividing the width it already has.
+                */}
+                <ButtonGroup orientation="horizontal" className="w-full">
+                  <Button
+                    variant={
+                      userInvite.status === 'accepted' ? 'default' : 'outline'
+                    }
+                    className="min-w-0 flex-1"
+                    onClick={() => handleViewOnlyRsvp('accepted')}
+                  >
+                    <span className="truncate">{_t.yes}</span>
+                  </Button>
+                  <Button
+                    variant={
+                      userInvite.status === 'maybe' ? 'default' : 'outline'
+                    }
+                    className="min-w-0 flex-1"
+                    onClick={() => handleViewOnlyRsvp('maybe')}
+                  >
+                    <span className="truncate">{_t.maybe}</span>
+                  </Button>
+                  <Button
+                    variant={
+                      userInvite.status === 'declined' ? 'default' : 'outline'
+                    }
+                    className="min-w-0 flex-1"
+                    onClick={() => handleViewOnlyRsvp('declined')}
+                  >
+                    <span className="truncate">{_t.no}</span>
+                  </Button>
+                </ButtonGroup>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </RemoveScroll>
+  )
+}

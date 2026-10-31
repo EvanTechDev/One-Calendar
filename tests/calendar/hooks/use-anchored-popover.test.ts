@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+await import('./../../support/dom')
 /**
  * Positioning rules for the anchored popovers (event preview + editor).
  *
@@ -10,15 +10,15 @@
  * a near-full-width anchor — neither side fit — and flipped above/below; week
  * view attached at the block's vertical middle regardless of the click.
  */
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import {
+import { describe, it, expect, afterEach, vi } from 'bun:test'
+const { renderHook, act } = await import('@testing-library/react')
+const {
   pickPopoverSide,
   buildAnchorStyle,
   anchorRectForClick,
   clampRectToViewport,
   useLiveAnchorRect,
-} from '@/hooks/use-anchored-popover'
+} = await import('@zntr/ui/calendar/hooks/use-anchored-popover')
 
 const WIDTH = 460
 const HEIGHT = 520
@@ -73,20 +73,74 @@ describe('anchorRectForClick', () => {
   const block = rect(300, 200, 180, 600)
 
   it('pins the vertical position to the click', () => {
+    setViewport(1440, 900)
     const anchored = anchorRectForClick(block, 350, 750)
     expect(anchored.top).toBe(750)
     expect(anchored.height).toBe(0)
   })
 
   it('keeps the block horizontal extent so side space is judged correctly', () => {
+    setViewport(1440, 900)
     const anchored = anchorRectForClick(block, 350, 750)
     expect(anchored.left).toBe(300)
     expect(anchored.width).toBe(180)
   })
 
   it('clamps a click outside the block back onto it', () => {
+    setViewport(1440, 900)
     expect(anchorRectForClick(block, 350, 150).top).toBe(200)
     expect(anchorRectForClick(block, 350, 900).top).toBe(800)
+  })
+
+  // THE DAY-VIEW CONTRACT: a block wider than half the viewport (day view
+  // spans most of the grid) must NOT judge sides from its own edges — that
+  // forced the popover above/below the block. The anchor collapses to a
+  // narrow strip around the click's X, so the popover opens beside the
+  // cursor and overlaps the wide block instead.
+  describe('wide blocks (day view)', () => {
+    // 1300px block in a 1440px viewport → 90% > 50% → narrow anchor.
+    const wideBlock = rect(64, 200, 1300, 48)
+
+    it('collapses the anchor to a strip around the click', () => {
+      setViewport(1440, 900)
+      const anchored = anchorRectForClick(wideBlock, 700, 220)
+      expect(anchored.width).toBe(80)
+      expect(anchored.left).toBe(660) // centred on the click X
+      expect(anchored.top).toBe(220)
+    })
+
+    it('keeps the strip inside the block for clicks near its edges', () => {
+      setViewport(1440, 900)
+      const nearLeft = anchorRectForClick(wideBlock, 70, 220)
+      expect(nearLeft.left).toBe(64)
+      const nearRight = anchorRectForClick(wideBlock, 1360, 220)
+      expect(nearRight.left + nearRight.width).toBeCloseTo(1364)
+    })
+
+    it('lets pickPopoverSide choose a horizontal side from the strip', () => {
+      setViewport(1440, 900)
+      const anchored = anchorRectForClick(wideBlock, 700, 220)
+      expect(pickPopoverSide(anchored, WIDTH, HEIGHT)).toBe('right')
+    })
+
+    it('triggers even when the sidebar makes blockRect.left large', () => {
+      // Sidebar expanded: block starts at x=364 but is still 900px wide
+      // (62.5% of a 1440px viewport) — the old sideRoom check missed this
+      // because blockRect.left (364) exceeded the threshold.
+      setViewport(1440, 900)
+      const blockWithSidebar = rect(364, 200, 900, 48)
+      const anchored = anchorRectForClick(blockWithSidebar, 800, 220)
+      expect(anchored.width).toBe(80)
+      expect(pickPopoverSide(anchored, WIDTH, HEIGHT)).not.toBe('top')
+      expect(pickPopoverSide(anchored, WIDTH, HEIGHT)).not.toBe('bottom')
+    })
+
+    it('still uses the block extent when the block is narrow (week view)', () => {
+      setViewport(1440, 900)
+      const anchored = anchorRectForClick(rect(300, 200, 180, 600), 350, 750)
+      expect(anchored.left).toBe(300)
+      expect(anchored.width).toBe(180)
+    })
   })
 })
 

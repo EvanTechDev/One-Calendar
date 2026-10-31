@@ -1,11 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import {
-  bookmarkEvent,
-  listBookmarkedEvents,
-  removeBookmark,
-} from '@/lib/mcp/bookmark-tools'
+import { mock as moduleMock } from 'bun:test'
+await import('./../../../support/dom')
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 
-const state = vi.hoisted(() => {
+const state = (() => {
   const COLUMNS: Record<string, string[]> = {
     bookmarked_events: ['id', 'userId', 'eventId', 'createdAt'],
     calendar_events: [
@@ -248,9 +245,11 @@ const state = vi.hoisted(() => {
   }
 
   return { db, store, columns: COLUMNS }
-})
+})()
 
-vi.mock('drizzle-orm', () => {
+const originalDrizzle = { ...(await import('drizzle-orm')) }
+const originalSchema = { ...(await import('@/lib/drizzle/schema')) }
+moduleMock.module('drizzle-orm', () => {
   const eq = (left: unknown, right: unknown) => ({ op: 'eq', left, right })
   const and = (...conds: unknown[]) => ({ op: 'and', conds })
   const inArray = (left: unknown, right: unknown[]) => ({
@@ -263,10 +262,10 @@ vi.mock('drizzle-orm', () => {
     op: 'count',
     sql: strings.join(''),
   })
-  return { eq, and, inArray, desc, sql }
+  return { ...originalDrizzle, eq, and, inArray, desc, sql }
 })
 
-vi.mock('@/lib/drizzle/schema', () => {
+moduleMock.module('@/lib/drizzle/schema', () => {
   const mk = (name: string) => {
     const t: Record<string, unknown> = { __table: name }
     for (const col of state.columns[name]) {
@@ -275,6 +274,7 @@ vi.mock('@/lib/drizzle/schema', () => {
     return t
   }
   return {
+    ...originalSchema,
     bookmarkedEvents: mk('bookmarked_events'),
     calendarEvents: mk('calendar_events'),
     eventInvites: mk('event_invites'),
@@ -282,13 +282,15 @@ vi.mock('@/lib/drizzle/schema', () => {
   }
 })
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => state.db,
 }))
 
-vi.mock('@/lib/api-helpers', () => ({
+moduleMock.module('@/lib/api-helpers', () => ({
   decryptEvent: (event: unknown) => ({ ...(event as object) }),
 }))
+const { bookmarkEvent, listBookmarkedEvents, removeBookmark } =
+  await import('@/lib/mcp/bookmark-tools')
 
 function seedUser(id: string, email: string) {
   state.store.user.push({ id, name: 'User', email })

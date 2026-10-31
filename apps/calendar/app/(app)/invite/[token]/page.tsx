@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { MapPin, AlignLeft, Calendar, XCircle, Repeat } from 'lucide-react'
+import {
+  MapPin,
+  AlignLeft,
+  Calendar,
+  XCircle,
+  Repeat,
+  Video,
+} from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Spinner } from '@zntr/ui/spinner'
 import { Avatar, AvatarImage, AvatarFallback } from '@zntr/ui/avatar'
@@ -22,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@zntr/ui/select'
-import { getEventAccentColor } from '@/lib/event-colors'
+import { getEventAccentColor } from '@zntr/ui/calendar/lib/event-colors'
 
 interface InviteData {
   invite: {
@@ -45,6 +52,8 @@ interface InviteData {
      * see ADR-0006 (participants never receive the recurrence rule).
      */
     recurrenceSummary: string | null
+    /** Join link for the attached Zentra Meet room, when there is one. */
+    meetingUrl: string | null
   }
   /** The occurrences this link grants, each with its own RSVP. Null if not recurring. */
   occurrences:
@@ -99,7 +108,12 @@ export default function InvitePage() {
   const [addError, setAddError] = useState('')
 
   useEffect(() => {
-    fetch(`/api/invite/${token}`)
+    // Aborted on cleanup so navigating away mid-flight cannot set state on an
+    // unmounted page, and so a slow response for a previous `token` can never
+    // land on top of the current one's.
+    const controller = new AbortController()
+    const { signal } = controller
+    fetch(`/api/invite/${token}`, { signal })
       .then((res) => {
         if (!res.ok) throw new Error('Invite not found')
         return res.json()
@@ -131,9 +145,12 @@ export default function InvitePage() {
         setLoading(false)
       })
       .catch((err) => {
+        // An abort is this effect's own teardown, not a failure to report.
+        if (controller.signal.aborted) return
         setError(err.message)
         setLoading(false)
       })
+    return () => controller.abort()
   }, [token])
 
   const handleRsvp = async (newStatus: 'accepted' | 'maybe' | 'declined') => {
@@ -351,6 +368,23 @@ export default function InvitePage() {
               </div>
             )}
 
+            {event.meetingUrl && (
+              <div className="flex items-start">
+                <Video className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
+                <div className="flex-1">
+                  <Button asChild size="sm">
+                    <a
+                      href={event.meetingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Join with Zentra Meet
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {event.location && (
               <div className="flex items-start">
                 <MapPin className="h-5 w-5 mr-3 mt-0.5 text-muted-foreground" />
@@ -432,6 +466,12 @@ export default function InvitePage() {
                     <Calendar className="mr-2 h-4 w-4" />
                     Add to My Calendar
                   </Button>
+                )}
+                {canAddToCalendar && !isRegisteredUser && (
+                  <p className="w-full text-left text-sm text-muted-foreground">
+                    Sign in with the invited account to add this event and
+                    choose a category.
+                  </p>
                 )}
               </>
             )}

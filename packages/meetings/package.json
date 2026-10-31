@@ -1,0 +1,32 @@
+{
+  "name": "@zntr/meetings",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./operations": "./src/operations.ts",
+    "./sessions": "./src/sessions.ts",
+    "./readonly-calendar": "./src/readonly-calendar.ts",
+    "./dashboard": "./src/dashboard.ts",
+    "./db": "./src/db.ts"
+  },
+  "scripts": {
+    "build": "bun check",
+    "build:check": "bun check && bun check",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src",
+    "lint:check": "oxlint --config ../../config/oxlint.json src",
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/meetings/",
+    "test:watch": "bun test --isolate --watch ../../tests/meetings/"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1"
+  }
+}

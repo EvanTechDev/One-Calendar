@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { facingModeFromLocalTrack } from 'livekit-client'
 import { Mic, MicOff, Video, VideoOff, Lock } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
@@ -12,13 +13,22 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { cn } from '@zntr/utils'
-import { loadUserChoices, saveUserChoices } from '@/lib/user-choices'
+import {
+  defaultUserChoices,
+  loadUserChoices,
+  saveUserChoices,
+} from '@/lib/user-choices'
+import { MeetingWhen } from '@/components/room/meeting-identity'
+import { MicLevel } from '@/components/room/mic-level'
+import type { RoomEventContext } from '@/lib/event-context'
 import type { UserChoices } from '@/lib/user-choices'
 
 interface PreJoinScreenProps {
   roomName: string
   defaultUsername?: string
   error?: string
+  /** The calendar event this room belongs to, when it has one. */
+  eventContext?: RoomEventContext
   onJoin: (choices: UserChoices) => Promise<void>
 }
 
@@ -26,6 +36,7 @@ export function PreJoinScreen({
   roomName,
   defaultUsername,
   error,
+  eventContext,
   onJoin,
 }: PreJoinScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -37,9 +48,22 @@ export function PreJoinScreen({
   const [videoDeviceId, setVideoDeviceId] = useState<string>()
   const [audioDeviceId, setAudioDeviceId] = useState<string>()
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
+  const [mirrored, setMirrored] = useState(true)
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
   const [joining, setJoining] = useState(false)
   const [isE2ee, setIsE2ee] = useState(false)
+  const [deviceNotice, setDeviceNotice] = useState<string>()
+  /**
+   * The join preferences this screen shows no control for — noise cancellation
+   * and camera background, set in the dashboard's Preferences tab. Held so
+   * `handleJoin` can hand them to ActiveRoom, which applies them once the
+   * tracks exist. Dropping them here is what would make those settings save
+   * and do nothing.
+   */
+  const [passThrough, setPassThrough] = useState({
+    noiseFilterEnabled: defaultUserChoices.noiseFilterEnabled,
+    backgroundEffect: defaultUserChoices.backgroundEffect,
+  })
 
   // Restore saved choices once on mount.
   useEffect(() => {
@@ -49,8 +73,34 @@ export function PreJoinScreen({
     setAudioEnabled(saved.audioEnabled)
     setVideoDeviceId(saved.videoDeviceId)
     setAudioDeviceId(saved.audioDeviceId)
+    setPassThrough({
+      noiseFilterEnabled: saved.noiseFilterEnabled,
+      backgroundEffect: saved.backgroundEffect,
+    })
     setIsE2ee(window.location.hash.length > 1)
   }, [defaultUsername])
+
+  // Device lists are refreshed independently of the camera preview, so an
+  // audio-only joiner can still pick a microphone.
+  useEffect(() => {
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        if (cancelled) return
+        setVideoDevices(devices.filter((d) => d.kind === 'videoinput'))
+        setAudioDevices(devices.filter((d) => d.kind === 'audioinput'))
+      } catch {
+        // Enumeration is best-effort; the join flow does not depend on it.
+      }
+    }
+    refresh()
+    navigator.mediaDevices.addEventListener('devicechange', refresh)
+    return () => {
+      cancelled = true
+      navigator.mediaDevices.removeEventListener('devicechange', refresh)
+    }
+  }, [])
 
   // Camera preview lifecycle.
   useEffect(() => {
@@ -76,18 +126,41 @@ export function PreJoinScreen({
         }
         stopStream()
         streamRef.current = stream
+        setDeviceNotice(undefined)
+        // Mirror a front camera only. Mirroring serves the intuition of
+        // watching yourself; a rear camera points at the world, where a flip
+        // just reverses it. The SDK reads facingMode where the browser exposes
+        // it and falls back to the device label, so this is "probable" rather
+        // than certain — a wrong guess is a cosmetic flip, not a broken call.
+        const [videoTrack] = stream.getVideoTracks()
+        setMirrored(
+          videoTrack
+            ? facingModeFromLocalTrack(videoTrack).facingMode === 'user'
+            : true,
+        )
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
-        // Populate device lists once we have permission.
+        // Labels only arrive once permission is granted.
         navigator.mediaDevices.enumerateDevices().then((devices) => {
           if (cancelled) return
           setVideoDevices(devices.filter((d) => d.kind === 'videoinput'))
           setAudioDevices(devices.filter((d) => d.kind === 'audioinput'))
         })
       })
-      .catch(() => {
-        if (!cancelled) setVideoEnabled(false)
+      .catch((error: unknown) => {
+        if (cancelled) return
+        // A silent toggle flip is indistinguishable from a user choice, so
+        // say what actually happened.
+        const name = error instanceof Error ? error.name : ''
+        setDeviceNotice(
+          name === 'NotAllowedError'
+            ? 'Camera permission denied. Allow it in your browser settings to show video.'
+            : name === 'NotFoundError'
+              ? 'No camera found on this device.'
+              : 'Your camera could not be started.',
+        )
+        setVideoEnabled(false)
       })
 
     return () => {
@@ -103,7 +176,9 @@ export function PreJoinScreen({
       audioEnabled,
       videoDeviceId,
       audioDeviceId,
+      ...passThrough,
     }
+    // A merging write, so the fields this screen does not own survive.
     saveUserChoices(choices)
     setJoining(true)
     try {
@@ -124,7 +199,13 @@ export function PreJoinScreen({
                 autoPlay
                 playsInline
                 muted
-                className="size-full -scale-x-100 object-cover"
+                // `object-contain` so the preview shows the frame you will
+                // actually publish: `object-cover` cropped it, so the preview
+                // disagreed with the call.
+                className={cn(
+                  'size-full object-contain',
+                  mirrored && '-scale-x-100',
+                )}
               />
             ) : (
               <div className="flex size-full items-center justify-center text-muted-foreground">
@@ -162,6 +243,10 @@ export function PreJoinScreen({
               </Button>
             </div>
           </div>
+          <MicLevel deviceId={audioDeviceId} enabled={audioEnabled} />
+          {deviceNotice ? (
+            <p className="text-sm text-muted-foreground">{deviceNotice}</p>
+          ) : null}
           <div className="grid gap-2 sm:grid-cols-2">
             <DeviceSelect
               devices={videoDevices}
@@ -180,15 +265,24 @@ export function PreJoinScreen({
 
         <div className="flex flex-col justify-center space-y-4">
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold">Ready to join?</h1>
+            <h1 className="text-xl font-semibold">
+              {eventContext ? eventContext.title : 'Ready to join?'}
+            </h1>
+            {eventContext ? <MeetingWhen eventContext={eventContext} /> : null}
             <p
               className={cn(
                 'flex items-center gap-1.5 text-sm text-muted-foreground',
               )}
             >
               {isE2ee ? <Lock className="size-3.5" /> : null}
-              Room {roomName}
+              {eventContext ? 'Meeting' : 'Room'} {roomName}
               {isE2ee ? ' · encrypted' : ''}
+            </p>
+            {/* Say plainly what happens to chat either way (ADR 0020). */}
+            <p className="text-xs text-muted-foreground">
+              {isE2ee
+                ? 'End-to-end encrypted. Chat is not saved.'
+                : 'Chat messages are saved for this meeting.'}
             </p>
           </div>
           <Input
@@ -197,7 +291,9 @@ export function PreJoinScreen({
             placeholder="Your name"
             aria-label="Your name"
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && username.trim()) handleJoin()
+              if (event.key === 'Enter' && username.trim() && !joining) {
+                handleJoin()
+              }
             }}
           />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { format, parseISO, isValid } from 'date-fns'
+await import('./../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const { format, parseISO, isValid } = await import('date-fns')
 
 describe('date utilities', () => {
   it('formats date correctly', () => {

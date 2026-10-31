@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'One Calendar',
-    short_name: 'One Calendar',
-    description: 'All your events in one place, beautifully organized.',
+    name: 'Zentra Calendar',
+    short_name: 'Zentra Calendar',
+    description: 'The next gen calendar powered by AI agent.',
     id: '/app',
     start_url: '/app',
     scope: '/app',
@@ -15,7 +15,13 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en',
     icons: [
       {
-        src: '/icon.svg',
+        // The light variant explicitly, not `/icon.svg`. An installed app's
+        // icon is rasterised once by the OS, and that rasteriser does not
+        // reliably evaluate the `prefers-color-scheme` query `/icon.svg` uses —
+        // so which of the two variants got baked in would be luck. The artwork
+        // is self-contained (its own gradient plate), so it does not need to
+        // match the launcher's theme.
+        src: '/logo-light.svg',
         sizes: 'any',
         type: 'image/svg+xml',
         purpose: 'any',

@@ -22,7 +22,7 @@ function getEvlog() {
       },
     })
     _evlog = createEvlog({
-      service: 'one-calendar',
+      service: 'zentra-calendar',
       drain: async (ctx) => {
         const results = await Promise.allSettled([
           mainDrain(ctx),

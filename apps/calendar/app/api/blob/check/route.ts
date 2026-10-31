@@ -1,42 +1,107 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/drizzle/client'
-import { sql } from 'drizzle-orm'
+import {
+  MAX_RETENTION_DAYS,
+  MIN_RETENTION_DAYS,
+  parseRequestedRetentionDays,
+  secretMatches,
+} from '@/lib/mcp/cleanup-config'
+import {
+  MAINTENANCE_JOBS,
+  maintenanceSucceeded,
+  runMaintenance,
+  type MaintenanceJobName,
+} from '@/lib/maintenance/jobs'
 
 export const runtime = 'nodejs'
 
+/**
+ * The daily maintenance entry point.
+ *
+ * The path is still the health check this started as, on purpose: it is
+ * already wired to a cron, and renaming it would mean a deployment whose
+ * `vercel.json` is being read has to pick up a new path before any of the jobs
+ * below run. It is more than a health check now — see `lib/maintenance/jobs.ts`
+ * for the jobs and why they are gathered here.
+ *
+ * `?jobs=auditLogs,expiredMeetings` runs a subset, for when one chore needs
+ * poking without waiting a day. `?retentionDays=7` overrides the MCP audit
+ * window for this run only, so a suspicious `deleted: 0` can be settled by
+ * pruning with a window small enough to be visible.
+ */
 export async function GET(request: Request) {
-  try {
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
+  const cronSecret = process.env.CRON_SECRET
+  const authHeader = request.headers.get('authorization')
+  const provided = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : null
 
-    if (!cronSecret) {
-      return NextResponse.json(
-        { error: 'Missing CRON_SECRET' },
-        { status: 500 },
-      )
-    }
+  // Fail closed, and say which half is missing: a 401 on an unset secret looks
+  // identical to a 401 on a wrong one, and that ambiguity is what left four
+  // crons dead for weeks.
+  if (!cronSecret) {
+    console.error('Maintenance: CRON_SECRET is not set')
+    return NextResponse.json(
+      { error: 'CRON_SECRET is not configured' },
+      { status: 500 },
+    )
+  }
 
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!secretMatches(provided, cronSecret)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
-    const tables = await getDb().execute(sql<{ table_name: string }>`
-      SELECT table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'public'
-        AND table_type = 'BASE TABLE'
-      ORDER BY table_name ASC
-    `)
+  const url = new URL(request.url)
+  const requested = url.searchParams.get('jobs')
+  const names = requested
+    ? (requested.split(',').map((name) => name.trim()) as MaintenanceJobName[])
+    : undefined
+  const known = Object.keys(MAINTENANCE_JOBS)
+  const unknown = (names ?? []).filter(
+    (name) => !known.includes(name as MaintenanceJobName),
+  )
+  if (unknown.length > 0) {
+    return NextResponse.json(
+      { error: `Unknown job(s): ${unknown.join(', ')}`, jobs: known },
+      { status: 400 },
+    )
+  }
 
-    return NextResponse.json({
-      tables: tables.map((row) => row.table_name),
-    })
-  } catch (error) {
-    console.error('blob.check failed', error)
+  // Strict, unlike the environment variable: a typo here is answered with a 400
+  // rather than silently pruning under a window the caller did not ask for.
+  const auditRetentionDays = parseRequestedRetentionDays(
+    url.searchParams.get('retentionDays'),
+  )
+  if (auditRetentionDays === null) {
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: `retentionDays must be an integer between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`,
       },
+      { status: 400 },
+    )
+  }
+
+  try {
+    const results = await runMaintenance(names, { auditRetentionDays })
+    const ok = maintenanceSucceeded(results)
+    const summary = Object.fromEntries(
+      Object.entries(results).map(([name, result]) => [
+        name,
+        result.ok ? 'ok' : 'failed',
+      ]),
+    )
+    // One line, greppable: "Maintenance ran" with nothing else in the log means
+    // this route was never reached at all, which is a different problem from a
+    // job that ran and failed, and the two used to look the same.
+    console.info('Maintenance ran', {
+      jobs: names ?? known,
+      summary,
+      schedule: request.headers.get('x-vercel-cron-schedule'),
+    })
+    return NextResponse.json({ ok, results }, { status: ok ? 200 : 500 })
+  } catch (error) {
+    console.error('Maintenance failed:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 },
     )
   }

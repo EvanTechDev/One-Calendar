@@ -73,10 +73,30 @@ export interface EmailOTPOptions {
   expiresIn?: number
 }
 
+export interface McpOAuthOptions {
+  resource: string
+  loginPage: string
+  consentPage: string
+  verificationUri: string
+  scopes: string[]
+  accessTokenExpiresIn?: number
+  refreshTokenExpiresIn?: number
+}
+
 export interface PluginOptions {
+  desktop?: DesktopAuthOptions
   twoFactor?: boolean | TwoFactorOptions
   sentinel?: boolean | SentinelOptions
+  /** Vercel BotID through Better Auth's captcha plugin. */
+  botId?: boolean
   emailOTP?: boolean | EmailOTPOptions
+  mcpOAuth?: McpOAuthOptions
+}
+
+export interface DesktopAuthOptions {
+  clientId: string
+  redirectUri: string
+  resource: string
 }
 
 export interface PasswordHashOptions {
@@ -84,10 +104,30 @@ export interface PasswordHashOptions {
   verify: (input: { hash: string; password: string }) => Promise<boolean>
 }
 
+/**
+ * Better Auth's `advanced` block, narrowed to what this monorepo uses.
+ *
+ * Cross-subdomain cookies are the only way two apps on sibling subdomains
+ * (calendar + meet) can see one session: Better Auth emits no cookie `Domain`
+ * attribute at all unless `crossSubDomainCookies.enabled` is set, so without
+ * this passthrough a meet visitor is always anonymous no matter what the
+ * apps' baseURLs say. This only works within one registered domain — a
+ * cookie can never be shared across two different registered domains.
+ */
+export interface AdvancedOptions {
+  crossSubDomainCookies?: {
+    enabled: boolean
+    /** e.g. `.zntr.app` — the shared parent both apps sit under. */
+    domain?: string
+  }
+  cookiePrefix?: string
+}
+
 export interface CreateAuthOptions {
   db: any
   baseURL?: string
   trustedOrigins: string[]
+  advanced?: AdvancedOptions
   emailCallbacks: EmailCallbacks
   plugins?: PluginOptions
   password: PasswordHashOptions
@@ -99,7 +139,9 @@ export interface CreateAuthOptions {
 export type EnabledPlugins = {
   twoFactor?: boolean
   sentinel?: boolean
+  botId?: boolean
   emailOTP?: boolean
+  mcpOAuth?: boolean
 }
 
 export interface CreateAuthClientOptions {

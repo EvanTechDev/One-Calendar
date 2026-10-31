@@ -1,0 +1,129 @@
+import { fromCalendarDate, toCalendarDate } from './zoned-date'
+
+// API safety ceiling, not the default preload size. Keep older clients valid.
+export const MAX_CALENDAR_RANGE_MS = 1500 * 86400000
+
+export interface CalendarLoadRange {
+  startDate: string
+  endDate: string
+  timezone: string
+}
+
+export interface CalendarBatchRange extends CalendarLoadRange {
+  anchorDate: string
+  batchSize: 150 | 400
+  excludeStartDate?: string
+  excludeEndDate?: string
+}
+
+/** Complete visible grids, without forcing neighboring whole months to load. */
+export function calendarVisibleRange(
+  date: Date,
+  view: string,
+  timezone: string,
+): CalendarLoadRange {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  if (view === 'year')
+    return civilRange(
+      new Date(year, -1, 25),
+      new Date(year + 1, 0, 8),
+      timezone,
+    )
+  if (view === 'month')
+    return civilRange(
+      new Date(year, month, -6),
+      new Date(year, month + 1, 8),
+      timezone,
+    )
+  const start = new Date(year, month, date.getDate())
+  const end = new Date(year, month, date.getDate() + 1)
+  if (view === 'week' || view === 'four-day') {
+    start.setDate(start.getDate() - 7)
+    end.setDate(end.getDate() + 7)
+  }
+  return civilRange(start, end, timezone)
+}
+
+export function eventBatchKey(range: CalendarBatchRange) {
+  return `${eventRangeKey(range)}&${new URLSearchParams({ anchorDate: range.anchorDate, batchSize: String(range.batchSize) })}`
+}
+
+/** Whole visible period plus neighboring months. Dates here are civil UI dates. */
+export function calendarLoadRange(
+  date: Date,
+  view: string,
+  timezone: string,
+): CalendarLoadRange {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const start =
+    view === 'year' ? new Date(year, -1, 1) : new Date(year, month - 1, 1)
+  const end =
+    view === 'year' ? new Date(year + 1, 1, 1) : new Date(year, month + 2, 1)
+  return civilRange(start, end, timezone)
+}
+
+/** Reuse a five-month quarter window, never shrinking a larger requested view. */
+export function calendarPreloadRange(
+  visible: CalendarLoadRange,
+): CalendarLoadRange {
+  const middle = toCalendarDate(
+    new Date((Date.parse(visible.startDate) + Date.parse(visible.endDate)) / 2),
+    visible.timezone,
+  )
+  const quarter = Math.floor(middle.getMonth() / 3) * 3
+  const nearby = civilRange(
+    new Date(middle.getFullYear(), quarter - 1, 1),
+    new Date(middle.getFullYear(), quarter + 4, 1),
+    visible.timezone,
+  )
+  return {
+    startDate: new Date(
+      Math.min(Date.parse(visible.startDate), Date.parse(nearby.startDate)),
+    ).toISOString(),
+    endDate: new Date(
+      Math.max(Date.parse(visible.endDate), Date.parse(nearby.endDate)),
+    ).toISOString(),
+    timezone: visible.timezone,
+  }
+}
+
+export function containsCalendarRange(
+  loaded: CalendarLoadRange,
+  visible: CalendarLoadRange,
+) {
+  return (
+    loaded.timezone === visible.timezone &&
+    Date.parse(loaded.startDate) <= Date.parse(visible.startDate) &&
+    Date.parse(loaded.endDate) >= Date.parse(visible.endDate)
+  )
+}
+
+function civilRange(
+  start: Date,
+  end: Date,
+  timezone: string,
+): CalendarLoadRange {
+  // Include date-only all-day values whose storage uses the browser's civil day.
+  const startMs = Math.min(
+    start.getTime(),
+    fromCalendarDate(start, timezone).getTime(),
+  )
+  const endMs = Math.max(
+    end.getTime(),
+    fromCalendarDate(end, timezone).getTime(),
+  )
+  return {
+    startDate: new Date(startMs).toISOString(),
+    endDate: new Date(endMs).toISOString(),
+    timezone,
+  }
+}
+
+export function eventRangeKey(range: CalendarLoadRange) {
+  return `/api/events?${new URLSearchParams({ startDate: range.startDate, endDate: range.endDate, tz: range.timezone })}`
+}
+export const isEventRangeKey = (key: unknown): key is string =>
+  typeof key === 'string' &&
+  (key === '/api/events' || key.startsWith('/api/events?'))

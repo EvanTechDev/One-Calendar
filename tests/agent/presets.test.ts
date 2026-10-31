@@ -1,0 +1,154 @@
+import { describe, expect, it } from 'bun:test'
+import {
+  normalizePreset,
+  resolvePreset,
+  PRESET_NAMES,
+} from '../../packages/agent/src/presets'
+
+// Friday 2026-09-04 15:30 UTC — a fixed instant keeps boundaries exact.
+const now = new Date(Date.UTC(2026, 8, 4, 15, 30))
+
+describe('normalizePreset', () => {
+  it('accepts every canonical name', () => {
+    for (const name of PRESET_NAMES) {
+      expect(normalizePreset(name)).toBe(name)
+    }
+  })
+
+  it('normalizes case, whitespace and dashes', () => {
+    expect(normalizePreset(' This-Week ')).toBe('this_week')
+    expect(normalizePreset('TOMORROW')).toBe('tomorrow')
+  })
+
+  it('maps aliases onto canonical names', () => {
+    expect(normalizePreset('week')).toBe('this_week')
+    expect(normalizePreset('month')).toBe('this_month')
+    expect(normalizePreset('future')).toBe('upcoming')
+    expect(normalizePreset('previous_week')).toBe('last_week')
+  })
+
+  it('maps the search vocabulary the model is likely to invent', () => {
+    // The model writes the preset name from the user's own words, so the
+    // aliases it reaches for first have to land on a real range.
+    expect(normalizePreset('recent')).toBe('last_30_days')
+    expect(normalizePreset('recently')).toBe('last_30_days')
+    expect(normalizePreset('ytd')).toBe('this_year')
+    expect(normalizePreset('past_30_days')).toBe('last_30_days')
+    expect(normalizePreset('previous_year')).toBe('last_year')
+    expect(normalizePreset('year')).toBe('this_year')
+  })
+
+  it('returns null for junk', () => {
+    expect(normalizePreset('sometime_soon')).toBeNull()
+    expect(normalizePreset('')).toBeNull()
+  })
+})
+
+describe('resolvePreset (UTC)', () => {
+  it('today spans the local day', () => {
+    expect(resolvePreset('today', now, 'UTC')).toEqual({
+      start: '2026-09-04T00:00:00.000Z',
+      end: '2026-09-05T00:00:00.000Z',
+    })
+  })
+
+  it('tomorrow and yesterday shift by one day', () => {
+    expect(resolvePreset('tomorrow', now, 'UTC')).toEqual({
+      start: '2026-09-05T00:00:00.000Z',
+      end: '2026-09-06T00:00:00.000Z',
+    })
+    expect(resolvePreset('yesterday', now, 'UTC')).toEqual({
+      start: '2026-09-03T00:00:00.000Z',
+      end: '2026-09-04T00:00:00.000Z',
+    })
+  })
+
+  it('weeks start on Monday', () => {
+    // 2026-09-04 is a Friday; that week's Monday is 08-31.
+    expect(resolvePreset('this_week', now, 'UTC')).toEqual({
+      start: '2026-08-31T00:00:00.000Z',
+      end: '2026-09-07T00:00:00.000Z',
+    })
+    expect(resolvePreset('next_week', now, 'UTC')).toEqual({
+      start: '2026-09-07T00:00:00.000Z',
+      end: '2026-09-14T00:00:00.000Z',
+    })
+    expect(resolvePreset('last_week', now, 'UTC')).toEqual({
+      start: '2026-08-24T00:00:00.000Z',
+      end: '2026-08-31T00:00:00.000Z',
+    })
+  })
+
+  it('months use calendar boundaries', () => {
+    expect(resolvePreset('this_month', now, 'UTC')).toEqual({
+      start: '2026-09-01T00:00:00.000Z',
+      end: '2026-10-01T00:00:00.000Z',
+    })
+    expect(resolvePreset('last_month', now, 'UTC')).toEqual({
+      start: '2026-08-01T00:00:00.000Z',
+      end: '2026-09-01T00:00:00.000Z',
+    })
+    expect(resolvePreset('next_month', now, 'UTC')).toEqual({
+      start: '2026-10-01T00:00:00.000Z',
+      end: '2026-11-01T00:00:00.000Z',
+    })
+  })
+
+  it('upcoming/past are open-ended at now', () => {
+    expect(resolvePreset('upcoming', now, 'UTC')).toEqual({
+      start: now.toISOString(),
+    })
+    expect(resolvePreset('past', now, 'UTC')).toEqual({
+      end: now.toISOString(),
+    })
+  })
+
+  it('years use calendar boundaries, so "last year" is a year not 365 days', () => {
+    // The semantic-search model's instructions say "last year" means the last
+    // calendar year; this is where that promise is kept.
+    expect(resolvePreset('this_year', now, 'UTC')).toEqual({
+      start: '2026-01-01T00:00:00.000Z',
+      end: '2027-01-01T00:00:00.000Z',
+    })
+    expect(resolvePreset('last_year', now, 'UTC')).toEqual({
+      start: '2025-01-01T00:00:00.000Z',
+      end: '2026-01-01T00:00:00.000Z',
+    })
+  })
+
+  it('the rolling windows end AT now, not at the end of today', () => {
+    // "the last 7 days" is the previous 168 hours. Ending at end-of-today would
+    // quietly add up to 24 hours the user never asked for.
+    expect(resolvePreset('last_7_days', now, 'UTC')).toEqual({
+      start: '2026-08-28T15:30:00.000Z',
+      end: now.toISOString(),
+    })
+    expect(resolvePreset('last_30_days', now, 'UTC')).toEqual({
+      start: '2026-08-05T15:30:00.000Z',
+      end: now.toISOString(),
+    })
+    expect(resolvePreset('last_90_days', now, 'UTC')).toEqual({
+      start: '2026-06-06T15:30:00.000Z',
+      end: now.toISOString(),
+    })
+  })
+})
+
+describe('resolvePreset (timezones)', () => {
+  it('today follows the local wall clock, not UTC', () => {
+    // 15:30 UTC on 09-04 is 23:30 in Shanghai (+8) — still 09-04 locally,
+    // but local midnight is 16:00 UTC the previous day.
+    expect(resolvePreset('today', now, 'Asia/Shanghai')).toEqual({
+      start: '2026-09-03T16:00:00.000Z',
+      end: '2026-09-04T16:00:00.000Z',
+    })
+  })
+
+  it('a late-UTC instant can already be tomorrow locally', () => {
+    const lateUtc = new Date(Date.UTC(2026, 8, 4, 20, 0)) // 04:00 on 09-05 in Shanghai
+    expect(resolvePreset('today', lateUtc, 'Asia/Shanghai')).toEqual({
+      start: '2026-09-04T16:00:00.000Z',
+      end: '2026-09-05T16:00:00.000Z',
+    })
+  })
+})

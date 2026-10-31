@@ -1,0 +1,191 @@
+'use client'
+
+import { useState } from 'react'
+import type React from 'react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
+
+import { Button } from '@zntr/ui/button'
+import { Input } from '@zntr/ui/input'
+import { Label } from '@zntr/ui/label'
+import { useAuthForm } from './context'
+import { AuthLayout } from './auth-layout'
+
+export interface ResetPasswordFormProps {
+  /**
+   * The reset token from the emailed link, read by the page.
+   *
+   * A prop rather than a `useSearchParams()` call: the hook has no meaning
+   * outside a Next app router, and reading it here would make the component
+   * untestable and unusable in any other host (ADR 0022).
+   *
+   * Absent means "ask for a code", present means "set a new password".
+   */
+  token?: string | null
+}
+
+export function ResetPasswordForm({ token = null }: ResetPasswordFormProps) {
+  const { client: authClient, routes } = useAuthForm()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [revealPassword, setRevealPassword] = useState(false)
+  const [revealConfirmPassword, setRevealConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+  const [notice, setNotice] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+    setNotice('')
+    const requestBody = {
+      email,
+      redirectTo: routes.resetPassword,
+    }
+    const res = await authClient.requestPasswordReset(requestBody)
+    if (!res.error) {
+      setDone(true)
+      setNotice('Reset email sent. Please check your inbox.')
+      setIsLoading(false)
+      return
+    }
+    setError(res.error.message || 'An error occurred. Please try again.')
+    setIsLoading(false)
+  }
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (password !== confirmPassword) return setError('Passwords do not match.')
+    setIsLoading(true)
+    setError('')
+    const { error } = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    } as never)
+    if (error)
+      setError(error.message || 'Failed to reset password. Please try again.')
+    else setDone(true)
+    setIsLoading(false)
+  }
+
+  const isTokenFlow = Boolean(token)
+
+  const getDescription = () => {
+    if (isTokenFlow) {
+      if (done) return 'Password updated successfully. You can sign in now.'
+      return 'Enter your new password to complete reset.'
+    }
+    if (done) return 'Reset email sent. Please check your inbox.'
+    return "Enter your email and we'll send a reset link"
+  }
+
+  return (
+    <AuthLayout
+      title="Reset your password"
+      description={getDescription()}
+      footer={
+        <p className="text-center text-sm text-muted-foreground">
+          <a href={routes.signIn} className="text-primary underline">
+            Back to sign in
+          </a>
+        </p>
+      }
+    >
+      <form
+        onSubmit={isTokenFlow ? handleResetPassword : handleSubmit}
+        className="flex flex-col gap-4"
+      >
+        {isTokenFlow ? (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="password">New password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={revealPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRevealPassword((value) => !value)}
+                  aria-label={
+                    revealPassword ? 'Hide password' : 'Show password'
+                  }
+                  className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  {revealPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">Confirm password </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={revealConfirmPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRevealConfirmPassword((value) => !value)}
+                  aria-label={
+                    revealConfirmPassword ? 'Hide password' : 'Show password'
+                  }
+                  className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  {revealConfirmPassword ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              placeholder="Enter your email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+        )}
+        {!isTokenFlow && notice ? (
+          <div className="text-sm text-emerald-600">{notice}</div>
+        ) : null}
+        {error && <div className="text-sm text-red-500">{error}</div>}
+        <Button type="submit" size="lg" disabled={isLoading} className="mt-2">
+          {isLoading
+            ? isTokenFlow
+              ? 'Updating...'
+              : 'Sending...'
+            : isTokenFlow
+              ? 'Update password'
+              : 'Send reset email'}
+        </Button>
+      </form>
+    </AuthLayout>
+  )
+}

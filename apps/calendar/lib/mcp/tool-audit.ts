@@ -1,4 +1,4 @@
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
+import type { AuthInfo } from '@modelcontextprotocol/server'
 import { logAudit } from './audit'
 
 /**
@@ -113,16 +113,17 @@ export function summarizeChanges(
   return Object.keys(summary).length > 0 ? summary : undefined
 }
 
-export interface ToolAuditContext {
+interface ToolAuditContext {
   userId: string
   authType: 'api_key' | 'oauth'
   keyId?: string
+  identityName?: string
   ipAddress?: string
   userAgent?: string
 }
 
 /** Reads the audit context the transport put on `authInfo.extra`. */
-export function auditContextFrom(
+function auditContextFrom(
   authInfo: AuthInfo | undefined,
 ): ToolAuditContext | null {
   const extra = authInfo?.extra as Record<string, unknown> | undefined
@@ -133,6 +134,8 @@ export function auditContextFrom(
     userId,
     authType: authType as 'api_key' | 'oauth',
     keyId: typeof extra?.keyId === 'string' ? extra.keyId : undefined,
+    identityName:
+      typeof extra?.identityName === 'string' ? extra.identityName : undefined,
     ipAddress:
       typeof extra?.ipAddress === 'string' ? extra.ipAddress : undefined,
     userAgent:
@@ -144,7 +147,7 @@ export function auditContextFrom(
  * Writes one 'tool_call' audit row. Never throws: a failed audit write must not
  * turn a successful calendar operation into an error for the agent.
  */
-export async function logToolCall(options: {
+async function logToolCall(options: {
   authInfo: AuthInfo | undefined
   toolName: string
   params: Record<string, unknown>
@@ -164,6 +167,7 @@ export async function logToolCall(options: {
       userId: ctx.userId,
       authType: ctx.authType,
       keyId: ctx.keyId,
+      identityName: ctx.identityName,
       action: toolName,
       entryType: 'tool_call',
       toolName,

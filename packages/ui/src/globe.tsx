@@ -15,13 +15,23 @@ const GLOBE_CONFIG: COBEOptions = {
   devicePixelRatio: 2,
   phi: 0,
   theta: 0.3,
-  dark: 0.6,
-  diffuse: 1.2,
+  // A bright sphere. It started at 0.08 — near-black, invisible on the
+  // landing page's dark card — and an attempt to lift it with a slate plus a
+  // blue atmosphere was the wrong answer twice: still too dark, and the blue
+  // fought the orange markers. This is warm off-white with an amber limb,
+  // which is bright on dark and does not introduce a second hue.
+  dark: 0.25,
+  diffuse: 1.1,
   mapSamples: 16000,
-  mapBrightness: 0.6,
-  baseColor: [0.08, 0.08, 0.08],
+  // Below 1 on purpose, and the opposite of a dark globe: cobe multiplies the
+  // map texture by this, so a bright ocean needs the landmasses pulled DOWN or
+  // the whole planet reads as a blank disc. Above 1 would blow out both.
+  mapBrightness: 0.42,
+  baseColor: [0.85, 0.83, 0.79],
   markerColor: [251 / 255, 100 / 255, 21 / 255],
-  glowColor: [0.18, 0.18, 0.18],
+  // Warm, to sit with the orange markers. A blue atmosphere here was a second
+  // accent colour on a page that has one.
+  glowColor: [0.96, 0.78, 0.5],
   markers: [
     { location: [14.5995, 120.9842], size: 0.03 },
     { location: [19.076, 72.8777], size: 0.1 },

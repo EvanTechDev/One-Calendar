@@ -6,6 +6,7 @@ import { secretMatches } from '@/lib/mcp/cleanup-config'
 import {
   pruneSpentReminders,
   reconcileEventReminders,
+  pendingReminderEvents,
 } from '@/lib/reminders/reconcile'
 
 export const runtime = 'nodejs'
@@ -37,10 +38,11 @@ export async function GET(request: Request) {
   try {
     // Only events that actually want email reminders. Reconciliation is
     // idempotent, so a second run in the same day schedules nothing new.
-    const events = await getDb()
+    const eligible = await getDb()
       .select({
         id: calendarEvents.id,
         userId: calendarEvents.userId,
+        seriesId: calendarEvents.seriesId,
       })
       .from(calendarEvents)
       .where(
@@ -49,6 +51,22 @@ export async function GET(request: Request) {
           isNotNull(calendarEvents.notificationMinutes),
         ),
       )
+
+    // Repair outstanding cancellations (including deleted/disabled roots)
+    // before queuing replacements. Overrides are expanded by their master.
+    const pending = await pendingReminderEvents()
+    const roots = eligible.map((event) => ({
+      id: event.seriesId ?? event.id,
+      userId: event.userId,
+    }))
+    const events = [
+      ...new Map(
+        [...pending, ...roots].map((event) => [
+          `${event.userId}|${event.id}`,
+          event,
+        ]),
+      ).values(),
+    ]
 
     let scheduled = 0
     let cancelled = 0
@@ -70,7 +88,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // Rows whose send is a day past are spent.
+    // Only provider-confirmed terminal receipts are spent. Uncertain sends
+    // survive their date so they can still be recovered or canceled.
     const pruned = await pruneSpentReminders(
       new Date(Date.now() - 24 * 60 * 60 * 1000),
     )

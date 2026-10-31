@@ -1,0 +1,5 @@
+{
+  "extends": "../../apps/meet/tsconfig.json",
+  "include": ["./**/*.ts", "./**/*.tsx"],
+  "exclude": ["node_modules"]
+}

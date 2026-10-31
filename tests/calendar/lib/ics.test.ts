@@ -1,3 +1,4 @@
+await import('./../../support/dom')
 /**
  * Pins the iCalendar (RFC 5545) format produced and consumed by import/export.
  *
@@ -6,8 +7,8 @@
  * The core guarantee is a ROUND TRIP — parse(generate(events)) returns the
  * same events — plus conformance to the specific shape agreed in CORE-152.
  */
-import { describe, it, expect } from 'vitest'
-import {
+import { describe, it, expect } from 'bun:test'
+const {
   collapseSeriesForExport,
   escapeIcsText,
   foldIcsLine,
@@ -18,8 +19,8 @@ import {
   parseICS,
   parseICSDate,
   unescapeIcsText,
-  type IcsEvent,
-} from '@/lib/ics'
+} = await import('@zntr/ui/calendar/lib/ics')
+import type { IcsEvent } from '@zntr/ui/calendar/lib/ics'
 
 function timed(overrides: Partial<IcsEvent> = {}): IcsEvent {
   return {
@@ -104,7 +105,7 @@ describe('generateICSFile', () => {
     expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true)
     for (const line of [
       'VERSION:2.0',
-      'PRODID:-//Zentra//One Calendar//EN',
+      'PRODID:-//Zentra//Zentra Calendar//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       'UID:evt-1@zentra-calendar',
@@ -260,7 +261,7 @@ describe('parseICS', () => {
     const reference = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Zentra//One Calendar//EN',
+      'PRODID:-//Zentra//Zentra Calendar//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       'BEGIN:VEVENT',

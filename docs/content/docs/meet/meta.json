@@ -1,0 +1,14 @@
+{
+  "title": "Meet",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "joining",
+    "access",
+    "privacy",
+    "presenting",
+    "chat",
+    "history",
+    "troubleshooting"
+  ]
+}

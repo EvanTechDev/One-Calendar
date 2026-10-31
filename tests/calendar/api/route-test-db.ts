@@ -20,12 +20,39 @@ type Cond =
   | { __op: 'or'; conds: Cond[] }
   | { __op: 'inArray'; col: string; vals: unknown[] }
   | { __op: 'isNotNull'; col: string }
+  | { __op: 'isNull'; col: string }
   | { __op: 'gte'; col: string; val: unknown }
   | { __op: 'lte'; col: string; val: unknown }
   | { __op: 'gt'; col: string; val: unknown }
   | { __op: 'lt'; col: string; val: unknown }
 
 type DrizzleColumn = { name: string }
+type Ordering = { __order: 'asc' | 'desc'; col: string }
+
+function readOrdering(value: unknown): Ordering {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error('fake-db: unknown ordering')
+  }
+  if (
+    '__order' in value &&
+    (value.__order === 'asc' || value.__order === 'desc') &&
+    'col' in value &&
+    typeof value.col === 'string'
+  ) {
+    return { __order: value.__order, col: value.col }
+  }
+  // Drizzle also accepts a bare column: orderBy(table.column) means ascending.
+  // Recognise that exact supported shape, retaining the stop on arbitrary SQL.
+  if (
+    'table' in value &&
+    'getSQL' in value &&
+    typeof value.getSQL === 'function'
+  ) {
+    tableName(value.table)
+    return { __order: 'asc', col: colKey(value) }
+  }
+  throw new Error('fake-db: unknown ordering')
+}
 
 function camelize(snake: string): string {
   return snake.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
@@ -63,6 +90,7 @@ export const drizzleOperatorsMock = {
     vals,
   }),
   isNotNull: (col: unknown): Cond => ({ __op: 'isNotNull', col: colKey(col) }),
+  isNull: (col: unknown): Cond => ({ __op: 'isNull', col: colKey(col) }),
   gte: (col: unknown, val: unknown): Cond => ({
     __op: 'gte',
     col: colKey(col),
@@ -84,6 +112,7 @@ export const drizzleOperatorsMock = {
     val,
   }),
   desc: (col: unknown) => ({ __order: 'desc', col: colKey(col) }),
+  asc: (col: unknown) => ({ __order: 'asc', col: colKey(col) }),
 }
 
 function matches(cond: Cond | undefined, row: FakeRow): boolean {
@@ -99,6 +128,8 @@ function matches(cond: Cond | undefined, row: FakeRow): boolean {
       return cond.vals.includes(row[cond.col])
     case 'isNotNull':
       return row[cond.col] !== null && row[cond.col] !== undefined
+    case 'isNull':
+      return row[cond.col] === null || row[cond.col] === undefined
     case 'gte':
       return (row[cond.col] as never) >= (cond.val as never)
     case 'lte':
@@ -152,7 +183,7 @@ export interface FakeDb {
 
 const DEFAULT_TABLE = 'calendar_events'
 
-export function makeFakeDb(): FakeDb {
+function makeFakeDb(): FakeDb {
   const tables = new Map<string, Map<string, FakeRow>>()
   const ops: string[] = []
   const writes: FakeDb['writes'] = []
@@ -201,19 +232,33 @@ export function makeFakeDb(): FakeDb {
     projection: Record<string, unknown> | undefined,
   ) {
     let cond: Cond | undefined
+    let order: Ordering[] = []
+    let limit = Infinity
     const resolveRows = () =>
       [...tbl(name).values()]
         .filter((r) => matches(cond, r))
+        .sort((a, b) => {
+          for (const { col, __order } of order) {
+            const av = a[col] as string | number
+            const bv = b[col] as string | number
+            if (av === bv) continue
+            return (av < bv ? -1 : 1) * (__order === 'asc' ? 1 : -1)
+          }
+          return 0
+        })
+        .slice(0, limit)
         .map((r) => project(r, projection))
     const q = {
       where(c: Cond) {
         cond = c
         return q
       },
-      orderBy() {
+      orderBy(...values: unknown[]) {
+        order = values.map(readOrdering)
         return q
       },
-      limit() {
+      limit(value: number) {
+        limit = value
         return q
       },
       then(
@@ -364,15 +409,20 @@ export function makeFakeDb(): FakeDb {
       return {
         where(cond: Cond) {
           const doDelete = () => {
+            const deleted: FakeRow[] = []
             for (const [id, row] of [...tbl(name).entries()]) {
               if (!matches(cond, row)) continue
               tbl(name).delete(id)
               logWrite('delete', name, id)
+              deleted.push({ ...row })
             }
+            return deleted
           }
           return {
+            returning: async (projection?: Record<string, unknown>) =>
+              doDelete().map((row) => project(row, projection)),
             then(
-              onFulfilled: (value: void) => unknown,
+              onFulfilled: (value: FakeRow[]) => unknown,
               onRejected?: (err: unknown) => unknown,
             ) {
               return Promise.resolve()

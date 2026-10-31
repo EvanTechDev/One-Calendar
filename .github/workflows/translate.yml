@@ -6,31 +6,80 @@ on:
       - 'packages/i18n/i18n.json'
       - 'packages/i18n/src/calendar/locales/en.json'
   workflow_dispatch:
+    inputs:
+      lockfile_only:
+        description: Validate completed translations and refresh the Lingo lockfile without API calls
+        type: boolean
+        default: false
+      diagnose:
+        description: Inspect API response structure without translating
+        type: boolean
+        default: false
+      locales:
+        description: Comma-separated target locales; empty translates all
+        type: string
+        default: ''
+      concurrency:
+        description: Override translation concurrency (1–10)
+        type: string
+        default: ''
+      checksum_ref:
+        description: Prior commit SHA for retrying a partially checkpointed run
+        type: string
+        default: ''
 permissions:
   contents: write
+concurrency:
+  group: translate-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   translate:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
         with:
-          version: 11.5.2
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
       - uses: actions/setup-node@v4
         with:
           node-version: 25
-          cache: 'pnpm'
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
       - name: Translate
+        id: translate
         working-directory: packages/i18n
         env:
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        run: pnpm dlx lingo.dev run
+          TRANSLATION_BASE_URL: ${{ vars.TRANSLATION_BASE_URL || secrets.TRANSLATION_BASE_URL }}
+          TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL || secrets.TRANSLATION_MODEL }}
+          TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
+          TRANSLATION_CONCURRENCY: ${{ inputs.concurrency || vars.TRANSLATION_CONCURRENCY || '3' }}
+          TRANSLATION_LOCALES: ${{ inputs.locales }}
+          TRANSLATION_CHECKSUM_REF: ${{ inputs.checksum_ref }}
+        run: |
+          if [ "${{ inputs.diagnose }}" = "true" ]; then
+            node src/translation-probe.mjs
+          elif [ "${{ inputs.lockfile_only }}" = "true" ]; then
+            node src/check-translations.mjs
+            bun x --no-install lingo.dev lockfile --force
+          else
+            bun run translate
+          fi
+      - name: Preserve translation output
+        if: ${{ !cancelled() && !inputs.diagnose && (steps.translate.outcome == 'success' || steps.translate.outcome == 'failure') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: translations-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            packages/i18n/src/calendar/locales/*.json
+            packages/i18n/i18n.lock
       - name: Commit changes
+        if: ${{ !cancelled() && !inputs.diagnose && (steps.translate.outcome == 'success' || steps.translate.outcome == 'failure') }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
+          git add packages/i18n/src/calendar/locales packages/i18n/i18n.lock
           git diff --staged --quiet || git commit -m "feat: update translations via @LingoDotDev"
           git push

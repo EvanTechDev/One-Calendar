@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@zntr/meetings": ["../../packages/meetings/src/index.ts"],
+      "@zntr/meetings/*": ["../../packages/meetings/src/*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import {
+await import('./../../../support/dom')
+import { describe, it, expect } from 'bun:test'
+const {
   normalizeChartColor,
   getChartColorOrderIndex,
   resolveDateRange,
@@ -14,9 +15,9 @@ import {
   formatHourRange,
   calculateDaySpanInHours,
   addDurationByDayCategory,
-} from '@/lib/analytics/utils'
-import type { CalendarEvent } from '@/components/app/calendar'
-import type { AnalyticsEvent } from '@/lib/analytics/types'
+} = await import('@zntr/ui/calendar/lib/analytics/utils')
+import type { CalendarEvent } from '@zntr/ui/calendar/components/app/calendar'
+import type { AnalyticsEvent } from '@zntr/ui/calendar/lib/analytics/types'
 
 function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   return {
@@ -68,8 +69,11 @@ describe('normalizeChartColor', () => {
   })
 
   it('maps tailwind bg- classes to hex', () => {
-    expect(normalizeChartColor('bg-blue-500')).toBe('#3b82f6')
-    expect(normalizeChartColor('bg-red-500')).toBe('#ef4444')
+    // Uppercase, because the colour table stores one canonical case for every
+    // hex. Consumers are insensitive to it: getChartColorOrderIndex lowercases
+    // before looking the value up, and a chart fill does not care.
+    expect(normalizeChartColor('bg-blue-500')).toBe('#3B82F6')
+    expect(normalizeChartColor('bg-red-500')).toBe('#EF4444')
   })
 
   it('maps bg-[] colors to hex', () => {
@@ -133,7 +137,7 @@ describe('mapEventsToAnalyticsEvents', () => {
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('1')
     expect(result[0].category).toBe('cal-1')
-    expect(result[0].color).toBe('#3b82f6')
+    expect(result[0].color).toBe('#3B82F6')
   })
 
   it('filters out events with invalid dates', () => {

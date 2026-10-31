@@ -1,4 +1,4 @@
-// @vitest-environment node
+import { mock as moduleMock } from 'bun:test'
 /**
  * `PATCH /api/invite/:token` must record an RSVP against the occurrence it was
  * given, and must not silently fall back to a series-wide answer.
@@ -11,17 +11,17 @@
  * Seam: the public invite endpoint. This is where "which occurrence am I
  * answering?" is decided, so it is where the rule belongs.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
 
-const store = vi.hoisted(() => ({
+const store = (() => ({
   invites: [] as Array<Record<string, unknown>>,
   occurrences: [] as Array<Record<string, unknown>>,
   events: [] as Array<Record<string, unknown>>,
   rsvpCalls: [] as Array<{ kind: 'invite' | 'occurrence'; payload: unknown }>,
-}))
+}))()
 
-vi.mock('@/lib/invites/invite-service', () => ({
+moduleMock.module('@/lib/invites/invite-service', () => ({
   getInvitesByToken: async (token: string) =>
     store.invites.filter((i) => i.inviteToken === token),
   getInviteByToken: async (token: string) =>
@@ -50,7 +50,7 @@ vi.mock('@/lib/invites/invite-service', () => ({
   removeParticipantFromCalendar: async () => {},
 }))
 
-vi.mock('@/lib/drizzle/client', () => ({
+moduleMock.module('@/lib/drizzle/client', () => ({
   getDb: () => ({
     select: () => ({
       from: () => ({
@@ -70,8 +70,9 @@ function camel(s: string): string {
   return s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-vi.mock('drizzle-orm', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('drizzle-orm')>()
+const originalModule1 = { ...(await import('drizzle-orm')) }
+moduleMock.module('drizzle-orm', async () => {
+  const actual = originalModule1
   return {
     ...actual,
     eq:
@@ -84,17 +85,22 @@ vi.mock('drizzle-orm', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/field-crypto', () => ({
+moduleMock.module('@/lib/field-crypto', () => ({
   decryptField: (_id: string, v: unknown) => v,
 }))
+moduleMock.module('@/lib/api-helpers', () => ({
+  getAuthedUser: async () => null,
+}))
+moduleMock.module('@zntr/meetings', () => ({
+  getMeetingForEvent: async () => null,
+}))
 
-vi.mock('@/lib/rate-limit', () => ({
+moduleMock.module('@/lib/rate-limit', () => ({
   checkFixedWindowLimit: async () => ({ allowed: true, retryAfter: 0 }),
   clientIpFrom: () => '127.0.0.1',
   rateLimitedResponse: () => new Response(null, { status: 429 }),
 }))
-
-import { PATCH } from '@/app/api/invite/[token]/route'
+const { GET, PATCH } = await import('@/app/api/invite/[token]/route')
 
 const MASTER = 'm-series'
 const DAY1 = '20260822T110000Z'
@@ -114,6 +120,8 @@ function seedSeries() {
     categoryId: null,
     rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=SA,SU',
     exdate: null,
+    seriesId: null,
+    recurrenceId: null,
   })
   store.invites.push({
     id: 'inv1',
@@ -181,6 +189,45 @@ beforeEach(() => {
 })
 
 describe('RSVP on a recurring event', () => {
+  it('lists a moved EXDATE override and accepts its original stamp', async () => {
+    seedSeries()
+    store.events[0].exdate = [DAY1]
+    store.events.push({
+      ...store.events[0],
+      id: 'override',
+      rrule: null,
+      seriesId: MASTER,
+      recurrenceId: DAY1,
+      startDate: new Date('2026-09-02T12:00Z'),
+      endDate: new Date('2026-09-02T13:00Z'),
+    })
+    const response = await GET(
+      new NextRequest('http://localhost/api/invite/tok'),
+      { params: Promise.resolve({ token: 'tok' }) },
+    )
+    const body = await response.json()
+    expect(
+      body.occurrences.find(
+        (o: { recurrenceId: string }) => o.recurrenceId === DAY1,
+      ),
+    ).toMatchObject({ startDate: '2026-09-02T12:00:00.000Z' })
+    expect(
+      (await patch('tok', { status: 'accepted', recurrenceId: DAY1 })).status,
+    ).toBe(200)
+    store.invites[0].baselineKind = 'none'
+    expect(
+      (await patch('tok', { status: 'accepted', recurrenceId: DAY1 })).status,
+    ).toBe(404)
+  })
+
+  it('continues to refuse a deleted occurrence without an override', async () => {
+    seedSeries()
+    store.events[0].exdate = [DAY1]
+    expect(
+      (await patch('tok', { status: 'accepted', recurrenceId: DAY1 })).status,
+    ).toBe(404)
+    expect(store.rsvpCalls).toHaveLength(0)
+  })
   it('records the answer against the given occurrence', async () => {
     seedSeries()
     const res = await patch('tok', { status: 'accepted', recurrenceId: DAY1 })

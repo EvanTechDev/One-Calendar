@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm'
 import { decryptField } from '@/lib/field-crypto'
 import {
   deleteInviteByToken,
+  readInviteToken,
   resendInviteEmail,
 } from '@/lib/invites/invite-service'
 import {
@@ -13,7 +14,9 @@ import {
   resolveParticipantTarget,
   ParticipantScopeError,
 } from '@/lib/invites/scoped-invites'
+import { resolveMeetingUrl } from '@/lib/invites/meeting-link'
 import type { ApplyTo } from '@/lib/event-service'
+import { limitInviteSend } from '@/lib/invites/send-limit'
 
 export const runtime = 'nodejs'
 
@@ -68,7 +71,7 @@ export const DELETE = async function DELETE(request: NextRequest) {
   // 'all' on a non-recurring event is just "remove them", which the old path
   // did directly; keep that cheap and avoid loading the series machinery.
   if (scope === 'all' && occurrenceId === null) {
-    await deleteInviteByToken(invite.inviteToken)
+    await deleteInviteByToken(readInviteToken(invite))
     return NextResponse.json({ success: true })
   }
 
@@ -102,6 +105,9 @@ export const POST = async function POST(request: NextRequest) {
   if (!currentUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const limited = await limitInviteSend(currentUser.id)
+  if (limited) return limited
 
   const body = await request.json()
   const { inviteId } = body as { inviteId: string }
@@ -150,6 +156,9 @@ export const POST = async function POST(request: NextRequest) {
     inviterName: inviter?.name ?? 'Someone',
     description: decryptField(event.id, event.description) ?? undefined,
     location: decryptField(event.id, event.location) ?? undefined,
+    // A resend is the recovery path for an expired invite link, so it is the
+    // email that most needs the room link in it.
+    meetingUrl: await resolveMeetingUrl(event.id),
     email: invite.email,
     baseUrl,
   })

@@ -11,7 +11,9 @@ export {
 } from './schema'
 export { getSessionCookie } from 'better-auth/cookies'
 export { toNextJsHandler } from 'better-auth/next-js'
+export { crossAppAuthConfig } from './cross-app'
 export type {
+  AdvancedOptions,
   AuthInstance,
   AuthSession,
   CreateAuthClientOptions,

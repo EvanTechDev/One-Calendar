@@ -1,26 +1,39 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "One Calendar",
+  "productName": "Zentra Calendar",
   "version": "0.1.0",
   "identifier": "app.zntr.calendar",
   "build": {
-    "beforeDevCommand": "pnpm dev",
-    "devUrl": "https://calendar.xyehr.cn/app",
-    "beforeBuildCommand": "pnpm build",
-    "frontendDist": "https://calendar.xyehr.cn/app"
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
-        "title": "One Calendar",
-        "width": 1920,
-        "height": 1200,
-        "url": "https://calendar.xyehr.cn/app"
+        "title": "Zentra Calendar",
+        "label": "main",
+        "create": false,
+        "width": 1320,
+        "height": 880,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "maximizable": true,
+        "visible": false,
+        "url": "index.html"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https://calendar.xyehr.cn https://*.xyehr.cn; script-src 'self' https://calendar.xyehr.cn; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'",
+      "devCsp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1420 ws://localhost:1421 ws://127.0.0.1:1420; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'none'; object-src 'none'"
     }
+  },
+  "plugins": {
+    "updater": { "pubkey": "" },
+    "deep-link": { "desktop": { "schemes": ["app.zntr.calendar"] } }
   },
   "bundle": {
     "active": true,

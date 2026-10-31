@@ -1,3 +1,4 @@
+await import('./../../../support/dom')
 /**
  * Pins the per-tool-call audit summarisation (CORE-128).
  *
@@ -6,8 +7,8 @@
  * leaked event title or participant email here is a privacy regression, not a
  * cosmetic one.
  */
-import { describe, it, expect } from 'vitest'
-import { summarizeChanges } from '@/lib/mcp/tool-audit'
+import { describe, it, expect } from 'bun:test'
+const { summarizeChanges } = await import('@/lib/mcp/tool-audit')
 
 describe('summarizeChanges', () => {
   it('returns nothing for read-only tools', () => {

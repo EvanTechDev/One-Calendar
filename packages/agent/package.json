@@ -1,0 +1,33 @@
+{
+  "name": "@zntr/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tools": "./src/tools.ts",
+    "./parse": "./src/parse.ts",
+    "./search": "./src/search.ts",
+    "./search-match": "./src/search-match.ts",
+    "./scheduling": "./src/scheduling.ts",
+    "./instructions": "./src/instructions.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "build": "bun check",
+    "build:check": "bun check && bun check",
+    "lint": "oxlint --fix --config ../../config/oxlint.json src",
+    "lint:check": "oxlint --config ../../config/oxlint.json src",
+    "type-check": "bun check",
+    "test": "bun test --isolate ../../tests/agent/",
+    "test:watch": "bun test --isolate --watch ../../tests/agent/"
+  },
+  "dependencies": {
+    "ai": "7.0.127",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@ai-sdk/groq": "4.0.54",
+    "@types/node": "25.6.0"
+  }
+}

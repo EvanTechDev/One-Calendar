@@ -3,9 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { NextConfig } from 'next'
-import { createMDX } from 'fumadocs-mdx/next'
-
-const withMDX = createMDX()
+import { withBotId } from 'botid/next/config'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(
@@ -20,8 +18,14 @@ const getGitCommit = () => {
   }
 }
 
-const nextConfig: NextConfig = {
-  transpilePackages: ['@zntr/ui', '@zntr/utils', '@zntr/i18n', '@zntr/auth'],
+const nextConfig = {
+  transpilePackages: [
+    '@zntr/ui',
+    '@zntr/utils',
+    '@zntr/i18n',
+    '@zntr/auth',
+    '@zntr/meetings',
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -33,6 +37,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
     NEXT_PUBLIC_GIT_COMMIT: getGitCommit(),
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+    // Presence flag only — the key itself never reaches the client. Inlined
+    // at build time, so the AI palette trigger and Cmd/Ctrl+K are hidden on
+    // deployments that never configured Groq instead of 503ing on use.
+    NEXT_PUBLIC_AI_ENABLED: process.env.GROQ_API_KEY ? '1' : '',
   },
   async headers() {
     return [
@@ -54,6 +62,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-}
+} satisfies NextConfig
 
-export default withMDX(nextConfig)
+export default withBotId(nextConfig)

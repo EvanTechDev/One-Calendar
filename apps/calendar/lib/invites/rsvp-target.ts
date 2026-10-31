@@ -1,11 +1,11 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents, settings } from '@/lib/drizzle/schema'
 import {
   MAX_EXPANSION,
   expandSeries,
   parseRfcStamp,
-} from '@/lib/recurrence/engine'
+} from '@zntr/ui/calendar/lib/recurrence/engine'
 import { baselineOf, getInviteOccurrences } from '@/lib/invites/invite-service'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
 
@@ -69,7 +69,7 @@ function parseRfcStampSafe(stamp: string): Date | null {
  * never generates. Without this check a participant could create an RSVP row for
  * a date that does not exist, which then renders as a phantom occurrence.
  */
-export async function grantHasOccurrence(
+async function grantHasOccurrence(
   grant: { eventId: string },
   stamp: string,
 ): Promise<boolean> {
@@ -81,6 +81,20 @@ export async function grantHasOccurrence(
 
   const target = parseRfcStampSafe(stamp)
   if (target === null) return false
+
+  // A stored override is the occurrence, including an EXDATE'd slot moved
+  // outside this stamp's time window. Its identity remains the original stamp.
+  const [override] = await getDb()
+    .select({ id: calendarEvents.id })
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.seriesId, segment.id),
+        eq(calendarEvents.recurrenceId, stamp),
+        eq(calendarEvents.userId, segment.userId),
+      ),
+    )
+  if (override) return true
 
   // A narrow window around the stamp: expanding ±2 years to check one date is
   // wasteful, and the rule only needs to be asked about this instant.

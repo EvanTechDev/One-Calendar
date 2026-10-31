@@ -1,16 +1,33 @@
 import { getDb } from '@/lib/drizzle/client'
 import { mcpAuditLogs } from '@/lib/drizzle/schema'
-import { eq, desc, sql, lt, and, isNotNull, type SQL } from 'drizzle-orm'
+import {
+  eq,
+  desc,
+  sql,
+  lt,
+  gte,
+  and,
+  or,
+  ilike,
+  isNotNull,
+  type SQL,
+} from 'drizzle-orm'
 import crypto from 'crypto'
-import type { AuditEntry, AuditEntryType } from './types'
+import { parseRetentionDays } from './cleanup-config'
+import type {
+  AuditEntry,
+  AuditEntryType,
+} from '@zntr/ui/calendar/lib/mcp/types'
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
   const db = await getDb()
+  scheduleRetentionPrune()
   await db.insert(mcpAuditLogs).values({
     id: crypto.randomUUID(),
     userId: entry.userId,
     authType: entry.authType,
     keyId: entry.keyId ?? null,
+    identityName: entry.identityName ?? null,
     action: entry.action,
     entryType: entry.entryType ?? 'request',
     toolName: entry.toolName ?? null,
@@ -37,6 +54,18 @@ export interface AuditLogFilters {
   /** Only failures. */
   failuresOnly?: boolean
   toolName?: string
+  /** Only rows created at or after this instant. */
+  since?: Date
+  /**
+   * Case-insensitive substring match over tool name, action, resource type,
+   * resource id and error message.
+   */
+  search?: string
+}
+
+/** Escapes LIKE wildcards so a user-typed `%` matches a literal `%`. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`)
 }
 
 function auditFilterConditions(userId: string, filters: AuditLogFilters = {}) {
@@ -52,6 +81,21 @@ function auditFilterConditions(userId: string, filters: AuditLogFilters = {}) {
   }
   if (filters.toolName) {
     conditions.push(eq(mcpAuditLogs.toolName, filters.toolName))
+  }
+  if (filters.since) {
+    conditions.push(gte(mcpAuditLogs.createdAt, filters.since))
+  }
+  if (filters.search) {
+    const needle = `%${escapeLike(filters.search)}%`
+    const searchCondition = or(
+      ilike(mcpAuditLogs.toolName, needle),
+      ilike(mcpAuditLogs.action, needle),
+      ilike(mcpAuditLogs.resourceType, needle),
+      ilike(mcpAuditLogs.resourceId, needle),
+      ilike(mcpAuditLogs.errorMessage, needle),
+      ilike(mcpAuditLogs.identityName, needle),
+    )
+    if (searchCondition) conditions.push(searchCondition)
   }
   return and(...conditions)
 }
@@ -101,14 +145,82 @@ export async function getAuditToolNames(userId: string): Promise<string[]> {
 
 const DEFAULT_RETENTION_DAYS = 30
 
+/** Retention window for the opportunistic prune, from the environment. */
+function retentionWindowDays(): number {
+  return parseRetentionDays(
+    process.env.MCP_AUDIT_RETENTION_DAYS ?? null,
+    DEFAULT_RETENTION_DAYS,
+  )
+}
+
+/**
+ * What a prune actually did, under a window it names itself.
+ *
+ * The window and cutoff are part of the return value rather than something the
+ * caller recomputes, because a response that says only `deleted: 0` cannot be
+ * told apart from a job that did nothing. That ambiguity is what let a
+ * mistyped `MCP_AUDIT_RETENTION_DAYS` prune with a 365-day window, report a
+ * clean zero every night, and leave a table full of "expired" rows with nobody
+ * able to say why.
+ */
+export type AuditCleanupResult = {
+  /** Rows removed. */
+  deleted: number
+  /** The window applied — after the environment fallback and the clamp. */
+  retentionDays: number
+  /** Rows strictly older than this instant were deleted. */
+  cutoff: string
+}
+
 export async function cleanupAuditLogs(
-  retentionDays: number = DEFAULT_RETENTION_DAYS,
-): Promise<number> {
+  retentionDays: number = retentionWindowDays(),
+): Promise<AuditCleanupResult> {
   const db = await getDb()
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000)
   const result = await db
     .delete(mcpAuditLogs)
     .where(lt(mcpAuditLogs.createdAt, cutoff))
     .returning({ id: mcpAuditLogs.id })
-  return result.length
+  return {
+    deleted: result.length,
+    retentionDays,
+    cutoff: cutoff.toISOString(),
+  }
+}
+
+/**
+ * How often one process may prune, and the in-flight guard.
+ *
+ * Every MCP call writes at least one row, so a prune on every write would put
+ * a `DELETE` on the hot path of every request. Six hours is well inside the
+ * retention window's own resolution: the oldest surviving row can only be a
+ * few hours older than the window, never unbounded.
+ */
+const PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000
+let lastPruneAt = 0
+let pruneInFlight: Promise<unknown> | null = null
+
+/**
+ * Prune from the write path, because the cron cannot be relied on to do it.
+ *
+ * Retention is also enforced by the daily maintenance run, `/api/blob/check`,
+ * but that route needs `CRON_SECRET` to be set in the deployment — and with the
+ * secret unset the table only ever grows. It did: rows older than the window
+ * were still there months after the retention landed. A cron that depends on a
+ * secret nobody remembered to set is not a retention policy, so the busiest
+ * writer in the system also trims, and the cron stays as the backstop for
+ * installs with no MCP traffic.
+ *
+ * Best effort by construction: not awaited, so a slow or failing prune cannot
+ * delay the log write it rode along with, and a rejection is swallowed.
+ */
+function scheduleRetentionPrune(): void {
+  if (pruneInFlight) return
+  if (Date.now() - lastPruneAt < PRUNE_INTERVAL_MS) return
+  lastPruneAt = Date.now()
+  pruneInFlight = cleanupAuditLogs()
+    .catch(() => null)
+    .finally(() => {
+      pruneInFlight = null
+    })
 }

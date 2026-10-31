@@ -8,7 +8,7 @@ import crypto from 'crypto'
 
 const MAX_PAGE_LIMIT = 100
 
-export class BookmarkError extends InvalidEventQueryError {}
+class BookmarkError extends InvalidEventQueryError {}
 
 async function getUserEmail(userId: string): Promise<string> {
   const db = await getDb()

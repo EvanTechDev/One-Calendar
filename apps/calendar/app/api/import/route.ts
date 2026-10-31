@@ -9,7 +9,6 @@ import {
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
-import { invalidateEventCache } from '@/lib/cache/events'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { isEventViewableBy } from '@/lib/bookmarks'
 import { importSchema, firstZodMessage } from '@/lib/validation'
@@ -71,35 +70,41 @@ export const POST = async function POST(request: NextRequest) {
           }
         }
         const id = evt.id ?? crypto.randomUUID()
+        // An Override is stored as its own row pointing at the series master.
+        // `seriesId` may be absent on a backup that predates the column, but an
+        // override without one is indistinguishable from a standalone event, so
+        // fall back to the id rather than importing it as an orphan.
+        const seriesId = evt.seriesId ?? null
+        const recurrenceId = seriesId ? (evt.recurrenceId ?? null) : null
+        const rrule = seriesId ? null : (evt.rrule ?? null)
+        const exdate = seriesId ? null : (evt.exdate ?? null)
+        const row = {
+          title: encryptField(id, evt.title) ?? '',
+          description: encryptField(id, evt.description),
+          location: encryptField(id, evt.location),
+          startDate: new Date(evt.startDate),
+          endDate: new Date(evt.endDate),
+          isAllDay: evt.isAllDay ?? false,
+          color: evt.color ?? null,
+          categoryId: evt.categoryId ?? null,
+          participants: encryptJsonField(id, evt.participants),
+          notificationMinutes: evt.notificationMinutes ?? null,
+          rrule,
+          exdate,
+          seriesId,
+          recurrenceId,
+        }
         await tx
           .insert(calendarEvents)
           .values({
             id,
             userId: user.id,
-            title: encryptField(id, evt.title) ?? '',
-            description: encryptField(id, evt.description),
-            location: encryptField(id, evt.location),
-            startDate: new Date(evt.startDate),
-            endDate: new Date(evt.endDate),
-            isAllDay: evt.isAllDay ?? false,
-            color: evt.color ?? null,
-            categoryId: evt.categoryId ?? null,
-            participants: encryptJsonField(id, evt.participants),
-            notificationMinutes: evt.notificationMinutes ?? null,
+            ...row,
           })
           .onConflictDoUpdate({
             target: calendarEvents.id,
             set: {
-              title: encryptField(id, evt.title) ?? '',
-              description: encryptField(id, evt.description),
-              location: encryptField(id, evt.location),
-              startDate: new Date(evt.startDate),
-              endDate: new Date(evt.endDate),
-              isAllDay: evt.isAllDay ?? false,
-              color: evt.color ?? null,
-              categoryId: evt.categoryId ?? null,
-              participants: encryptJsonField(id, evt.participants),
-              notificationMinutes: evt.notificationMinutes ?? null,
+              ...row,
               updatedAt: new Date(),
             },
           })
@@ -170,10 +175,6 @@ export const POST = async function POST(request: NextRequest) {
         })
     }
   })
-
-  for (const evt of body.events ?? []) {
-    await invalidateEventCache(user.id, evt.startDate, evt.endDate)
-  }
 
   return NextResponse.json({
     success: true,
