@@ -23,7 +23,7 @@ const stripHtmlComments = (input: string): string => {
   let current = input
   do {
     previous = current
-    current = current.replace(/<!--.*?-->/g, '')
+    current = current.replace(/<!--[\s\S]*?--!?>/g, '')
   } while (current !== previous)
   return current
 }
