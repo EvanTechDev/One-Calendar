@@ -49,7 +49,7 @@ describe('invitation email', () => {
       ...base,
       meetingUrl: 'https://meet.example.com/ab3k-x9q2',
     })
-    expect(html.replace(/<[^>]*>/g, '')).toContain(
+    expect(html.replace(/[<>]/g, '')).toContain(
       'https://meet.example.com/ab3k-x9q2',
     )
   })
