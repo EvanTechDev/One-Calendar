@@ -12,7 +12,6 @@ import {
   Bookmark,
   CalendarArrowDown,
   CalendarArrowUp,
-  CalendarDays,
   Clock,
   History,
   Search,
@@ -218,18 +217,29 @@ export function BookmarkPanelBody({
           <div className="space-y-2">
             {filteredBookmarks.map((bookmark) => {
               const accent = getDarkerColorClass(bookmark.color)
+              const startDate = new Date(bookmark.startDate)
               return (
                 <div
                   key={bookmark.id}
                   className="group flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40"
                   onClick={() => handleEventClick(bookmark)}
                 >
-                  <span
-                    className="flex size-10 shrink-0 items-center justify-center rounded-lg"
+                  {/* Date block in the event's accent color: the day and month
+                      are the per-row visual anchor, so unlike a repeated icon
+                      every tile carries information of its own. */}
+                  <div
+                    className="flex size-11 shrink-0 flex-col items-center justify-center rounded-lg"
                     style={{ backgroundColor: `${accent}1F`, color: accent }}
                   >
-                    <CalendarDays className="h-[18px] w-[18px]" />
-                  </span>
+                    <span className="text-base font-semibold leading-none tabular-nums">
+                      {format(startDate, 'd')}
+                    </span>
+                    <span className="mt-1 text-[10px] font-medium uppercase leading-none">
+                      {format(startDate, 'MMM', {
+                        locale: dateLocale(language),
+                      })}
+                    </span>
+                  </div>
                   <div className="min-w-0 flex-1">
                     <h4 className="truncate font-medium">{bookmark.title}</h4>
                     <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
@@ -242,15 +252,10 @@ export function BookmarkPanelBody({
                       </p>
                     )}
                   </div>
-                  {/*
-                    Hover-reveal on desktop only (`sm:`): touch screens have no
-                    hover, and a permanently hidden delete would be unreachable
-                    there, so below `sm` the button stays visible.
-                  */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="-mr-1 shrink-0 text-muted-foreground transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
                     aria-label={t.removeBookmark}
                     onClick={(e) => removeBookmark(bookmark.id, e)}
                   >
@@ -278,10 +283,8 @@ export default function BookmarkPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <SheetHeader className="p-4 border-b">
-          <SheetTitle className="flex select-none items-center gap-2.5">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Bookmark className="h-4 w-4" />
-            </span>
+          <SheetTitle className="flex select-none items-center">
+            <Bookmark className="mr-2 h-5 w-5" />
             {t.bookmarks}
           </SheetTitle>
         </SheetHeader>

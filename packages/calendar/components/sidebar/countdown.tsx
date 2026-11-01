@@ -390,10 +390,8 @@ export function CountdownBody() {
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <SheetTitle className="flex select-none items-center gap-2.5">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <ClockDashed className="h-4 w-4" />
-            </span>
+          <SheetTitle className="flex select-none items-center gap-2">
+            <ClockDashed className="h-4 w-4" />
             {t.countdownTitle}
           </SheetTitle>
         </div>
@@ -531,13 +529,13 @@ export function CountdownBody() {
         </SheetHeader>
         <div className="space-y-4 p-4">
           <div
-            className="flex flex-col items-center rounded-2xl border px-4 py-6"
+            className="flex flex-col items-center rounded-xl border px-4 py-6"
             style={{
               background: `linear-gradient(to bottom, ${hex}14, transparent 75%)`,
             }}
           >
             <span
-              className="flex size-16 items-center justify-center rounded-2xl"
+              className="flex size-16 items-center justify-center rounded-xl"
               style={{ backgroundColor: `${hex}1F` }}
             >
               {renderCountdownIcon(
@@ -563,9 +561,9 @@ export function CountdownBody() {
             </div>
           </div>
 
-          <div className="divide-y rounded-xl border bg-card">
+          <div className="divide-y rounded-lg border bg-card">
             <div className="flex items-center gap-3 px-4 py-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                 <CalendarIcon className="h-4 w-4" />
               </span>
               <span className="min-w-0 flex-1 text-sm text-muted-foreground">
@@ -574,7 +572,7 @@ export function CountdownBody() {
               <span className="text-sm font-medium">{formattedDate}</span>
             </div>
             <div className="flex items-center gap-3 px-4 py-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                 <Clock className="h-4 w-4" />
               </span>
               <span className="min-w-0 flex-1 text-sm text-muted-foreground">
@@ -586,7 +584,7 @@ export function CountdownBody() {
             </div>
             {selectedCountdown.description && (
               <div className="flex gap-3 px-4 py-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                   <FileText className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">

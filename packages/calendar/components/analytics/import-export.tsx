@@ -17,20 +17,15 @@ import {
 } from '@zntr/ui/dialog'
 import {
   AlertCircle,
-  ArrowLeftRight,
   CalendarDays,
-  Check,
-  ChevronRight,
   Download,
   FileJson,
   FileSpreadsheet,
   FileUp,
-  Info,
-  Lightbulb,
   Upload,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
-import { Alert, AlertDescription } from '@zntr/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
 import { cn } from '@zntr/utils'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import {
@@ -949,87 +944,42 @@ ${rawContent.substring(0, 500)}...`)
   ]
 
   return (
-    <div className="w-full space-y-5">
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <ArrowLeftRight className="size-5" />
-        </span>
-        <div className="min-w-0 pt-0.5">
-          <h2 className="select-none font-heading text-base font-semibold">
-            {t.importExport}
-          </h2>
+    <div className="w-full space-y-6 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">{t.importExport}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {t.importExportDesc}
           </p>
         </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => setImportDialogOpen(true)}
-          className="group flex items-center gap-3.5 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
-        >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <Upload className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium">
-              {t.importCalendar}
-            </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              .ics / .json / .csv
-            </span>
-          </span>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setExportDialogOpen(true)}
-          className="group flex items-center gap-3.5 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
-        >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Download className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium">
-              {t.exportCalendar}
-            </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              iCalendar / JSON / CSV
-            </span>
-          </span>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-        </button>
-      </div>
-
-      <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-4 dark:bg-blue-500/[0.08]">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-          <Info className="size-4" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-medium">{t.googleCalendarGuide}</p>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            {t.googleCalendarGuideText}
-          </p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            {t.importCalendar}
+          </Button>
+          <Button onClick={() => setExportDialogOpen(true)}>
+            <Download className="mr-2 h-4 w-4" />
+            {t.exportCalendar}
+          </Button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card">
-        <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-2.5">
-          <Lightbulb className="size-4 text-amber-500" />
-          <h3 className="text-sm font-medium">{t.importExportTips}</h3>
-        </div>
-        <ul className="divide-y divide-border/60">
-          {[t.tip1, t.tip2, t.tip3, t.tip4, t.tip5].map((tip) => (
-            <li key={tip} className="flex items-start gap-3 px-4 py-2.5">
-              <Check className="mt-0.5 size-4 shrink-0 text-primary/70" />
-              <span className="text-sm leading-relaxed text-muted-foreground">
-                {tip}
-              </span>
-            </li>
-          ))}
+      <div className="border-t" />
+
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>{t.googleCalendarGuide}</AlertTitle>
+        <AlertDescription>{t.googleCalendarGuideText}</AlertDescription>
+      </Alert>
+
+      <div className="rounded-lg border p-4">
+        <h3 className="mb-2 font-medium">{t.importExportTips}</h3>
+        <ul className="list-inside list-disc space-y-2 text-sm text-muted-foreground">
+          <li>{t.tip1}</li>
+          <li>{t.tip2}</li>
+          <li>{t.tip3}</li>
+          <li>{t.tip4}</li>
+          <li>{t.tip5}</li>
         </ul>
       </div>
 
