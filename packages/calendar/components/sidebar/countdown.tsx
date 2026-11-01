@@ -410,14 +410,15 @@ export function CountdownBody() {
           </InputGroup>
           {sortMenu}
         </div>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={startAddCountdown}
-          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent/50 hover:text-foreground"
+          className="w-full mb-4"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="mr-2 h-4 w-4" />
           {t.countdownAdd}
-        </button>
+        </Button>
         <ScrollArea className="h-[calc(100vh-200px)]">
           {countdowns.length === 0 ? (
             <Empty className="border-0 py-8">
@@ -455,39 +456,29 @@ export function CountdownBody() {
                 return (
                   <div
                     key={countdown.id}
-                    className="group flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/40"
+                    className="flex cursor-pointer items-center rounded-md border border-border/50 p-3"
                     onClick={() => viewCountdownDetail(countdown)}
                   >
                     <span
-                      className="flex size-11 shrink-0 items-center justify-center rounded-lg"
+                      className="mr-3 flex size-11 shrink-0 items-center justify-center rounded-lg"
                       style={{ backgroundColor: `${hex}1F` }}
                     >
                       {renderCountdownIcon(countdown.icon, countdown.color, 20)}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">
-                        {countdown.name}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                        <CalendarIcon className="h-3 w-3 shrink-0" />
-                        <span className="truncate">
-                          {formattedDate} • {tRepeat(countdown.repeat)}
-                        </span>
+                    <div className="flex-1">
+                      <div className="font-medium">{countdown.name}</div>
+                      <div className="text-sm text-muted-foreground flex items-center mt-1">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        {formattedDate} • {tRepeat(countdown.repeat)}
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="text-right">
                       <div
-                        className={cn(
-                          'text-lg font-bold leading-tight tabular-nums',
-                          daysLeft < 0 && 'text-red-500',
-                        )}
-                        style={
-                          daysLeft < 0 ? undefined : { color: hex }
-                        }
+                        className={`text-lg font-bold ${daysLeft < 0 ? 'text-red-500' : 'text-primary'}`}
                       >
                         {Math.abs(daysLeft)}
                       </div>
-                      <div className="text-[11px] text-muted-foreground">
+                      <div className="text-xs text-muted-foreground">
                         {daysLeft < 0
                           ? t.countdownDaysAgo
                           : t.countdownDaysLeft}
