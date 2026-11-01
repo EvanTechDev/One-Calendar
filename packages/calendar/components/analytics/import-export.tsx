@@ -15,9 +15,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@zntr/ui/dialog'
-import { Download, Upload, AlertCircle } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowLeftRight,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  Download,
+  FileJson,
+  FileSpreadsheet,
+  FileUp,
+  Info,
+  Lightbulb,
+  Upload,
+} from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
-import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
+import { Alert, AlertDescription } from '@zntr/ui/alert'
+import { cn } from '@zntr/utils'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import {
   collapseSeriesForExport,
@@ -193,6 +207,17 @@ interface JsonBackupPayloadV2 {
   }
 }
 
+/**
+ * Format cards in the export dialog. The labels are product/format names, so
+ * they deliberately bypass the translation table — the same names the old
+ * Select showed untranslated ("iCalendar (.ics)", "JSON (.json)", "CSV").
+ */
+const EXPORT_FORMATS = [
+  { value: 'ics', label: 'iCalendar', ext: '.ics', Icon: CalendarDays },
+  { value: 'json', label: 'JSON', ext: '.json', Icon: FileJson },
+  { value: 'csv', label: 'CSV', ext: '.csv', Icon: FileSpreadsheet },
+] as const
+
 export default function ImportExport({
   events,
   onImportEvents: _onImportEvents,
@@ -208,6 +233,7 @@ export default function ImportExport({
   const [isLoading, setIsLoading] = useState(false)
   const [debugMode, setDebugMode] = useState(false)
   const [debugInfo, setDebugInfo] = useState<string>('')
+  const [dragActive, setDragActive] = useState(false)
   const [language] = useLanguage()
   const { request, saveFile, readExternal } = useCalendarHost()
   const t = translations[language]
@@ -910,50 +936,101 @@ ${rawContent.substring(0, 500)}...`)
       setSelectedFile(null)
       setImportUrl('')
       setDebugInfo('')
+      setDragActive(false)
     }
   }
 
+  const dateRangeOptions = [
+    { value: 'all', label: t.allEvents },
+    { value: 'future', label: t.futureEvents },
+    { value: 'past', label: t.pastEvents },
+    { value: '30days', label: t.last30Days },
+    { value: '90days', label: t.last90Days },
+  ]
+
   return (
-    <div className="w-full rounded-lg border p-4 space-y-6">
-      <div>
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-base font-semibold">{t.importExport}</h2>
-            <p className="text-sm text-muted-foreground">
-              {t.importExportDesc}
-            </p>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              {t.importCalendar}
-            </Button>
-            <Button onClick={() => setExportDialogOpen(true)}>
-              <Download className="mr-2 h-4 w-4" />
-              {t.exportCalendar}
-            </Button>
-          </div>
+    <div className="w-full space-y-5">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <ArrowLeftRight className="size-5" />
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <h2 className="select-none font-heading text-base font-semibold">
+            {t.importExport}
+          </h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {t.importExportDesc}
+          </p>
         </div>
       </div>
 
-      <div>
-        <div className="space-y-6">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>{t.googleCalendarGuide}</AlertTitle>
-            <AlertDescription>{t.googleCalendarGuideText}</AlertDescription>
-          </Alert>
-          <div className="border rounded-lg p-4">
-            <h3 className="font-medium mb-2">{t.importExportTips}</h3>
-            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-              <li>{t.tip1}</li>
-              <li>{t.tip2}</li>
-              <li>{t.tip3}</li>
-              <li>{t.tip4}</li>
-              <li>{t.tip5}</li>
-            </ul>
-          </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => setImportDialogOpen(true)}
+          className="group flex items-center gap-3.5 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
+        >
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <Upload className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">
+              {t.importCalendar}
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              .ics / .json / .csv
+            </span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setExportDialogOpen(true)}
+          className="group flex items-center gap-3.5 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/50"
+        >
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <Download className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">
+              {t.exportCalendar}
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              iCalendar / JSON / CSV
+            </span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+        </button>
+      </div>
+
+      <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-4 dark:bg-blue-500/[0.08]">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+          <Info className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{t.googleCalendarGuide}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            {t.googleCalendarGuideText}
+          </p>
         </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-2.5">
+          <Lightbulb className="size-4 text-amber-500" />
+          <h3 className="text-sm font-medium">{t.importExportTips}</h3>
+        </div>
+        <ul className="divide-y divide-border/60">
+          {[t.tip1, t.tip2, t.tip3, t.tip4, t.tip5].map((tip) => (
+            <li key={tip} className="flex items-start gap-3 px-4 py-2.5">
+              <Check className="mt-0.5 size-4 shrink-0 text-primary/70" />
+              <span className="text-sm leading-relaxed text-muted-foreground">
+                {tip}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <Dialog
@@ -991,15 +1068,74 @@ ${rawContent.substring(0, 500)}...`)
             <TabsContent value="file" className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="calendar-file">{t.selectCalendarFile}</Label>
-                <Input
-                  id="calendar-file"
-                  type="file"
-                  accept=".ics,.json,.csv"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t.supportedFormats}
-                </p>
+                {/*
+                  The real file input is visually hidden and the label is the
+                  dropzone: clicking anywhere on it opens the picker, and files
+                  can be dropped straight onto it. `sr-only` (not `hidden`)
+                  keeps the input activatable via the label.
+                */}
+                <label
+                  htmlFor="calendar-file"
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setDragActive(true)
+                  }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragActive(false)
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) setSelectedFile(file)
+                  }}
+                  className={cn(
+                    'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center transition-colors',
+                    dragActive
+                      ? 'border-primary bg-primary/5'
+                      : 'hover:border-primary/40 hover:bg-accent/40',
+                  )}
+                >
+                  <Input
+                    id="calendar-file"
+                    type="file"
+                    accept=".ics,.json,.csv"
+                    className="sr-only"
+                    onChange={(e) =>
+                      setSelectedFile(e.target.files?.[0] || null)
+                    }
+                  />
+                  {selectedFile ? (
+                    <>
+                      <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <FileUp className="size-5" />
+                      </span>
+                      <span className="max-w-full truncate text-sm font-medium">
+                        {selectedFile.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className={cn(
+                          'flex size-10 items-center justify-center rounded-full transition-colors',
+                          dragActive
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted text-muted-foreground',
+                        )}
+                      >
+                        <Upload className="size-5" />
+                      </span>
+                      <span className="text-sm font-medium">
+                        {t.selectCalendarFile}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {t.supportedFormats}
+                      </span>
+                    </>
+                  )}
+                </label>
               </div>
 
               <div className="space-y-2">
@@ -1100,36 +1236,62 @@ ${rawContent.substring(0, 500)}...`)
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="export-format">{t.exportFormat}</Label>
-              <Select value={exportFormat} onValueChange={setExportFormat}>
-                <SelectTrigger id="export-format">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ics">iCalendar (.ics)</SelectItem>
-                  <SelectItem value="json">JSON (.json)</SelectItem>
-                  <SelectItem value="csv">CSV</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>{t.exportFormat}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {EXPORT_FORMATS.map(({ value, label, ext, Icon }) => {
+                  const active = exportFormat === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setExportFormat(value)}
+                      className={cn(
+                        'flex flex-col items-center gap-1 rounded-xl border px-2 py-3 transition-colors',
+                        active
+                          ? 'border-primary bg-primary/[0.06]'
+                          : 'text-muted-foreground hover:border-primary/30 hover:bg-accent/40',
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          'size-5',
+                          active ? 'text-primary' : 'text-muted-foreground',
+                        )}
+                      />
+                      <span className="text-sm font-medium">{label}</span>
+                      <span className="text-[11px] leading-none text-muted-foreground">
+                        {ext}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="date-range">{t.dateRange}</Label>
-              <Select
-                value={dateRangeOption}
-                onValueChange={setDateRangeOption}
-              >
-                <SelectTrigger id="date-range">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t.allEvents}</SelectItem>
-                  <SelectItem value="future">{t.futureEvents}</SelectItem>
-                  <SelectItem value="past">{t.pastEvents}</SelectItem>
-                  <SelectItem value="30days">{t.last30Days}</SelectItem>
-                  <SelectItem value="90days">{t.last90Days}</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>{t.dateRange}</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {dateRangeOptions.map(({ value, label }) => {
+                  const active = dateRangeOption === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setDateRangeOption(value)}
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                        active
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:border-primary/30 hover:bg-accent/50 hover:text-foreground',
+                      )}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">

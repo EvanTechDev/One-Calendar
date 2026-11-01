@@ -32,13 +32,13 @@ import {
   CalendarArrowDown,
   CalendarArrowUp,
   Edit2,
+  FileText,
   History,
   Trash2,
   Calendar as CalendarIcon,
   Clock,
   Search,
 } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
 import { cn } from '@zntr/utils'
 import { format } from 'date-fns'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
@@ -194,18 +194,9 @@ export function CountdownBody() {
     iconName: string | undefined,
     colorClass: string,
     size = 20,
-    withBackground = false,
   ) => {
     const iconColor = TEXT_COLOR_MAP[colorClass] ?? '#3b82f6'
     const IconComponent = getCountdownGlyph(iconName || 'Clock')
-    if (withBackground) {
-      return (
-        <div className="flex h-10 w-10 items-center justify-center rounded-full">
-          <IconComponent size={size} style={{ color: iconColor }} />
-        </div>
-      )
-    }
-
     return <IconComponent size={size} style={{ color: iconColor }} />
   }
 
@@ -399,8 +390,10 @@ export function CountdownBody() {
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <SheetTitle className="flex select-none items-center gap-2">
-            <ClockDashed className="h-4 w-4" />
+          <SheetTitle className="flex select-none items-center gap-2.5">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ClockDashed className="h-4 w-4" />
+            </span>
             {t.countdownTitle}
           </SheetTitle>
         </div>
@@ -419,15 +412,14 @@ export function CountdownBody() {
           </InputGroup>
           {sortMenu}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
+        <button
+          type="button"
           onClick={startAddCountdown}
-          className="w-full mb-4"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent/50 hover:text-foreground"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           {t.countdownAdd}
-        </Button>
+        </button>
         <ScrollArea className="h-[calc(100vh-200px)]">
           {countdowns.length === 0 ? (
             <Empty className="border-0 py-8">
@@ -460,37 +452,44 @@ export function CountdownBody() {
                   countdown.repeat,
                 )
                 const formattedDate = formatDate(countdown.date)
+                const hex = TEXT_COLOR_MAP[countdown.color] ?? '#3b82f6'
 
                 return (
                   <div
                     key={countdown.id}
-                    className="flex cursor-pointer items-center rounded-md border border-border/50 p-3"
+                    className="group flex cursor-pointer items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40"
                     onClick={() => viewCountdownDetail(countdown)}
                   >
-                    <Avatar className="h-12 w-12 mr-3">
-                      <AvatarFallback className="bg-transparent">
-                        {renderCountdownIcon(
-                          countdown.icon,
-                          countdown.color,
-                          20,
-                          true,
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="font-medium">{countdown.name}</div>
-                      <div className="text-sm text-muted-foreground flex items-center mt-1">
-                        <CalendarIcon className="h-3 w-3 mr-1" />
-                        {formattedDate} • {tRepeat(countdown.repeat)}
+                    <span
+                      className="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: `${hex}1F` }}
+                    >
+                      {renderCountdownIcon(countdown.icon, countdown.color, 20)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">
+                        {countdown.name}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <CalendarIcon className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {formattedDate} • {tRepeat(countdown.repeat)}
+                        </span>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="shrink-0 text-right">
                       <div
-                        className={`text-lg font-bold ${daysLeft < 0 ? 'text-red-500' : 'text-primary'}`}
+                        className={cn(
+                          'text-lg font-bold leading-tight tabular-nums',
+                          daysLeft < 0 && 'text-red-500',
+                        )}
+                        style={
+                          daysLeft < 0 ? undefined : { color: hex }
+                        }
                       >
                         {Math.abs(daysLeft)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[11px] text-muted-foreground">
                         {daysLeft < 0
                           ? t.countdownDaysAgo
                           : t.countdownDaysLeft}
@@ -513,6 +512,7 @@ export function CountdownBody() {
       selectedCountdown.repeat,
     )
     const formattedDate = formatDateLong(selectedCountdown.date)
+    const hex = TEXT_COLOR_MAP[selectedCountdown.color] ?? '#3b82f6'
 
     return (
       <>
@@ -529,58 +529,79 @@ export function CountdownBody() {
             <SheetTitle>{t.countdownDetails}</SheetTitle>
           </div>
         </SheetHeader>
-        <div className="p-4">
-          <div className="flex items-center mb-6">
-            <Avatar className="h-16 w-16 mr-4">
-              <AvatarFallback className="bg-transparent">
-                {renderCountdownIcon(
-                  selectedCountdown.icon,
-                  selectedCountdown.color,
-                  26,
-                )}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-xl font-bold">{selectedCountdown.name}</h2>
-              <div
-                className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? 'text-red-500' : 'text-primary'}`}
-              >
-                {Math.abs(daysLeft)}{' '}
+        <div className="space-y-4 p-4">
+          <div
+            className="flex flex-col items-center rounded-2xl border px-4 py-6"
+            style={{
+              background: `linear-gradient(to bottom, ${hex}14, transparent 75%)`,
+            }}
+          >
+            <span
+              className="flex size-16 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: `${hex}1F` }}
+            >
+              {renderCountdownIcon(
+                selectedCountdown.icon,
+                selectedCountdown.color,
+                30,
+              )}
+            </span>
+            <h2 className="mt-3 select-none text-center font-heading text-lg font-semibold">
+              {selectedCountdown.name}
+            </h2>
+            <div
+              className={cn(
+                'mt-1 text-3xl font-bold tabular-nums',
+                daysLeft < 0 && 'text-red-500',
+              )}
+              style={daysLeft < 0 ? undefined : { color: hex }}
+            >
+              {Math.abs(daysLeft)}
+              <span className="ml-1.5 text-sm font-medium text-muted-foreground">
                 {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
-              </div>
+              </span>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center">
-                <CalendarIcon className="h-4 w-4 mr-1" />
+          <div className="divide-y rounded-xl border bg-card">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <CalendarIcon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1 text-sm text-muted-foreground">
                 {t.countdownDate}
-              </h3>
-              <p className="text-base">{formattedDate}</p>
+              </span>
+              <span className="text-sm font-medium">{formattedDate}</span>
             </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center">
-                <Clock className="h-4 w-4 mr-1" />
+            <div className="flex items-center gap-3 px-4 py-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Clock className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1 text-sm text-muted-foreground">
                 {t.countdownRepeat}
-              </h3>
-              <p className="text-base">{tRepeat(selectedCountdown.repeat)}</p>
+              </span>
+              <span className="text-sm font-medium">
+                {tRepeat(selectedCountdown.repeat)}
+              </span>
             </div>
-
             {selectedCountdown.description && (
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                  {t.countdownDescription}
-                </h3>
-                <p className="whitespace-pre-wrap text-base">
-                  {selectedCountdown.description}
-                </p>
+              <div className="flex gap-3 px-4 py-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm text-muted-foreground">
+                    {t.countdownDescription}
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm">
+                    {selectedCountdown.description}
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="flex space-x-2 mt-8">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               className="flex-1"

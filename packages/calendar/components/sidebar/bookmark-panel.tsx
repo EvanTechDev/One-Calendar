@@ -12,6 +12,8 @@ import {
   Bookmark,
   CalendarArrowDown,
   CalendarArrowUp,
+  CalendarDays,
+  Clock,
   History,
   Search,
   Trash2,
@@ -23,7 +25,6 @@ import {
 } from '@zntr/ui/input-group'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { cn } from '@zntr/utils'
 import {
   Empty,
   EmptyDescription,
@@ -214,41 +215,50 @@ export function BookmarkPanelBody({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="space-y-3">
-            {filteredBookmarks.map((bookmark) => (
-              <div
-                key={bookmark.id}
-                className="flex items-start p-3 border rounded-md hover:bg-accent cursor-pointer group"
-                onClick={() => handleEventClick(bookmark)}
-              >
+          <div className="space-y-2">
+            {filteredBookmarks.map((bookmark) => {
+              const accent = getDarkerColorClass(bookmark.color)
+              return (
                 <div
-                  className={cn('w-1.5 self-stretch rounded-full mr-3')}
-                  style={{
-                    backgroundColor: getDarkerColorClass(bookmark.color),
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium truncate">{bookmark.title}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {formatEventDate(bookmark.startDate)}
-                  </p>
-                  {bookmark.description && (
-                    <p className="text-xs text-muted-foreground truncate mt-1">
-                      {bookmark.description}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
-                  aria-label={t.removeBookmark}
-                  onClick={(e) => removeBookmark(bookmark.id, e)}
+                  key={bookmark.id}
+                  className="group flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40"
+                  onClick={() => handleEventClick(bookmark)}
                 >
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </div>
-            ))}
+                  <span
+                    className="flex size-10 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `${accent}1F`, color: accent }}
+                  >
+                    <CalendarDays className="h-[18px] w-[18px]" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate font-medium">{bookmark.title}</h4>
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      {formatEventDate(bookmark.startDate)}
+                    </p>
+                    {bookmark.description && (
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {bookmark.description}
+                      </p>
+                    )}
+                  </div>
+                  {/*
+                    Hover-reveal on desktop only (`sm:`): touch screens have no
+                    hover, and a permanently hidden delete would be unreachable
+                    there, so below `sm` the button stays visible.
+                  */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="-mr-1 shrink-0 text-muted-foreground transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
+                    aria-label={t.removeBookmark}
+                    onClick={(e) => removeBookmark(bookmark.id, e)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )
+            })}
           </div>
         )}
       </ScrollArea>
@@ -268,8 +278,10 @@ export default function BookmarkPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <SheetHeader className="p-4 border-b">
-          <SheetTitle className="flex select-none items-center">
-            <Bookmark className="mr-2 h-5 w-5" />
+          <SheetTitle className="flex select-none items-center gap-2.5">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Bookmark className="h-4 w-4" />
+            </span>
             {t.bookmarks}
           </SheetTitle>
         </SheetHeader>
