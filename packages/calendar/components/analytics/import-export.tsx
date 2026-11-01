@@ -13,23 +13,11 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogDescription,
   DialogTitle,
 } from '@zntr/ui/dialog'
-import {
-  Download,
-  Upload,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  FileCode2,
-  FileSpreadsheet,
-  FileUp,
-  Link2,
-  LoaderCircle,
-} from 'lucide-react'
+import { Download, Upload, AlertCircle } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@zntr/ui/tabs'
+import { Alert, AlertDescription, AlertTitle } from '@zntr/ui/alert'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import {
   collapseSeriesForExport,
@@ -926,235 +914,178 @@ ${rawContent.substring(0, 500)}...`)
   }
 
   return (
-    <div className="w-full min-w-0 space-y-4">
-      <section className="overflow-hidden rounded-lg border">
-        <header className="border-b bg-muted/20 p-4">
-          <h2 className="text-base font-semibold">{t.importExport}</h2>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {t.importExportDesc}
-          </p>
-        </header>
-        <div className="grid min-[520px]:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => handleImportDialogOpenChange(true)}
-            className="group flex min-w-0 flex-col items-start gap-5 border-b p-4 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring min-[520px]:border-r min-[520px]:border-b-0"
-          >
-            <span className="flex size-9 items-center justify-center rounded-lg border bg-background">
-              <Upload className="size-4" />
-            </span>
-            <span className="w-full min-w-0">
-              <span className="flex items-center justify-between gap-3 text-sm font-medium">
-                {t.importCalendar}
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
-              </span>
-              <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                {t.fileImport} · {t.urlImport}
-              </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setExportDialogOpen(true)}
-            className="group flex min-w-0 flex-col items-start gap-5 p-4 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-          >
-            <span className="flex size-9 items-center justify-center rounded-lg border bg-background">
-              <Download className="size-4" />
-            </span>
-            <span className="w-full min-w-0">
-              <span className="flex items-center justify-between gap-3 text-sm font-medium">
-                {t.exportCalendar}
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none" />
-              </span>
-              <span className="mt-1 block font-mono text-xs text-muted-foreground">
-                .ics · .json · .csv
-              </span>
-            </span>
-          </button>
+    <div className="w-full rounded-lg border p-4 space-y-6">
+      <div>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-base font-semibold">{t.importExport}</h2>
+            <p className="text-sm text-muted-foreground">
+              {t.importExportDesc}
+            </p>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              {t.importCalendar}
+            </Button>
+            <Button onClick={() => setExportDialogOpen(true)}>
+              <Download className="mr-2 h-4 w-4" />
+              {t.exportCalendar}
+            </Button>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <div className="divide-y rounded-lg border">
-        <details className="group p-4">
-          <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-medium [&::-webkit-details-marker]:hidden">
-            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1">{t.googleCalendarGuide}</span>
-            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-          </summary>
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            {t.googleCalendarGuideText}
-          </p>
-        </details>
-        <details className="group p-4">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-medium [&::-webkit-details-marker]:hidden">
-            {t.importExportTips}
-            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-          </summary>
-          <ul className="mt-3 list-disc space-y-2 pl-4 text-xs leading-relaxed text-muted-foreground">
-            <li>{t.tip1}</li>
-            <li>{t.tip2}</li>
-            <li>{t.tip4}</li>
-            <li>{t.tip5}</li>
-          </ul>
-        </details>
+      <div>
+        <div className="space-y-6">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{t.googleCalendarGuide}</AlertTitle>
+            <AlertDescription>{t.googleCalendarGuideText}</AlertDescription>
+          </Alert>
+          <div className="border rounded-lg p-4">
+            <h3 className="font-medium mb-2">{t.importExportTips}</h3>
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+              <li>{t.tip1}</li>
+              <li>{t.tip2}</li>
+              <li>{t.tip3}</li>
+              <li>{t.tip4}</li>
+              <li>{t.tip5}</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <Dialog
         open={importDialogOpen}
         onOpenChange={handleImportDialogOpenChange}
       >
-        <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto p-0 sm:max-w-lg">
-          <DialogHeader className="border-b p-5 pr-12">
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="size-4" />
-              {t.importCalendar}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {t.supportedFormats}
-            </DialogDescription>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t.importCalendar}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 p-5">
-            <Tabs
-              defaultValue="file"
-              value={importTab}
-              onValueChange={setImportTab}
-              className="flex-col gap-4"
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger
-                  value="file"
-                  className="min-w-0"
-                  disabled={isLoading}
-                >
-                  <FileUp className="size-3.5" />
-                  <span className="truncate">{t.fileImport}</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="url"
-                  className="min-w-0"
-                  disabled={isLoading}
-                >
-                  <Link2 className="size-3.5" />
-                  <span className="truncate">{t.urlImport}</span>
-                </TabsTrigger>
-              </TabsList>
 
-              <TabsContent value="file">
-                <Label
-                  htmlFor="calendar-file"
-                  className="relative flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/20 p-5 text-center focus-within:ring-2 focus-within:ring-ring"
-                >
-                  <span className="flex size-10 items-center justify-center rounded-lg border bg-background">
-                    <FileUp className="size-5 text-muted-foreground" />
-                  </span>
-                  <span className="w-full min-w-0">
-                    <span className="block break-all text-sm font-medium">
-                      {selectedFile ? selectedFile.name : t.selectCalendarFile}
-                    </span>
-                    <span className="mt-1 block font-mono text-xs font-normal text-muted-foreground">
-                      {selectedFile
-                        ? `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(selectedFile.size / 1024)} KB`
-                        : '.ics · .json · .csv'}
-                    </span>
-                  </span>
-                  <input
-                    id="calendar-file"
-                    type="file"
-                    accept=".ics,.json,.csv"
-                    aria-label={t.selectCalendarFile}
-                    disabled={isLoading}
-                    className="absolute inset-0 size-full cursor-pointer opacity-0"
-                    onChange={(e) =>
-                      setSelectedFile(e.target.files?.[0] || null)
-                    }
-                  />
-                </Label>
-              </TabsContent>
-              <TabsContent value="url">
-                <div className="space-y-2">
-                  <Label htmlFor="calendar-url">{t.calendarUrl}</Label>
-                  <Input
-                    id="calendar-url"
-                    type="url"
-                    placeholder="https://example.com/calendar.ics"
-                    value={importUrl}
-                    disabled={isLoading}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">{t.enterUrl}</p>
-                </div>
-              </TabsContent>
-            </Tabs>
-            <div className="space-y-2">
-              <Label htmlFor="import-calendar-category">
-                {t.importToCalendarCategory}
-              </Label>
-              <Select
-                value={importCalendarId}
-                onValueChange={setImportCalendarId}
-                disabled={isLoading}
-              >
-                <SelectTrigger
-                  id="import-calendar-category"
-                  className="w-full min-w-0"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__uncategorized__">
-                    {t.uncategorized}
-                  </SelectItem>
-                  {categories.map((calendar: CategoryData) => (
-                    <SelectItem key={calendar.id} value={calendar.id}>
-                      {calendar.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 border-t pt-4">
-              <Checkbox
-                id="debug-mode"
-                checked={debugMode}
-                onCheckedChange={(checked) => setDebugMode(checked === true)}
-              />
-              <Label
-                htmlFor="debug-mode"
-                className="text-xs font-normal text-muted-foreground"
-              >
-                {t.debugMode}
-              </Label>
-            </div>
-            {debugInfo && (
-              <div className="rounded-lg border bg-muted/30 p-3">
-                <h4 className="font-medium mb-1">{t.debugInfo}</h4>
-                <pre className="text-xs overflow-auto max-h-40 whitespace-pre-wrap">
-                  {debugInfo}
-                </pre>
+          <Tabs
+            defaultValue="file"
+            value={importTab}
+            onValueChange={setImportTab}
+            className="flex-col"
+          >
+            {/*
+              `w-full` plus a truncating span per trigger. TabsTrigger carries
+              `whitespace-nowrap` and a fixed `h-8`, so in a bare `grid-cols-2`
+              a label like lt "Failo importavimas" or mk "Увоз од датотека"
+              ran straight out of this `max-w-md` dialog. The span is what
+              actually clips — the trigger is an inline-flex box, so `truncate`
+              on it alone does nothing to the text inside.
+            */}
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="file" className="min-w-0">
+                <span className="truncate">{t.fileImport}</span>
+              </TabsTrigger>
+              <TabsTrigger value="url" className="min-w-0">
+                <span className="truncate">{t.urlImport}</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="file" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="calendar-file">{t.selectCalendarFile}</Label>
+                <Input
+                  id="calendar-file"
+                  type="file"
+                  accept=".ics,.json,.csv"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t.supportedFormats}
+                </p>
               </div>
-            )}
-          </div>
-          <div className="flex flex-wrap justify-end gap-2 border-t bg-muted/20 p-4">
+
+              <div className="space-y-2">
+                <Label htmlFor="import-calendar-category">
+                  {t.importToCalendarCategory}
+                </Label>
+                <Select
+                  value={importCalendarId}
+                  onValueChange={setImportCalendarId}
+                >
+                  <SelectTrigger id="import-calendar-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__uncategorized__">
+                      {t.uncategorized}
+                    </SelectItem>
+                    {categories.map((calendar: CategoryData) => (
+                      <SelectItem key={calendar.id} value={calendar.id}>
+                        {calendar.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Alert variant="default">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{t.googleCalendarGuideText}</AlertDescription>
+              </Alert>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="debug-mode"
+                  checked={debugMode}
+                  onCheckedChange={(checked) =>
+                    setDebugMode(checked as boolean)
+                  }
+                />
+                <Label htmlFor="debug-mode">{t.debugMode}</Label>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="url" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="calendar-url">{t.calendarUrl}</Label>
+                <Input
+                  id="calendar-url"
+                  type="url"
+                  placeholder="https://example.com/calendar.ics"
+                  value={importUrl}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">{t.enterUrl}</p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="debug-mode-url"
+                  checked={debugMode}
+                  onCheckedChange={(checked) =>
+                    setDebugMode(checked as boolean)
+                  }
+                />
+                <Label htmlFor="debug-mode-url">{t.debugMode}</Label>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {debugInfo && (
+            <div className="mt-4 rounded-md bg-muted p-2">
+              <h4 className="font-medium mb-1">{t.debugInfo}</h4>
+              <pre className="text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                {debugInfo}
+              </pre>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2 pt-4">
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setImportDialogOpen(false)}
             >
               {t.cancel}
             </Button>
-            <Button
-              size="sm"
-              onClick={handleImport}
-              disabled={
-                isLoading ||
-                (importTab === 'file' ? !selectedFile : !importUrl.trim())
-              }
-            >
-              {isLoading ? (
-                <LoaderCircle className="size-3.5 animate-spin" />
-              ) : (
-                <Upload className="size-3.5" />
-              )}
+            <Button onClick={handleImport} disabled={isLoading}>
               {isLoading ? t.importing : t.import}
             </Button>
           </div>
@@ -1162,65 +1093,25 @@ ${rawContent.substring(0, 500)}...`)
       </Dialog>
 
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto p-0 sm:max-w-lg">
-          <DialogHeader className="border-b p-5 pr-12">
-            <DialogTitle className="flex items-center gap-2">
-              <Download className="size-4" />
-              {t.exportCalendar}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {t.importExportDesc}
-            </DialogDescription>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t.exportCalendar}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-5 p-5">
-            <fieldset className="min-w-0 space-y-2">
-              <legend className="mb-2 text-sm font-medium">
-                {t.exportFormat}
-              </legend>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'ics', Icon: CalendarDays, label: 'iCalendar' },
-                  { value: 'json', Icon: FileCode2, label: 'JSON' },
-                  { value: 'csv', Icon: FileSpreadsheet, label: 'CSV' },
-                ].map(({ value, Icon, label }) => (
-                  <label
-                    key={value}
-                    className={`relative flex min-w-0 cursor-pointer flex-col items-start gap-3 rounded-lg border p-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${exportFormat === value ? 'border-foreground/40 bg-muted/50' : 'hover:bg-muted/30'}`}
-                  >
-                    <input
-                      type="radio"
-                      name="export-format"
-                      value={value}
-                      checked={exportFormat === value}
-                      onChange={() => setExportFormat(value)}
-                      disabled={isLoading}
-                      className="sr-only"
-                    />
-                    <Icon className="size-5 text-muted-foreground" />
-                    <span className="max-w-full truncate text-xs font-medium">
-                      {label}
-                    </span>
-                    {exportFormat === value && (
-                      <Check className="absolute top-2 right-2 size-3" />
-                    )}
-                  </label>
-                ))}
-              </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {exportFormat === 'json'
-                  ? [
-                      t.events,
-                      t.myCalendars,
-                      t.bookmarks,
-                      t.countdownTitle,
-                      t.settings,
-                    ].join(' · ')
-                  : exportFormat === 'ics'
-                    ? t.tip1
-                    : t.tip2}
-              </p>
-            </fieldset>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="export-format">{t.exportFormat}</Label>
+              <Select value={exportFormat} onValueChange={setExportFormat}>
+                <SelectTrigger id="export-format">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ics">iCalendar (.ics)</SelectItem>
+                  <SelectItem value="json">JSON (.json)</SelectItem>
+                  <SelectItem value="csv">CSV</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="date-range">{t.dateRange}</Label>
@@ -1228,7 +1119,7 @@ ${rawContent.substring(0, 500)}...`)
                 value={dateRangeOption}
                 onValueChange={setDateRangeOption}
               >
-                <SelectTrigger id="date-range" className="w-full min-w-0">
+                <SelectTrigger id="date-range">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1241,7 +1132,7 @@ ${rawContent.substring(0, 500)}...`)
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="include-completed"
                 checked={includeCompleted}
@@ -1249,32 +1140,18 @@ ${rawContent.substring(0, 500)}...`)
                   setIncludeCompleted(checked as boolean)
                 }
               />
-              <Label
-                htmlFor="include-completed"
-                className="text-xs font-normal"
-              >
-                {t.includeCompleted}
-              </Label>
+              <Label htmlFor="include-completed">{t.includeCompleted}</Label>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t bg-muted/20 p-4">
-            <span className="mr-auto font-mono text-[11px] text-muted-foreground">
-              calendar-export.{exportFormat}
-            </span>
+          <div className="flex justify-end space-x-2">
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setExportDialogOpen(false)}
             >
               {t.cancel}
             </Button>
-            <Button size="sm" onClick={handleExport} disabled={isLoading}>
-              {isLoading ? (
-                <LoaderCircle className="size-3.5 animate-spin" />
-              ) : (
-                <Download className="size-3.5" />
-              )}
+            <Button onClick={handleExport} disabled={isLoading}>
               {isLoading ? t.exporting : t.export}
             </Button>
           </div>

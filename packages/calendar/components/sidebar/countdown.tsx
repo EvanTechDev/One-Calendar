@@ -38,6 +38,7 @@ import {
   Clock,
   Search,
 } from 'lucide-react'
+import { Avatar, AvatarFallback } from '@zntr/ui/avatar'
 import { cn } from '@zntr/utils'
 import { format } from 'date-fns'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
@@ -193,9 +194,18 @@ export function CountdownBody() {
     iconName: string | undefined,
     colorClass: string,
     size = 20,
+    withBackground = false,
   ) => {
     const iconColor = TEXT_COLOR_MAP[colorClass] ?? '#3b82f6'
     const IconComponent = getCountdownGlyph(iconName || 'Clock')
+    if (withBackground) {
+      return (
+        <div className="flex h-10 w-10 items-center justify-center rounded-full">
+          <IconComponent size={size} style={{ color: iconColor }} />
+        </div>
+      )
+    }
+
     return <IconComponent size={size} style={{ color: iconColor }} />
   }
 
@@ -385,44 +395,27 @@ export function CountdownBody() {
     toast(t.countdownDeleted, { description: target?.name || '' })
   }
 
-  const needle = search.toLowerCase()
-  const filteredCountdowns = sortCountdowns(
-    countdowns.filter(
-      (countdown) =>
-        countdown.name.toLowerCase().includes(needle) ||
-        countdown.description?.toLowerCase().includes(needle),
-    ),
-    sort,
-  )
-
   const renderCountdownListView = () => (
     <>
-      <SheetHeader className="shrink-0 border-b bg-muted/20 p-4 pr-12">
-        <SheetTitle className="flex select-none items-center gap-2 text-sm">
-          <ClockDashed className="h-4 w-4" />
-          {t.countdownTitle}
-        </SheetTitle>
+      <SheetHeader className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <SheetTitle className="flex select-none items-center gap-2">
+            <ClockDashed className="h-4 w-4" />
+            {t.countdownTitle}
+          </SheetTitle>
+        </div>
       </SheetHeader>
-      <div className="flex min-h-0 flex-1 flex-col p-4">
-        <div className="mb-3 flex shrink-0 items-center gap-2">
+      <div className="p-4">
+        <div className="mb-3 flex items-center gap-2">
           <InputGroup className="min-w-0 flex-1">
             <InputGroupAddon>
               <Search className="h-4 w-4 text-muted-foreground" />
             </InputGroupAddon>
             <InputGroupInput
               placeholder={t.countdownSearchPlaceholder}
-              aria-label={t.countdownSearchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <InputGroupAddon align="inline-end">
-              <span
-                className="rounded-sm bg-muted px-1.5 text-[10px] tabular-nums"
-                aria-label={t.countdownTitle}
-              >
-                {filteredCountdowns.length}
-              </span>
-            </InputGroupAddon>
           </InputGroup>
           {sortMenu}
         </div>
@@ -430,14 +423,14 @@ export function CountdownBody() {
           variant="outline"
           size="sm"
           onClick={startAddCountdown}
-          className="mb-4 w-full shrink-0 border-dashed"
+          className="w-full mb-4"
         >
           <Plus className="mr-2 h-4 w-4" />
           {t.countdownAdd}
         </Button>
-        <ScrollArea className="-mr-4 min-h-0 flex-1 pr-4">
-          {filteredCountdowns.length === 0 ? (
-            <Empty className="min-h-48 rounded-lg border border-dashed bg-muted/10 p-4">
+        <ScrollArea className="h-[calc(100vh-200px)]">
+          {countdowns.length === 0 ? (
+            <Empty className="border-0 py-8">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <ClockDashed className="h-4 w-4" />
@@ -445,14 +438,23 @@ export function CountdownBody() {
                 <EmptyTitle className="select-none">
                   {t.countdownTitle}
                 </EmptyTitle>
-                <EmptyDescription>
-                  {search ? t.noMatchingEvents : t.countdownNoEvents}
-                </EmptyDescription>
+                <EmptyDescription>{t.countdownNoEvents}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="space-y-2 pb-1">
-              {filteredCountdowns.map((countdown) => {
+            <div className="space-y-2">
+              {sortCountdowns(
+                countdowns.filter(
+                  (countdown) =>
+                    countdown.name
+                      .toLowerCase()
+                      .includes(search.toLowerCase()) ||
+                    countdown.description
+                      ?.toLowerCase()
+                      .includes(search.toLowerCase()),
+                ),
+                sort,
+              ).map((countdown) => {
                 const daysLeft = calculateDaysLeft(
                   countdown.date,
                   countdown.repeat,
@@ -460,61 +462,41 @@ export function CountdownBody() {
                 const formattedDate = formatDate(countdown.date)
 
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={countdown.id}
-                    className="group flex w-full min-w-0 items-stretch overflow-hidden rounded-lg border bg-background text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex cursor-pointer items-center rounded-md border border-border/50 p-3"
                     onClick={() => viewCountdownDetail(countdown)}
                   >
-                    <span className="min-w-0 flex-1 p-3">
-                      <span className="mb-3 flex items-center gap-2">
-                        <span
-                          className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-muted/20"
-                          aria-hidden="true"
-                        >
-                          {renderCountdownIcon(
-                            countdown.icon,
-                            countdown.color,
-                            15,
-                          )}
-                        </span>
-                        <span className="truncate text-[13px] font-medium">
-                          {countdown.name}
-                        </span>
-                      </span>
-                      <span
-                        className="block truncate text-[11px] text-muted-foreground"
-                        title={formattedDate}
-                      >
-                        {formattedDate}
-                      </span>
-                      <span className="mt-1 block truncate text-[10px] text-muted-foreground">
-                        {tRepeat(countdown.repeat)}
-                      </span>
-                    </span>
-                    <span className="flex w-20 shrink-0 flex-col items-center justify-center gap-1 border-l bg-muted/20 px-2 py-3 text-center">
-                      <span
-                        className={cn(
-                          'max-w-full break-all font-medium leading-none tracking-tight tabular-nums',
-                          String(Math.abs(daysLeft)).length > 5
-                            ? 'text-base'
-                            : String(Math.abs(daysLeft)).length > 4
-                              ? 'text-2xl'
-                              : 'text-3xl',
-                          daysLeft < 0 && 'text-destructive',
+                    <Avatar className="h-12 w-12 mr-3">
+                      <AvatarFallback className="bg-transparent">
+                        {renderCountdownIcon(
+                          countdown.icon,
+                          countdown.color,
+                          20,
+                          true,
                         )}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="font-medium">{countdown.name}</div>
+                      <div className="text-sm text-muted-foreground flex items-center mt-1">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        {formattedDate} • {tRepeat(countdown.repeat)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div
+                        className={`text-lg font-bold ${daysLeft < 0 ? 'text-red-500' : 'text-primary'}`}
                       >
                         {Math.abs(daysLeft)}
-                      </span>
-                      <span className="max-w-full break-words text-[10px] leading-tight text-muted-foreground">
-                        {daysLeft === 0
-                          ? t.today
-                          : daysLeft < 0
-                            ? t.countdownDaysAgo
-                            : t.countdownDaysLeft}
-                      </span>
-                    </span>
-                  </button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {daysLeft < 0
+                          ? t.countdownDaysAgo
+                          : t.countdownDaysLeft}
+                      </div>
+                    </div>
+                  </div>
                 )
               })}
             </div>
@@ -534,117 +516,101 @@ export function CountdownBody() {
 
     return (
       <>
-        <SheetHeader className="shrink-0 border-b bg-muted/20 p-3 pr-12">
+        <SheetHeader className="p-4 border-b">
           <div className="flex items-center">
             <Button
               variant="ghost"
-              size="icon-sm"
-              className="mr-2 shrink-0"
-              aria-label={t.back}
+              size="icon"
+              className="mr-2"
               onClick={backToCountdownList}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <SheetTitle className="min-w-0 truncate text-sm">
-              {t.countdownDetails}
-            </SheetTitle>
+            <SheetTitle>{t.countdownDetails}</SheetTitle>
           </div>
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          <div className="mb-4 rounded-lg border bg-muted/20 px-4 py-6 text-center">
-            <span className="mx-auto mb-3 flex size-11 items-center justify-center rounded-lg border bg-background">
-              {renderCountdownIcon(
-                selectedCountdown.icon,
-                selectedCountdown.color,
-                22,
-              )}
-            </span>
-            <h2 className="break-words text-base font-medium">
-              {selectedCountdown.name}
-            </h2>
-            <p
-              className={cn(
-                'mt-6 break-all font-medium leading-none tracking-tighter tabular-nums',
-                String(Math.abs(daysLeft)).length > 6
-                  ? 'text-3xl'
-                  : String(Math.abs(daysLeft)).length > 4
-                    ? 'text-5xl'
-                    : 'text-7xl',
-                daysLeft < 0 && 'text-destructive',
-              )}
-            >
-              {Math.abs(daysLeft)}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {daysLeft === 0
-                ? t.today
-                : daysLeft < 0
-                  ? t.countdownDaysAgo
-                  : t.countdownDaysLeft}
-            </p>
+        <div className="p-4">
+          <div className="flex items-center mb-6">
+            <Avatar className="h-16 w-16 mr-4">
+              <AvatarFallback className="bg-transparent">
+                {renderCountdownIcon(
+                  selectedCountdown.icon,
+                  selectedCountdown.color,
+                  26,
+                )}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-xl font-bold">{selectedCountdown.name}</h2>
+              <div
+                className={`text-2xl font-bold mt-1 ${daysLeft < 0 ? 'text-red-500' : 'text-primary'}`}
+              >
+                {Math.abs(daysLeft)}{' '}
+                {daysLeft < 0 ? t.countdownDaysAgo : t.countdownDaysLeft}
+              </div>
+            </div>
           </div>
-          <dl className="divide-y rounded-lg border">
-            <div className="space-y-2 p-3">
-              <dt className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CalendarIcon className="size-3.5" />
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center">
+                <CalendarIcon className="h-4 w-4 mr-1" />
                 {t.countdownDate}
-              </dt>
-              <dd className="break-words text-sm">{formattedDate}</dd>
+              </h3>
+              <p className="text-base">{formattedDate}</p>
             </div>
 
-            <div className="space-y-2 p-3">
-              <dt className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="size-3.5" />
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1 flex items-center">
+                <Clock className="h-4 w-4 mr-1" />
                 {t.countdownRepeat}
-              </dt>
-              <dd className="text-sm">{tRepeat(selectedCountdown.repeat)}</dd>
+              </h3>
+              <p className="text-base">{tRepeat(selectedCountdown.repeat)}</p>
             </div>
 
             {selectedCountdown.description && (
-              <div className="space-y-2 p-3">
-                <dt className="text-xs text-muted-foreground">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">
                   {t.countdownDescription}
-                </dt>
-                <dd className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                </h3>
+                <p className="whitespace-pre-wrap text-base">
                   {selectedCountdown.description}
-                </dd>
+                </p>
               </div>
             )}
-          </dl>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2 border-t bg-muted/20 p-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => startEditCountdown(selectedCountdown)}
-          >
-            <Edit2 className="mr-2 h-4 w-4" />
-            {t.countdownEdit}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="flex-1"
-            onClick={() => deleteCountdown(selectedCountdown.id)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {t.countdownDelete}
-          </Button>
+          </div>
+
+          <div className="flex space-x-2 mt-8">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => startEditCountdown(selectedCountdown)}
+            >
+              <Edit2 className="mr-2 h-4 w-4" />
+              {t.countdownEdit}
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => deleteCountdown(selectedCountdown.id)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t.countdownDelete}
+            </Button>
+          </div>
         </div>
       </>
     )
   }
 
   const renderCountdownEditView = () => (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <SheetHeader className="shrink-0 border-b bg-muted/20 p-3 pr-12">
+    <div className="h-full flex flex-col">
+      <SheetHeader className="p-4 border-b">
         <div className="flex items-center">
           <Button
             variant="ghost"
-            size="icon-sm"
-            className="mr-2 shrink-0"
-            aria-label={t.back}
+            size="icon"
+            className="mr-2"
             onClick={() => {
               if (selectedCountdown) {
                 setView('detail')
@@ -655,31 +621,12 @@ export function CountdownBody() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <SheetTitle className="min-w-0 truncate text-sm">
+          <SheetTitle>
             {selectedCountdown ? t.countdownEditTitle : t.countdownAddTitle}
           </SheetTitle>
         </div>
       </SheetHeader>
-      <div className="min-h-0 flex-1 overflow-auto p-4">
-        <div className="mb-5 flex min-w-0 items-center gap-3 rounded-lg border bg-muted/20 p-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-background">
-            {renderCountdownIcon(
-              newCountdown.icon,
-              newCountdown.color || 'bg-blue-500',
-              20,
-            )}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">
-              {newCountdown.name || t.countdownName}
-            </p>
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {selectedDate
-                ? formatDate(toDateString(selectedDate))
-                : t.countdownSelectDate}
-            </p>
-          </div>
-        </div>
+      <div className="flex-1 overflow-auto p-4">
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">{t.countdownName}*</Label>
@@ -701,7 +648,7 @@ export function CountdownBody() {
                 setNewCountdown({ ...newCountdown, color: value })
               }
             >
-              <SelectTrigger id="color" className="w-full min-w-0">
+              <SelectTrigger id="color">
                 <SelectValue placeholder={t.countdownColor} />
               </SelectTrigger>
               <SelectContent>
@@ -743,18 +690,18 @@ export function CountdownBody() {
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full min-w-0 justify-start text-left font-normal',
+                    'w-full justify-start text-left font-normal',
                     !selectedDate && 'text-muted-foreground',
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  <span className="truncate">
-                    {selectedDate
-                      ? format(selectedDate, 'PPP', {
-                          locale: dateLocale(language),
-                        })
-                      : t.countdownSelectDate}
-                  </span>
+                  {selectedDate ? (
+                    format(selectedDate, 'PPP', {
+                      locale: dateLocale(language),
+                    })
+                  ) : (
+                    <span>{t.countdownSelectDate}</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -779,7 +726,7 @@ export function CountdownBody() {
                 setNewCountdown({ ...newCountdown, repeat: value })
               }
             >
-              <SelectTrigger className="w-full min-w-0">
+              <SelectTrigger>
                 <SelectValue placeholder={t.countdownRepeat} />
               </SelectTrigger>
               <SelectContent>
@@ -808,20 +755,18 @@ export function CountdownBody() {
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap justify-between gap-2 border-t bg-muted/20 p-4">
+      <div className="p-4 border-t flex justify-between">
         {selectedCountdown && (
           <Button
             variant="destructive"
-            size="sm"
             onClick={() => deleteCountdown(selectedCountdown.id)}
           >
             {t.countdownDelete}
           </Button>
         )}
-        <div className="ml-auto flex max-w-full flex-wrap justify-end gap-2">
+        <div className="flex space-x-2 ml-auto">
           <Button
             variant="outline"
-            size="sm"
             onClick={() => {
               if (selectedCountdown) {
                 setView('detail')
@@ -833,7 +778,6 @@ export function CountdownBody() {
             {t.countdownCancel}
           </Button>
           <Button
-            size="sm"
             onClick={saveCountdown}
             disabled={
               !newCountdown.name || !selectedDate || !newCountdown.color
@@ -847,11 +791,11 @@ export function CountdownBody() {
   )
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <>
       {view === 'list' && renderCountdownListView()}
       {view === 'detail' && renderCountdownDetailView()}
       {view === 'edit' && renderCountdownEditView()}
-    </div>
+    </>
   )
 }
 
@@ -866,7 +810,7 @@ export function CountdownTool({ open, onOpenChange }: CountdownToolProps) {
        * leftover `hover:text-foreground` from here with
        * `[&_button:hover]:text-inherit`.
        */}
-      <SheetContent side="right" className="w-[360px] gap-0 p-0 sm:w-[420px]">
+      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <CountdownBody />
       </SheetContent>
     </Sheet>
