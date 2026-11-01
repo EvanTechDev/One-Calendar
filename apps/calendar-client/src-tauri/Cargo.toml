@@ -30,6 +30,7 @@ tauri-plugin-deep-link = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
+tauri-plugin-autostart = "~2.5.1"
 reqwest = { version = "0.13", features = ["json", "cookies", "stream"] }
 base64 = "0.22"
 sha2 = "0.10"

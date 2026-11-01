@@ -19,6 +19,7 @@ import {
 import { Dialog, DialogContent } from '@zntr/ui/dialog'
 import { Button } from '@zntr/ui/button'
 import { Switch } from '@zntr/ui/switch'
+import { SettingRow, SettingsGroup } from '@zntr/ui/settings-row'
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import {
   Select,
@@ -199,53 +200,6 @@ export function SettingsDialog({
   )
 }
 
-/** Copied from the calendar's SettingRow so the two dialogs read identically. */
-function SettingRow({
-  icon,
-  title,
-  description,
-  children,
-  className,
-}: {
-  icon?: React.ReactNode
-  title: React.ReactNode
-  description?: React.ReactNode
-  children?: React.ReactNode
-  className?: string
-}) {
-  return (
-    <div
-      className={cn(
-        'flex items-center justify-between gap-4 py-3.5 pl-4 pr-3',
-        className,
-      )}
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        {icon ? (
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-4">
-            {icon}
-          </span>
-        ) : null}
-        <div className="min-w-0">
-          <div className="text-sm leading-snug font-medium">{title}</div>
-          {description ? (
-            <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              {description}
-            </div>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">{children}</div>
-    </div>
-  )
-}
-
-function SettingsGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="divide-y divide-border rounded-lg border">{children}</div>
-  )
-}
-
 const THEME_LABELS: Record<ThemeOption, string> = {
   light: 'Light',
   dark: 'Dark',
@@ -284,7 +238,11 @@ function PreferencesSettings() {
           >
             {/* Labelled explicitly: the SettingRow's title is a plain div, not
                 a <label>, so without this the select has no accessible name. */}
-            <SelectTrigger id="theme" aria-label="Theme">
+            <SelectTrigger
+              id="theme"
+              aria-label="Theme"
+              className="max-w-full min-w-0"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -359,6 +317,7 @@ function PreferencesSettings() {
               <SelectTrigger
                 id="join-background"
                 aria-label="Camera background"
+                className="max-w-full min-w-0"
               >
                 <SelectValue />
               </SelectTrigger>

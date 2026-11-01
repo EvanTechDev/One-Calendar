@@ -293,7 +293,7 @@ export default function MonthView({
       shards={[remainingPopoverListRef]}
       className="h-full"
     >
-      <div className="flex min-h-full flex-col">
+      <div className="calendar-display flex min-h-full flex-col">
         <div className="grid grid-cols-7">
           {orderedDays.map((day) => (
             <div key={day} className="text-center font-medium text-sm py-2">
@@ -623,7 +623,7 @@ export default function MonthView({
             align="center"
             sideOffset={8}
             collisionPadding={20}
-            className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
+            className="calendar-display w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
             // The event preview opened from one of these rows is a CHILD of
             // this list, not an outside click. Radix portals it to <body>, so
             // pressing its close button (or anything else in it) arrived here
@@ -710,7 +710,7 @@ export default function MonthView({
           if (!open) setDaySheet(null)
         }}
       >
-        <SheetContent side="bottom" className="max-h-[60dvh] gap-0 p-0">
+        <SheetContent side="bottom" className="calendar-display max-h-[60dvh] gap-0 p-0">
           <SheetHeader className="border-b p-4">
             <SheetTitle>
               {daySheet ? format(daySheet.day, 'yyyy-MM-dd') : ''}

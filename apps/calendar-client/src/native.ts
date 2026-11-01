@@ -4,6 +4,12 @@ import type { CalendarUser } from '@zntr/calendar/host'
 
 export { invoke, listen }
 
+export const nativeAutostart = {
+  isEnabled: () => invoke<boolean>('desktop_autostart_enabled'),
+  setEnabled: (enabled: boolean) =>
+    invoke<boolean>('desktop_set_autostart', { enabled }),
+}
+
 export interface DesktopConfig {
   environment: 'dev' | 'production'
   apiOrigin: string

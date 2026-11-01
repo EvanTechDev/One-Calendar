@@ -454,7 +454,7 @@ export default function DayView({
   return (
     // Mobile Form (ADR-0019): a narrower time gutter reclaims width for the
     // single day column. Desktop keeps the 84px constant untouched.
-    <div className="flex flex-col h-full max-md:[--wv-gutter:3rem]">
+    <div className="calendar-display flex flex-col h-full max-md:[--wv-gutter:3rem]">
       <div className="grid grid-cols-[var(--wv-gutter,84px)_1fr] border-b relative z-30 bg-background">
         <div className="p-2 text-center">
           <div className="text-sm text-muted-foreground">

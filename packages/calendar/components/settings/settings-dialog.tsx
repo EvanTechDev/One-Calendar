@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from '@zntr/ui/select'
 import { Switch } from '@zntr/ui/switch'
+import { SettingRow, SettingsGroup } from '@zntr/ui/settings-row'
+import { DesktopAutostart } from './desktop-autostart'
 import { Kbd } from '@zntr/ui/kbd'
 import { ScrollArea } from '@zntr/ui/scroll-area'
 import { cn } from '@zntr/utils'
@@ -93,79 +95,6 @@ interface SettingsDialogProps extends GeneralSettingsProps {
   onImportEvents: (events: CalendarEvent[]) => void
 }
 
-/**
- * The preferences row.
- *
- * Deliberately the same shape as the account panel's rows (see
- * packages/auth/src/account/account-panel.tsx): a 16px muted icon with no
- * chip behind it, a single-line truncated summary under the title, symmetric
- * `px-4 py-3` padding, and the control held flush right. The two sections sit
- * side by side in the same dialog, so a divergence here reads as "a different
- * kind of screen" rather than "another tab".
- *
- * One deliberate difference: the control rides a `basis-40 sm:basis-48`
- * shrinkable track and the row carries no `w-full`. The account rows hold a
- * chevron; these hold selects whose trigger is `whitespace-nowrap`, so a
- * fixed-width control sets a floor under the row's min-content width and
- * pushes out through the group's border on a narrow dialog — and inside
- * Radix's `display: table` scroll wrapper, percentage widths are folded back
- * into the intrinsic size, so `w-full` is not available as a cap either. The
- * track gives every control the same width while the panel has room, and
- * gives way when it does not. `w-full` on the row itself is a percentage
- * width too, and on a `div` flex row it buys nothing anyway.
- */
-function SettingRow({
-  icon,
-  title,
-  description,
-  children,
-  className,
-}: {
-  icon?: React.ReactNode
-  title: React.ReactNode
-  description?: React.ReactNode
-  children?: React.ReactNode
-  className?: string
-}) {
-  return (
-    <div className={cn('flex items-center gap-3 px-4 py-3', className)}>
-      {icon ? (
-        // `[&_svg]:size-4` sizes whatever lucide icon the caller passes, the
-        // way the account rows hard-code `h-4 w-4` on theirs.
-        <span className="shrink-0 text-muted-foreground [&_svg]:size-4">
-          {icon}
-        </span>
-      ) : null}
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium">{title}</span>
-        {description ? (
-          <span className="block truncate text-xs text-muted-foreground">
-            {description}
-          </span>
-        ) : null}
-      </span>
-      <div className="flex min-w-0 shrink basis-40 items-center justify-end gap-2 sm:basis-48">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/** The bordered, divided card the rows sit in. Matches the account groups. */
-function SettingsGroup({
-  className,
-  children,
-}: {
-  className?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className={cn('divide-y rounded-lg border', className)}>
-      {children}
-    </div>
-  )
-}
-
 function GeneralSettings({
   language,
   setLanguage,
@@ -181,6 +110,7 @@ function GeneralSettings({
   setTimeFormat,
 }: GeneralSettingsProps) {
   const { theme, setTheme } = useTheme()
+  const host = useCalendarHost()
   const { settings, updateSettings } = useSettings()
   const [selectedCalendarColor, setSelectedCalendarColor] =
     useState<CalendarColor>(normalizeCalendarColor(settings.calendarColor))
@@ -466,11 +396,15 @@ function GeneralSettings({
           </Button>
           <Switch
             id="enable-shortcuts"
+            aria-label={t.shortCuts}
             className="shrink-0"
             checked={enableShortcuts}
             onCheckedChange={setEnableShortcuts}
           />
         </SettingRow>
+        {host.platform === 'desktop' && host.autostart ? (
+          <DesktopAutostart autostart={host.autostart} t={t} />
+        ) : null}
       </SettingsGroup>
 
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>

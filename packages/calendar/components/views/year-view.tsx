@@ -180,7 +180,7 @@ export default function YearView({
 
   return (
     <RemoveScroll enabled={!!popover} shards={[popoverListRef]}>
-      <div className="p-3 md:p-4" ref={containerRef}>
+      <div className="calendar-display p-3 md:p-4" ref={containerRef}>
         {/* Mobile Form (ADR-0019): two columns of compact month grids below
             768px. The desktop auto-fit layout is untouched from md up. */}
         <div className="grid gap-y-4 max-md:grid-cols-2 max-md:gap-x-3 md:[grid-template-columns:repeat(auto-fit,minmax(15.5rem,15.5rem))] md:justify-between md:gap-x-6">
@@ -282,7 +282,7 @@ export default function YearView({
               align="center"
               sideOffset={8}
               collisionPadding={20}
-              className="w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
+              className="calendar-display w-72 rounded-lg border bg-popover p-3 shadow-md outline-none"
               // The event preview opened from one of these rows is a CHILD of
               // this list, not an outside click. Radix portals it to <body>, so
               // pressing its close button (or anything else in it) arrived here
@@ -395,7 +395,7 @@ export default function YearView({
             if (!open) setDaySheet(null)
           }}
         >
-          <SheetContent side="bottom" className="max-h-[60dvh] gap-0 p-0">
+          <SheetContent side="bottom" className="calendar-display max-h-[60dvh] gap-0 p-0">
             <SheetHeader className="border-b p-4">
               <SheetTitle>
                 {daySheet ? (

@@ -691,7 +691,7 @@ export default function WeekView({
   }
 
   return (
-    <div className="flex flex-col h-full max-md:[--wv-gutter:3rem] max-md:text-xs">
+    <div className="calendar-display flex flex-col h-full max-md:[--wv-gutter:3rem] max-md:text-xs">
       <div
         className="relative z-30 bg-background border-b"
         style={{ paddingRight: scrollbarWidth + 'px' }}

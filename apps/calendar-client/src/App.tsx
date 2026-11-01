@@ -17,6 +17,7 @@ import {
   createNativeFetch,
   invoke,
   listen,
+  nativeAutostart,
   openExternal,
   type DesktopConfig,
   type SessionView,
@@ -169,6 +170,7 @@ export default function App() {
   const host = useMemo<CalendarHost>(
     () => ({
       platform: 'desktop',
+      autostart: nativeAutostart,
       origin: config?.apiOrigin,
       session: {
         data: session.user ? { user: session.user } : null,

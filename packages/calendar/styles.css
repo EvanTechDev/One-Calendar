@@ -7,6 +7,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Calendar chrome and event labels are drag/click targets, not selectable prose.
+   Event IDs also cover blocks rendered in overflow popovers and mobile sheets. */
+.calendar-display,
+[data-event-id] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.calendar-display :is(input, textarea, [contenteditable='true']) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* A compact document inside a constrained panel, not article-sized prose. */
 .agent-markdown {
   overflow-wrap: anywhere;

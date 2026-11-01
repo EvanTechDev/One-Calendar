@@ -26,6 +26,11 @@ export interface CalendarHost {
   saveFile?: (name: string, content: string, mime: string) => Promise<boolean>
   readExternal?: (url: string) => Promise<string>
   requestNotifications?: () => Promise<boolean>
+  /** Device-local OS login registration, never an account preference. */
+  autostart?: {
+    isEnabled: () => Promise<boolean>
+    setEnabled: (enabled: boolean) => Promise<boolean>
+  }
   request: typeof fetch
   session: CalendarSession
   navigation: {

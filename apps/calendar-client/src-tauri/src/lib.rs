@@ -3,6 +3,7 @@ use tauri::{Manager, PhysicalPosition, PhysicalSize, Url, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_deep_link::DeepLinkExt;
 mod auth;
+mod autostart;
 mod transport;
 mod integrations;
 mod identity;
@@ -247,9 +248,11 @@ fn route_browser_link(app: tauri::AppHandle, mut url: Url) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let application = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, _| {
             startup_trace("second instance callback started");
-            show_main(app);
+            if !args.iter().any(|arg| arg == autostart::ARGUMENT) {
+                show_main(app);
+            }
             startup_trace("second instance callback returned");
         }))
         .plugin(tauri_plugin_deep_link::init())
@@ -285,6 +288,7 @@ pub fn run() {
             integrations::desktop_open_page, integrations::desktop_save_file,
             integrations::desktop_read_external, integrations::desktop_notification_permission,
             updates::desktop_check_update, updates::desktop_install_update,
+            autostart::desktop_autostart_enabled, autostart::desktop_set_autostart,
         ])
         .setup(|app| {
             startup_trace("setup started");
@@ -300,6 +304,14 @@ pub fn run() {
             if app.config().identifier != expected_id {
                 return Err("Desktop environment and application identifier do not match".into());
             }
+            // Separate OS login entries for production and development. Installing
+            // the plugin does not register a login item; only the user's switch does.
+            app.handle().plugin(
+                tauri_plugin_autostart::Builder::new()
+                    .app_name(expected_id)
+                    .args([autostart::ARGUMENT])
+                    .build(),
+            )?;
             let default_origin = if environment == "dev" {
                 "https://precal.xyehr.cn"
             } else {
@@ -357,8 +369,12 @@ pub fn run() {
                 .ok_or("Main window is missing")?;
             window.set_title(&name)?;
             fit_window(&window, true)?;
-            window.show()?;
-            startup_trace("window shown");
+            if !std::env::args().any(|arg| arg == autostart::ARGUMENT) {
+                window.show()?;
+                startup_trace("window shown");
+            } else {
+                startup_trace("login startup: tray and reminders running without a window");
+            }
             Ok(())
         })
         .on_window_event(|window, event| {

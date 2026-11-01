@@ -343,7 +343,7 @@ export function SidebarBody({
               setLocalSelectedDate(date)
               if (date) onDateSelect(date)
             }}
-            className="rounded-lg border"
+                    className="calendar-display rounded-lg border"
             captionLayout="dropdown"
           />
         </div>
