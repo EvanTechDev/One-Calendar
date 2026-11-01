@@ -509,7 +509,7 @@ function MCPConnection() {
 
   return (
     <Section
-      icon={Plug}
+      icon={McpIcon}
       title={t.mcpConnection}
       description={t.mcpConnectionDesc}
       action={
