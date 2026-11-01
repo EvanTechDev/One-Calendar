@@ -12,7 +12,6 @@ import {
   Bookmark,
   CalendarArrowDown,
   CalendarArrowUp,
-  Clock,
   History,
   Search,
   Trash2,
@@ -24,6 +23,7 @@ import {
 } from '@zntr/ui/input-group'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { cn } from '@zntr/utils'
 import {
   Empty,
   EmptyDescription,
@@ -214,56 +214,41 @@ export function BookmarkPanelBody({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="space-y-2">
-            {filteredBookmarks.map((bookmark) => {
-              const accent = getDarkerColorClass(bookmark.color)
-              const startDate = new Date(bookmark.startDate)
-              return (
+          <div className="space-y-3">
+            {filteredBookmarks.map((bookmark) => (
+              <div
+                key={bookmark.id}
+                className="flex items-start p-3 border rounded-md hover:bg-accent cursor-pointer group"
+                onClick={() => handleEventClick(bookmark)}
+              >
                 <div
-                  key={bookmark.id}
-                  className="group flex cursor-pointer items-start gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40"
-                  onClick={() => handleEventClick(bookmark)}
-                >
-                  {/* Date block in the event's accent color: the day and month
-                      are the per-row visual anchor, so unlike a repeated icon
-                      every tile carries information of its own. */}
-                  <div
-                    className="flex size-11 shrink-0 flex-col items-center justify-center rounded-lg"
-                    style={{ backgroundColor: `${accent}1F`, color: accent }}
-                  >
-                    <span className="text-base font-semibold leading-none tabular-nums">
-                      {format(startDate, 'd')}
-                    </span>
-                    <span className="mt-1 text-[10px] font-medium uppercase leading-none">
-                      {format(startDate, 'MMM', {
-                        locale: dateLocale(language),
-                      })}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="truncate font-medium">{bookmark.title}</h4>
-                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3 shrink-0" />
-                      {formatEventDate(bookmark.startDate)}
+                  className={cn('w-1.5 self-stretch rounded-full mr-3')}
+                  style={{
+                    backgroundColor: getDarkerColorClass(bookmark.color),
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium truncate">{bookmark.title}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {formatEventDate(bookmark.startDate)}
+                  </p>
+                  {bookmark.description && (
+                    <p className="text-xs text-muted-foreground truncate mt-1">
+                      {bookmark.description}
                     </p>
-                    {bookmark.description && (
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {bookmark.description}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    aria-label={t.removeBookmark}
-                    onClick={(e) => removeBookmark(bookmark.id, e)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  )}
                 </div>
-              )
-            })}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  aria-label={t.removeBookmark}
+                  onClick={(e) => removeBookmark(bookmark.id, e)}
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+            ))}
           </div>
         )}
       </ScrollArea>

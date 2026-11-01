@@ -455,11 +455,11 @@ export function CountdownBody() {
                 return (
                   <div
                     key={countdown.id}
-                    className="group flex cursor-pointer items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40"
+                    className="group flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/40"
                     onClick={() => viewCountdownDetail(countdown)}
                   >
                     <span
-                      className="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-lg"
                       style={{ backgroundColor: `${hex}1F` }}
                     >
                       {renderCountdownIcon(countdown.icon, countdown.color, 20)}
