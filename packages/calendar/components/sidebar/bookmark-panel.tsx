@@ -23,7 +23,6 @@ import {
 } from '@zntr/ui/input-group'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { cn } from '@zntr/utils'
 import {
   Empty,
   EmptyDescription,
@@ -178,8 +177,8 @@ export function BookmarkPanelBody({
   )
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center gap-2">
+    <div className="flex min-h-0 flex-1 flex-col p-4">
+      <div className="mb-4 flex shrink-0 items-center gap-2">
         <InputGroup className="min-w-0 flex-1">
           <InputGroupAddon>
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -189,20 +188,24 @@ export function BookmarkPanelBody({
             placeholder={t.searchBookmarks}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label={t.searchBookmarks}
           />
+          <InputGroupAddon align="inline-end">
+            <span
+              className="rounded-sm bg-muted px-1.5 text-[10px] tabular-nums"
+              aria-label={t.bookmarks}
+            >
+              {filteredBookmarks.length}
+            </span>
+          </InputGroupAddon>
         </InputGroup>
 
         {sortMenu}
       </div>
 
-      {/* `-mr-4` pulls the scroll area out to the panel edge, so the 10px
-          scrollbar it renders internally sits in the gutter rather than
-          pushing the rows inward; `pr-4` hands that gutter back to the rows.
-          Without the pair a row ends 32px from the edge against the header's
-          16px, and the rows look short on the right for no visible reason. */}
-      <ScrollArea className="-mr-4 h-[calc(100vh-180px)] pr-4">
+      <ScrollArea className="-mr-4 min-h-0 flex-1 pr-4">
         {filteredBookmarks.length === 0 ? (
-          <Empty className="h-32 border-0 p-0">
+          <Empty className="min-h-48 rounded-lg border border-dashed bg-muted/10 p-4">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <Bookmark className="h-4 w-4" />
@@ -214,38 +217,69 @@ export function BookmarkPanelBody({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 pb-1">
             {filteredBookmarks.map((bookmark) => (
               <div
                 key={bookmark.id}
-                className="flex items-start p-3 border rounded-md hover:bg-accent cursor-pointer group"
-                onClick={() => handleEventClick(bookmark)}
+                className="group flex min-w-0 items-start overflow-hidden rounded-lg border bg-background transition-colors hover:bg-muted/30 focus-within:border-ring"
               >
-                <div
-                  className={cn('w-1.5 self-stretch rounded-full mr-3')}
-                  style={{
-                    backgroundColor: getDarkerColorClass(bookmark.color),
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium truncate">{bookmark.title}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {formatEventDate(bookmark.startDate)}
-                  </p>
-                  {bookmark.description && (
-                    <p className="text-xs text-muted-foreground truncate mt-1">
-                      {bookmark.description}
-                    </p>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleEventClick(bookmark)}
+                  aria-label={`${bookmark.title}, ${formatEventDate(bookmark.startDate)}`}
+                  className="flex min-w-0 flex-1 items-start gap-3 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                >
+                  <span
+                    className="flex w-10 shrink-0 flex-col overflow-hidden rounded-md border bg-muted/20 text-center"
+                    aria-hidden="true"
+                  >
+                    <span className="border-b px-1 py-0.5 text-[9px] font-medium uppercase leading-4 text-muted-foreground">
+                      {format(new Date(bookmark.startDate), 'MMM', {
+                        locale: dateLocale(language),
+                      })}
+                    </span>
+                    <span
+                      className="py-1 text-lg font-medium leading-6 tabular-nums"
+                      style={{ color: getDarkerColorClass(bookmark.color) }}
+                    >
+                      {format(new Date(bookmark.startDate), 'dd')}
+                    </span>
+                  </span>
+                  <span className="min-w-0 flex-1 py-0.5">
+                    <span className="block truncate text-[13px] font-medium leading-5">
+                      {bookmark.title}
+                    </span>
+                    <span className="mt-1 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <span
+                        className="size-1.5 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: getDarkerColorClass(bookmark.color),
+                        }}
+                      />
+                      <span className="truncate">
+                        {bookmark.isAllDay
+                          ? t.allDay
+                          : format(new Date(bookmark.startDate), 'p', {
+                              locale: dateLocale(language),
+                            })}{' '}
+                        · {format(new Date(bookmark.startDate), 'yyyy')}
+                      </span>
+                    </span>
+                    {bookmark.description && (
+                      <span className="mt-2 block truncate text-xs text-muted-foreground">
+                        {bookmark.description}
+                      </span>
+                    )}
+                  </span>
+                </button>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-muted-foreground hover:text-destructive"
+                  size="icon-sm"
+                  className="mt-2 mr-1 shrink-0 text-muted-foreground hover:text-destructive"
                   aria-label={t.removeBookmark}
                   onClick={(e) => removeBookmark(bookmark.id, e)}
                 >
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  <Trash2 className="size-3.5" />
                 </Button>
               </div>
             ))}
@@ -266,10 +300,10 @@ export default function BookmarkPanel({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
-        <SheetHeader className="p-4 border-b">
-          <SheetTitle className="flex select-none items-center">
-            <Bookmark className="mr-2 h-5 w-5" />
+      <SheetContent side="right" className="w-[360px] gap-0 p-0 sm:w-[420px]">
+        <SheetHeader className="shrink-0 border-b bg-muted/20 p-4 pr-12">
+          <SheetTitle className="flex select-none items-center gap-2 text-sm">
+            <Bookmark className="size-4" />
             {t.bookmarks}
           </SheetTitle>
         </SheetHeader>

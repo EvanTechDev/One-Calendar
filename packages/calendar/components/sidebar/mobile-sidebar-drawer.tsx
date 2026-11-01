@@ -103,10 +103,12 @@ export default function MobileSidebarDrawer({
             />
           )}
           {tab === 'bookmarks' && (
-            <BookmarkPanelBody
-              onEventClick={onEventClick}
-              onRequestClose={close}
-            />
+            <div className="flex h-full min-h-0 flex-col">
+              <BookmarkPanelBody
+                onEventClick={onEventClick}
+                onRequestClose={close}
+              />
+            </div>
           )}
           {tab === 'countdown' && <CountdownBody />}
         </div>
@@ -129,7 +131,9 @@ export default function MobileSidebarDrawer({
                 )}
               >
                 <span className="shrink-0 [&_svg]:size-4">{item.icon}</span>
-                <span className="min-w-0 select-none truncate">{item.label}</span>
+                <span className="min-w-0 select-none truncate">
+                  {item.label}
+                </span>
               </button>
             )
           })}

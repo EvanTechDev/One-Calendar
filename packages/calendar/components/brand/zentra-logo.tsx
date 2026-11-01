@@ -45,7 +45,14 @@ export function ZentraLogo({
     : { alt: label }
 
   if (variant === 'dark') {
-    return <img src="/logo-dark.svg" {...a11y} className={className} />
+    return (
+      <img
+        src="/logo-dark.svg"
+        {...a11y}
+        draggable={false}
+        className={cn('select-none', className)}
+      />
+    )
   }
 
   return (
@@ -53,12 +60,14 @@ export function ZentraLogo({
       <img
         src="/logo-light.svg"
         {...a11y}
-        className={cn('block dark:hidden', className)}
+        draggable={false}
+        className={cn('block select-none dark:hidden', className)}
       />
       <img
         src="/logo-dark.svg"
         {...a11y}
-        className={cn('hidden dark:block', className)}
+        draggable={false}
+        className={cn('hidden select-none dark:block', className)}
       />
     </>
   )

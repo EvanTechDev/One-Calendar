@@ -71,12 +71,12 @@ import {
   MoreHorizontal,
   SlidersHorizontal,
   ScrollText,
-  Plug,
   Search,
 } from 'lucide-react'
 import { translations, useLanguage } from '@zntr/i18n/calendar'
 import { cn } from '@zntr/utils'
 import { ALL_SCOPES, MCP_SCOPE_GROUPS } from '#calendar/lib/mcp/types'
+import { McpIcon } from '#calendar/components/icons/mcp'
 
 const READ_ONLY_SCOPES = ALL_SCOPES.filter((s) => s.endsWith(':read'))
 
@@ -449,7 +449,10 @@ export default function MCPSettings() {
     <div className="w-full space-y-4">
       <div className="w-full space-y-6 rounded-lg border p-4">
         <div>
-          <h2 className="text-base font-semibold">{t.settingsMcp}</h2>
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <McpIcon className="size-4" />
+            {t.settingsMcp}
+          </h2>
           <p className="text-sm text-muted-foreground">{t.settingsMcpDesc}</p>
         </div>
         <MCPConnection />

@@ -39,7 +39,6 @@ import {
   type Language,
 } from '@zntr/i18n/calendar'
 import {
-  Bot,
   CalendarDays,
   CircleUserRound,
   Clock,
@@ -59,6 +58,7 @@ import { useCalendarHost } from '@zntr/calendar/host'
 import BuildInfoCard from '#calendar/components/analytics/build-info-card'
 import ImportExport from '#calendar/components/analytics/import-export'
 import MCPSettings from '#calendar/components/settings/mcp-settings'
+import { McpIcon } from '#calendar/components/icons/mcp'
 import type { CalendarEvent } from '#calendar/components/calendar'
 import {
   isCalendarView,
@@ -524,7 +524,7 @@ export default function SettingsDialog({
     {
       id: 'mcp',
       label: t.settingsMcp,
-      icon: <Bot />,
+      icon: <McpIcon />,
     },
     {
       id: 'data',
@@ -543,6 +543,7 @@ export default function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        data-calendar-settings=""
         showCloseButton={false}
         // Below 768px the settings dialog becomes a full-screen overlay
         // (ADR-0019), spelled out as plain max-md: utilities: the dialog's

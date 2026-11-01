@@ -22,6 +22,38 @@
   user-select: text;
 }
 
+/* Nested settings menus/dialogs are portalled outside the settings element.
+   Scope them to an open settings dialog; never disable editing or copying a key. */
+body:has([data-calendar-settings])
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='select-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='popover-content'],
+    [data-slot='tooltip-content']
+  ),
+body:has([data-calendar-settings])
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='select-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='popover-content'],
+    [data-slot='tooltip-content']
+  ) * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body:has([data-calendar-settings])
+  :is(input, textarea, [contenteditable='true'], [contenteditable='true'] *) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* A compact document inside a constrained panel, not article-sized prose. */
 .agent-markdown {
   overflow-wrap: anywhere;

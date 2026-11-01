@@ -1,7 +1,4 @@
-import './landing.css'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import { cn } from '@zntr/utils'
+import { LandingSurface } from '@/components/landing-surface'
 import type { Metadata } from 'next'
 import type React from 'react'
 import { APP_TITLE } from '@/lib/metadata'
@@ -25,15 +22,5 @@ export default function LandingLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <div
-      className={cn(
-        'landing min-h-dvh antialiased',
-        GeistSans.className,
-        GeistMono.variable,
-      )}
-    >
-      {children}
-    </div>
-  )
+  return <LandingSurface>{children}</LandingSurface>
 }

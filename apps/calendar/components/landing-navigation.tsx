@@ -22,14 +22,21 @@ function LandingBrand() {
   )
 }
 
-export function LandingHeader() {
+export function LandingHeader({ homeLinks = false }: { homeLinks?: boolean }) {
   return (
     <header className="landing-header">
       <div className="landing-header-inner">
         <LandingBrand />
         <nav className="landing-desktop-nav" aria-label="Main navigation">
           {navigation.map((item) => (
-            <LandingAnchor key={item.label} href={item.href}>
+            <LandingAnchor
+              key={item.label}
+              href={
+                homeLinks && item.href.startsWith('#')
+                  ? `/${item.href}`
+                  : item.href
+              }
+            >
               {item.label}
             </LandingAnchor>
           ))}
@@ -45,7 +52,14 @@ export function LandingHeader() {
         <LandingMobileMenu>
           <nav aria-label="Mobile navigation">
             {navigation.map((item) => (
-              <LandingAnchor key={item.label} href={item.href}>
+              <LandingAnchor
+                key={item.label}
+                href={
+                  homeLinks && item.href.startsWith('#')
+                    ? `/${item.href}`
+                    : item.href
+                }
+              >
                 {item.label}
               </LandingAnchor>
             ))}
@@ -60,7 +74,7 @@ export function LandingHeader() {
   )
 }
 
-export function LandingFooter() {
+export function LandingFooter({ homeLinks = false }: { homeLinks?: boolean }) {
   return (
     <footer className="landing-footer landing-frame">
       <div className="landing-footer-top">
@@ -70,9 +84,15 @@ export function LandingFooter() {
         </div>
         <nav aria-label="Product">
           <h2>Product</h2>
-          <LandingAnchor href="#calendar">Calendar</LandingAnchor>
-          <LandingAnchor href="#features">Planning tools</LandingAnchor>
-          <LandingAnchor href="#integrations">AI & integrations</LandingAnchor>
+          <LandingAnchor href={`${homeLinks ? '/' : ''}#calendar`}>
+            Calendar
+          </LandingAnchor>
+          <LandingAnchor href={`${homeLinks ? '/' : ''}#features`}>
+            Planning tools
+          </LandingAnchor>
+          <LandingAnchor href={`${homeLinks ? '/' : ''}#integrations`}>
+            AI & integrations
+          </LandingAnchor>
         </nav>
         <nav aria-label="Resources">
           <h2>Resources</h2>

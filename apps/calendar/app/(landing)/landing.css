@@ -734,6 +734,127 @@
   gap: 5px;
 }
 
+.landing-legal-heading {
+  max-width: 790px;
+  padding-block: 84px 58px;
+}
+.landing-legal-heading h1 {
+  margin: 20px 0;
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -2px;
+}
+.landing-legal-updated {
+  color: var(--land-muted);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+}
+.landing-legal-intro {
+  margin-top: 30px;
+  color: var(--land-muted);
+  font-size: 16px;
+  line-height: 1.8;
+}
+.landing-legal-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 64px;
+  padding-block: 48px;
+  border-top: 1px solid var(--land-line);
+}
+.landing-legal-contents {
+  position: sticky;
+  top: 106px;
+  align-self: start;
+  display: grid;
+  gap: 13px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.landing-legal-contents h2 {
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.landing-legal-contents a {
+  color: var(--land-muted);
+}
+.landing-legal-contents a:hover {
+  color: var(--land-ink);
+}
+.landing-legal-body {
+  min-width: 0;
+  max-width: 720px;
+}
+.landing-legal-body section + section {
+  margin-top: 38px;
+  padding-top: 32px;
+  border-top: 1px solid var(--land-line);
+}
+.landing-legal-body h2 {
+  margin-bottom: 18px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+}
+.landing-legal-body p {
+  margin-top: 14px;
+  color: var(--land-muted);
+  font-size: 14px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.landing-legal-body a {
+  color: var(--land-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.landing-legal-contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 20px;
+  padding: 28px;
+  border: 1px solid var(--land-line);
+  border-radius: 12px;
+  background: var(--land-surface);
+}
+.landing-legal-contact h2 {
+  max-width: 430px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.landing-legal-contact > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+@media (max-width: 760px) {
+  .landing-legal-heading {
+    padding-block: 52px 36px;
+  }
+  .landing-legal-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    padding-block: 32px;
+  }
+  .landing-legal-contents {
+    position: static;
+    padding: 20px;
+    border: 1px solid var(--land-line);
+    border-radius: 12px;
+    background: var(--land-surface);
+  }
+  .landing-legal-contact {
+    flex-direction: column;
+    align-items: start;
+    padding: 22px;
+  }
+}
+
 @media (max-width: 1050px) {
   .landing-header-inner {
     gap: 20px;
