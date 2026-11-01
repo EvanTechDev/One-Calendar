@@ -310,7 +310,7 @@ export function SidebarBody({
               a gradient plate with padding baked in, so it reads smaller than
               the old bare glyph did at the same box. */}
           <ZentraLogo decorative className="mr-2 size-7 shrink-0" />
-          <h1 className="text-lg font-semibold">Zentra Calendar</h1>
+          <h1 className="select-none text-lg font-semibold">Zentra Calendar</h1>
         </div>
 
         {/*
@@ -350,7 +350,9 @@ export function SidebarBody({
 
         <div className="mt-8 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{t.myCalendars}</span>
+            <span className="select-none text-sm font-medium">
+              {t.myCalendars}
+            </span>
           </div>
           {calendars.map((calendar) => (
             <div

@@ -129,7 +129,7 @@ export default function MobileSidebarDrawer({
                 )}
               >
                 <span className="shrink-0 [&_svg]:size-4">{item.icon}</span>
-                <span className="min-w-0 truncate">{item.label}</span>
+                <span className="min-w-0 select-none truncate">{item.label}</span>
               </button>
             )
           })}

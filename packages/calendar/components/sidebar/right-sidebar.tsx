@@ -49,7 +49,9 @@ export default function RightSidebar({
                 <Bookmark className="h-6 w-6 text-black dark:text-white" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{t.bookmarks}</TooltipContent>
+            <TooltipContent className="select-none">
+              {t.bookmarks}
+            </TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -67,7 +69,9 @@ export default function RightSidebar({
                 <ClockDashed className="h-6 w-6 text-black dark:text-white" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{t.countdownTitle}</TooltipContent>
+            <TooltipContent className="select-none">
+              {t.countdownTitle}
+            </TooltipContent>
           </Tooltip>
 
           <CountdownTool open={countdownOpen} onOpenChange={setCountdownOpen} />

@@ -479,7 +479,7 @@ export function AiCommandPalette({
           every row the moment the question text stopped matching a title. */}
       <Command
         label={t.commandPaletteTitle}
-        className="min-h-0 flex-1 rounded-xl! p-2"
+        className="calendar-ui-text min-h-0 flex-1 rounded-xl! p-2"
         shouldFilter={mode === 'palette'}
         filter={filterCommand}
         onKeyDownCapture={(e) => {
@@ -524,6 +524,7 @@ export function AiCommandPalette({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
+              className="calendar-ui-text"
               onKeyDown={(e) => e.stopPropagation()}
               onCloseAutoFocus={(e) => {
                 e.preventDefault()

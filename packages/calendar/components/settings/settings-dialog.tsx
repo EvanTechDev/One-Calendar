@@ -560,7 +560,7 @@ export default function SettingsDialog({
             {/* Same height and type scale as the content header on the right,
                 so the two tops line up instead of stepping. */}
             <div className="hidden h-14 shrink-0 items-center border-b px-4 sm:flex">
-              <span className="font-heading text-base leading-snug font-semibold">
+              <span className="select-none font-heading text-base leading-snug font-semibold">
                 {t.settings}
               </span>
             </div>
@@ -594,7 +594,7 @@ export default function SettingsDialog({
                       horizontal scroller on mobile keeps `nowrap`, which is
                       what makes it scrollable rather than squashed.
                     */}
-                    <span className="whitespace-nowrap sm:min-w-0 sm:truncate">
+                    <span className="select-none whitespace-nowrap sm:min-w-0 sm:truncate">
                       {s.label}
                     </span>
                   </button>
@@ -616,7 +616,7 @@ export default function SettingsDialog({
                 <span className="text-muted-foreground [&_svg]:size-4">
                   {activeSection?.icon}
                 </span>
-                <h2 className="font-heading truncate text-base leading-snug font-semibold">
+                <h2 className="select-none font-heading truncate text-base leading-snug font-semibold">
                   {activeSection?.label}
                 </h2>
               </div>

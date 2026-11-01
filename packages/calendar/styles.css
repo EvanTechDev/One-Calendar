@@ -10,12 +10,14 @@
 /* Calendar chrome and event labels are drag/click targets, not selectable prose.
    Event IDs also cover blocks rendered in overflow popovers and mobile sheets. */
 .calendar-display,
+.calendar-ui-text,
 [data-event-id] {
   -webkit-user-select: none;
   user-select: none;
 }
 
-.calendar-display :is(input, textarea, [contenteditable='true']) {
+.calendar-display :is(input, textarea, [contenteditable='true']),
+.calendar-ui-text :is(input, textarea, [contenteditable='true']) {
   -webkit-user-select: text;
   user-select: text;
 }

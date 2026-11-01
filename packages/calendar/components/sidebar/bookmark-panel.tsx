@@ -207,7 +207,7 @@ export function BookmarkPanelBody({
               <EmptyMedia variant="icon">
                 <Bookmark className="h-4 w-4" />
               </EmptyMedia>
-              <EmptyTitle>{t.bookmarks}</EmptyTitle>
+              <EmptyTitle className="select-none">{t.bookmarks}</EmptyTitle>
               <EmptyDescription>
                 {searchTerm ? t.noMatchingBookmarks : t.noBookmarks}
               </EmptyDescription>
@@ -268,7 +268,7 @@ export default function BookmarkPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <SheetHeader className="p-4 border-b">
-          <SheetTitle className="flex items-center">
+          <SheetTitle className="flex select-none items-center">
             <Bookmark className="mr-2 h-5 w-5" />
             {t.bookmarks}
           </SheetTitle>

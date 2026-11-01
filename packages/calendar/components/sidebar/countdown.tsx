@@ -399,7 +399,7 @@ export function CountdownBody() {
     <>
       <SheetHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <SheetTitle className="flex items-center gap-2">
+          <SheetTitle className="flex select-none items-center gap-2">
             <ClockDashed className="h-4 w-4" />
             {t.countdownTitle}
           </SheetTitle>
@@ -435,7 +435,9 @@ export function CountdownBody() {
                 <EmptyMedia variant="icon">
                   <ClockDashed className="h-4 w-4" />
                 </EmptyMedia>
-                <EmptyTitle>{t.countdownTitle}</EmptyTitle>
+                <EmptyTitle className="select-none">
+                  {t.countdownTitle}
+                </EmptyTitle>
                 <EmptyDescription>{t.countdownNoEvents}</EmptyDescription>
               </EmptyHeader>
             </Empty>
