@@ -710,28 +710,8 @@
   color: var(--land-muted);
   font-size: 11px;
 }
-.landing-footer-top nav a:hover,
-.landing-footer-bottom a:hover {
+.landing-footer-top nav a:hover {
   color: var(--land-ink);
-}
-.landing-footer svg {
-  width: 11px;
-  height: 11px;
-}
-.landing-footer-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 19px 0 25px;
-  border-top: 1px solid var(--land-line);
-  color: #686f7d;
-  font-size: 10px;
-}
-.landing-footer-bottom a {
-  display: flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .landing-legal-heading {
@@ -1088,11 +1068,6 @@
   }
   .landing-footer-top {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .landing-footer-bottom {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

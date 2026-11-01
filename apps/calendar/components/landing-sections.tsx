@@ -258,6 +258,8 @@ export function LandingTools() {
     <section
       className="landing-section landing-tools"
       aria-labelledby="tools-title"
+      id="tools"
+      tabIndex={-1}
     >
       <LandingReveal className="landing-section-heading">
         <p className="landing-eyebrow">Alongside your events</p>

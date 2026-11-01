@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { ArrowUpRight } from 'lucide-react'
 import { Button } from '@zntr/ui/button'
 import { LandingMobileMenu } from './landing-mobile-menu'
 import { LandingAnchor } from './landing-anchor'
@@ -10,7 +9,7 @@ export const LANDING_REPOSITORY_URL =
 const navigation = [
   { label: 'Product', href: '#features' },
   { label: 'Integrations', href: '#integrations' },
-  { label: 'Changelog', href: 'https://xyehr.cn/changelog' },
+  { label: 'Updates', href: `${LANDING_REPOSITORY_URL}/commits/dev` },
 ]
 
 function LandingBrand() {
@@ -80,38 +79,41 @@ export function LandingFooter({ homeLinks = false }: { homeLinks?: boolean }) {
       <div className="landing-footer-top">
         <div>
           <LandingBrand />
-          <p>Events, invitations, and the time between them.</p>
+          <p>
+            Five calendar views. Recurring events, invitations, and reminders.
+          </p>
         </div>
         <nav aria-label="Product">
           <h2>Product</h2>
           <LandingAnchor href={`${homeLinks ? '/' : ''}#calendar`}>
-            Calendar
+            Calendar preview
           </LandingAnchor>
           <LandingAnchor href={`${homeLinks ? '/' : ''}#features`}>
             Planning tools
           </LandingAnchor>
           <LandingAnchor href={`${homeLinks ? '/' : ''}#integrations`}>
-            AI & integrations
+            AI & MCP
+          </LandingAnchor>
+          <LandingAnchor href={`${homeLinks ? '/' : ''}#tools`}>
+            More tools
+          </LandingAnchor>
+          <LandingAnchor href={`${homeLinks ? '/' : ''}#questions`}>
+            Frequently asked questions
           </LandingAnchor>
         </nav>
         <nav aria-label="Resources">
           <h2>Resources</h2>
-          <a href="https://xyehr.cn/changelog">Changelog</a>
-          <a href={LANDING_REPOSITORY_URL}>
-            GitHub <ArrowUpRight aria-hidden="true" />
-          </a>
+          <a href={LANDING_REPOSITORY_URL}>GitHub</a>
+          <a href={`${LANDING_REPOSITORY_URL}/tree/dev`}>Source code</a>
+          <a href={`${LANDING_REPOSITORY_URL}/issues`}>Issues & feedback</a>
+          <a href={`${LANDING_REPOSITORY_URL}/commits/dev`}>Commit history</a>
         </nav>
         <nav aria-label="Legal">
           <h2>Legal</h2>
           <Link href="/privacy">Privacy policy</Link>
           <Link href="/terms">Terms of service</Link>
+          <a href={`${LANDING_REPOSITORY_URL}/blob/dev/LICENSE`}>MIT License</a>
         </nav>
-      </div>
-      <div className="landing-footer-bottom">
-        <span>Zentra Calendar</span>
-        <a href={`${LANDING_REPOSITORY_URL}/blob/dev/LICENSE`}>
-          Open source · MIT License <ArrowUpRight aria-hidden="true" />
-        </a>
       </div>
     </footer>
   )

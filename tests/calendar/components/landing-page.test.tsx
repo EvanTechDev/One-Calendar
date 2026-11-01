@@ -75,6 +75,43 @@ describe('signed-out landing page', () => {
     ).toBe('/terms')
   })
 
+  it('keeps the footer columns without a bottom bar or decorative link arrows', () => {
+    const { container } = render(<LandingPage />)
+    const footer = screen.getByRole('contentinfo')
+    const links = within(footer)
+    const repository = 'https://github.com/EvanTechDev/One-Calendar'
+
+    expect(footer.querySelectorAll('nav')).toHaveLength(3)
+    expect(footer.querySelector('.landing-footer-bottom')).toBeNull()
+    expect(
+      links
+        .getByRole('link', { name: 'GitHub', exact: true })
+        .querySelector('svg'),
+    ).toBeNull()
+    for (const [name, suffix] of [
+      ['GitHub', ''],
+      ['Source code', '/tree/dev'],
+      ['Issues & feedback', '/issues'],
+      ['Commit history', '/commits/dev'],
+      ['MIT License', '/blob/dev/LICENSE'],
+    ]) {
+      expect(
+        links.getByRole('link', { name, exact: true }).getAttribute('href'),
+      ).toBe(`${repository}${suffix}`)
+    }
+    expect(
+      links.getByRole('link', { name: 'More tools' }).getAttribute('href'),
+    ).toBe('#tools')
+    expect(
+      links
+        .getByRole('link', { name: 'Frequently asked questions' })
+        .getAttribute('href'),
+    ).toBe('#questions')
+    expect(
+      container.querySelector('a[href="https://xyehr.cn/changelog"]'),
+    ).toBeNull()
+  })
+
   it('uses English product facts and makes material limitations visible', () => {
     const { container } = render(<LandingPage />)
     const text = container.textContent ?? ''
@@ -128,11 +165,11 @@ describe('signed-out landing page', () => {
     expect(document.activeElement?.id).toBe('features')
 
     menu.open = true
-    const changelog = within(navigation).getByRole('link', {
-      name: 'Changelog',
+    const updates = within(navigation).getByRole('link', {
+      name: 'Updates',
     })
-    changelog.focus()
-    fireEvent.keyDown(changelog, { key: 'Escape' })
+    updates.focus()
+    fireEvent.keyDown(updates, { key: 'Escape' })
     expect(menu.open).toBe(false)
     expect(document.activeElement).toBe(summary)
   })
