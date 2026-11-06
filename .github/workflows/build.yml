@@ -64,7 +64,7 @@ jobs:
       - name: Build unsigned dev installer
         working-directory: apps/calendar-client
         shell: bash
-        run: bun run tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" --config src-tauri/tauri.dev.conf.json -- --locked
+        run: bun run tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" --config src-tauri/tauri.dev.conf.json
       - uses: actions/upload-artifact@v4
         with:
           name: zentra-dev-${{ matrix.target }}-${{ github.sha }}

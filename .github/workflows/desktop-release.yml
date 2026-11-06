@@ -95,7 +95,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           node scripts/release-config.mjs
-          bun run tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" --config src-tauri/tauri.release.conf.json -- --locked
+          bun run tauri build --target "$BUILD_TARGET" --bundles "$BUILD_BUNDLE" --config src-tauri/tauri.release.conf.json
           node scripts/collect-release.mjs
       - uses: actions/upload-artifact@v4
         with:
