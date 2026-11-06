@@ -194,7 +194,7 @@ pub async fn desktop_request(app: AppHandle, request: ApiRequest, events: Channe
         if !auth.is_current(generation) { return Err("The account changed during this request".into()); }
         let status = response.status();
         if cache_key.is_some() && (status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS) {
-            if let Some(cached) = read_cached(app.clone(), user_id, cache_key.clone().unwrap()).await? {
+            if let Some(cached) = read_cached(app.clone(), user_id.clone(), cache_key.clone().unwrap()).await? {
                 if !auth.is_current(generation) { return Err("The account changed during this request".into()); }
                 return send_cached(&events, cached, "fallback");
             }
