@@ -156,7 +156,9 @@ export function resolveInstance(
   timeZone?: string,
 ): EventRow | null {
   if (!isSeriesEvent(master)) return null
-  const override = overrides.find((o) => o.recurrenceId === recurrenceId)
+  const override = overrides.find(
+    (o) => o.userId === master.userId && o.recurrenceId === recurrenceId,
+  )
   if (!override && (master.exdate ?? []).includes(recurrenceId)) return null
   let base: EventRow
   try {

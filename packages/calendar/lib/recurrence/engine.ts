@@ -310,7 +310,8 @@ export function mergeOverride<T extends object>(
   }
   const merged = { ...master } as Record<string, unknown>
   for (const [key, value] of Object.entries(override)) {
-    if (value !== null && value !== undefined) {
+    // Ownership comes from the verified master, never from an override row.
+    if (key !== 'userId' && value !== null && value !== undefined) {
       merged[key] = value
     }
   }
@@ -625,7 +626,9 @@ export function expandSeriesView<T extends SeriesViewInput>(
         max,
         timeZone,
       )
-      const seriesOverrides = overridesBySeries[master.id] ?? []
+      const seriesOverrides = (overridesBySeries[master.id] ?? []).filter(
+        (override) => override.userId === master.userId,
+      )
       // Indexed by stamp because the loop below looks up one override per
       // expanded instance — a linear `find` made that instances × overrides, so
       // a long-running daily series with a handful of edited occurrences ran
@@ -704,6 +707,7 @@ export function expandSeriesView<T extends SeriesViewInput>(
           rrule: master.rrule,
           seriesId: master.id,
           seriesStartDate: master.startDate,
+          userId: master.userId,
           id: instanceId,
           instanceId,
           isOverride: true,

@@ -52,7 +52,7 @@ export async function searchEventPage(
     )
     .orderBy(asc(calendarEvents.id))
     .limit(200)
-  const [exceptions, zones] = await Promise.all([
+  const [exceptions, zones, sharedMasters] = await Promise.all([
     getOccurrencesForInvites(grants.map((grant) => grant.id)),
     db
       .select()
@@ -60,7 +60,16 @@ export async function searchEventPage(
       .where(
         inArray(settings.userId, [...new Set(rows.map((row) => row.userId))]),
       ),
+    sharedIds.length
+      ? db
+          .select({ id: calendarEvents.id, userId: calendarEvents.userId })
+          .from(calendarEvents)
+          .where(inArray(calendarEvents.id, sharedIds))
+      : [],
   ])
+  const sharedOwners = new Map(
+    sharedMasters.map((master) => [master.id, master.userId]),
+  )
   const ownCategories = new Set(categories)
   const timezone = new Map(
     zones.map((row) => [
@@ -77,6 +86,8 @@ export async function searchEventPage(
     const shared = row.userId !== user.id
     const grant = shared ? grantById.get(row.seriesId ?? row.id) : undefined
     if (shared && !grant) continue
+    if (shared && row.seriesId && sharedOwners.get(row.seriesId) !== row.userId)
+      continue
     const category = grant?.categoryId ?? row.categoryId
     if (
       ownCategories.size &&

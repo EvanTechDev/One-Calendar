@@ -604,12 +604,18 @@ async function deleteCalendarEventRow(
 
 async function fetchSeriesOverrides(
   db: Db,
+  userId: string,
   seriesId: string,
 ): Promise<ReturnType<typeof decryptEvent>[]> {
   const rows = await db
     .select()
     .from(calendarEvents)
-    .where(eq(calendarEvents.seriesId, seriesId))
+    .where(
+      and(
+        eq(calendarEvents.seriesId, seriesId),
+        eq(calendarEvents.userId, userId),
+      ),
+    )
   return rows.map(decryptEvent)
 }
 
@@ -1075,6 +1081,7 @@ export async function getEvent(userId: string, eventId: string) {
     if (!master || !isSeriesEvent({ rrule: master.rrule })) return null
     const overrides = (await fetchSeriesOverrides(
       db,
+      userId,
       master.id,
     )) as unknown as EventRow[]
     const resolved = resolveInstance(
@@ -1198,6 +1205,7 @@ async function updateEventImpl(
     const masterRow = decryptEvent(master) as unknown as EventRow
     const overrides = (await fetchSeriesOverrides(
       db,
+      userId,
       masterRow.id,
     )) as unknown as EventRow[]
     const override =
@@ -1493,6 +1501,7 @@ async function updateEventImpl(
     const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
     const overrides = (await fetchSeriesOverrides(
       db,
+      userId,
       seriesRow.id,
     )) as unknown as EventRow[]
     const override =
@@ -1603,6 +1612,7 @@ async function deleteEventImpl(
     const masterRow = decryptEvent(master) as unknown as EventRow
     const overrides = (await fetchSeriesOverrides(
       db,
+      userId,
       masterRow.id,
     )) as unknown as EventRow[]
     const override =
@@ -1694,6 +1704,7 @@ async function deleteEventImpl(
     const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
     const overrides = (await fetchSeriesOverrides(
       db,
+      userId,
       seriesRow.id,
     )) as unknown as EventRow[]
     const override =

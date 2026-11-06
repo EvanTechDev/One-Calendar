@@ -208,6 +208,11 @@ async function prepareSharedEvents(
   const seriesIds = rows
     .filter((row) => !!row.rrule?.trim())
     .map((row) => row.id)
+  const seriesOwners = new Map(
+    rows
+      .filter((row) => !!row.rrule?.trim())
+      .map((row) => [row.id, row.userId]),
+  )
   const [owners, zones, overrides] = await Promise.all([
     db
       .select({
@@ -228,7 +233,12 @@ async function prepareSharedEvents(
       ? db
           .select()
           .from(calendarEvents)
-          .where(inArray(calendarEvents.seriesId, seriesIds))
+          .where(
+            and(
+              inArray(calendarEvents.seriesId, seriesIds),
+              inArray(calendarEvents.userId, [...seriesOwners.values()]),
+            ),
+          )
       : [],
   ])
   const ownerMap = new Map(owners.map((owner) => [owner.id, owner]))
@@ -244,7 +254,7 @@ async function prepareSharedEvents(
   const overridesBySeries = new Map<string, SeriesViewInput[]>()
   const candidates: Event[] = []
   for (const row of overrides) {
-    if (!row.seriesId) continue
+    if (!row.seriesId || seriesOwners.get(row.seriesId) !== row.userId) continue
     const event = decryptEvent(row)
     candidates.push(event)
     const list = overridesBySeries.get(row.seriesId) ?? []

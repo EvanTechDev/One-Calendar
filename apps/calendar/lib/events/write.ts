@@ -121,25 +121,57 @@ export async function writeInstanceOverride(
 ) {
   let rowId = upsert.id
   if (upsert.isNew) {
-    const [inserted] = await db
-      .insert(calendarEvents)
-      .values({
-        id: rowId,
-        userId,
-        seriesId: upsert.seriesId,
-        recurrenceId: upsert.recurrenceId,
-        createdAt: upsert.fields.createdAt as Date,
-        updatedAt: upsert.fields.updatedAt as Date,
-        ...encryptMergedFields(rowId, upsert.fields),
-      } as typeof calendarEvents.$inferInsert)
-      .onConflictDoNothing({
-        target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
-      })
-      .returning()
+    const insertOverride = async () => {
+      const [inserted] = await db
+        .insert(calendarEvents)
+        .values({
+          id: rowId,
+          userId,
+          seriesId: upsert.seriesId,
+          recurrenceId: upsert.recurrenceId,
+          createdAt: upsert.fields.createdAt as Date,
+          updatedAt: upsert.fields.updatedAt as Date,
+          ...encryptMergedFields(rowId, upsert.fields),
+        } as typeof calendarEvents.$inferInsert)
+        .onConflictDoNothing({
+          target: [calendarEvents.seriesId, calendarEvents.recurrenceId],
+        })
+        .returning()
+      return inserted
+    }
+    let inserted = await insertOverride()
+    if (!inserted) {
+      // INSERT waits for the conflicting transaction. This separate statement
+      // sees its committed row at PostgreSQL's default READ COMMITTED isolation.
+      const [conflict] = await db
+        .select({ id: calendarEvents.id, userId: calendarEvents.userId })
+        .from(calendarEvents)
+        .where(
+          and(
+            eq(calendarEvents.seriesId, upsert.seriesId),
+            eq(calendarEvents.recurrenceId, upsert.recurrenceId),
+          ),
+        )
+      if (conflict && conflict.userId !== userId) {
+        // A legacy cross-user override must not permanently block the master's
+        // owner. Detach only that malformed row, preserving it as a standalone
+        // event for its owner, then retry the legitimate write.
+        await db
+          .update(calendarEvents)
+          .set({ seriesId: null, recurrenceId: null, updatedAt: new Date() })
+          .where(
+            and(
+              eq(calendarEvents.id, conflict.id),
+              eq(calendarEvents.userId, conflict.userId),
+              eq(calendarEvents.seriesId, upsert.seriesId),
+              eq(calendarEvents.recurrenceId, upsert.recurrenceId),
+            ),
+          )
+        inserted = await insertOverride()
+      }
+    }
     if (inserted) return inserted
 
-    // INSERT waits for the conflicting transaction. This separate statement
-    // sees its committed row at PostgreSQL's default READ COMMITTED isolation.
     const [winner] = await db
       .select({ id: calendarEvents.id })
       .from(calendarEvents)
@@ -168,12 +200,18 @@ export async function writeInstanceOverride(
 /** Ids of a series' single-instance overrides. */
 export async function fetchOverrideIds(
   db: EventWriteDb,
+  userId: string,
   seriesId: string,
 ): Promise<string[]> {
   const rows = await db
     .select({ id: calendarEvents.id })
     .from(calendarEvents)
-    .where(eq(calendarEvents.seriesId, seriesId))
+    .where(
+      and(
+        eq(calendarEvents.seriesId, seriesId),
+        eq(calendarEvents.userId, userId),
+      ),
+    )
   return rows.map((r) => r.id)
 }
 
@@ -254,7 +292,7 @@ export async function remapSeriesOverrideStamps(
   await shiftOverrideStamps(
     db,
     userId,
-    await fetchOverrideIds(db, seriesId),
+    await fetchOverrideIds(db, userId, seriesId),
     clockSource,
     timeZone,
     dayDelta,

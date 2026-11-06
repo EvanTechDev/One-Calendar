@@ -18,7 +18,12 @@ moduleMock.module('@/lib/api-helpers', () => ({
 const originalMeetings = { ...(await import('@zntr/meetings')) }
 moduleMock.module('@zntr/meetings', () => ({
   ...originalMeetings,
-  getMeetingsForEvents: async () => new Map(),
+  getMeetingsForEvents: async (_db: unknown, eventIds: string[]) =>
+    new Map(
+      eventIds
+        .filter((id) => id === 'victim-series')
+        .map((id) => [id, { id: 'victim-room' }]),
+    ),
 }))
 const { GET } = await import('@/app/api/events/route')
 
@@ -242,5 +247,77 @@ describe('complete calendar date ranges', () => {
     expect(
       (await GET(request('id=shared-series_20350204T090000Z'))).status,
     ).toBe(404)
+  })
+})
+
+describe('cross-user override isolation', () => {
+  it('withholds foreign invites and meetings from an owned malformed row', async () => {
+    seed('victim-series', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {
+      userId: 'victim',
+      rrule: 'FREQ=DAILY;COUNT=2',
+    })
+    seed('malformed', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {
+      seriesId: 'victim-series',
+    })
+    fake.seed(
+      {
+        id: 'victim-invite',
+        eventId: 'victim-series',
+        email: 'guest@example.com',
+        status: 'pending',
+        inviteToken: 'secret-bearer-token',
+        inviteTokenHash: null,
+        emailSent: true,
+        addedToCalendar: false,
+        expiresAt: null,
+        baselineKind: 'all',
+        fromStamp: null,
+        untilStamp: null,
+      },
+      'event_invites',
+    )
+    const response = await GET(request('id=malformed'))
+    expect(response.status).toBe(200)
+    expect((await response.json()).event).toMatchObject({
+      id: 'malformed',
+      invites: [],
+      meeting: null,
+    })
+  })
+
+  it('does not merge a foreign override into a shared occurrence', async () => {
+    seed('shared-victim', '2035-02-04T09:00:00Z', '2035-02-04T10:00:00Z', {
+      userId: 'victim',
+      rrule: 'FREQ=DAILY;COUNT=1',
+    })
+    seed('foreign-edit', '2035-02-04T12:00:00Z', '2035-02-04T13:00:00Z', {
+      userId: 'attacker',
+      title: 'injected',
+      seriesId: 'shared-victim',
+      recurrenceId: '20350204T090000Z',
+    })
+    fake.seed(
+      {
+        id: 'shared-grant',
+        eventId: 'shared-victim',
+        email: 'owner@example.com',
+        addedToCalendar: true,
+        baselineKind: 'all',
+        fromStamp: null,
+        untilStamp: null,
+        inviteToken: 'synthetic-test-token',
+      },
+      'event_invites',
+    )
+    const response = await GET(
+      request('startDate=2035-02-04&endDate=2035-02-05'),
+    )
+    const { events } = await response.json()
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      id: 'shared-victim_20350204T090000Z',
+      userId: 'victim',
+      title: 'shared-victim',
+    })
   })
 })

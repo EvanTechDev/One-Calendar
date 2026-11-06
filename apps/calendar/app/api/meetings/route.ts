@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import {
   createMeeting,
   deleteMeetingsForEvent,
@@ -62,7 +62,8 @@ const PROVISIONAL_TTL_MS = 12 * 60 * 60 * 1000
 
 /** Resolves the row the meeting attaches to and confirms ownership. */
 async function loadOwnedEvent(eventId: string, userId: string) {
-  const [row] = await getDb()
+  const db = getDb()
+  const [row] = await db
     .select({
       id: calendarEvents.id,
       seriesId: calendarEvents.seriesId,
@@ -71,7 +72,21 @@ async function loadOwnedEvent(eventId: string, userId: string) {
     .where(
       and(eq(calendarEvents.id, eventId), eq(calendarEvents.userId, userId)),
     )
-  return row ?? null
+  if (!row?.seriesId) return row ?? null
+
+  // Owning an override must never confer access to another user's master. This
+  // matters for rows created before import enforced the same-owner invariant.
+  const [master] = await db
+    .select({ id: calendarEvents.id })
+    .from(calendarEvents)
+    .where(
+      and(
+        eq(calendarEvents.id, row.seriesId),
+        eq(calendarEvents.userId, userId),
+        isNull(calendarEvents.seriesId),
+      ),
+    )
+  return master ? row : null
 }
 
 /**

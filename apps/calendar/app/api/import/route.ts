@@ -7,7 +7,7 @@ import {
   bookmarkedEvents,
   settings,
 } from '@/lib/drizzle/schema'
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { encryptField, encryptJsonField } from '@/lib/field-crypto'
 import { getAuthedUser } from '@/lib/api-helpers'
 import { isEventViewableBy } from '@/lib/bookmarks'
@@ -70,12 +70,45 @@ export const POST = async function POST(request: NextRequest) {
           }
         }
         const id = evt.id ?? crypto.randomUUID()
-        // An Override is stored as its own row pointing at the series master.
-        // `seriesId` may be absent on a backup that predates the column, but an
-        // override without one is indistinguishable from a standalone event, so
-        // fall back to the id rather than importing it as an orphan.
         const seriesId = evt.seriesId ?? null
         const recurrenceId = seriesId ? (evt.recurrenceId ?? null) : null
+        if (seriesId) {
+          // An override is a child of an owned recurring master, never a way to
+          // attach a caller-owned row to somebody else's event. Check this on
+          // both the insert and conflict-update paths below.
+          const [master] = await tx
+            .select({
+              id: calendarEvents.id,
+              rrule: calendarEvents.rrule,
+            })
+            .from(calendarEvents)
+            .where(
+              and(
+                eq(calendarEvents.id, seriesId),
+                eq(calendarEvents.userId, user.id),
+                isNull(calendarEvents.seriesId),
+              ),
+            )
+          if (!recurrenceId || seriesId === id || !master?.rrule?.trim()) {
+            skippedEvents++
+            continue
+          }
+        }
+        if (evt.categoryId) {
+          const [category] = await tx
+            .select({ id: calendarCategories.id })
+            .from(calendarCategories)
+            .where(
+              and(
+                eq(calendarCategories.id, evt.categoryId),
+                eq(calendarCategories.userId, user.id),
+              ),
+            )
+          if (!category) {
+            skippedEvents++
+            continue
+          }
+        }
         const rrule = seriesId ? null : (evt.rrule ?? null)
         const exdate = seriesId ? null : (evt.exdate ?? null)
         const row = {

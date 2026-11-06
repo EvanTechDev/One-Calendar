@@ -72,3 +72,38 @@ it('keeps one decryptable row when independently planned inserts collide', async
     ),
   ).toEqual(fields.participants)
 })
+
+it('detaches a legacy foreign override instead of blocking the master owner', async () => {
+  const recurrenceId = '20260106T140000Z'
+  fake.seed({
+    id: 'foreign',
+    userId: 'stranger',
+    seriesId: 'master',
+    recurrenceId,
+    title: 'foreign content',
+  })
+  await writeInstanceOverride(fake.db as EventWriteDb, 'owner', {
+    id: 'owned',
+    seriesId: 'master',
+    recurrenceId,
+    isNew: true,
+    fields: {
+      title: 'legitimate edit',
+      startDate: new Date('2026-01-06T14:00Z'),
+      endDate: new Date('2026-01-06T15:00Z'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  })
+  expect(fake.row('owned')).toMatchObject({
+    userId: 'owner',
+    seriesId: 'master',
+    recurrenceId,
+  })
+  expect(fake.row('foreign')).toMatchObject({
+    userId: 'stranger',
+    seriesId: null,
+    recurrenceId: null,
+    title: 'foreign content',
+  })
+})

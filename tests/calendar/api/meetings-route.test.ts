@@ -125,6 +125,11 @@ describe('calendar meetings route', () => {
       { id: 'evt-master', userId: OWNER, seriesId: null },
       { id: 'evt-occurrence', userId: OWNER, seriesId: 'evt-master' },
       { id: 'evt-foreign', userId: STRANGER, seriesId: null },
+      {
+        id: 'evt-foreign-override',
+        userId: OWNER,
+        seriesId: 'evt-foreign',
+      },
     ]) {
       db.seed(row, 'calendar_events')
     }
@@ -191,6 +196,23 @@ describe('calendar meetings route', () => {
     authedUser = { id: STRANGER }
     const response = await DELETE(req({ eventId: 'evt-1' }))
     expect(response.status).toBe(404)
+    expect(meetings.size).toBe(1)
+  })
+
+  it('rejects every meeting method through a foreign-master override', async () => {
+    meetings.set('victim-room', {
+      id: 'victim-room',
+      eventId: 'evt-foreign',
+      organiserId: STRANGER,
+      expiresAt: null,
+    })
+    const read = await GET(
+      req(undefined, `${req().url}?eventId=evt-foreign-override`),
+    )
+    const create = await POST(req({ eventId: 'evt-foreign-override' }))
+    const remove = await DELETE(req({ eventId: 'evt-foreign-override' }))
+    expect([read.status, create.status, remove.status]).toEqual([404, 404, 404])
+    expect(meetings.get('victim-room')).toBeDefined()
     expect(meetings.size).toBe(1)
   })
 })

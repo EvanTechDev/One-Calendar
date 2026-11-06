@@ -139,12 +139,18 @@ async function rejectForeignCategory(
 
 async function fetchOverrides(
   seriesId: string,
+  userId: string,
   dbx: EventWriteDb = getDb(),
 ): Promise<EventRow[]> {
   const rows = await dbx
     .select()
     .from(calendarEvents)
-    .where(eq(calendarEvents.seriesId, seriesId))
+    .where(
+      and(
+        eq(calendarEvents.seriesId, seriesId),
+        eq(calendarEvents.userId, userId),
+      ),
+    )
   return rows as unknown as EventRow[]
 }
 
@@ -155,7 +161,7 @@ async function deleteRow(
 ): Promise<void> {
   const rowIds = row.seriesId
     ? [row.id]
-    : [row.id, ...(await fetchOverrides(row.id, dbx)).map((r) => r.id)]
+    : [row.id, ...(await fetchOverrides(row.id, userId, dbx)).map((r) => r.id)]
   if (rowIds.length > 0) {
     // Reminder receipts survive deletion. Reconcile after the transaction has
     // committed, never call the provider from inside an event transaction.
@@ -401,19 +407,59 @@ async function enrichEventsWithInvites<
     return events.map((e) => ({ ...e, invites: [] }))
   }
 
-  const inviteIds = events.map((e) => e.seriesId ?? e.id)
-  const idKeys = [...new Set(inviteIds)]
+  const seriesIds = [
+    ...new Set(
+      events.flatMap((event) => (event.seriesId ? [event.seriesId] : [])),
+    ),
+  ]
+  const seriesMasters = seriesIds.length
+    ? await getDb()
+        .select({
+          id: calendarEvents.id,
+          userId: calendarEvents.userId,
+          seriesId: calendarEvents.seriesId,
+        })
+        .from(calendarEvents)
+        .where(inArray(calendarEvents.id, seriesIds))
+    : []
+  const seriesOwners = new Map(
+    seriesMasters
+      .filter((master) => master.seriesId === null)
+      .map((master) => [master.id, master.userId]),
+  )
+  const enrichmentKey = (event: T): string | null => {
+    if (!event.seriesId) return event.id
+    return seriesOwners.get(event.seriesId) === event.userId
+      ? event.seriesId
+      : null
+  }
+  const idKeys = [
+    ...new Set(
+      events.flatMap((event) => {
+        const key = enrichmentKey(event)
+        return key ? [key] : []
+      }),
+    ),
+  ]
   const eventOwners = new Map(
-    events.map((e) => [(e.seriesId ?? e.id) as string, e.userId]),
+    events.flatMap((event) => {
+      const key = enrichmentKey(event)
+      if (!key) return []
+      const ownerId = event.seriesId
+        ? seriesOwners.get(event.seriesId)
+        : event.userId
+      return ownerId ? [[key, ownerId] as const] : []
+    }),
   )
 
-  // The meetings lookup is keyed by the events' own ids and the invite read by
-  // the invite rows — neither needs the other's result, so they go out together
-  // instead of one after the other. `enrichEventsWithInvites` runs on every
-  // `GET /api/events`, which is the app's hottest read: view switches, every
-  // optimistic-write revalidation and every SWR focus revalidation all land here.
+  // Never derive master ownership from an override row. A malformed legacy row
+  // may point at another user's series; it gets no invite tokens or Meeting.
+  // Meetings and invites can load in parallel once their keys are verified.
   const [meetings, allInvites] = await Promise.all([
-    meetingsForEvents(events, viewerId),
+    meetingsForEvents(
+      events.filter((event) => enrichmentKey(event) !== null),
+      viewerId,
+    ),
     getDb()
       .select({
         id: eventInvites.id,
@@ -485,8 +531,8 @@ async function enrichEventsWithInvites<
   )
 
   return events.map((e) => {
-    const key = (e.seriesId ?? e.id) as string
-    const candidates = invitesByEvent[key] ?? []
+    const key = enrichmentKey(e)
+    const candidates = key ? (invitesByEvent[key] ?? []) : []
     // A plain event has no stamp, so every invite applies to it.
     const stamp = e.recurrenceId ?? null
 
@@ -513,7 +559,7 @@ async function enrichEventsWithInvites<
         return enriched
       })
 
-    return { ...e, invites, meeting: meetings.get(key) ?? null }
+    return { ...e, invites, meeting: key ? (meetings.get(key) ?? null) : null }
   })
 }
 
@@ -668,15 +714,22 @@ export const GET = async function GET(request: NextRequest) {
           windowStart: new Date(stamp.getTime() - 86400000),
           windowEnd: new Date(stamp.getTime() + 86400000),
         }
-        const [override] = await getDb()
-          .select()
+        const [master] = await getDb()
+          .select({ userId: calendarEvents.userId })
           .from(calendarEvents)
-          .where(
-            and(
-              eq(calendarEvents.seriesId, parsedId.seriesId),
-              eq(calendarEvents.recurrenceId, parsedId.recurrenceId),
-            ),
-          )
+          .where(eq(calendarEvents.id, parsedId.seriesId))
+        const [override] = master
+          ? await getDb()
+              .select()
+              .from(calendarEvents)
+              .where(
+                and(
+                  eq(calendarEvents.seriesId, parsedId.seriesId),
+                  eq(calendarEvents.recurrenceId, parsedId.recurrenceId),
+                  eq(calendarEvents.userId, master.userId),
+                ),
+              )
+          : []
         if (override)
           window = {
             windowStart: override.startDate,
@@ -716,8 +769,8 @@ export const GET = async function GET(request: NextRequest) {
       ) {
         return sharedFallback()
       }
-      const overrides = (await fetchOverrides(master.id)).map((o) =>
-        decryptEvent(o as typeof calendarEvents.$inferSelect),
+      const overrides = (await fetchOverrides(master.id, currentUser.id)).map(
+        (o) => decryptEvent(o as typeof calendarEvents.$inferSelect),
       )
       const resolved = resolveInstance(
         decryptEvent(master),
@@ -934,7 +987,7 @@ const postHandler = async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
     const masterRow = decryptEvent(master) as unknown as EventRow
-    const overrides = (await fetchOverrides(masterRow.id)).map((o) =>
+    const overrides = (await fetchOverrides(masterRow.id, user.id)).map((o) =>
       decryptEvent(o as typeof calendarEvents.$inferSelect),
     )
     const override =
@@ -1338,7 +1391,7 @@ const postHandler = async function POST(request: NextRequest) {
     }
 
     const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
-    const overrides = (await fetchOverrides(seriesRow.id)).map((o) =>
+    const overrides = (await fetchOverrides(seriesRow.id, user.id)).map((o) =>
       decryptEvent(o as typeof calendarEvents.$inferSelect),
     )
     const override =
@@ -1600,7 +1653,7 @@ const deleteHandler = async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
     const masterRow = decryptEvent(master) as unknown as EventRow
-    const overrides = await fetchOverrides(masterRow.id)
+    const overrides = await fetchOverrides(masterRow.id, user.id)
     const override =
       overrides.find((o) => o.recurrenceId === parsedId.recurrenceId) ?? null
     const applyTo = apply_to ?? 'single'
@@ -1702,7 +1755,7 @@ const deleteHandler = async function DELETE(request: NextRequest) {
     }
 
     const recurrenceId = resolveMasterEditStamp(seriesRow, timeZone)
-    const overrides = await fetchOverrides(seriesRow.id)
+    const overrides = await fetchOverrides(seriesRow.id, user.id)
     const override =
       overrides.find((o) => o.recurrenceId === recurrenceId) ?? null
     const plan = planInstanceChange({
