@@ -11,9 +11,13 @@ pub async fn desktop_connection(app: AppHandle) -> Result<bool, String> {
     let auth = app.state::<DesktopAuth>();
     let client = reqwest::Client::builder().timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::none()).build().map_err(|e| e.to_string())?;
-    // An HTTP error still proves reachability. API/version errors are displayed
-    // by their own surfaces, rather than disguising them as a lost connection.
-    Ok(client.get(auth.origin.join("/api/connection").unwrap()).send().await.is_ok())
+    Ok(client.get(auth.origin.join("/api/connection").unwrap()).send().await
+        .is_ok_and(|response| response.status().is_success()))
+}
+
+#[tauri::command]
+pub fn desktop_set_offline(app: AppHandle, offline: bool) {
+    app.state::<crate::offline::OfflineStore>().set_offline(offline);
 }
 
 #[derive(serde::Deserialize)]
@@ -41,6 +45,12 @@ pub async fn desktop_open_page(app: AppHandle, destination: String) -> Result<()
     let handoff = supports_handoff(url.path());
     let target = if handoff {
         if let Ok((client, generation)) = auth.authorized_client() {
+            let (_, cached_identity) = auth.cache_context(generation)
+                .ok_or("Session changed")?;
+            if app.state::<crate::offline::OfflineStore>().is_offline() || cached_identity {
+                return Err("Reconnect before opening an authenticated browser page.".into());
+            }
+            if !auth.is_current(generation) { return Err("Session changed".into()); }
             let response = client.post(auth.origin.join("/api/auth/desktop/browser-link").unwrap())
                 .header("origin", auth.origin.origin().ascii_serialization())
                 .json(&serde_json::json!({ "destination": url.as_str() }))

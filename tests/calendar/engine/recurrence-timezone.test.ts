@@ -1,7 +1,8 @@
 await import('./../../support/dom')
 import { describe, it, expect } from 'bun:test'
-const { expandSeries } = await import('@zntr/calendar/lib/recurrence/engine')
-import type { RecurrenceEvent } from '@zntr/calendar/lib/recurrence'
+const { expandSeries } =
+  await import('@zntr/shared/calendar/lib/recurrence/engine')
+import type { RecurrenceEvent } from '@zntr/shared/calendar/lib/recurrence'
 
 const WINDOW = new Date('2026-01-01T00:00:00Z')
 

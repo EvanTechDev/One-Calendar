@@ -8,7 +8,8 @@ const {
   resolveMasterEditStamp,
 } = await import('@/lib/events/service')
 import type { EventRow } from '@/lib/events/service'
-const { parseRfcStamp } = await import('@zntr/calendar/lib/recurrence/engine')
+const { parseRfcStamp } =
+  await import('@zntr/shared/calendar/lib/recurrence/engine')
 
 function day(y: number, m: number, d: number, h = 0, min = 0, s = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, s))

@@ -38,7 +38,7 @@ type FakeMeeting = {
 }
 const meetings = new Map<string, FakeMeeting>()
 let created = 0
-moduleMock.module('@zntr/meetings', () => ({
+moduleMock.module('@zntr/shared/meetings', () => ({
   generateMeetingId: () => `code-${created + 1}`,
   getMeeting: async (_db: unknown, id: string) => meetings.get(id) ?? null,
   getMeetingForEvent: async (_db: unknown, eventId: string) =>

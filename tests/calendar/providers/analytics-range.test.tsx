@@ -6,7 +6,7 @@ import { afterEach, expect, it, vi } from 'bun:test'
 const { SWRConfig } = await import('swr')
 
 const mock = (() => ({ list: vi.fn() }))()
-moduleMock.module('@zntr/calendar/lib/api-client', () => ({
+moduleMock.module('@zntr/shared/calendar/lib/api-client', () => ({
   api: {
     events: { list: mock.list },
     categories: { list: async () => ({ categories: [] }) },
@@ -28,30 +28,33 @@ moduleMock.module('@zntr/i18n/calendar', () => ({
   },
 }))
 moduleMock.module(
-  '@zntr/calendar/components/providers/calendar-context',
+  '@zntr/shared/calendar/components/providers/calendar-context',
   () => ({
     useCalendar: () => ({ calendars: [] }),
     eventDataToCalendarEvent: (event: unknown) => event,
   }),
 )
-moduleMock.module('@zntr/calendar/components/analytics/time-analytics', () => ({
-  default: ({ events }: { events: { id: string }[] }) => (
-    <output>
-      {events.map((event) => event.id).join(',') || 'Empty report'}
-    </output>
-  ),
-}))
+moduleMock.module(
+  '@zntr/shared/calendar/components/analytics/time-analytics',
+  () => ({
+    default: ({ events }: { events: { id: string }[] }) => (
+      <output>
+        {events.map((event) => event.id).join(',') || 'Empty report'}
+      </output>
+    ),
+  }),
+)
 const { DataProvider, useEvents } =
-  await import('@zntr/calendar/components/providers/data-provider')
+  await import('@zntr/shared/calendar/components/providers/data-provider')
 
 const { default: AnalyticsView } =
-  await import('@zntr/calendar/components/analytics/analytics-view')
+  await import('@zntr/shared/calendar/components/analytics/analytics-view')
 
 const { analyticsLoadRange } =
-  await import('@zntr/calendar/lib/analytics/load-range')
+  await import('@zntr/shared/calendar/lib/analytics/load-range')
 
 const { calendarLoadRange, containsCalendarRange } =
-  await import('@zntr/calendar/lib/calendar-range')
+  await import('@zntr/shared/calendar/lib/calendar-range')
 
 afterEach(() => {
   cleanup()

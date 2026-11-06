@@ -10,7 +10,7 @@ import {
   shiftExdates,
   translateStampsByDays,
   isValidRrule as isSupportedRrule,
-} from '@zntr/calendar/lib/recurrence/engine'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
 import type { InstanceChangePlan } from '@/lib/events/service'
 
 /**

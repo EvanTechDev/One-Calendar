@@ -25,7 +25,7 @@ import {
   describeRecurrence,
   expandSeriesViewInRange,
   type SeriesViewInput,
-} from '@zntr/calendar/lib/recurrence/engine'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
 import {
   baselineOf,
   getOccurrencesForInvites,

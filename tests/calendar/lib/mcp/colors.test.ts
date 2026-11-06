@@ -8,7 +8,7 @@ const {
   normalizeCountdownColor,
   COUNTDOWN_COLOR_NAMES,
 } = await import('@/lib/mcp/colors')
-const { EVENT_COLORS } = await import('@zntr/calendar/lib/event-colors')
+const { EVENT_COLORS } = await import('@zntr/shared/calendar/lib/event-colors')
 
 describe('mcp colors', () => {
   it('offers a colour for every selectable event colour', () => {

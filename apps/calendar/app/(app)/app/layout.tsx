@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Viewport } from 'next'
-import { CalendarDataHost } from '@zntr/calendar/components/providers/calendar-data-host'
-import { CalendarProvider } from '@zntr/calendar/components/providers/calendar-context'
+import { CalendarDataHost } from '@zntr/shared/calendar/components/providers/calendar-data-host'
+import { CalendarProvider } from '@zntr/shared/calendar/components/providers/calendar-context'
 import { requireAppSession } from '@/lib/auth/require-session'
 import { CalendarWebHost } from '@/components/calendar-web-host'
 

@@ -9,7 +9,7 @@ const {
   shiftExdates,
   shiftToAnchorClock,
   toRfcStamp,
-} = await import('@zntr/calendar/lib/recurrence/engine')
+} = await import('@zntr/shared/calendar/lib/recurrence/engine')
 const { planInstanceChange } = await import('@/lib/events/service')
 import type { InstanceChangePlan } from '@/lib/events/service'
 

@@ -9,7 +9,7 @@ import {
   openSession,
   recordJoin,
   recordLeave,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 
 export const runtime = 'nodejs'

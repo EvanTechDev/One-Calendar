@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { AccessToken } from 'livekit-server-sdk'
 import type { AccessTokenOptions, VideoGrant } from 'livekit-server-sdk'
-import { getMeeting, isJoinable, verifyCreatorToken } from '@zntr/meetings'
+import {
+  getMeeting,
+  isJoinable,
+  verifyCreatorToken,
+} from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 import { getServerSession } from '@/lib/auth/server'
 import { checkFixedWindowLimit, clientAddress } from '@/lib/rate-limit'

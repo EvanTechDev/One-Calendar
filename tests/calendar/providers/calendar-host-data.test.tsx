@@ -2,14 +2,19 @@ const { unstubAllGlobals, stubGlobal } = await import('./../../support/stubs')
 await import('./../../support/dom')
 const { act, cleanup, fireEvent, render, screen } =
   await import('@testing-library/react')
-import { afterEach, expect, it, vi } from 'bun:test'
+import { afterEach, expect, it, mock, vi } from 'bun:test'
+const calendarI18n = await import('@zntr/i18n/calendar')
+mock.module('@zntr/i18n/calendar', () => ({
+  ...calendarI18n,
+  useLanguage: () => ['en', () => {}],
+}))
 const { SWRConfig } = await import('swr')
-const { CalendarHostProvider } = await import('@zntr/calendar/host')
-import type { CalendarHost } from '@zntr/calendar/host'
+const { CalendarHostProvider } = await import('@zntr/shared/calendar/host')
+import type { CalendarHost } from '@zntr/shared/calendar/host'
 const { CalendarDataHost } =
-  await import('@zntr/calendar/components/providers/calendar-data-host')
+  await import('@zntr/shared/calendar/components/providers/calendar-data-host')
 const { useData } =
-  await import('@zntr/calendar/components/providers/data-provider')
+  await import('@zntr/shared/calendar/components/providers/data-provider')
 
 afterEach(() => {
   cleanup()

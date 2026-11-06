@@ -27,7 +27,7 @@ const retained: Record<string, unknown>[] = []
 let meetingExists = true
 let retainsChat = true
 
-moduleMock.module('@zntr/meetings', () => ({
+moduleMock.module('@zntr/shared/meetings', () => ({
   getMeeting: async (_db: unknown, id: string) =>
     meetingExists ? { id, organiserId: 'u1', retainsChat } : null,
   getOpenSession: async () => ({ id: 'session-1' }),

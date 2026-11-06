@@ -14,8 +14,8 @@ import { resolveInstance, type EventRow } from '@/lib/events/service'
 import {
   parseInstanceId,
   parseRfcStamp,
-} from '@zntr/calendar/lib/recurrence/engine'
-import { isValidTimezone } from '@zntr/calendar/lib/timezone'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
+import { isValidTimezone } from '@zntr/shared/calendar/lib/timezone'
 import { bookmarkSchema, firstZodMessage } from '@/lib/validation'
 
 export const runtime = 'nodejs'

@@ -8,8 +8,8 @@ import {
   buildInstanceId,
   expandSeries,
   parseRfcStamp,
-} from '@zntr/calendar/lib/recurrence/engine'
-import type { EventSearchHit } from '@zntr/calendar/lib/api-client'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
+import type { EventSearchHit } from '@zntr/shared/calendar/lib/api-client'
 
 /** Ciphertext cannot be searched with SQL LIKE. Scan bounded keyset pages,
  * decrypt only this page, and let the client continue until the scan is done.

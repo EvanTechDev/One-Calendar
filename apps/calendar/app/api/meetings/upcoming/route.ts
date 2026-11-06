@@ -6,8 +6,8 @@ import { getAuthedUser, decryptEvent } from '@/lib/api-helpers'
 import {
   expandSeries,
   isSeriesEvent,
-} from '@zntr/calendar/lib/recurrence/engine'
-import { meeting } from '@zntr/meetings'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
+import { meeting } from '@zntr/shared/meetings'
 import { meetingUrl } from '@/lib/meetings'
 
 export const runtime = 'nodejs'

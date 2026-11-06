@@ -8,7 +8,7 @@ import {
   meetingChatMessage,
   meetingSession,
   searchMeetings,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 import { getServerSession } from '@/lib/auth/server'
 import { readEventTitle } from '@/lib/event-title'
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 /**
  * The attendee names and chat lines that matched, per meeting.
  *
- * Read here rather than in `@zntr/meetings` because this is presentation: the
+ * Read here rather than in `@zntr/shared/meetings` because this is presentation: the
  * package answers *which meetings matched*, and adding a snippet shape to it
  * would push a UI concern into shared storage code. It queries the package's
  * exported tables, so no schema knowledge is duplicated.

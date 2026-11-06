@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getMeeting, getOpenSession, retainChatMessage } from '@zntr/meetings'
+import {
+  getMeeting,
+  getOpenSession,
+  retainChatMessage,
+} from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 import { checkFixedWindowLimit, clientAddress } from '@/lib/rate-limit'
 import { verifyRoomMember } from '@/lib/room-membership'

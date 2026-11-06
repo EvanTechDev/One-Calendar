@@ -7,7 +7,7 @@ import {
   generateMeetingId,
   getMeeting,
   getMeetingForEvent,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle/client'
 import { calendarEvents } from '@/lib/drizzle/schema'
 import { getAuthedUser } from '@/lib/api-helpers'

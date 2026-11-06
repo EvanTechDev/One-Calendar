@@ -2,10 +2,10 @@ await import('./../../support/dom')
 import { describe, it, expect, vi, beforeEach } from 'bun:test'
 const { render, screen, fireEvent } = await import('@testing-library/react')
 const { default: MonthView } =
-  await import('@zntr/calendar/components/views/month-view')
-import type { CalendarEvent } from '@zntr/calendar/components/calendar'
+  await import('@zntr/shared/calendar/components/views/month-view')
+import type { CalendarEvent } from '@zntr/shared/calendar/components/calendar'
 const { Language, FirstDayOfWeek, ViewConfig, TimeFormat } =
-  await import('@zntr/calendar/lib/calendar-types')
+  await import('@zntr/shared/calendar/lib/calendar-types')
 
 const baseEvent: CalendarEvent = {
   id: '1',

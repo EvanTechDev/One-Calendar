@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@zntr/ui/button'
-import { AssistantIcon } from '@zntr/calendar/components/ai/assistant-icon'
+import { AssistantIcon } from '@zntr/shared/calendar/components/ai/assistant-icon'
 import {
   ArrowDownToLine,
   Bell,

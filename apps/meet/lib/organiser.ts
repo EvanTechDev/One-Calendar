@@ -1,5 +1,5 @@
-import { verifyCreatorToken } from '@zntr/meetings'
-import type { Meeting } from '@zntr/meetings'
+import { verifyCreatorToken } from '@zntr/shared/meetings'
+import type { Meeting } from '@zntr/shared/meetings'
 import { getServerSession } from '@/lib/auth/server'
 
 /**

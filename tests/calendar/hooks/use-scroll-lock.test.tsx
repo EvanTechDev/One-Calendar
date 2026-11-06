@@ -2,7 +2,8 @@ await import('./../../support/dom')
 const { act, render } = await import('@testing-library/react')
 const { useState } = await import('react')
 import { describe, expect, it } from 'bun:test'
-const { useScrollLock } = await import('@zntr/calendar/hooks/use-scroll-lock')
+const { useScrollLock } =
+  await import('@zntr/shared/calendar/hooks/use-scroll-lock')
 
 /**
  * `RemoveScroll` cancels `wheel` and `touch*` at the document level and nothing

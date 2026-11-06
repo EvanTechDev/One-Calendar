@@ -22,7 +22,7 @@ import {
   expandSeriesView,
   MAX_EXPANSION,
   type SeriesViewInput,
-} from '@zntr/calendar/lib/recurrence/engine'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
 import {
   applyQuota,
   candidatesFor,

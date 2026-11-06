@@ -1,7 +1,7 @@
-@import '@zntr/calendar/styles.css';
+@import '@zntr/shared/calendar/styles.css';
 
 @source './';
-@source '../../../packages/calendar';
+@source '../../../packages/shared/calendar';
 @source '../../../packages/ui/src';
 @source '../../../packages/auth/src';
 @source '../../../packages/utils/src';

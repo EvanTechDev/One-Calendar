@@ -1,16 +1,17 @@
 # Zentra Calendar Desktop
 
-The Tauri client bundles `/app` locally from `@zntr/calendar`, the same
+The Tauri client bundles `/app` locally from `@zntr/shared/calendar`, the same
 calendar components, data providers and recurrence implementation used by Web.
 Sign-in, sign-up, password recovery and account settings stay inside the client.
-Web and desktop share a No internet screen that preserves the mounted calendar
-and editor while disconnected, then revalidates data when connectivity returns.
+Web keeps a blocking No Internet screen while disconnected. Desktop can restore
+encrypted cached data in read-only mode, with distinct device-offline and service
+failure states. Both preserve mounted editors and revalidate after recovery.
 
 ## Architecture
 
-- Shared calendar code lives in `packages/calendar`, exported by
-  `@zntr/calendar`. The host port lives in `packages/calendar/host`,
-  exported by `@zntr/calendar/host`. Web and desktop import them directly.
+- Shared calendar code lives in `packages/shared/calendar`, exported by
+  `@zntr/shared/calendar`. The host port lives in `packages/shared/calendar/host`,
+  exported by `@zntr/shared/calendar/host`. Web and desktop import them directly.
   Each app registers its own Tailwind source paths.
 - React requests use `CalendarHost.request`: Tauri IPC → Rust → Calendar API.
   Streaming responses and cancellation use the same port. Session cookies remain
@@ -61,11 +62,11 @@ reported in the client; unlocking it and retrying saves the session.
 
 ## Remote checks and releases
 
-The manual Workspace Checks workflow runs the consolidated workspace checks and
-can build Windows x64 NSIS, Linux x64 AppImage, macOS Intel DMG and Apple Silicon
-DMG. Native smoke installs/copies each installer and checks actual frontend IPC,
-visibility and outer window geometry. Linux also captures screenshots at two
-display scales. Smoke evidence is uploaded separately from installers.
+The Build workflow runs on pushes and pull requests to `main`/`dev`, and manually.
+It builds all workspaces and produces unsigned dev Windows x64 NSIS, Linux x64
+AppImage, macOS Intel DMG and Apple Silicon DMG artifacts. It does not run tests,
+native smoke checks or visual captures; run those separately when acceptance
+evidence is required.
 
 Desktop Release is manual for dev (`version=X.Y.Z`) and triggered by
 `desktop-vX.Y.Z` tags for production. Configure GitHub environments `desktop-dev`
@@ -76,10 +77,10 @@ and `desktop-production`, each with its own:
   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 
 Public API origins can be overridden by repository variables
-`ZENTRA_DEV_API_ORIGIN` and `ZENTRA_API_ORIGIN`. The four installers must all pass
-smoke before publication. Versioned releases are immutable; the `desktop-dev`
-and `desktop-stable` channel releases hold `latest.json` pointing to those signed
-assets. Versions must increase independently in each channel. If publication
+`ZENTRA_DEV_API_ORIGIN` and `ZENTRA_API_ORIGIN`. All four signed installer builds
+must succeed before publication; native acceptance remains a separate manual
+gate. Versioned releases are immutable; the `desktop-dev` and `desktop-stable`
+channel releases hold `latest.json` pointing to those signed assets. Versions must increase independently in each channel. If publication
 stops after creating a draft, inspect and remove that unpublished draft before
 retrying the same version.
 
@@ -90,10 +91,10 @@ macOS installers have no Developer ID notarization.
 ## Validation status
 
 The acceptance procedure is in [ACCEPTANCE.md](./ACCEPTANCE.md). Record results
-against their exact source revision in CORE-225 and its child issues. Workspace
-checks include the real PostgreSQL authentication contract; native startup,
-session restoration, tray/reminder delivery and signed updates each need their
-own evidence. Earlier installer builds do not establish acceptance of later
+against their exact source revision in CORE-225 and its child issues. Run the
+real PostgreSQL authentication contract separately from the build workflow;
+native startup, session restoration, tray/reminder delivery and signed updates
+each need their own evidence. Earlier installer builds do not establish acceptance of later
 source revisions.
 
 The current Termux machine is for source editing only. Run builds, development

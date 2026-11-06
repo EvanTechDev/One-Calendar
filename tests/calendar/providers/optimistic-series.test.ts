@@ -1,8 +1,8 @@
 await import('./../../support/dom')
 import { describe, expect, it } from 'bun:test'
 const { optimisticSeries } =
-  await import('@zntr/calendar/components/providers/data-provider')
-import type { EventData } from '@zntr/calendar/lib/api-client'
+  await import('@zntr/shared/calendar/components/providers/data-provider')
+import type { EventData } from '@zntr/shared/calendar/lib/api-client'
 
 const weeklyRule = 'RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO'
 

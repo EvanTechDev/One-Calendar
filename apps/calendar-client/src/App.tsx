@@ -6,10 +6,13 @@ import {
   useMemo,
   useState,
 } from 'react'
-import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar/host'
-import { CalendarDataHost } from '@zntr/calendar/components/providers/calendar-data-host'
-import { CalendarProvider } from '@zntr/calendar/components/providers/calendar-context'
-import { AVAILABLE_THEMES } from '@zntr/calendar/lib/theme'
+import {
+  CalendarHostProvider,
+  type CalendarHost,
+} from '@zntr/shared/calendar/host'
+import { CalendarDataHost } from '@zntr/shared/calendar/components/providers/calendar-data-host'
+import { CalendarProvider } from '@zntr/shared/calendar/components/providers/calendar-context'
+import { AVAILABLE_THEMES } from '@zntr/shared/calendar/lib/theme'
 import { ThemeProvider } from 'next-themes'
 import { SWRConfig } from 'swr'
 import { Toaster, toast } from 'sonner'
@@ -23,7 +26,7 @@ import {
   type SessionView,
 } from './native'
 import { DesktopUpdates } from './updates'
-import { ConnectionBoundary } from '@zntr/calendar/components/connection-boundary'
+import { ConnectionBoundary } from '@zntr/shared/calendar/components/connection-boundary'
 import { IdentityPanel } from './identity-panel'
 import { DesktopNotice, DesktopState } from './desktop-surfaces'
 import './styles.css'
@@ -34,7 +37,7 @@ import { CalendarBoundary } from './calendar-boundary'
 import { receiveSession } from './session-state'
 import './App.css'
 
-const CalendarApp = lazy(() => import('@zntr/calendar'))
+const CalendarApp = lazy(() => import('@zntr/shared/calendar'))
 const initialSession: SessionView = {
   generation: 0,
   user: null,
@@ -42,6 +45,7 @@ const initialSession: SessionView = {
   pending: true,
   signingIn: false,
   error: null,
+  restoredFromCache: false,
 }
 
 export default function App() {
@@ -154,11 +158,9 @@ export default function App() {
     }
     const interval = window.setInterval(refresh, 5 * 60_000)
     window.addEventListener('focus', refresh)
-    window.addEventListener('online', refresh)
     return () => {
       window.clearInterval(interval)
       window.removeEventListener('focus', refresh)
-      window.removeEventListener('online', refresh)
     }
   }, [session.user?.id, action])
 
@@ -166,6 +168,16 @@ export default function App() {
     () => createNativeFetch(config?.apiOrigin ?? 'https://calendar.xyehr.cn'),
     [config?.apiOrigin],
   )
+  const setOffline = useCallback(
+    (offline: boolean) => invoke<void>('desktop_set_offline', { offline }),
+    [],
+  )
+  const refreshSession = useCallback(async () => {
+    const next = await invoke<SessionView>('desktop_session')
+    if (next.restoredFromCache || next.error) {
+      throw new Error(next.error ?? 'Zentra is still unavailable')
+    }
+  }, [])
 
   const host = useMemo<CalendarHost>(
     () => ({
@@ -175,8 +187,10 @@ export default function App() {
       session: {
         data: session.user ? { user: session.user } : null,
         isPending: session.pending,
+        source: session.restoredFromCache ? 'cache' : 'live',
       },
       request,
+      setOffline,
       navigation: { push: navigate, replace: navigate, openExternal: navigate },
       saveFile: (name, content) =>
         invoke<boolean>('desktop_save_file', { name, content }),
@@ -192,13 +206,14 @@ export default function App() {
       ),
       renderUpdate: () => (config ? <DesktopUpdates config={config} /> : null),
     }),
-    [config, session, request, navigate, action],
+    [config, session, request, setOffline, navigate, action],
   )
 
   const retry = useCallback(async () => {
     await action('desktop_session')
   }, [action])
-  const error = startupError ?? session.error
+  const error =
+    startupError ?? (session.restoredFromCache ? null : session.error)
 
   return (
     <ThemeProvider
@@ -210,7 +225,7 @@ export default function App() {
       <CalendarHostProvider value={host}>
         <ConnectionBoundary
           checkConnection={checkConnection}
-          onReconnect={retry}
+          onReconnect={refreshSession}
         >
           {config && session.user ? (
             <>

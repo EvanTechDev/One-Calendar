@@ -14,7 +14,7 @@ import {
   UNCATEGORIZED_ID,
   type AnalyticsEngineEvent,
   type AnalyticsRange,
-} from '@zntr/calendar/lib/analytics/engine'
+} from '@zntr/shared/calendar/lib/analytics/engine'
 
 let seq = 0
 function event(

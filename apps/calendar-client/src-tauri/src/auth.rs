@@ -30,6 +30,7 @@ pub struct SessionView {
     pub pending: bool,
     pub signing_in: bool,
     pub error: Option<String>,
+    pub restored_from_cache: bool,
 }
 
 #[derive(Deserialize)]
@@ -56,6 +57,7 @@ struct SessionInner {
     generation: u64,
     loading: bool,
     restored: bool,
+    restored_from_cache: bool,
     error: Option<String>,
 }
 
@@ -102,7 +104,8 @@ impl DesktopAuth {
             redirect_uri: format!("{identifier}:/oauth/callback"),
             inner: Mutex::new(SessionInner {
                 client: client(jar.clone())?, jar, user: None, expires_at: None,
-                pending: None, generation: 0, loading: false, restored: false, error: None,
+                pending: None, generation: 0, loading: false, restored: false,
+                restored_from_cache: false, error: None,
             }),
             vault: Mutex::new(()),
             signed_out_marker: data_dir.join(format!("signed-out-{:x}", Sha256::digest(origin.as_bytes()))),
@@ -115,22 +118,53 @@ impl DesktopAuth {
             user: inner.user.clone(), expires_at: inner.expires_at.clone(),
             pending: inner.loading || inner.pending.is_some(), error: inner.error.clone(),
             signing_in: inner.pending.is_some(),
+            restored_from_cache: inner.restored_from_cache,
         }
     }
 
+    fn expire_cached_identity(inner: &mut SessionInner) -> Result<(), String> {
+        if !inner.restored_from_cache { return Ok(()); }
+        let valid = inner.expires_at.as_deref().and_then(|expires| {
+            time::OffsetDateTime::parse(
+                expires,
+                &time::format_description::well_known::Rfc3339,
+            ).ok()
+        }).is_some_and(|expires| expires > time::OffsetDateTime::now_utc());
+        if valid { return Ok(()); }
+        inner.generation += 1;
+        inner.user = None;
+        inner.expires_at = None;
+        inner.restored_from_cache = false;
+        inner.loading = false;
+        inner.jar = Arc::new(Jar::default());
+        inner.client = client(inner.jar.clone())?;
+        inner.error = Some("Your cached session expired. Reconnect and sign in again.".into());
+        Ok(())
+    }
+
     pub fn snapshot(&self) -> Result<SessionView, String> {
-        self.inner.lock().map(|inner| Self::view(&inner))
-            .map_err(|_| "Session state is unavailable".into())
+        let mut inner = self.inner.lock().map_err(|_| "Session state is unavailable")?;
+        Self::expire_cached_identity(&mut inner)?;
+        Ok(Self::view(&inner))
     }
 
     pub fn authorized_client(&self) -> Result<(reqwest::Client, u64), String> {
-        let inner = self.inner.lock().map_err(|_| "Session state is unavailable")?;
+        let mut inner = self.inner.lock().map_err(|_| "Session state is unavailable")?;
+        Self::expire_cached_identity(&mut inner)?;
         if inner.user.is_none() { return Err("Authentication required".into()); }
         Ok((inner.client.clone(), inner.generation))
     }
 
     pub fn is_current(&self, generation: u64) -> bool {
         self.inner.lock().map(|inner| inner.generation == generation).unwrap_or(false)
+    }
+
+    pub fn cache_context(&self, generation: u64) -> Option<(String, bool)> {
+        self.inner.lock().ok().and_then(|mut inner| {
+            Self::expire_cached_identity(&mut inner).ok()?;
+            if inner.generation != generation { return None; }
+            inner.user.as_ref().map(|user| (user.id.clone(), inner.restored_from_cache))
+        })
     }
 
     fn entry(&self) -> Result<keyring::Entry, String> {
@@ -185,8 +219,46 @@ fn emit_session(app: &AppHandle) {
 
 async fn persist_session(app: &AppHandle, generation: u64) -> Result<(), String> {
     let handle = app.clone();
-    tauri::async_runtime::spawn_blocking(move || handle.state::<DesktopAuth>().persist(generation))
-        .await.map_err(|_| "Credential storage failed".to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        handle.state::<DesktopAuth>().persist(generation)
+    })
+    .await.map_err(|_| "Credential storage failed".to_string())??;
+
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let auth = handle.state::<DesktopAuth>();
+        let identity = {
+            let inner = auth.inner.lock().map_err(|_| "Session state is unavailable")?;
+            if inner.generation != generation || inner.restored_from_cache { return Ok(()); }
+            inner.user.as_ref().map(|user| serde_json::json!({
+                "user": user,
+                "expiresAt": inner.expires_at.clone(),
+            }))
+        };
+        if let Some(identity) = identity {
+            let store = handle.state::<crate::offline::OfflineStore>();
+            let auth = handle.state::<DesktopAuth>();
+            store.write_identity_if(&identity, || auth.is_current(generation))?;
+        }
+        Ok(())
+    })
+    .await.map_err(|_| "Offline identity storage failed".to_string())?
+}
+
+async fn clear_offline_data(app: &AppHandle) -> Result<(), String> {
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        handle.state::<crate::offline::OfflineStore>().clear_origin()
+    })
+    .await
+    .map_err(|_| "Offline storage cleanup failed".to_string())?
+}
+
+fn valid_cached_identity(value: serde_json::Value) -> Option<SessionReply> {
+    use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+    let session: SessionReply = serde_json::from_value(value).ok()?;
+    let expires = OffsetDateTime::parse(&session.expires_at, &Rfc3339).ok()?;
+    (expires > OffsetDateTime::now_utc()).then_some(session)
 }
 
 fn random_secret() -> Result<String, String> {
@@ -245,28 +317,55 @@ pub async fn desktop_session(app: AppHandle) -> Result<SessionView, String> {
         response.json::<SessionReply>().await.map(Some)
             .map_err(|_| "Zentra returned an invalid session response".into())
     }.await;
+    let cached_identity = if result.is_err() && restore {
+        let handle = app.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            handle.state::<crate::offline::OfflineStore>().read_identity()
+                .ok().flatten().and_then(valid_cached_identity)
+        }).await.ok().flatten()
+    } else {
+        None
+    };
     let save = result.is_ok();
     let mut next_generation = generation;
     let mut expired = false;
+    let mut signed_out = false;
     {
         let mut inner = auth.inner.lock().map_err(|_| "Session state is unavailable")?;
         if inner.generation != generation { return Ok(DesktopAuth::view(&inner)); }
         inner.loading = false;
         match result {
-            Ok(Some(session)) => { inner.user = Some(session.user); inner.expires_at = Some(session.expires_at); }
+            Ok(Some(session)) => {
+                inner.user = Some(session.user);
+                inner.expires_at = Some(session.expires_at);
+                inner.restored_from_cache = false;
+            }
             Ok(None) => {
                 expired = inner.user.is_some();
+                signed_out = true;
                 inner.generation += 1;
                 next_generation = inner.generation;
                 inner.user = None;
                 inner.expires_at = None;
+                inner.restored_from_cache = false;
                 inner.jar = Arc::new(Jar::default());
                 inner.client = client(inner.jar.clone())?;
             }
-            Err(error) => inner.error = Some(error),
+            Err(error) => {
+                if let Some(session) = cached_identity {
+                    inner.user = Some(session.user);
+                    inner.expires_at = Some(session.expires_at);
+                    inner.restored_from_cache = true;
+                    inner.error = None;
+                } else {
+                    if inner.user.is_some() { inner.restored_from_cache = true; }
+                    inner.error = Some(error);
+                }
+            }
         }
     }
     if expired { super::transport::cancel_all(&app); }
+    if signed_out { clear_offline_data(&app).await?; }
     if save {
         if persist_session(&app, next_generation).await.is_err() {
             let mut inner = auth.inner.lock().map_err(|_| "Session state is unavailable")?;
@@ -408,7 +507,8 @@ pub async fn callback(app: AppHandle, url: tauri::Url) {
         match result {
             Ok((http, session)) => {
                 inner.client = http; inner.jar = jar; inner.user = Some(session.user);
-                inner.expires_at = Some(session.expires_at); inner.restored = true; inner.error = None;
+                inner.expires_at = Some(session.expires_at); inner.restored = true;
+                inner.restored_from_cache = false; inner.error = None;
             }
             Err(error) => inner.error = Some(error),
         }
@@ -431,10 +531,12 @@ pub async fn invalidate(app: &AppHandle, generation: u64) {
         let jar = Arc::new(Jar::default());
         let Ok(http) = client(jar.clone()) else { return; };
         inner.generation += 1; inner.user = None; inner.expires_at = None;
+        inner.restored_from_cache = false;
         inner.jar = jar; inner.client = http; inner.loading = false;
         inner.error = Some("Your session expired. Sign in again.".into());
         inner.generation
     };
+    let _ = clear_offline_data(app).await;
     let _ = persist_session(app, next).await;
     emit_session(app);
 }
@@ -454,10 +556,12 @@ pub async fn desktop_sign_out(app: AppHandle) -> Result<(), String> {
         if let Some(pending) = inner.pending.take() { if let Some(abort) = pending.abort { abort.abort(); } }
         inner.generation += 1; inner.user = None; inner.expires_at = None;
         inner.jar = Arc::new(Jar::default()); inner.client = client(inner.jar.clone())?;
-        inner.restored = true; inner.loading = false; inner.error = None;
+        inner.restored = true; inner.restored_from_cache = false;
+        inner.loading = false; inner.error = None;
         Ok((http, inner.generation))
     }).await.map_err(|_| "Could not save the signed-out state")??;
     super::transport::cancel_all(&app);
+    clear_offline_data(&app).await?;
     emit_session(&app);
     let stored = persist_session(&app, generation).await;
     let revoked = http.post(auth.origin.join("/api/auth/sign-out").unwrap())

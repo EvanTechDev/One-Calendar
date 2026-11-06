@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { deleteExpiredMeetings } from '@zntr/meetings'
+import { deleteExpiredMeetings } from '@zntr/shared/meetings'
 import { cleanupRateLimitCounters } from '@zntr/auth/rate-limit'
 import { getDb } from '@/lib/drizzle/client'
 import { cleanupAuditLogs } from '@/lib/mcp/audit'

@@ -6,7 +6,7 @@ import {
   account as accountTable,
   twoFactor as twoFactorTable,
 } from '@zntr/auth/schema'
-import { deleteMeetingsForOrganiser } from '@zntr/meetings'
+import { deleteMeetingsForOrganiser } from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 import { getServerSession } from '@/lib/auth/server'
 

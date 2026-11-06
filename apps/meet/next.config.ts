@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
     '@zntr/ui',
     '@zntr/utils',
     '@zntr/auth',
-    '@zntr/meetings',
+    '@zntr/shared/meetings',
   ],
   typescript: {
     ignoreBuildErrors: true,

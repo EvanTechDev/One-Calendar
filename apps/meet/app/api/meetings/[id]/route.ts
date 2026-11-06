@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { deleteMeeting, getMeeting } from '@zntr/meetings'
+import { deleteMeeting, getMeeting } from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 import { isOrganiser } from '@/lib/organiser'
 import { getRoomService } from '@/lib/livekit-server'

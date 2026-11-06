@@ -1,4 +1,4 @@
-import { AssistantIcon } from '@zntr/calendar/components/ai/assistant-icon'
+import { AssistantIcon } from '@zntr/shared/calendar/components/ai/assistant-icon'
 import { Button } from '@zntr/ui/button'
 import { Kbd } from '@zntr/ui/kbd'
 import { Textarea } from '@zntr/ui/textarea'

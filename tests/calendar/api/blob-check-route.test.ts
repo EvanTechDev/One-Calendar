@@ -23,7 +23,7 @@ moduleMock.module('@/lib/mcp/audit', () => audit)
 const meetings = (() => ({
   deleteExpiredMeetings: vi.fn(async () => []),
 }))()
-moduleMock.module('@zntr/meetings', () => meetings)
+moduleMock.module('@zntr/shared/meetings', () => meetings)
 
 const oauth = (() => ({
   cleanupExpiredOAuthState: vi.fn(async () => ({ deleted: 0 })),

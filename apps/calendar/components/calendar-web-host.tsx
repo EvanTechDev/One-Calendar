@@ -9,9 +9,12 @@ import {
   type ReactNode,
 } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarHostProvider, type CalendarHost } from '@zntr/calendar/host'
+import {
+  CalendarHostProvider,
+  type CalendarHost,
+} from '@zntr/shared/calendar/host'
 import { authClient } from '@/lib/auth/client'
-import { ConnectionBoundary } from '@zntr/calendar/components/connection-boundary'
+import { ConnectionBoundary } from '@zntr/shared/calendar/components/connection-boundary'
 
 const request: typeof fetch = (input, init) => fetch(input, init)
 const AccountPanel = lazy(() => import('./web-account-panel'))

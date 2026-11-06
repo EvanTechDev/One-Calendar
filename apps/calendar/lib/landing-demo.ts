@@ -1,4 +1,4 @@
-import type { CalendarEvent } from '@zntr/calendar/lib/calendar-types'
+import type { CalendarEvent } from '@zntr/shared/calendar/lib/calendar-types'
 
 // Fictional examples, explicitly labeled in the landing demo. Never read from
 // or write to the account's event store, API, or browser storage.

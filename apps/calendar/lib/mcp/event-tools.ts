@@ -7,12 +7,15 @@ import {
 import { eq, and, lt, gt, inArray, or, isNotNull, type SQL } from 'drizzle-orm'
 import { encryptField } from '@/lib/field-crypto'
 import { decryptEvent } from '@/lib/api-helpers'
-import { deleteMeetingsForEvent, moveMeetingToEvent } from '@zntr/meetings'
+import {
+  deleteMeetingsForEvent,
+  moveMeetingToEvent,
+} from '@zntr/shared/meetings'
 import { normalizeColor } from './colors'
 import {
   EVENT_COLOR_VALUES,
   PALETTE_TO_EVENT_COLOR,
-} from '@zntr/calendar/lib/event-colors'
+} from '@zntr/shared/calendar/lib/event-colors'
 import { InvalidEventQueryError, ParticipantError } from './errors'
 import { getSettings } from './settings-tools'
 import {
@@ -43,15 +46,15 @@ import {
   withUntil,
   partsInTz,
   tzOffsetMs,
-} from '@zntr/calendar/lib/recurrence/engine'
-import { isValidTimezone } from '@zntr/calendar/lib/timezone'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
+import { isValidTimezone } from '@zntr/shared/calendar/lib/timezone'
 import { carryInvitesAcrossSplit } from '@/lib/invites/split-carry'
 import {
   baselineOf,
   getOccurrencesForInvites,
 } from '@/lib/invites/invite-service'
 import { canParticipantSeeOccurrence } from '@/lib/invites/visibility'
-import { normalizeEmails as normalizeEmailsShared } from '@zntr/calendar/lib/email'
+import { normalizeEmails as normalizeEmailsShared } from '@zntr/shared/calendar/lib/email'
 import {
   encryptMergedFields,
   isValidRrule,

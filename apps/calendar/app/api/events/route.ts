@@ -49,7 +49,7 @@ import {
   wallClockDayDelta,
   withUntil,
   type SeriesViewInput,
-} from '@zntr/calendar/lib/recurrence/engine'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
 import {
   canParticipantSeeOccurrence,
   rsvpForOccurrence,
@@ -74,17 +74,17 @@ import {
   deleteMeetingsForEvents,
   getMeetingsForEvents,
   moveMeetingToEvent,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { meetingUrl } from '@/lib/meetings'
 import { z } from 'zod'
-import { isValidTimezone } from '@zntr/calendar/lib/timezone'
-import { MAX_CALENDAR_RANGE_MS } from '@zntr/calendar/lib/calendar-range'
+import { isValidTimezone } from '@zntr/shared/calendar/lib/timezone'
+import { MAX_CALENDAR_RANGE_MS } from '@zntr/shared/calendar/lib/calendar-range'
 import {
   CATCH_UP_FLOOR_MS,
   getReminderTime,
   getReminderKey,
   reminderDeadline,
-} from '@zntr/calendar/lib/reminder-rules'
+} from '@zntr/shared/calendar/lib/reminder-rules'
 
 export const runtime = 'nodejs'
 

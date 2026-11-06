@@ -12,7 +12,7 @@ const mock = (() => ({
   idle: new Map<number, () => void>(),
   nextIdle: 0,
 }))()
-moduleMock.module('@zntr/calendar/lib/api-client', () => ({
+moduleMock.module('@zntr/shared/calendar/lib/api-client', () => ({
   api: {
     events: { list: mock.list, delete: mock.delete },
     categories: { list: async () => ({ categories: [] }) },
@@ -21,14 +21,18 @@ moduleMock.module('@zntr/calendar/lib/api-client', () => ({
     settings: { get: async () => ({ settings: { language: 'en' } }) },
   },
 }))
+const calendarI18n = await import('@zntr/i18n/calendar')
+moduleMock.module('@zntr/i18n/calendar', () => ({
+  ...calendarI18n,
+  useLanguage: () => ['en', () => {}],
+}))
 const { DataProvider, useData } =
-  await import('@zntr/calendar/components/providers/data-provider')
+  await import('@zntr/shared/calendar/components/providers/data-provider')
 
 const { calendarLoadRange, calendarVisibleRange, calendarPreloadRange } =
-  await import('@zntr/calendar/lib/calendar-range')
+  await import('@zntr/shared/calendar/lib/calendar-range')
 
 beforeEach(() => {
-  vi.useFakeTimers({ toFake: ['Date'] })
   setSystemTime(new Date('2026-10-05T12:00:00Z'))
   mock.list.mockReset()
   mock.delete.mockReset()
@@ -47,7 +51,7 @@ afterEach(() => {
   unstubAllGlobals()
 })
 
-function renderCalendarData() {
+function renderCalendarData(platform: 'web' | 'desktop' = 'web') {
   const pending: Array<{
     range: ReturnType<typeof calendarLoadRange>
     resolve: (body: unknown) => void
@@ -74,7 +78,7 @@ function renderCalendarData() {
         revalidateOnFocus: false,
       }}
     >
-      <DataProvider>
+      <DataProvider offlineCache={platform === 'desktop'}>
         <Probe />
       </DataProvider>
     </SWRConfig>,
@@ -137,6 +141,35 @@ it('starts with a 150-per-side batch centered on today and reuses its actual cov
     Date.parse(pending[1].range.endDate) -
       Date.parse(pending[1].range.startDate),
   ).toBeLessThan(440 * 86400000)
+})
+
+it('prefetches equal adjacent desktop windows without changing the visible SWR data', async () => {
+  const { pending } = renderCalendarData('desktop')
+  const initial = pending[0].range
+  await act(async () =>
+    pending[0].resolve({
+      events: [{ id: 'visible' }],
+      batchSize: 150,
+    }),
+  )
+  expect(pending).toHaveLength(3)
+  expect(screen.getByText('visible')).toBeInTheDocument()
+  const start = Date.parse(initial.startDate)
+  const end = Date.parse(initial.endDate)
+  expect(mock.list.mock.calls[1][0]).toEqual({
+    startDate: new Date(start - (end - start)).toISOString(),
+    endDate: new Date(start).toISOString(),
+    timezone: initial.timezone,
+    anchorDate: new Date(start - (end - start) / 2).toISOString(),
+    batchSize: 150,
+  })
+  expect(mock.list.mock.calls[2][0]).toEqual({
+    startDate: new Date(end).toISOString(),
+    endDate: new Date(end + (end - start)).toISOString(),
+    timezone: initial.timezone,
+    anchorDate: new Date(end + (end - start) / 2).toISOString(),
+    batchSize: 150,
+  })
 })
 
 it('loads uncovered periods and never lets an old range response overwrite a newer one', async () => {

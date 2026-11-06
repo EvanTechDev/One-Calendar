@@ -3,7 +3,7 @@ import {
   getEventContextForMeeting,
   getMeeting,
   isJoinable,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { RoomExperience } from '@/components/room/room-experience'
 import { MeetingClosed } from '@/components/room/meeting-closed'
 import { getDb } from '@/lib/drizzle'

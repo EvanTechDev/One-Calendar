@@ -1,6 +1,6 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import type { CalendarUser } from '@zntr/calendar/host'
+import type { CalendarUser } from '@zntr/shared/calendar/host'
 
 export { invoke, listen }
 
@@ -24,6 +24,7 @@ export interface SessionView {
   pending: boolean
   signingIn: boolean
   error: string | null
+  restoredFromCache: boolean
 }
 
 export const openExternal = (destination: string) =>

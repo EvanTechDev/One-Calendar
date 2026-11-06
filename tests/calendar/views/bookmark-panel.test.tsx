@@ -5,8 +5,11 @@ import { afterEach, beforeEach, expect, it, vi } from 'bun:test'
 const { act, cleanup, fireEvent, render, renderHook, screen, waitFor } =
   await import('../host-render')
 
-import type { BookmarkData, EventData } from '@zntr/calendar/lib/api-client'
-import type { CalendarEvent } from '@zntr/calendar/lib/calendar-types'
+import type {
+  BookmarkData,
+  EventData,
+} from '@zntr/shared/calendar/lib/api-client'
+import type { CalendarEvent } from '@zntr/shared/calendar/lib/calendar-types'
 
 const state = (() => ({
   bookmarks: [] as BookmarkData[],
@@ -14,20 +17,23 @@ const state = (() => ({
   deleteBookmark: vi.fn(),
 }))()
 const originalDataProvider = {
-  ...(await import('@zntr/calendar/components/providers/data-provider')),
-}
-moduleMock.module('@zntr/calendar/components/providers/data-provider', () => ({
-  ...originalDataProvider,
-  useBookmarks: () => ({
-    bookmarks: state.bookmarks,
-    deleteBookmark: state.deleteBookmark,
-  }),
-}))
-const originalModule1 = {
-  ...(await import('@zntr/calendar/components/providers/calendar-context')),
+  ...(await import('@zntr/shared/calendar/components/providers/data-provider')),
 }
 moduleMock.module(
-  '@zntr/calendar/components/providers/calendar-context',
+  '@zntr/shared/calendar/components/providers/data-provider',
+  () => ({
+    ...originalDataProvider,
+    useBookmarks: () => ({
+      bookmarks: state.bookmarks,
+      deleteBookmark: state.deleteBookmark,
+    }),
+  }),
+)
+const originalModule1 = {
+  ...(await import('@zntr/shared/calendar/components/providers/calendar-context')),
+}
+moduleMock.module(
+  '@zntr/shared/calendar/components/providers/calendar-context',
   async () => ({
     ...originalModule1,
     useCalendar: () => ({ events: state.events }),
@@ -39,15 +45,15 @@ moduleMock.module('@zntr/i18n/calendar', async () => ({
   useLanguage: () => ['en', vi.fn()],
 }))
 const { BookmarkPanelBody } =
-  await import('@zntr/calendar/components/sidebar/bookmark-panel')
+  await import('@zntr/shared/calendar/components/sidebar/bookmark-panel')
 
 const { eventDataToCalendarEvent } =
-  await import('@zntr/calendar/components/providers/calendar-context')
+  await import('@zntr/shared/calendar/components/providers/calendar-context')
 
 const { useEventPreviewNavigation } =
-  await import('@zntr/calendar/hooks/use-event-preview-navigation')
+  await import('@zntr/shared/calendar/hooks/use-event-preview-navigation')
 
-const { toCalendarDate } = await import('@zntr/calendar/lib/zoned-date')
+const { toCalendarDate } = await import('@zntr/shared/calendar/lib/zoned-date')
 
 const event: EventData = {
   id: 'event-outside-loaded-range',

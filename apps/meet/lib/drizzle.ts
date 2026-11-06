@@ -1,7 +1,7 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { authSchema } from '@zntr/auth'
-import { meetingsSchema } from '@zntr/meetings'
+import { meetingsSchema } from '@zntr/shared/meetings'
 
 const schema = { ...authSchema, ...meetingsSchema }
 

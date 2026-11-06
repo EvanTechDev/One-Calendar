@@ -86,7 +86,7 @@ async function run() {
     'apps/calendar/components',
     'apps/calendar/lib',
     'apps/calendar-client/src',
-    'packages/calendar',
+    'packages/shared/calendar',
     'packages/auth/src',
     'packages/ui/src',
   ]

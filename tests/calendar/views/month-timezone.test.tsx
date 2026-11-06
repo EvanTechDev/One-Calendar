@@ -2,10 +2,10 @@ await import('./../../support/dom')
 const { cleanup, render } = await import('@testing-library/react')
 import { afterEach, expect, it, vi } from 'bun:test'
 const { default: MonthView } =
-  await import('@zntr/calendar/components/views/month-view')
+  await import('@zntr/shared/calendar/components/views/month-view')
 const { FirstDayOfWeek, Language, TimeFormat, ViewConfig } =
-  await import('@zntr/calendar/lib/calendar-types')
-import type { CalendarEvent } from '@zntr/calendar/lib/calendar-types'
+  await import('@zntr/shared/calendar/lib/calendar-types')
+import type { CalendarEvent } from '@zntr/shared/calendar/lib/calendar-types'
 
 afterEach(cleanup)
 it('moves a timed event to the previous date when switching to UTC-11', () => {

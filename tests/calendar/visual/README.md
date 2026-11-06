@@ -5,10 +5,10 @@ This renders the real calendar entry, providers, views, and global stylesheet at
 The host supplies deterministic API responses; Next's dynamic import boundary
 is represented by React lazy/Suspense in this browser-only fixture.
 
-Run the manual Workspace Checks workflow with `visual_baseline=true`. For an
-artifact-only run, also set `focused_only=true`. The workflow runs the Vite
-fixture and Chromium on GitHub Actions and uploads `reference-width.png` and
-server diagnostics, named with the workflow commit SHA.
+Run the Vite fixture and Chromium capture locally or on an external desktop.
+GitHub Actions now builds applications and installers but does not run visual
+captures. Save `reference-width.png` and server diagnostics with the producing
+commit SHA when recording new evidence.
 
 The screenshot is a reference artifact for the shared calendar component and
 stylesheet. Record its producing commit and review the actual image before

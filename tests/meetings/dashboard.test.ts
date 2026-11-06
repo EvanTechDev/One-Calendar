@@ -22,8 +22,8 @@ import {
   meetingChatMessage,
   meetingSession,
   searchMeetings,
-} from '@zntr/meetings'
-import { readonlyCalendarEvents } from '@zntr/meetings/readonly-calendar'
+} from '@zntr/shared/meetings'
+import { readonlyCalendarEvents } from '@zntr/shared/meetings/readonly-calendar'
 import { createFakeDb } from './fake-db'
 
 const fake = createFakeDb()

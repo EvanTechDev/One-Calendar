@@ -4,6 +4,7 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_deep_link::DeepLinkExt;
 mod auth;
 mod autostart;
+mod offline;
 mod transport;
 mod integrations;
 mod identity;
@@ -282,7 +283,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             desktop_config, desktop_startup_error, open_external,
             desktop_fullscreen, identity::desktop_identity_open, identity::desktop_identity_bounds, identity::desktop_identity_close,
-            integrations::desktop_connection,
+            integrations::desktop_connection, integrations::desktop_set_offline,
             auth::desktop_session, auth::desktop_cancel_sign_in,
             auth::desktop_sign_out, transport::desktop_request, transport::desktop_cancel_request,
             integrations::desktop_open_page, integrations::desktop_save_file,
@@ -338,7 +339,9 @@ pub fn run() {
                 app_name: name.clone(),
                 version: app.package_info().version.to_string(),
             });
-            app.manage(auth::DesktopAuth::new(origin.as_str(), expected_id, environment == "dev", app.path().app_data_dir()?)?);
+            let data_dir = app.path().app_data_dir()?;
+            app.manage(offline::OfflineStore::new(origin.as_str(), expected_id, data_dir.clone()));
+            app.manage(auth::DesktopAuth::new(origin.as_str(), expected_id, environment == "dev", data_dir)?);
             let window_config = app.config().app.windows.iter()
                 .find(|window| window.label == "main").ok_or("Main window configuration is missing")?.clone();
             let browser = app.handle().clone();

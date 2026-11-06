@@ -17,20 +17,20 @@
     "test": "bun test --isolate ../../tests/calendar-client/"
   },
   "dependencies": {
-    "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/instrument-sans": "5.3.0",
-    "@zntr/auth": "workspace:*",
-    "@zntr/calendar": "workspace:*",
-    "@zntr/ui": "workspace:*",
-    "next-themes": "latest",
-    "lucide-react": "1.48.0",
-    "sonner": "2.0.8",
-    "swr": "^2.5.1",
+    "@fontsource-variable/inter": "5.3.0",
     "@tauri-apps/api": "^2.11.0",
+    "@zntr/auth": "workspace:*",
+    "@zntr/shared": "workspace:*",
+    "@zntr/ui": "workspace:*",
     "@zntr/utils": "workspace:*",
-    "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "lucide-react": "1.48.0",
+    "next-themes": "latest",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "sonner": "2.0.8",
+    "swr": "^2.5.1"
   },
   "devDependencies": {
     "@resvg/resvg-wasm": "2.6.2",

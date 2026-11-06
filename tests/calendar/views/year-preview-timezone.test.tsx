@@ -3,34 +3,37 @@ await import('./../../support/dom')
 const { cleanup, fireEvent, render, screen } = await import('../host-render')
 import { afterEach, expect, it, vi } from 'bun:test'
 
-import type { CalendarEvent } from '@zntr/calendar/lib/calendar-types'
+import type { CalendarEvent } from '@zntr/shared/calendar/lib/calendar-types'
 
 moduleMock.module(
-  '@zntr/calendar/components/providers/calendar-context',
+  '@zntr/shared/calendar/components/providers/calendar-context',
   () => ({
     useCalendar: () => ({ calendars: [], events: [] }),
   }),
 )
-moduleMock.module('@zntr/calendar/components/providers/data-provider', () => ({
-  useBookmarks: () => ({
-    bookmarks: [],
-    createBookmark: vi.fn(),
-    deleteBookmark: vi.fn(),
+moduleMock.module(
+  '@zntr/shared/calendar/components/providers/data-provider',
+  () => ({
+    useBookmarks: () => ({
+      bookmarks: [],
+      createBookmark: vi.fn(),
+      deleteBookmark: vi.fn(),
+    }),
   }),
-}))
-moduleMock.module('@zntr/calendar/hooks/use-anchored-popover', () => ({
+)
+moduleMock.module('@zntr/shared/calendar/hooks/use-anchored-popover', () => ({
   useLiveAnchorRect: () => null,
   pickPopoverSide: () => 'bottom',
   buildAnchorStyle: () => ({}),
 }))
 const { default: YearView } =
-  await import('@zntr/calendar/components/views/year-view')
+  await import('@zntr/shared/calendar/components/views/year-view')
 
 const { default: EventPreview } =
-  await import('@zntr/calendar/components/event/event-preview')
+  await import('@zntr/shared/calendar/components/event/event-preview')
 
 const { FirstDayOfWeek, Language, TimeFormat, ViewConfig } =
-  await import('@zntr/calendar/lib/calendar-types')
+  await import('@zntr/shared/calendar/lib/calendar-types')
 
 afterEach(cleanup)
 const date = new Date(2026, 9, 6)

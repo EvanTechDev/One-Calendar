@@ -23,7 +23,7 @@
     "test:watch": "bun test --isolate --watch ../../tests/agent/"
   },
   "dependencies": {
-    "ai": "7.0.127",
+    "ai": "7.0.164",
     "zod": "4.6.6"
   },
   "devDependencies": {

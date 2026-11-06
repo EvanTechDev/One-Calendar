@@ -15,8 +15,8 @@ moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => ({ id: 'owner', email: 'owner@example.com' }),
   decryptEvent: (event: unknown) => event,
 }))
-const originalMeetings = { ...(await import('@zntr/meetings')) }
-moduleMock.module('@zntr/meetings', () => ({
+const originalMeetings = { ...(await import('@zntr/shared/meetings')) }
+moduleMock.module('@zntr/shared/meetings', () => ({
   ...originalMeetings,
   getMeetingsForEvents: async (_db: unknown, eventIds: string[]) =>
     new Map(

@@ -13,11 +13,11 @@
       "@zntr/i18n": ["../../packages/i18n/src/index.ts"],
       "@zntr/i18n/*": ["../../packages/i18n/src/*"],
       "@zntr/auth": ["../../packages/auth/src/index.ts"],
-      "@zntr/calendar": ["../../packages/calendar/index.tsx"],
-      "@zntr/calendar/*": ["../../packages/calendar/*"],
-      "@zntr/meetings": ["../../packages/meetings/src/index.ts"],
-      "@zntr/meetings/*": ["../../packages/meetings/src/*"],
-      "@zntr/auth/*": ["../../packages/auth/src/*"]
+      "@zntr/auth/*": ["../../packages/auth/src/*"],
+      "@zntr/shared/calendar": ["../../packages/shared/calendar/index.tsx"],
+      "@zntr/shared/calendar/*": ["../../packages/shared/calendar/*"],
+      "@zntr/shared/meetings": ["../../packages/shared/meetings/index.ts"],
+      "@zntr/shared/meetings/*": ["../../packages/shared/meetings/*"]
     },
     "plugins": [
       {

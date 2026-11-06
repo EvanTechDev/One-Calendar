@@ -1,5 +1,5 @@
 /**
- * The webhook session logic — the riskiest code in @zntr/meetings and, until
+ * The webhook session logic — the riskiest code in @zntr/shared/meetings and, until
  * now, entirely untested (the calendar's route test mocks the package
  * wholesale).
  *
@@ -35,7 +35,7 @@ import {
   openSession,
   recordJoin,
   recordLeave,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { createFakeDb } from './fake-db'
 
 const fake = createFakeDb()

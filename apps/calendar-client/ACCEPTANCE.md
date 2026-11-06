@@ -68,29 +68,28 @@ Windows trial installer: `Zentra Calendar Dev_0.1.0_x64-setup.exe`, revision
 Its SHA-256 is `8160096abd8528be7206196b98c602f187db787f5f5bed86cb3b67ac201e566f`.
 It passed installed Windows startup checks and targets the development backend.
 
-## Automated gate
+## Build and local verification
 
-The current requested layout is `packages/calendar` with the host port in
-`packages/calendar/host`. The window is now 1320×880 logical outer
+The current requested layout is `packages/shared/calendar` with the host port in
+`packages/shared/calendar/host`. The window is now 1320×880 logical outer
 pixels, with fullscreen available and edge resizing disabled. Sign-in, sign-up,
 password recovery and account settings are embedded in the client; `/account`
 has been removed. The earlier evidence above describes earlier revisions, not
 acceptance of these changes.
 
-Run Workspace Checks with the implementation branch, `desktop_environment=dev`
-and `production_ui=true`. It runs workspace type checks, lint and tests,
-including the desktop authentication contract against an isolated PostgreSQL
-service, native Rust tests, four installed-application startup checks, and the
-production-CSS calendar and desktop-surface screenshots. Repeat the native matrix for
-production environment isolation after the dev run passes.
+The Build workflow installs with the frozen lockfile, builds every workspace,
+and produces unsigned dev installers for Windows x64, Linux x64 and both macOS
+architectures. It does not run tests, native acceptance or visual captures.
+Run `bun run type-check`, `bun run lint:check`, `bun run test`, native Rust tests
+and the installed-application checks locally or on external desktops. Repeat the
+native matrix for production environment isolation after the dev run passes.
 
 The production UI check takes stylesheets and font classes from the built Next
 root layout, then applies them to a deterministic calendar with Vite's calendar
-CSS explicitly disabled. It asserts the populated month has seven columns and
-captures the 1280px/1200px Web layouts and 1320×880 sign-in, sign-up, recovery,
-settings, offline and error states. The
-separate `visual_baseline` input is a Vite-only reference and cannot establish
-production Web appearance on its own.
+CSS explicitly disabled. Run it separately from CI and inspect its 1280px/1200px
+Web layouts and 1320×880 sign-in, sign-up, recovery, settings, offline and error
+states. A Vite-only reference cannot establish production Web appearance on its
+own.
 
 Inspect the screenshots against `tests/calendar/visual/reference-width.png`.
 Exercise day/week/month/year views, event creation/editing and recurrence scopes,
@@ -125,23 +124,37 @@ For Windows x64, Linux x64 and both macOS architectures:
    check a recurrence override, reconnect catch-up, wake-from-sleep catch-up,
    restart deduplication and account switching. Denied OS notifications must not
    repeatedly replay the same reminder.
-6. Disconnect while editing, with a modal/popover open, and while AI is streaming.
-   The shared No Internet screen must remain usable; retry/reconnection must
-   retain the same calendar, session, selected view and unsaved draft instead of
-   returning to sign-in or remounting the app. Verify this on Web and desktop.
-   No offline write queue or stale success indication should appear.
+6. On Web, disconnect while editing, with a modal/popover open, and while AI is
+   streaming. The shared No Internet screen must remain usable;
+   retry/reconnection must retain the same calendar, session, selected view and
+   unsaved draft instead of returning to sign-in or remounting the app.
+7. On desktop, first load events, categories, countdowns, bookmarks and settings
+   online, including the windows immediately before and after the visible event
+   window. Quit, disable the network and restart: an unexpired saved session must
+   restore those exact cached windows in read-only mode. Uncached ranges must say
+   they are unavailable rather than substitute another range. Attempt every kind
+   of edit and confirm there is no optimistic mutation, success toast or queued
+   write; an already-open editor must retain its draft with saving disabled.
+   Dismiss the prompt once and verify later retries in the same outage show only
+   the non-blocking status. Reconnect and verify immediate session refresh and
+   full revalidation, then continue editing the preserved draft.
+8. Repeat at least ten device offline/online cycles and ten API failure/recovery
+   cycles, including failures after the browser `online` event. Device outage and
+   service outage must retain their distinct labels, and an API failure must
+   never be reported as device disconnection. Also verify cold launch with an
+   expired identity, a cache miss with no claim that cached data is visible,
+   explicit sign-out, account replacement and online 401 cleanup. Inspect the
+   application data directory after cleanup: neither the old identity nor its
+   encrypted snapshots may remain or reappear from an in-flight request.
 
 ## Signed two-version update
 
-The Installed Desktop Update Check (also available through Workspace Checks'
-`updater_environment` input) builds 0.0.1 and 0.0.2 with a disposable runner-local
-key. It installs A, serves a corrupt B first, checks signature rejection, retries
-the valid B, and verifies restart, unchanged installation path, preserved app
-data and no remaining update. Its Rust `acceptance` feature and loopback HTTP
-endpoint override are excluded from release builds. The workflow uploads only
-runtime reports; it publishes neither keys nor installers. Run it for each
-environment. This automated rehearsal does not establish persistence of a real
-signed-in session through an update.
+Use two increasing versions with disposable updater keys in an isolated test
+environment. Install A, serve a corrupt B first, check signature rejection,
+retry the valid B, and verify restart, unchanged installation path, preserved
+app data and no remaining update. Keep the Rust `acceptance` feature and
+loopback HTTP endpoint override excluded from release builds. This rehearsal
+does not establish persistence of a real signed-in session through an update.
 
 Provision separate updater keys in the `desktop-dev` and `desktop-production`
 GitHub environments as documented in README. Never place private keys in logs or

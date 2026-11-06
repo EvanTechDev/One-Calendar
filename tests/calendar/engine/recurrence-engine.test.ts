@@ -17,8 +17,11 @@ const {
   rruleToParts,
   toRfcStamp,
   withUntil,
-} = await import('@zntr/calendar/lib/recurrence/engine')
-import type { RecurrenceEvent, RruleParts } from '@zntr/calendar/lib/recurrence'
+} = await import('@zntr/shared/calendar/lib/recurrence/engine')
+import type {
+  RecurrenceEvent,
+  RruleParts,
+} from '@zntr/shared/calendar/lib/recurrence'
 
 function day(y: number, m: number, d: number, h = 0, min = 0, s = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, s))

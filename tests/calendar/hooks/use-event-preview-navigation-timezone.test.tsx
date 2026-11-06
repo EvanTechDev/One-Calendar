@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'bun:test'
 const { cleanup, render, waitFor } = await import('@testing-library/react')
 const { useRef, useState } = await import('react')
 const { useEventPreviewNavigation } =
-  await import('@zntr/calendar/hooks/use-event-preview-navigation')
+  await import('@zntr/shared/calendar/hooks/use-event-preview-navigation')
 
 afterEach(cleanup)
 

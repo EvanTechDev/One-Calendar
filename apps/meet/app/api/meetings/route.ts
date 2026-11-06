@@ -6,7 +6,7 @@ import {
   generateMeetingId,
   getMeeting,
   hashCreatorToken,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 import { getServerSession } from '@/lib/auth/server'
 import { checkFixedWindowLimit, clientAddress } from '@/lib/rate-limit'

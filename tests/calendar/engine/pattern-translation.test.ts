@@ -19,7 +19,7 @@ const {
   translateRuleByDays,
   translateStampsByDays,
   wallClockDayDelta,
-} = await import('@zntr/calendar/lib/recurrence/engine')
+} = await import('@zntr/shared/calendar/lib/recurrence/engine')
 
 function day(y: number, m: number, d: number, h = 0, min = 0): Date {
   return new Date(Date.UTC(y, m - 1, d, h, min, 0))

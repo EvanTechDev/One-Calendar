@@ -91,7 +91,7 @@ moduleMock.module('@/lib/field-crypto', () => ({
 moduleMock.module('@/lib/api-helpers', () => ({
   getAuthedUser: async () => null,
 }))
-moduleMock.module('@zntr/meetings', () => ({
+moduleMock.module('@zntr/shared/meetings', () => ({
   getMeetingForEvent: async () => null,
 }))
 

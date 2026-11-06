@@ -13,9 +13,9 @@ import {
   snapToPatternDay,
   toRfcStamp,
   wallClockToInstant,
-} from '@zntr/calendar/lib/recurrence/engine'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
 
-export { mergeOverride } from '@zntr/calendar/lib/recurrence/engine'
+export { mergeOverride } from '@zntr/shared/calendar/lib/recurrence/engine'
 
 export type ApplyTo = 'all' | 'single' | 'following'
 

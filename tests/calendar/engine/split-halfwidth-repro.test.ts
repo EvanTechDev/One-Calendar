@@ -1,8 +1,8 @@
 await import('./../../support/dom')
 import { describe, expect, it } from 'bun:test'
 const { expandSeriesView, withUntil } =
-  await import('@zntr/calendar/lib/recurrence/engine')
-import type { SeriesViewInput } from '@zntr/calendar/lib/recurrence/engine'
+  await import('@zntr/shared/calendar/lib/recurrence/engine')
+import type { SeriesViewInput } from '@zntr/shared/calendar/lib/recurrence/engine'
 const { planInstanceChange } = await import('@/lib/events/service')
 
 /**

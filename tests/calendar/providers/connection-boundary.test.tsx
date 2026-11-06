@@ -2,12 +2,22 @@ await import('./../../support/dom')
 const { useEffect, useState } = await import('react')
 const { act, fireEvent, render, screen, waitFor } =
   await import('@testing-library/react')
-import { describe, expect, it, vi } from 'bun:test'
+import { afterEach, describe, expect, it, mock, vi } from 'bun:test'
+const calendarI18n = await import('@zntr/i18n/calendar')
+mock.module('@zntr/i18n/calendar', () => ({
+  ...calendarI18n,
+  useLanguage: () => ['en', () => {}],
+}))
 const { CalendarHostProvider, useCalendarHost } =
-  await import('@zntr/calendar/host')
-import type { CalendarHost } from '@zntr/calendar/host'
-const { ConnectionBoundary } =
-  await import('@zntr/calendar/components/connection-boundary')
+  await import('@zntr/shared/calendar/host')
+import type { CalendarHost } from '@zntr/shared/calendar/host'
+const { ConnectionBoundary, useCalendarConnection } =
+  await import('@zntr/shared/calendar/components/connection-boundary')
+const { DataProvider, useData } =
+  await import('@zntr/shared/calendar/components/providers/data-provider')
+const { SWRConfig } = await import('swr')
+const { createCalendarApi } =
+  await import('@zntr/shared/calendar/lib/api-client')
 const { Dialog, DialogContent, DialogTitle } = await import('@zntr/ui/dialog')
 const { Popover, PopoverContent, PopoverTrigger } =
   await import('@zntr/ui/popover')
@@ -76,6 +86,90 @@ function fixture(
       </ConnectionBoundary>
     </CalendarHostProvider>,
   )
+}
+
+function setNavigatorOnline(online: boolean) {
+  Object.defineProperty(window.navigator, 'onLine', {
+    configurable: true,
+    get: () => online,
+  })
+}
+
+afterEach(() => setNavigatorOnline(true))
+
+function desktopFixture(
+  request: typeof fetch,
+  mounted: () => void,
+  options: {
+    source?: 'live' | 'cache'
+    online?: boolean
+    checkConnection?: () => Promise<boolean>
+    onReconnect?: () => void | Promise<void>
+    setOffline?: (offline: boolean) => void | Promise<void>
+  } = {},
+) {
+  setNavigatorOnline(options.online ?? true)
+  const checkConnection = options.checkConnection ?? vi.fn(async () => true)
+  const onReconnect = options.onReconnect ?? vi.fn(async () => {})
+  const setOffline = options.setOffline ?? vi.fn(async () => {})
+  const host: CalendarHost = {
+    platform: 'desktop',
+    request,
+    setOffline,
+    session: {
+      data: { user: { id: 'user', name: 'Alex', email: 'alex@example.com' } },
+      isPending: false,
+      source: options.source ?? 'live',
+    },
+    navigation: { push: vi.fn(), replace: vi.fn(), openExternal: vi.fn() },
+  }
+  function Editor() {
+    const { request: send } = useCalendarHost()
+    const connection = useCalendarConnection()
+    const [title, setTitle] = useState('Unfinished draft')
+    const [writeError, setWriteError] = useState('')
+    useEffect(mounted, [])
+    return (
+      <>
+        <input
+          aria-label="Event title"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+        <button onClick={() => void send('/api/events').catch(() => {})}>
+          Load
+        </button>
+        <button
+          onClick={() => {
+            void send('/api/events', { method: 'POST' }).catch((error) =>
+              setWriteError(String(error)),
+            )
+          }}
+        >
+          Write
+        </button>
+        <output data-testid="connection-status">{connection.status}</output>
+        <output data-testid="connection-cache">
+          {String(connection.cacheAvailable)}
+        </output>
+        <output data-testid="connection-readonly">
+          {String(connection.readOnly)}
+        </output>
+        <p>{writeError}</p>
+      </>
+    )
+  }
+  const view = render(
+    <CalendarHostProvider value={host}>
+      <ConnectionBoundary
+        checkConnection={checkConnection}
+        onReconnect={onReconnect}
+      >
+        <Editor />
+      </ConnectionBoundary>
+    </CalendarHostProvider>,
+  )
+  return { view, checkConnection, onReconnect, setOffline }
 }
 
 describe('shared connection recovery', () => {
@@ -283,6 +377,354 @@ describe('shared connection recovery', () => {
       ).toBeNull(),
     )
     expect(screen.getByLabelText('Event title')).toHaveValue('Unfinished draft')
+    view.unmount()
+  })
+})
+
+describe('desktop cached connection states', () => {
+  it('keeps service failures distinct from device connectivity and probes live identity only after a fault', async () => {
+    const checkConnection = vi.fn(async () => false)
+    const setOffline = vi.fn(async () => {})
+    const { view } = desktopFixture(
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch')
+      }),
+      vi.fn(),
+      { checkConnection, setOffline },
+    )
+    expect(checkConnection).not.toHaveBeenCalled()
+    expect(screen.getByTestId('connection-status')).toHaveTextContent('online')
+
+    // Changing the property without an event must not reclassify an API error.
+    setNavigatorOnline(false)
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    expect(
+      await screen.findByRole('heading', { name: '服务暂时不可用' }),
+    ).toBeVisible()
+    expect(screen.queryByText('离线模式｜设备未连接网络')).toBeNull()
+    expect(screen.getByTestId('connection-cache')).toHaveTextContent('false')
+    expect(
+      screen.queryByRole('button', { name: '进入离线模式／查看只读数据' }),
+    ).toBeNull()
+    expect(checkConnection).toHaveBeenCalledTimes(1)
+
+    act(() => window.dispatchEvent(new Event('offline')))
+    expect(
+      screen.getByRole('heading', { name: '离线模式｜设备未连接网络' }),
+    ).toBeVisible()
+    expect(setOffline).toHaveBeenLastCalledWith(true)
+    view.unmount()
+  })
+
+  it('starts a restored cached identity in service mode without an initial probe', async () => {
+    const checkConnection = vi.fn(async () => true)
+    const { view } = desktopFixture(vi.fn(), vi.fn(), {
+      source: 'cache',
+      checkConnection,
+    })
+    expect(
+      screen.getByRole('heading', { name: '服务暂时不可用' }),
+    ).toBeVisible()
+    expect(screen.getByTestId('connection-cache')).toHaveTextContent('false')
+    expect(screen.getByTestId('connection-readonly')).toHaveTextContent('true')
+    expect(
+      screen.queryByRole('button', { name: '进入离线模式／查看只读数据' }),
+    ).toBeNull()
+    expect(checkConnection).not.toHaveBeenCalled()
+    view.unmount()
+  })
+
+  it('shows one prompt per fault, keeps the cached banner read-only, and resets after service recovery', async () => {
+    let connected = false
+    const checkConnection = vi.fn(async () => connected)
+    const onReconnect = vi.fn(async () => {})
+    const mounted = vi.fn()
+    const request = vi.fn(
+      async () =>
+        new Response('{}', {
+          status: 200,
+          headers: { 'x-zntr-cache': 'fallback' },
+        }),
+    )
+    const { view } = desktopFixture(request, mounted, {
+      checkConnection,
+      onReconnect,
+    })
+    const input = screen.getByLabelText('Event title')
+    fireEvent.change(input, { target: { value: 'Keep cached draft' } })
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    const prompt = await screen.findByRole('heading', {
+      name: '服务暂时不可用｜正在显示已缓存数据',
+    })
+    expect(prompt).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: '进入离线模式／查看只读数据' }),
+    )
+    expect(
+      screen.queryByRole('heading', { name: prompt.textContent }),
+    ).toBeNull()
+    expect(
+      screen.getByText('服务暂时不可用｜正在显示已缓存数据', {
+        selector: 'div[role="status"] > span',
+      }),
+    ).toBeVisible()
+    expect(screen.getByTestId('connection-readonly')).toHaveTextContent('true')
+
+    const callsBeforeWrite = request.mock.calls.length
+    await act(async () => fireEvent.click(screen.getByText('Write')))
+    expect(await screen.findByText(/Calendar is read-only/)).toBeVisible()
+    expect(request).toHaveBeenCalledTimes(callsBeforeWrite)
+
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '重试' })),
+    )
+    expect(checkConnection).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('heading', { name: prompt.textContent }),
+    ).toBeNull()
+    expect(
+      screen.getByText('服务暂时不可用｜正在显示已缓存数据', {
+        selector: 'div[role="status"] > span',
+      }),
+    ).toBeVisible()
+
+    const reconnected = vi.fn()
+    window.addEventListener('zentra-reconnected', reconnected)
+    connected = true
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '重试' })),
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('connection-status')).toHaveTextContent(
+        'online',
+      ),
+    )
+    expect(onReconnect).toHaveBeenCalledTimes(1)
+    expect(reconnected).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByText('服务暂时不可用｜正在显示已缓存数据', {
+        selector: 'div[role="status"] > span',
+      }),
+    ).toBeNull()
+
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    expect(
+      await screen.findByRole('heading', { name: prompt.textContent }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Event title')).toBe(input)
+    expect(input).toHaveValue('Keep cached draft')
+    expect(mounted).toHaveBeenCalledTimes(1)
+    window.removeEventListener('zentra-reconnected', reconnected)
+    view.unmount()
+  })
+
+  it('recovers online immediately and preserves drafts over repeated device toggles', async () => {
+    const setOffline = vi.fn(async () => {})
+    const onReconnect = vi.fn(async () => {})
+    const mounted = vi.fn()
+    const { view } = desktopFixture(
+      vi.fn(
+        async () =>
+          new Response('{}', {
+            status: 200,
+            headers: { 'x-zntr-cache': 'offline' },
+          }),
+      ),
+      mounted,
+      { setOffline, onReconnect },
+    )
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    setNavigatorOnline(false)
+    act(() => window.dispatchEvent(new Event('offline')))
+    fireEvent.click(
+      screen.getByRole('button', { name: '进入离线模式／查看只读数据' }),
+    )
+    const input = screen.getByLabelText('Event title')
+    fireEvent.change(input, { target: { value: 'Draft survives toggles' } })
+    const reconnected = vi.fn()
+    window.addEventListener('zentra-reconnected', reconnected)
+
+    setNavigatorOnline(true)
+    act(() => window.dispatchEvent(new Event('online')))
+    expect(screen.getByTestId('connection-status')).toHaveTextContent('online')
+    expect(setOffline).toHaveBeenLastCalledWith(false)
+    await waitFor(() => expect(onReconnect).toHaveBeenCalledTimes(1))
+    expect(reconnected).toHaveBeenCalledTimes(1)
+
+    setNavigatorOnline(false)
+    act(() => window.dispatchEvent(new Event('offline')))
+    expect(
+      screen.getByRole('heading', { name: '离线模式｜设备未连接网络' }),
+    ).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: '进入离线模式／查看只读数据' }),
+    )
+    setNavigatorOnline(true)
+    act(() => window.dispatchEvent(new Event('online')))
+    await waitFor(() => expect(onReconnect).toHaveBeenCalledTimes(2))
+    expect(screen.getByTestId('connection-status')).toHaveTextContent('online')
+    expect(screen.getByLabelText('Event title')).toBe(input)
+    expect(input).toHaveValue('Draft survives toggles')
+    expect(mounted).toHaveBeenCalledTimes(1)
+    expect(setOffline.mock.calls.map(([offline]) => offline)).toEqual([
+      true,
+      false,
+      true,
+      false,
+    ])
+    window.removeEventListener('zentra-reconnected', reconnected)
+    view.unmount()
+  })
+
+  it('treats an uncached server error response as a service fault', async () => {
+    const request = vi.fn(async () => new Response('{}', { status: 503 }))
+    const { view } = desktopFixture(request, vi.fn())
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    expect(screen.getByTestId('connection-status')).toHaveTextContent(
+      'service-unavailable',
+    )
+    expect(
+      await screen.findByRole('heading', { name: '服务暂时不可用' }),
+    ).toBeVisible()
+    expect(screen.getByTestId('connection-cache')).toHaveTextContent('false')
+    expect(screen.queryByText('离线模式｜设备未连接网络')).toBeNull()
+    view.unmount()
+  })
+
+  it('uses cached response markers without inventing device offline state', async () => {
+    const request = vi.fn(
+      async () =>
+        new Response('{}', {
+          status: 200,
+          headers: { 'x-zntr-cache': 'offline' },
+        }),
+    )
+    const { view } = desktopFixture(request, vi.fn())
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    expect(screen.getByTestId('connection-cache')).toHaveTextContent('true')
+    expect(screen.getByTestId('connection-status')).toHaveTextContent('online')
+
+    setNavigatorOnline(false)
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    expect(
+      await screen.findByRole('heading', { name: '离线模式｜设备未连接网络' }),
+    ).toBeVisible()
+    view.unmount()
+  })
+
+  it('blocks DataProvider writes before optimistic state or transport while read-only', async () => {
+    const request = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = new URL(String(input), 'https://calendar.example').pathname
+        const body = path.includes('categories')
+          ? { categories: [] }
+          : path.includes('countdowns')
+            ? { countdowns: [] }
+            : path.includes('bookmarks')
+              ? { bookmarks: [] }
+              : path.includes('settings')
+                ? { settings: { language: 'en' } }
+                : { events: [] }
+        if (init?.method && init.method !== 'GET') {
+          throw new Error('A write escaped the read-only boundary')
+        }
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'x-zntr-cache': 'fallback' },
+        })
+      },
+    )
+    const host: CalendarHost = {
+      platform: 'desktop',
+      request,
+      session: {
+        data: { user: { id: 'user', name: 'Alex', email: 'alex@example.com' } },
+        isPending: false,
+      },
+      navigation: { push: vi.fn(), replace: vi.fn(), openExternal: vi.fn() },
+    }
+    function CategoryWriter() {
+      const { createCategory } = useData()
+      const [error, setError] = useState('')
+      return (
+        <button
+          onClick={() =>
+            void createCategory({ name: 'Work', color: 'blue' }).catch(
+              (reason: Error) => setError(reason.message),
+            )
+          }
+        >
+          {error || 'Add category'}
+        </button>
+      )
+    }
+    function CachedDataProvider() {
+      const { request: send } = useCalendarHost()
+      return (
+        <DataProvider api={createCalendarApi(send)}>
+          <CategoryWriter />
+        </DataProvider>
+      )
+    }
+    const view = render(
+      <SWRConfig value={{ provider: () => new Map(), errorRetryCount: 0 }}>
+        <CalendarHostProvider value={host}>
+          <ConnectionBoundary checkConnection={async () => false}>
+            <CachedDataProvider />
+          </ConnectionBoundary>
+        </CalendarHostProvider>
+      </SWRConfig>,
+    )
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: '进入离线模式／查看只读数据',
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }))
+    expect(
+      await screen.findByText(
+        'Offline mode is read-only. Reconnect before saving changes.',
+      ),
+    ).toBeVisible()
+    expect(
+      request.mock.calls.every(
+        ([, init]) => !init?.method || init.method === 'GET',
+      ),
+    ).toBe(true)
+    view.unmount()
+  })
+
+  it('may enter service mode when an online-event session refresh fails', async () => {
+    const { view } = desktopFixture(
+      vi.fn(
+        async () =>
+          new Response('{}', {
+            status: 200,
+            headers: { 'x-zntr-cache': 'offline' },
+          }),
+      ),
+      vi.fn(),
+      {
+        onReconnect: async () => {
+          throw new Error('Session refresh failed')
+        },
+      },
+    )
+    await act(async () => fireEvent.click(screen.getByText('Load')))
+    setNavigatorOnline(false)
+    act(() => window.dispatchEvent(new Event('offline')))
+    fireEvent.click(
+      screen.getByRole('button', { name: '进入离线模式／查看只读数据' }),
+    )
+    setNavigatorOnline(true)
+    act(() => window.dispatchEvent(new Event('online')))
+    expect(screen.getByTestId('connection-status')).toHaveTextContent('online')
+    expect(
+      await screen.findByRole('heading', {
+        name: '服务暂时不可用｜正在显示已缓存数据',
+      }),
+    ).toBeVisible()
+    expect(screen.queryByText('离线模式｜设备未连接网络')).toBeNull()
     view.unmount()
   })
 })

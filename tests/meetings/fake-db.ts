@@ -1,5 +1,5 @@
 /**
- * In-memory fake of the drizzle surface `packages/meetings` actually uses.
+ * In-memory fake of the drizzle surface `packages/shared/meetings` actually uses.
  *
  * A characterization harness, NOT a database emulator: it supports exactly the
  * chainable calls these operations make and evaluates real drizzle condition
@@ -10,7 +10,7 @@
  * asserts against `meetingSession` etc. rather than string names.
  */
 import { getTableName } from 'drizzle-orm'
-import type { Db } from '@zntr/meetings'
+import type { Db } from '@zntr/shared/meetings'
 
 type Row = Record<string, unknown>
 

@@ -50,7 +50,7 @@ moduleMock.module('@/lib/invites/invite-service', () => ({
     state.addCalls.push({ token, categoryId }),
 }))
 
-moduleMock.module('@zntr/meetings', () => ({
+moduleMock.module('@zntr/shared/meetings', () => ({
   getMeetingForEvent: async () => null,
 }))
 moduleMock.module('@/lib/field-crypto', () => ({

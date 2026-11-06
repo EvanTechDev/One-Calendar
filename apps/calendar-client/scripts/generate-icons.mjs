@@ -12,7 +12,7 @@ const wasm = join(
 await initWasm(readFileSync(wasm))
 const svg = readFileSync(
   new URL(
-    '../../../packages/calendar/assets/product-logo.svg',
+    '../../../packages/shared/calendar/assets/product-logo.svg',
     import.meta.url,
   ),
 )

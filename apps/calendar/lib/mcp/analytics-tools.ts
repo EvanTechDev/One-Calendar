@@ -1,6 +1,6 @@
 /**
  * MCP analytics tools — expose the shared analytics engine
- * (`@zntr/calendar/lib/analytics/engine`) to AI agents.
+ * (`@zntr/shared/calendar/lib/analytics/engine`) to AI agents.
  *
  * These tools never decrypt title/description/location: every metric derives
  * from structural columns only (dates, category id, all-day flag, createdAt).
@@ -26,7 +26,7 @@ import {
   UNCATEGORIZED_ID,
   type AnalyticsEngineEvent,
   type AnalyticsRange,
-} from '@zntr/calendar/lib/analytics/engine'
+} from '@zntr/shared/calendar/lib/analytics/engine'
 import { InvalidEventQueryError } from './errors'
 import { decryptFieldStrict } from '@/lib/field-crypto'
 import { getSettings } from './settings-tools'

@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@zntr/ui/dialog'
-import WeekView from '@zntr/calendar/components/views/week-view'
+import WeekView from '@zntr/shared/calendar/components/views/week-view'
 import {
   CalendarViewType,
   FirstDayOfWeek,
@@ -27,7 +27,7 @@ import {
   TimeFormat,
   ViewConfig,
   type CalendarEvent,
-} from '@zntr/calendar/lib/calendar-types'
+} from '@zntr/shared/calendar/lib/calendar-types'
 import {
   DEMO_CATEGORIES,
   landingDemoDate,
@@ -35,7 +35,7 @@ import {
 } from '@/lib/landing-demo'
 
 const MonthView = dynamic(
-  () => import('@zntr/calendar/components/views/month-view'),
+  () => import('@zntr/shared/calendar/components/views/month-view'),
   { loading: () => <p className="landing-demo-loading">Loading month…</p> },
 )
 

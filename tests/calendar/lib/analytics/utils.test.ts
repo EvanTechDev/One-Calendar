@@ -15,9 +15,9 @@ const {
   formatHourRange,
   calculateDaySpanInHours,
   addDurationByDayCategory,
-} = await import('@zntr/calendar/lib/analytics/utils')
-import type { CalendarEvent } from '@zntr/calendar/components/calendar'
-import type { AnalyticsEvent } from '@zntr/calendar/lib/analytics/types'
+} = await import('@zntr/shared/calendar/lib/analytics/utils')
+import type { CalendarEvent } from '@zntr/shared/calendar/components/calendar'
+import type { AnalyticsEvent } from '@zntr/shared/calendar/lib/analytics/types'
 
 function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   return {

@@ -1,4 +1,4 @@
-import { getMeetingForEvent } from '@zntr/meetings'
+import { getMeetingForEvent } from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle/client'
 import { meetingUrl } from '@/lib/meetings'
 

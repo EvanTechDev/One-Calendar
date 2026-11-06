@@ -8,7 +8,7 @@ import {
   user,
 } from '@/lib/drizzle/schema'
 import { decryptField } from '@/lib/field-crypto'
-import { getMeetingForEvent } from '@zntr/meetings'
+import { getMeetingForEvent } from '@zntr/shared/meetings'
 import { meetingUrl } from '@/lib/meetings'
 import {
   getInviteByToken,
@@ -29,7 +29,7 @@ import {
   MAX_EXPANSION,
   describeRecurrence,
   expandSeriesView,
-} from '@zntr/calendar/lib/recurrence/engine'
+} from '@zntr/shared/calendar/lib/recurrence/engine'
 import { resolveRsvpTarget } from '@/lib/invites/rsvp-target'
 import { firstZodMessage, invitePatchSchema } from '@/lib/validation'
 import {

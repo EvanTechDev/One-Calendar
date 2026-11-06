@@ -11,8 +11,8 @@ Contributions are welcome. See [AGENTS.md](./AGENTS.md) for workspace commands a
 ## Repository layout
 
 - `apps/`: Calendar web app, Meet, desktop client, and marketing website.
-- `packages/calendar/`: shared Calendar UI, state, recurrence, styles, and web/desktop host interface.
-- `packages/`: reusable UI primitives, auth, meetings, agent, utilities, and translations.
+- `packages/shared/`: Calendar UI/state/recurrence and meeting schema/operations, grouped under `calendar/` and `meetings/`.
+- `packages/`: reusable UI primitives, auth, agent, utilities, and translations.
 - `docs/`: the user documentation website.
 - `tests/`: workspace tests, mirroring source ownership.
 - `config/` and `scripts/`: shared tooling and workspace orchestration.

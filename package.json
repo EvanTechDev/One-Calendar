@@ -97,13 +97,13 @@
       "apps/calendar/public/sw.js"
     ],
     "ignoreIssues": {
-      "packages/calendar/**": [
-        "exports"
-      ],
       "packages/ui/src/**": [
         "exports"
       ],
       "apps/calendar/lib/evlog.ts": [
+        "exports"
+      ],
+      "packages/shared/calendar/**": [
         "exports"
       ]
     }

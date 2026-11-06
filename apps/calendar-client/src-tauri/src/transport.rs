@@ -1,9 +1,19 @@
-use std::{collections::HashMap, sync::Mutex, time::{Duration, Instant}};
+use std::{
+    collections::HashMap,
+    sync::Mutex,
+    time::{Duration, Instant},
+};
 use base64::{engine::general_purpose::STANDARD, Engine};
-use futures_util::{future::{AbortHandle, Abortable}, StreamExt};
+use futures_util::{
+    future::{AbortHandle, Abortable},
+    StreamExt,
+};
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, AppHandle, Manager, State};
-use crate::auth::{self, DesktopAuth};
+use crate::{
+    auth::{self, DesktopAuth},
+    offline::{CachedResponse, OfflineStore},
+};
 
 #[derive(Default)]
 pub struct Requests(Mutex<RequestRegistry>);
@@ -54,6 +64,50 @@ fn target(auth: &DesktopAuth, path: &str) -> Result<reqwest::Url, String> {
     Ok(url)
 }
 
+fn cache_key(url: &reqwest::Url) -> Option<String> {
+    if !matches!(
+        url.path(),
+        "/api/events" | "/api/categories" | "/api/countdowns" | "/api/bookmarks" | "/api/settings"
+    ) {
+        return None;
+    }
+    Some(match url.query() {
+        Some(query) => format!("{}?{query}", url.path()),
+        None => url.path().to_string(),
+    })
+}
+
+fn response_headers(response: &reqwest::Response) -> HashMap<String, String> {
+    response.headers().iter().filter_map(|(name, value)| {
+        if matches!(name.as_str(), "content-type" | "content-disposition" | "retry-after" | "etag" | "last-modified" | "x-vercel-ai-ui-message-stream" | "x-accel-buffering") {
+            value.to_str().ok().map(|value| (name.to_string(), value.to_string()))
+        } else { None }
+    }).collect()
+}
+
+fn send_cached(events: &Channel<ApiEvent>, cached: CachedResponse, source: &str) -> Result<(), String> {
+    let mut headers = cached.headers;
+    headers.insert("x-zntr-cache".into(), source.into());
+    events.send(ApiEvent::Headers { status: cached.status, headers })
+        .map_err(|_| "Response receiver closed")?;
+    events.send(ApiEvent::Chunk { data: STANDARD.encode(cached.body) })
+        .map_err(|_| "Response receiver closed")?;
+    events.send(ApiEvent::End).map_err(|_| "Response receiver closed")?;
+    Ok(())
+}
+
+async fn read_cached(
+    app: AppHandle,
+    user_id: String,
+    key: String,
+) -> Result<Option<CachedResponse>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<OfflineStore>().read(&user_id, &key)
+    })
+    .await
+    .map_err(|_| "Offline data could not be read".to_string())?
+}
+
 #[tauri::command]
 pub fn desktop_cancel_request(id: String, requests: State<'_, Requests>) {
     if id.is_empty() || id.len() > 100 { return; }
@@ -79,10 +133,13 @@ pub async fn desktop_request(app: AppHandle, request: ApiRequest, events: Channe
     let auth = app.state::<DesktopAuth>();
     let url = target(&auth, &request.path)?;
     let (http, generation) = auth.authorized_client()?;
+    let (user_id, cached_identity) = auth.cache_context(generation)
+        .ok_or("The account changed during this request")?;
     if !matches!(request.method.as_str(), "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE") {
         return Err("Unsupported HTTP method".into());
     }
     if request.id.is_empty() || request.id.len() > 100 { return Err("Invalid request ID".into()); }
+    let cache_key = if request.method == "GET" { cache_key(&url) } else { None };
     let (abort, registration) = AbortHandle::new_pair();
     {
         let requests = app.state::<Requests>();
@@ -93,6 +150,21 @@ pub async fn desktop_request(app: AppHandle, request: ApiRequest, events: Channe
         pending.pending.insert(request.id.clone(), abort);
     }
     let work = async {
+        let offline = app.state::<OfflineStore>().is_offline();
+        let read_only = matches!(request.method.as_str(), "GET" | "HEAD");
+        if (offline || cached_identity) && !read_only {
+            return Err("Offline mode is read-only. Reconnect before saving changes.".into());
+        }
+        if offline {
+            let Some(key) = cache_key else {
+                return Err("This data is not available offline.".into());
+            };
+            let cached = read_cached(app.clone(), user_id, key).await?
+                .ok_or("This data has not been cached for offline use.")?;
+            if !auth.is_current(generation) { return Err("The account changed during this request".into()); }
+            return send_cached(&events, cached, "offline");
+        }
+
         let method = reqwest::Method::from_bytes(request.method.as_bytes()).map_err(|_| "Invalid HTTP method")?;
         let mut builder = http.request(method, url)
             .header("Origin", auth.origin.origin().ascii_serialization());
@@ -107,10 +179,27 @@ pub async fn desktop_request(app: AppHandle, request: ApiRequest, events: Channe
             if bytes.len() > 20 * 1024 * 1024 { return Err("Upload exceeds 20 MB".to_string()); }
             builder = builder.body(bytes);
         }
-        let response = builder.send().await.map_err(|_| "Cannot connect to Zentra. Check your connection and retry.")?;
+        let response = match builder.send().await {
+            Ok(response) => response,
+            Err(_) => {
+                if let Some(key) = cache_key {
+                    if let Some(cached) = read_cached(app.clone(), user_id, key).await? {
+                        if !auth.is_current(generation) { return Err("The account changed during this request".into()); }
+                        return send_cached(&events, cached, "fallback");
+                    }
+                }
+                return Err("Cannot connect to Zentra. Check your connection and retry.".into());
+            }
+        };
         if !auth.is_current(generation) { return Err("The account changed during this request".into()); }
         let status = response.status();
-        if status.is_success() && !matches!(request.method.as_str(), "GET" | "HEAD") {
+        if cache_key.is_some() && (status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS) {
+            if let Some(cached) = read_cached(app.clone(), user_id, cache_key.clone().unwrap()).await? {
+                if !auth.is_current(generation) { return Err("The account changed during this request".into()); }
+                return send_cached(&events, cached, "fallback");
+            }
+        }
+        if status.is_success() && !read_only {
             crate::reminders::refresh(&app);
         }
         if status == reqwest::StatusCode::UNAUTHORIZED {
@@ -121,11 +210,45 @@ pub async fn desktop_request(app: AppHandle, request: ApiRequest, events: Channe
                 });
             }
         }
-        let headers = response.headers().iter().filter_map(|(name, value)| {
-            if matches!(name.as_str(), "content-type" | "content-disposition" | "retry-after" | "etag" | "last-modified" | "x-vercel-ai-ui-message-stream" | "x-accel-buffering") {
-                value.to_str().ok().map(|value| (name.to_string(), value.to_string()))
-            } else { None }
-        }).collect();
+        let headers = response_headers(&response);
+
+        if let Some(key) = cache_key.filter(|_| status.is_success()) {
+            const MAX_CACHED_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
+            let mut response = response;
+            let mut body = Vec::new();
+            while let Some(chunk) = response.chunk().await.map_err(|_| "The connection was interrupted")? {
+                if body.len().saturating_add(chunk.len()) > MAX_CACHED_RESPONSE_BYTES {
+                    return Err("Response is too large to cache offline".into());
+                }
+                body.extend_from_slice(&chunk);
+            }
+            let cached = CachedResponse {
+                status: status.as_u16(),
+                headers: headers.clone(),
+                body: body.clone(),
+            };
+            let handle = app.clone();
+            let write_user = user_id.clone();
+            let _ = tauri::async_runtime::spawn_blocking(move || {
+                let store = handle.state::<OfflineStore>();
+                let auth = handle.state::<DesktopAuth>();
+                store.write_if(
+                    &write_user,
+                    &key,
+                    cached.status,
+                    cached.headers,
+                    &cached.body,
+                    || auth.is_current(generation),
+                )
+            }).await;
+            events.send(ApiEvent::Headers { status: status.as_u16(), headers })
+                .map_err(|_| "Response receiver closed")?;
+            events.send(ApiEvent::Chunk { data: STANDARD.encode(body) })
+                .map_err(|_| "Response receiver closed")?;
+            events.send(ApiEvent::End).map_err(|_| "Response receiver closed")?;
+            return Ok(());
+        }
+
         events.send(ApiEvent::Headers { status: status.as_u16(), headers }).map_err(|_| "Response receiver closed")?;
         let mut stream = response.bytes_stream();
         while let Some(chunk) = stream.next().await {

@@ -4,7 +4,7 @@ const {
   CHILD_OVERLAY_ATTRIBUTE,
   childOverlayProps,
   isChildOverlayInteraction,
-} = await import('@zntr/calendar/lib/popover-nesting')
+} = await import('@zntr/shared/calendar/lib/popover-nesting')
 
 describe('isChildOverlayInteraction', () => {
   function markup(html: string) {

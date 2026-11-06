@@ -8,9 +8,9 @@
       "@zntr/utils": ["../../packages/utils/src/index.ts"],
       "@zntr/utils/*": ["../../packages/utils/src/*"],
       "@zntr/auth": ["../../packages/auth/src/index.ts"],
-      "@zntr/meetings": ["../../packages/meetings/src/index.ts"],
-      "@zntr/meetings/*": ["../../packages/meetings/src/*"],
-      "@zntr/auth/*": ["../../packages/auth/src/*"]
+      "@zntr/auth/*": ["../../packages/auth/src/*"],
+      "@zntr/shared/meetings": ["../../packages/shared/meetings/index.ts"],
+      "@zntr/shared/meetings/*": ["../../packages/shared/meetings/*"]
     },
     "plugins": [
       {

@@ -4,7 +4,7 @@ import {
   getEventTitlesForMeetings,
   getMeetingSummaries,
   listRecentMeetings,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { getDb } from '@/lib/drizzle'
 import { readEventTitle } from '@/lib/event-title'
 import { MeetingHistory } from '@/components/dashboard/meeting-history'

@@ -14,7 +14,7 @@ import {
   bookmarkedEvents,
 } from '@/lib/drizzle/schema'
 import { eq } from 'drizzle-orm'
-import { deleteMeetingsForOrganiser } from '@zntr/meetings'
+import { deleteMeetingsForOrganiser } from '@zntr/shared/meetings'
 
 export const runtime = 'nodejs'
 

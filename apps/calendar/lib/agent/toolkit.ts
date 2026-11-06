@@ -36,7 +36,7 @@ import {
   listCountdowns,
 } from '@/lib/mcp/countdown-tools'
 import { COLOR_HEX_VALUES } from '@/lib/mcp/colors'
-import { DEFAULT_COUNTDOWN_ICON } from '@zntr/calendar/lib/countdown-icons'
+import { DEFAULT_COUNTDOWN_ICON } from '@zntr/shared/calendar/lib/countdown-icons'
 import type {
   AgentAnalyticsSummary,
   AgentEventSummary,

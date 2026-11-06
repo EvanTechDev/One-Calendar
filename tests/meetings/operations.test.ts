@@ -28,7 +28,7 @@ import {
   meeting,
   moveMeetingToEvent,
   verifyCreatorToken,
-} from '@zntr/meetings'
+} from '@zntr/shared/meetings'
 import { createFakeDb } from './fake-db'
 
 const fake = createFakeDb()

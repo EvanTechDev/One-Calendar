@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "paths": {
+      "@zntr/shared/calendar": ["./calendar/index.tsx"],
+      "@zntr/shared/calendar/*": ["./calendar/*"],
+      "@zntr/shared/meetings": ["./meetings/index.ts"],
+      "@zntr/shared/meetings/*": ["./meetings/*"],
+      "@zntr/ui": ["../ui/src/index.ts"],
+      "@zntr/ui/*": ["../ui/src/*"],
+      "@zntr/utils": ["../utils/src/index.ts"],
+      "@zntr/utils/*": ["../utils/src/*"],
+      "@zntr/i18n": ["../i18n/src/index.ts"],
+      "@zntr/i18n/*": ["../i18n/src/*"]
+    }
+  },
+  "include": ["calendar/**/*.ts", "calendar/**/*.tsx", "meetings/**/*.ts"],
+  "exclude": ["node_modules"]
+}
