@@ -63,8 +63,8 @@ reported in the client; unlocking it and retrying saves the session.
 ## Remote checks and releases
 
 The Build workflow runs on pushes and pull requests to `main`/`dev`, and manually.
-It builds all workspaces and produces unsigned dev Windows x64 NSIS, Linux x64
-AppImage, macOS Intel DMG and Apple Silicon DMG artifacts. It does not run tests,
+It produces unsigned dev Windows x64 NSIS, Linux x64 AppImage, macOS Intel DMG
+and Apple Silicon DMG artifacts. It does not run tests,
 native smoke checks or visual captures; run those separately when acceptance
 evidence is required.
 

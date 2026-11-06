@@ -105,8 +105,8 @@ Bun's native TypeScript checker (`bun check`) follows the root project reference
 Run `bun check` separately. Workspace checks also generate required framework types.
 
 **GitHub Actions builds but does not run checks or tests.** `.github/workflows/build.yml`
-installs with the frozen lockfile and runs `bun run build` on pushes and pull
-requests to `main`/`dev`, plus manual dispatches. Application project references
+installs with the frozen lockfile and builds the four desktop targets on pushes
+and pull requests to `main`/`dev`, plus manual dispatches. Application project references
 do not cover `tests/**`. Run `bun run type-check`, `bun run lint:check`, and
 `bun run test` locally before committing anything that could reach `main`; a
 focused green run is not the full validation gate.
