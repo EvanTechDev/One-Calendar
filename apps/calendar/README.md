@@ -1,166 +1,139 @@
-# Zentra Calendar
+<div align="center">
+  <h1>Zentra Calendar</h1>
+  <p><strong>A calendar that works with you.</strong></p>
+  <p>Open-source scheduling with an AI agent, thoughtful collaboration, and no lock-in.</p>
 
-> The next gen calendar powered by AI agent.
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a076623e-3132-42e4-a947-d3e3e3c0cf53">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1">
+    <img src="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1" alt="Zentra Calendar week view">
+  </picture>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a076623e-3132-42e4-a947-d3e3e3c0cf53"> 
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1">
+  <p>
+    <a href="https://calendar.xyehr.cn">Live product</a> ·
+    <a href="https://calendarstatus.xyehr.cn">Status</a> ·
+    <a href="../../docs">Documentation source</a> ·
+    <a href="https://bsky.app/profile/calendar.xyehr.cn">Bluesky</a>
+  </p>
 
-  <img src="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1" alt="Zentra Calendar week view">
-</picture>
+  <p>
+    <a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_APP_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,POSTGRES_URL,SALT&project-name=zentra-calendar&repo-name=one-calendar"><img src="https://vercel.com/button" alt="Deploy with Vercel" height="32"></a>
+    &nbsp;
+    <a href="https://producthunt.com/product/one-calendar"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175" alt="Zentra Calendar on Product Hunt" height="32"></a>
+  </p>
+</div>
 
-- [Live product](https://calendar.xyehr.cn)
-- [Status](https://calendarstatus.xyehr.cn)
-- [Bluesky](https://bsky.app/profile/calendar.xyehr.cn)
+## Why Zentra Calendar?
 
-<a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,POSTGRES_URL,SALT&project-name=zentra-calendar&repo-name=one-calendar" style="display: inline-block;"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="height: 32px;"></a>
-
-<a href="https://producthunt.com/product/one-calendar"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175"></img></a>
-
-## What Zentra Calendar is
-
-Zentra Calendar is an open-source calendar where an AI agent does the scheduling work with you: it plans your week, moves events through natural language, and connects to your tools over MCP (Model Context Protocol). You stay in control: the calendar remains understandable, keyboard-driven, and self-hostable.
-
-Built for individuals and small teams who want an agent that works the calendar for them, not a dashboard that watches them.
+Zentra Calendar combines a fast, keyboard-friendly calendar with an agent that can understand scheduling requests and act through scoped tools. You keep a clear view of your data, your events remain portable, and the entire stack can run on your own infrastructure.
 
 ## Features
 
-### Agent and automation
+| Area                    | Included                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **AI & automation**     | Natural-language quick create, conversational scheduling, semantic search, and a scoped MCP server for compatible clients |
+| **Planning**            | Drag-and-drop scheduling, inline editing, keyboard navigation, and day/week/month/year views                              |
+| **Events**              | RRULE recurrence with per-occurrence edit scopes, invitations, RSVP links, categories, bookmarks, and countdowns          |
+| **Reminders**           | In-app notifications and optional per-event email delivery through Resend                                                 |
+| **Portability**         | ICS import/export and cloud sync backed by PostgreSQL and Drizzle                                                         |
+| **Identity & security** | Better Auth sessions, two-factor authentication, scoped credentials, and browser bot protection                           |
+| **Personalization**     | Light/dark/system themes, 34 languages, and a composable shadcn/ui interface                                              |
+| **Ownership**           | Open-source, self-hostable application code with portable data                                                            |
 
-- **MCP server**: connect Claude, Cursor, or any MCP client to read and manage your calendar with scoped API keys and OAuth
-- **Natural-language event handling**: create and edit events conversationally through a connected agent
-- **Scheduled email reminders**: opt-in per event, delivered through Resend
-
-### Weekly planning
-
-- **Drag and drop scheduling**: move and resize events directly on the grid
-- **Inline editing**: create and update events without leaving the view
-- **Keyboard-first interactions**: navigate and edit without touching the mouse
-
-### Event management
-
-- **Recurring events**: full RRULE support with single, following, and all-occurrence edit scopes
-- **Invitations and RSVP**: invite participants by email; they respond from a link, no account required
-- **Reminders**: in-app delivery plus optional email, per event
-- **ICS import and export**: move your data in and out without lock-in
-
-### Sync and access
-
-- **Cloud sync**: multi-device synchronization backed by Postgres and Drizzle
-- **Hardened authentication**: sessions, two-factor, and bot protection via Better Auth
-- **Self-hostable**: run the whole stack on your own infrastructure
-
-### Customization
-
-- **Themes**: light, dark, and system, with a tuned dark surface ladder
-- **34 languages**: built-in internationalization
-- **Composable UI**: shadcn/ui components on Tailwind CSS
-
-## Comparison
-
-| Feature                         | Zentra Calendar | Google Calendar | Apple Calendar | Outlook Calendar | Proton Calendar |
-| ------------------------------- | :-------------: | :-------------: | :------------: | :--------------: | :-------------: |
-| AI agent access (MCP)           |       ✅        |       ⚠️        |       ❌       |        ⚠️        |       ❌        |
-| Event creation and editing      |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| Drag and drop scheduling        |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| Recurring events                |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| Invitations and RSVP            |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| Reminders and notifications     |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| Multiple views (day/week/month) |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| Keyboard shortcuts              |       ✅        |       ✅        |       ⚠️       |        ✅        |       ✅        |
-| Cloud sync                      |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| ICS import and export           |       ✅        |       ✅        |       ✅       |        ✅        |       ✅        |
-| Open-source                     |       ✅        |       ❌        |       ❌       |        ❌        |       ⚠️        |
-| Self-hostable                   |       ✅        |       ❌        |       ❌       |        ❌        |       ❌        |
-
-⚠️ = limited or partial support
-
-## Getting started
+## Quick start
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) v20 or later
 - [Bun 1.4.4](https://bun.sh)
+- [Node.js 25](https://nodejs.org)
+- PostgreSQL
 
-### Quick start
+### 1. Install and configure
+
+Run from the repository root:
 
 ```bash
 git clone https://github.com/EvanTechDev/One-Calendar.git
 cd One-Calendar
 bun install
-bun run dev
+cp apps/calendar/.env.example apps/calendar/.env
 ```
 
-Then open `http://localhost:3000`.
+Fill in at least these values in `apps/calendar/.env`:
 
-### Vercel deployment
+| Variable                         | Purpose                                                                                  |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_BASE_URL`           | Public Calendar origin used by the server and brand links                                |
+| `NEXT_PUBLIC_APP_URL`            | Browser auth and OAuth origin; use the same origin as above                              |
+| `BETTER_AUTH_URL`                | Origin used in authentication and invitation links                                       |
+| `BETTER_AUTH_SECRET`             | Secret used to sign sessions                                                             |
+| `SALT`                           | Stable key material for encrypted event fields; back it up and do not rotate it casually |
+| `POSTGRES_URL` or `DATABASE_URL` | PostgreSQL connection string                                                             |
 
-Connect the full Git repository, not a copy of `apps/calendar` alone. In the
-Vercel project's **Settings → Build and Deployment**:
+The example file also documents email delivery, AI, cross-app cookies, cron protection, and other optional services.
 
-- Set **Root Directory** to `apps/calendar`.
-- Enable **Include source files outside of the Root Directory in the Build Step**.
-- Use the install command from `apps/calendar/vercel.json`:
-  `bun install --frozen-lockfile --cwd ../..`.
+### 2. Prepare the database
 
-Installation uses the repository's root `package.json`, `bun.lock` and shared
-`packages/` workspaces. Errors such as `Workspace dependency "@zntr/auth" not
-found` or `"@zntr/i18n" not found` mean those workspace files are not visible to
-the installer. Keep the outside-root option enabled and redeploy after changing
-it; changing the install command cannot restore files omitted from the build.
-
-### Environment variables
-
-Copy `.env.example` to `.env` and fill in the values:
-
-```env
-# Core
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-SALT=your_backup_salt_here
-
-# Auth
-BETTER_AUTH_SECRET=your_auth_secret_here
-BETTER_AUTH_URL=http://localhost:3000
-
-# Optional
-POSTGRES_URL=postgres://postgres:postgres@localhost:5432/calendar
-BETTER_AUTH_API_KEY=your_api_key_here
-```
-
-### Bot protection
-
-Calendar and Meet use Vercel BotID Basic on browser credential and mail-sending
-auth endpoints. `instrumentation-client.ts` instruments browser requests;
-`@zntr/auth/bot-id` verifies them in the API before Better Auth runs. No visible
-challenge or site/secret key is needed. Both sides share `bot-policy.ts`.
-
-Deploy on Vercel with its request/OIDC context. Production verification failures
-return 503; detected bots receive 403. Local `next dev` uses the SDK's development
-behavior. API rate limits still apply. OAuth token exchange and desktop IPC API
-requests are outside this browser-only check; desktop sign-in happens in the
-system browser. Deep Analysis is not enabled by this configuration.
-
-### Database
-
-The app uses Drizzle ORM. After setting `POSTGRES_URL`, push the schema:
+From `apps/calendar`:
 
 ```bash
 bun x --no-install drizzle-kit push
 ```
 
-For production, use migrations instead:
+For production, apply the checked-in migrations instead:
 
 ```bash
 bun x --no-install drizzle-kit migrate
 ```
 
-Do **not** run `drizzle-kit generate` to author a new migration. The snapshots in
-`drizzle/meta/` stop at `0002` while fifteen-plus migrations exist, so the
-generator reads the gap as a set of dropped and renamed tables and stops to ask
-about each one. Write the SQL by hand in `drizzle/` — follow the style of
-`0014_create_meeting_tables.sql` — and mirror the change in
-`lib/drizzle/schema.ts`. `AGENTS.md` records the same constraint.
+> **Important:** Do not use `drizzle-kit generate` in this repository. Its snapshots do not cover all existing migrations, so generation can prompt for incorrect table renames. Hand-write SQL in `apps/calendar/drizzle/` following the existing migration style, then mirror the change in `lib/drizzle/schema.ts`.
 
-## Tech stack
+### 3. Start developing
 
-![Stack](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,drizzle,betterauth,resend)
+From the repository root:
+
+```bash
+bun run --filter zentra-calendar dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). To start every app in the monorepo, use `bun run dev` instead.
+
+## Deploy to Vercel
+
+Connect the **full Git repository**, then configure **Settings → Build and Deployment**:
+
+1. Set **Root Directory** to `apps/calendar`.
+2. Enable **Include source files outside of the Root Directory in the Build Step**.
+3. Keep the install command from [`vercel.json`](./vercel.json):
+
+   ```bash
+   bun install --frozen-lockfile --cwd ../..
+   ```
+
+The installer needs the root `package.json`, `bun.lock`, and shared `packages/` workspaces. Errors about missing `@zntr/*` workspace dependencies usually mean the outside-root option is disabled or the repository was only partially included.
+
+## Security notes
+
+Calendar and Meet use Vercel BotID Basic on browser credential and mail-sending authentication endpoints. Browser instrumentation and server verification share the policies in `@zntr/auth`; no visible challenge is required.
+
+Production verification requires Vercel's request/OIDC context. Detected bots receive 403, while verification failures follow the route's explicit error policy. Rate limits still apply. OAuth token exchange and native desktop IPC requests do not use browser BotID instrumentation.
+
+For Meet to share Calendar's session, both apps must use the same `AUTH_COOKIE_DOMAIN`, be subdomains of that domain, and have byte-identical `BETTER_AUTH_SECRET` values.
+
+## Useful commands
+
+Run from the repository root:
+
+| Command                                       | Purpose                                        |
+| --------------------------------------------- | ---------------------------------------------- |
+| `bun run --filter zentra-calendar dev`        | Start Calendar                                 |
+| `bun run --filter zentra-calendar build`      | Generate locales and create a production build |
+| `bun run --filter zentra-calendar type-check` | Check TypeScript                               |
+| `bun run --filter zentra-calendar lint:check` | Lint without fixes                             |
+| `bun run --filter zentra-calendar test`       | Run Calendar tests                             |
+
+See the repository [engineering guide](../../AGENTS.md) for workspace conventions and verification requirements.
+
+## Built with
+
+![Next.js, TypeScript, React, Tailwind CSS, shadcn/ui, Zustand, Drizzle, Better Auth, and Resend](https://skills.syvixor.com/api/icons?perline=15&i=nextjs,typescript,reactjs,tailwindcss,shadcnui,zustand,drizzle,betterauth,resend)

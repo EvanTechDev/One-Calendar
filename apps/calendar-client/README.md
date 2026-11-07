@@ -1,108 +1,145 @@
-# Zentra Calendar Desktop
+<div align="center">
+  <img src="../../packages/shared/calendar/assets/product-logo.svg" alt="Zentra Calendar" width="88">
 
-The Tauri client bundles `/app` locally from `@zntr/shared/calendar`, the same
-calendar components, data providers and recurrence implementation used by Web.
-Sign-in, sign-up, password recovery and account settings stay inside the client.
-Web keeps a blocking No Internet screen while disconnected. Desktop can restore
-encrypted cached data in read-only mode, with distinct device-offline and service
-failure states. Both preserve mounted editors and revalidate after recovery.
+  <h1>Zentra Calendar Desktop</h1>
+  <p><strong>Your calendar, with a native home.</strong></p>
+  <p>A cross-platform Tauri client with secure sessions, native reminders, signed updates, and encrypted read-only offline access.</p>
+
+  <p>
+    <a href="#quick-start">Quick start</a> ·
+    <a href="#builds-and-releases">Builds & releases</a> ·
+    <a href="./src-tauri/README.md">Native host</a> ·
+    <a href="./ACCEPTANCE.md">Acceptance guide</a>
+  </p>
+</div>
+
+## Highlights
+
+| Capability                 | How it works                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **One product, two hosts** | Reuses the Web calendar UI, state, and recurrence engine from `@zntr/shared/calendar`                           |
+| **Secure by architecture** | React talks to Rust through `CalendarHost.request`; session cookies stay in Rust and the OS credential store    |
+| **Offline access**         | Restores encrypted cached data in read-only mode, with separate device-offline and service-failure states       |
+| **Native reminders**       | A Rust worker refreshes recurrence-expanded reminders, tracks delivery per account, and plays the bundled sound |
+| **Desktop integration**    | Tray controls, native save dialogs, fullscreen, deep links, and signed updater support                          |
+| **Isolated environments**  | Separate app IDs, protocols, credentials, data directories, origins, and update channels for dev and production |
+
+Web keeps its blocking connection-recovery screen. Desktop can browse available cached data offline without allowing writes or losing mounted drafts; all remote data revalidates after recovery.
+
+## Quick start
+
+### Prerequisites
+
+- [Bun 1.4.4](https://bun.sh) and [Node.js 25](https://nodejs.org)
+- A desktop OS with the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
+- A compatible Calendar backend and its desktop auth routes
+
+From the repository root:
+
+```bash
+bun install
+bun run --filter calendar-client tauri dev
+```
+
+Useful build commands:
+
+```bash
+# Type-check and bundle the frontend
+bun run --filter calendar-client build
+
+# Build the native installer
+bun run --filter calendar-client build:tauri
+
+# Regenerate platform icons from the product logo
+bun run --filter calendar-client icons
+```
+
+Run native builds on a supported desktop machine. The current Termux environment is for source editing, not installed-app verification.
 
 ## Architecture
 
-- Shared calendar code lives in `packages/shared/calendar`, exported by
-  `@zntr/shared/calendar`. The host port lives in `packages/shared/calendar/host`,
-  exported by `@zntr/shared/calendar/host`. Web and desktop import them directly.
-  Each app registers its own Tailwind source paths.
-- React requests use `CalendarHost.request`: Tauri IPC → Rust → Calendar API.
-  Streaming responses and cancellation use the same port. Session cookies remain
-  in Rust and the operating system credential store.
-- The embedded official-origin auth view uses the existing Better Auth forms,
-  including BotID browser instrumentation, email verification and two-factor
-  authentication. The remote view has no native IPC access. Sign-in uses authorization
-  code and S256 PKCE. Exchanging the code creates an independent desktop session.
-  Signing out of either browser or desktop leaves the other session intact.
-- Opening account settings creates a single-use, 60-second handoff into an
-  ephemeral official-origin view inside Settings. The standalone `/account`
-  route is removed. External browser links still use a handoff: an
-  already signed-in browser keeps its current account. A signed-out browser gets
-  a new independent session.
-- Close hides the window in the tray; Open and Quit are explicit tray actions.
-  The fixed outer window is 1320 × 880 logical pixels, clamped to screen space.
-  Fullscreen is available from the tray or F11 (Escape exits). The embedded
-  identity header also has a fullscreen button. Edge-drag resizing remains disabled.
-- The native reminder worker refreshes the server's recurrence-expanded feed
-  independently of the displayed range. It checks online before delivery and
-  stores hashed Fired records per account and origin, preserving Catch-Up rules.
-  System notifications are silent; the bundled reminder sound plays once.
-- File exports use the native save dialog. URL imports use a separate,
-  cookie-free native HTTP client. Fonts and calendar assets are bundled.
+```text
+React calendar
+     │ CalendarHost.request
+     ▼
+Tauri IPC ──► Rust native host ──► Calendar API
+     │
+     ├── OS credential store
+     ├── encrypted offline snapshots
+     ├── window, tray, and reminders
+     └── native dialogs and signed updates
+```
+
+| Layer                       | Responsibility                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/`                      | Desktop React shell, session presentation, native host adapter, and styles                 |
+| `src-tauri/`                | Authenticated HTTP, credentials, cache, navigation, reminders, updates, and OS integration |
+| `packages/shared/calendar/` | Product UI, state, recurrence, and the host interface shared with Web                      |
+
+Streaming responses and request cancellation use the same host port. URL imports use a separate cookie-free native client. Fonts and calendar assets are bundled locally.
+
+## Authentication and navigation
+
+- Sign-in uses the embedded official-origin Better Auth view, authorization codes, and S256 PKCE.
+- Exchanging the code creates an independent desktop session. Browser and desktop sign-out do not sign out one another.
+- Account settings open through a single-use, 60-second handoff in an ephemeral official-origin view.
+- First-party external links can receive an independent browser-session handoff.
+- Closing the window hides it in the tray; **Open** and **Quit** are explicit tray actions.
+- The default window is 1320 × 880 logical pixels, resizable and maximizable with a 900 × 600 minimum. F11 toggles fullscreen and Escape exits it.
+
+Linux also requires WebKitGTK 4.1, a Secret Service credential store, an application-indicator provider, `desktop-file-utils`, and `xdg-utils`. The last two register the browser-login callback.
 
 ## Build environments
 
-`ZENTRA_DESKTOP_ENV` is `dev` or `production`; `ZENTRA_API_ORIGIN` is an HTTPS
-origin. Defaults are `https://precal.xyehr.cn` for dev and
-`https://calendar.xyehr.cn` for production. Cargo reads these at compile time.
-Dev builds also pass `--config src-tauri/tauri.dev.conf.json`.
+`ZENTRA_DESKTOP_ENV` selects `dev` or `production`; `ZENTRA_API_ORIGIN` supplies an HTTPS origin. Cargo reads both at compile time.
 
-Names, application IDs, deep-link schemes, credentials, application data and
-update channels are separate between environments. The runtime rejects a
-mismatched environment and application ID.
+| Environment  | Default API origin          | Additional configuration                                  |
+| ------------ | --------------------------- | --------------------------------------------------------- |
+| `dev`        | `https://precal.xyehr.cn`   | `--config src-tauri/tauri.dev.conf.json`                  |
+| `production` | `https://calendar.xyehr.cn` | `src-tauri/tauri.release.conf.json` during release builds |
 
-Deploy the Calendar backend from the same implementation before distributing a
-client that points to it. Desktop sign-in needs the `/api/auth/desktop/*` routes
-and the official native OAuth registration; an older backend cannot complete the
-callback. The server selects dev for `precal.xyehr.cn` and production otherwise,
-or accepts an explicit matching `ZENTRA_DESKTOP_ENV`. Existing OAuth migrations
-must already be applied, including `0022_relax_legacy_account_issuer.sql`.
+Names, application IDs, deep-link schemes, credentials, application data, and update channels are isolated. The runtime rejects an environment/application-ID mismatch.
 
-Linux installations require WebKitGTK 4.1, the Secret Service credential store,
-an application-indicator provider, `desktop-file-utils` and `xdg-utils`. The last
-two packages register the browser login callback. A locked credential store is
-reported in the client; unlocking it and retrying saves the session.
+Deploy the matching Calendar backend before distributing a client. Desktop sign-in requires the `/api/auth/desktop/*` routes, the native OAuth registration, and current database migrations, including `0022_relax_legacy_account_issuer.sql`.
 
-## Remote checks and releases
+## Builds and releases
 
-The Build workflow runs only when manually dispatched.
-It produces unsigned dev Windows x64/ARM64 NSIS, Linux x64/ARM64 AppImage,
-macOS Intel DMG and Apple Silicon DMG artifacts. Apple Silicon jobs use the
-standard `macos-15` runner. It does not run tests, native smoke checks or visual
-captures; run those separately when acceptance evidence is required.
+Both desktop workflows are manually dispatched and contain no tests, native smoke checks, or visual captures.
 
-Desktop Release is manually dispatched with `version=X.Y.Z` and an `environment`
-of `dev` or `production`. Configure GitHub environments `desktop-dev`
-and `desktop-production`, each with its own:
+### Build
 
-- variable `ZENTRA_UPDATER_PUBLIC_KEY`;
-- secret `TAURI_SIGNING_PRIVATE_KEY` and optional key password
-  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+**Actions → Build → Run workflow** produces unsigned dev artifacts:
 
-Public API origins can be overridden by repository variables
-`ZENTRA_DEV_API_ORIGIN` and `ZENTRA_API_ORIGIN`. All six signed installer builds
-must succeed before publication; native acceptance remains a separate manual
-gate. Versioned releases are immutable; the `desktop-dev` and `desktop-stable`
-channel releases hold `latest.json` pointing to those signed assets. Versions must increase independently in each channel. If publication
-stops after creating a draft, inspect and remove that unpublished draft before
-retrying the same version.
+| Platform | Architecture         | Artifact       |
+| -------- | -------------------- | -------------- |
+| Linux    | x64, ARM64           | AppImage       |
+| Windows  | x64, ARM64           | NSIS installer |
+| macOS    | Intel, Apple Silicon | DMG            |
 
-Users explicitly check, download and restart to install an update. Tauri verifies
-the updater signature. Windows installers currently have no publisher signature;
-macOS installers have no Developer ID notarization.
+Apple Silicon uses the standard `macos-15` runner. Native acceptance remains a separate manual gate.
 
-## Validation status
+### Desktop Release
 
-The acceptance procedure is in [ACCEPTANCE.md](./ACCEPTANCE.md). Record results
-against their exact source revision in CORE-225 and its child issues. Run the
-real PostgreSQL authentication contract separately from the build workflow;
-native startup, session restoration, tray/reminder delivery and signed updates
-each need their own evidence. Earlier installer builds do not establish acceptance of later
-source revisions.
+Run **Desktop Release** with a semantic `version` (`X.Y.Z`) and an `environment` of `dev` or `production`. Configure the corresponding GitHub environment:
 
-The current Termux machine is for source editing only. Run builds, development
-servers and checks in CI or on an external desktop. On those systems,
-`bun run --filter calendar-client build` builds the frontend and
-`bun run --filter calendar-client build:tauri` builds the installer.
+| Environment          | Required settings                                                |
+| -------------------- | ---------------------------------------------------------------- |
+| `desktop-dev`        | `ZENTRA_UPDATER_PUBLIC_KEY` variable and updater signing secrets |
+| `desktop-production` | Independent production public key and signing secrets            |
 
-The window supports resizing and maximizing, with a 900×600 logical-pixel
-minimum (bounded by the monitor work area). Normal resizing is preserved.
-`bun run --filter calendar-client icons` regenerates platform icons from the
-current product logo; `--png-only` renders the master on non-desktop hosts.
+Secrets:
+
+- `TAURI_SIGNING_PRIVATE_KEY`
+- Optional `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+
+Repository variables `ZENTRA_DEV_API_ORIGIN` and `ZENTRA_API_ORIGIN` can override public API origins.
+
+All six signed installer builds must succeed before publication. Versioned releases are immutable; `desktop-dev` and `desktop-stable` channel releases hold `latest.json` pointing to their signed assets. Versions must increase independently in each channel. If publishing stops after creating a draft, inspect and remove that unpublished draft before retrying the same version.
+
+Users explicitly check, download, and restart to install updates. Tauri verifies updater signatures. Windows installers currently have no publisher signature; macOS installers have no Developer ID notarization.
+
+## Validation
+
+Follow [ACCEPTANCE.md](./ACCEPTANCE.md) for real installed-app coverage, including cold offline launch, read-only enforcement, account cleanup, reminders, tray behavior, and signed updates. Record results against the exact source revision in CORE-225 and its child issues.
+
+Run the real PostgreSQL authentication contract separately from the build workflow. Earlier installers do not establish acceptance for later source revisions, and native startup, session restoration, reminders, and updates each need their own evidence.

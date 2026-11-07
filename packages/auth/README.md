@@ -1,10 +1,15 @@
 # @zntr/auth
 
-Shared Better Auth configuration package for the zntr monorepo. Provides unified authentication infrastructure across all consuming applications.
+Shared authentication infrastructure for Zentra apps. Built on Better Auth and
+Drizzle ORM, it keeps server and client configuration, database tables, auth UI,
+email delivery, BotID protection, OAuth/MCP and desktop sign-in, and rate
+limiting consistent across the monorepo.
+
+> Private Bun workspace package; it is not published to npm.
 
 ## Installation
 
-This is a Bun workspace internal package. Add it to your consumer's `package.json`:
+Add the workspace dependency to the consuming app:
 
 ```json
 {
@@ -14,457 +19,221 @@ This is a Bun workspace internal package. Add it to your consumer's `package.jso
 }
 ```
 
-### Version Pinning
+The package owns the Better Auth and adapter versions. Import them through the
+subpaths below rather than installing parallel copies. The app supplies its
+Drizzle database, React runtime, and password hasher (`bcryptjs` in this example).
 
-This package strictly pins the following dependencies. Consumers do not need (and should not) install them separately:
+## Quick start
 
-| Package                        | Version   |
-| ------------------------------ | --------- |
-| `better-auth`                  | `1.6.20`  |
-| `@better-auth/drizzle-adapter` | `1.6.20`  |
-| `@better-auth/infra`           | `0.3.2`   |
-| `drizzle-orm`                  | `^0.45.2` |
-
----
-
-## Export Paths
-
-```
-@zntr/auth         → main entry (all exports)
-@zntr/auth/server  → server-side factory createAuth
-@zntr/auth/client  → client-side factory createAuthClient + plugins
-@zntr/auth/schema  → auth table drizzle schema definitions
-@zntr/auth/adapter → createDrizzleAdapter factory
-@zntr/auth/types   → all TypeScript types
-```
-
-### Why Split Paths?
-
-The server-side code (`createAuth`) depends on Better Auth's server plugins, which cannot run in a browser. The client-side code (`createAuthClient`) depends on `better-auth/react`. Split paths prevent server code from leaking into client bundles.
-
-**Correct usage:**
+### 1. Create the server instance
 
 ```ts
-// Server-side file (e.g. lib/auth.ts)
-import { createAuth } from '@zntr/auth/server'
-
-// Client-side file (e.g. lib/auth/client.ts)
-import { createAuthClient } from '@zntr/auth/client'
-
-// Types (available on both sides)
-import type { CreateAuthOptions } from '@zntr/auth/types'
-```
-
-**Not recommended but works:**
-
-```ts
-// Imports everything from the main entry, which may pull server code into the client
-import { createAuth } from '@zntr/auth'
-```
-
----
-
-## Quick Start
-
-### 1. Server Configuration
-
-Create `lib/auth.ts` in your app:
-
-```ts
-import { createAuth } from '@zntr/auth/server'
-import { getDb } from '@/lib/drizzle/client'
+// lib/auth/index.ts
 import bcrypt from 'bcryptjs'
+import { createAuth } from '@zntr/auth/server'
+import { authEmailBrand } from '@zntr/auth/email-brand'
+import { authEmailCallbacks, resendSender } from '@zntr/auth/email'
+import { getDb } from '@/lib/drizzle/client'
 
-const baseURL = process.env.NEXT_PUBLIC_BASE_URL
+const baseURL = process.env.BETTER_AUTH_URL
 
-const { auth, enabledPlugins } = createAuth({
+export const { auth } = createAuth({
   db: getDb(),
-  // baseURL is optional — when omitted, Better Auth infers it from the request
   ...(baseURL ? { baseURL } : {}),
-  // trustedOrigins is required — used for CORS and cookie validation
   trustedOrigins: baseURL ? [baseURL] : [],
-  // password is required — password hash and verify functions
   password: {
-    hash: async (password: string) => bcrypt.hash(password, 10),
+    hash: async (password) => bcrypt.hash(password, 10),
     verify: async ({ hash, password }) => bcrypt.compare(password, hash),
   },
-  // emailCallbacks is required — email sending logic
-  emailCallbacks: {
-    sendResetPassword: async ({ user, url }) => {
-      /* send reset password email */
-    },
-    sendVerificationEmail: async ({ user, url }) => {
-      /* send verification email */
-    },
-    sendChangeEmailVerification: async ({ user, newEmail, url }) => {
-      /* optional */
-    },
-    sendVerificationOTP: async ({ email, otp, type }) => {
-      /* optional, required when emailOTP plugin is enabled */
-    },
-  },
-  // plugins is optional — built-in plugin configuration
+  emailCallbacks: authEmailCallbacks({
+    brand: authEmailBrand({
+      appName: 'Your App',
+      tagline: 'Your app tagline',
+      baseUrl: baseURL,
+    }),
+    send: resendSender(),
+  }),
   plugins: {
     twoFactor: { issuer: 'Your App' },
-    sentinel: {
-      apiKey: process.env.BETTER_AUTH_API_KEY,
-      security: {
-        credentialStuffing: { enabled: true },
-        compromisedPassword: { enabled: true },
-        botBlocking: { action: 'challenge' },
-        emailValidation: { enabled: true },
-      },
-    },
-    emailOTP: { changeEmail: { enabled: true } },
+    emailOTP: { overrideDefaultEmailVerification: true },
   },
-  // isDev is optional — enables console.warn in development mode
   isDev: process.env.NODE_ENV !== 'production',
 })
-
-export { auth, enabledPlugins }
 ```
 
-### 2. Client Configuration
+`resendSender()` requires `RESEND_API_KEY`. You can instead provide your own
+`emailCallbacks`; reset-password and verification-email callbacks are required,
+and production email OTP flows should provide `sendVerificationOTP`.
 
-Create `lib/auth/client.ts`:
+### 2. Create the browser client
 
 ```ts
+// lib/auth/client.ts
 'use client'
 
 import {
   createAuthClient,
   emailOTPClient,
   twoFactorClient,
-  sentinelClient,
 } from '@zntr/auth/client'
-import { enabledPlugins } from '@/lib/auth'
-
-const baseURL = process.env.NEXT_PUBLIC_APP_URL
 
 export const authClient = createAuthClient({
-  ...(baseURL ? { baseURL } : {}),
-  // Dynamically load client plugins based on what the server enabled
-  plugins: [
-    ...(enabledPlugins.twoFactor ? [twoFactorClient()] : []),
-    ...(enabledPlugins.sentinel
-      ? [sentinelClient({ autoSolveChallenge: true })]
-      : []),
-    ...(enabledPlugins.emailOTP ? [emailOTPClient()] : []),
-  ],
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  plugins: [twoFactorClient(), emailOTPClient()],
 })
 ```
 
-### 3. API Route (Next.js App Router)
+Keep client plugins aligned with the enabled server plugins. To share feature
+flags, put them in a separate browser-safe module; never import the server auth
+module into client code.
 
-Create `app/api/auth/[...all]/route.ts`:
+### 3. Mount the Next.js route
 
 ```ts
+// app/api/auth/[...all]/route.ts
 import { toNextJsHandler } from '@zntr/auth'
 import { auth } from '@/lib/auth'
 
 export const { GET, POST } = toNextJsHandler(auth)
 ```
 
-### 4. Middleware (Optional)
+Production hosts should also apply the allowlists in `@zntr/auth/route-policy`
+and their rate-limit policy instead of exposing every endpoint added by a
+plugin. See `apps/calendar/app/api/auth/[...all]/route.ts` for the full host
+integration.
+
+## Exports
+
+Prefer focused subpaths, especially in browser and edge bundles. The root entry
+is a convenience barrel and includes server code.
+
+| Import path                      | Purpose                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `@zntr/auth`                     | Core factories, core schema, Next.js handler, cookie helper, `crossAppAuthConfig`, and common types |
+| `@zntr/auth/server`              | `createAuth`, MCP/OAuth helpers, and desktop auth plugin                                            |
+| `@zntr/auth/client`              | React client plus email OTP, 2FA, Sentinel, and OAuth client plugins                                |
+| `@zntr/auth/schema`              | Core and OAuth Drizzle tables, `authSchema`, and `oauthSchema`                                      |
+| `@zntr/auth/adapter`             | `createDrizzleAdapter`; normally called by `createAuth`                                             |
+| `@zntr/auth/types`               | Option, session, plugin, and result types                                                           |
+| `@zntr/auth/forms`               | Shared sign-in, sign-up, reset-password, and layout components with `AuthFormProvider`              |
+| `@zntr/auth/account`             | `AccountPanel`, `AccountProvider`, and account context types                                        |
+| `@zntr/auth/email`               | Auth email callbacks and the Resend sender                                                          |
+| `@zntr/auth/email-brand`         | App-specific sender and email branding                                                              |
+| `@zntr/auth/email-template`      | Auth email HTML renderer                                                                            |
+| `@zntr/auth/bot-id`              | Better Auth BotID plugin and `rejectBotRequest` for app routes                                      |
+| `@zntr/auth/bot-policy`          | Shared guarded-route and BotID client configuration                                                 |
+| `@zntr/auth/rate-limit`          | Atomic fixed-window checks and counter cleanup                                                      |
+| `@zntr/auth/rate-limit-table`    | Shared `rate_limit_counters` table definition                                                       |
+| `@zntr/auth/better-auth-cookies` | Edge-safe `getSessionCookie` export without the server bundle                                       |
+| `@zntr/auth/desktop`             | Desktop scopes, resource definition, and auth plugin                                                |
+| `@zntr/auth/cimd-fetch`          | SSRF-resistant Client ID Metadata Document fetcher                                                  |
+| `@zntr/auth/return-to`           | Allowlisted post-auth redirect resolver                                                             |
+| `@zntr/auth/route-policy`        | Auth, OAuth, and desktop route allowlists                                                           |
+
+## Configuration reference
+
+### `createAuth(options)`
+
+| Option             | Required | Notes                                                                          |
+| ------------------ | -------- | ------------------------------------------------------------------------------ |
+| `db`               | Yes      | Drizzle PostgreSQL handle                                                      |
+| `trustedOrigins`   | Yes      | Origins trusted for CORS and cookie validation                                 |
+| `password`         | Yes      | Async `hash` and `verify` functions                                            |
+| `emailCallbacks`   | Yes      | Reset and verification senders; change-email and OTP senders are optional      |
+| `baseURL`          | No       | Canonical app URL; set it explicitly for reliable emailed links                |
+| `secret`           | No       | Defaults to Better Auth's `BETTER_AUTH_SECRET` handling                        |
+| `advanced`         | No       | Cookie prefix and cross-subdomain cookie settings                              |
+| `plugins`          | No       | Plugin configuration; omitted or `false` means disabled                        |
+| `disableCsrfCheck` | No       | Defaults to `false`; keep CSRF checks enabled outside specialized native flows |
+| `isDev`            | No       | Enables development warnings, including a missing OTP sender                   |
+
+It returns `{ auth, enabledPlugins }`. Supported plugin keys are:
+
+- `twoFactor`: `true` or `{ issuer, otpLength, trustDeviceMaxAge }`.
+- `sentinel`: `true` or an API key and security-rule configuration.
+- `botId`: `true` to guard shared browser credential and mail endpoints.
+- `emailOTP`: `true` or OTP length, expiry, change-email, and verification
+  override options.
+- `mcpOAuth`: OAuth resource, pages, scopes, and optional token lifetimes.
+- `desktop`: `{ clientId, redirectUri, resource }`; requires `mcpOAuth`.
+
+`createDrizzleAdapter(db, options?)` accepts a schema override and defaults to
+the PostgreSQL provider. Most consumers should let `createAuth` construct it.
+
+### BotID
+
+Enabling `plugins.botId` protects the Better Auth endpoints. Initialize the
+browser side with the same route policy:
 
 ```ts
-import { getSessionCookie } from '@zntr/auth'
+// instrumentation-client.ts
+import { initBotId } from 'botid/client/core'
+import { BOT_ID_ROUTES } from '@zntr/auth/bot-policy'
 
-// Use getSessionCookie in your middleware to check auth status
-const sessionCookie = getSessionCookie(request)
+initBotId({ protect: BOT_ID_ROUTES })
 ```
 
----
+Use `rejectBotRequest()` from `@zntr/auth/bot-id` for app-owned API routes.
+Production verification requires Vercel's request/OIDC context; there is no
+missing-key bypass.
 
-## API Reference
+### Cross-app sessions
 
-### createAuth(options)
+`crossAppAuthConfig` returns the `advanced` and `trustedOrigins` values to pass
+to `createAuth`. Apps sharing cookies must use the same `AUTH_COOKIE_DOMAIN`,
+have byte-identical `BETTER_AUTH_SECRET` values, and be siblings under one
+registered domain. Leave `AUTH_COOKIE_DOMAIN` unset for host-only cookies.
 
-Creates a Better Auth server instance.
+### Rate limiting
 
-**Parameters:**
+`checkFixedWindowLimit(db, { name, subject, limit, windowSeconds })` uses one
+atomic PostgreSQL upsert and returns `{ allowed, retryAfter }`. Add
+`rateLimitCounters` to the app schema and run `cleanupRateLimitCounters(db)`
+from maintenance; rows do not expire on their own.
 
-| Parameter          | Type                  | Required | Description                                                 |
-| ------------------ | --------------------- | -------- | ----------------------------------------------------------- |
-| `db`               | `PgDatabase`          | ✅       | Drizzle ORM database instance                               |
-| `baseURL`          | `string`              | ❌       | App base URL; inferred from request if omitted              |
-| `trustedOrigins`   | `string[]`            | ✅       | Trusted origin domains for CORS and cookie validation       |
-| `emailCallbacks`   | `EmailCallbacks`      | ✅       | Email sending callbacks (see below)                         |
-| `plugins`          | `PluginOptions`       | ❌       | Built-in plugin configuration                               |
-| `password`         | `PasswordHashOptions` | ✅       | Password hash/verify functions                              |
-| `secret`           | `string`              | ❌       | Auth secret; defaults to `BETTER_AUTH_SECRET` env var       |
-| `disableCsrfCheck` | `boolean`             | ❌       | Disable CSRF check, defaults to `false`                     |
-| `isDev`            | `boolean`             | ❌       | Development mode; enables console.warn, defaults to `false` |
+## Schema and migrations
 
-**Return value:**
+`@zntr/auth/schema` exports the core tables (`user`, `session`, `account`,
+`verification`, `twoFactor`) plus the OAuth/JWKS/device tables. Re-export the
+tables an app needs from its own Drizzle schema so relations and app tables can
+reference them. Include `rateLimitCounters` when using the shared limiter.
 
-```ts
-{
-  auth: AuthInstance      // Better Auth instance for API routes and server-side calls
-  enabledPlugins: {       // Enabled plugins, pass to client
-    twoFactor?: boolean
-    sentinel?: boolean
-    emailOTP?: boolean
-  }
-}
-```
-
-**EmailCallbacks:**
-
-| Callback                      | Required | Description                                                            |
-| ----------------------------- | -------- | ---------------------------------------------------------------------- |
-| `sendResetPassword`           | ✅       | Send password reset email                                              |
-| `sendVerificationEmail`       | ✅       | Send email verification                                                |
-| `sendChangeEmailVerification` | ❌       | Send email change verification                                         |
-| `sendVerificationOTP`         | ❌       | Send OTP code (strongly recommended when `emailOTP` plugin is enabled) |
-
-**PluginOptions:**
-
-All plugins support `true` (enable with defaults), `false`/`undefined` (disable), or an object (enable with overrides):
-
-```ts
-type PluginOptions = {
-  twoFactor?: boolean | { issuer?: string; otpLength?: number }
-  sentinel?: boolean | SentinelOptions
-  emailOTP?:
-    | boolean
-    | {
-        changeEmail?: { enabled: boolean }
-        otpLength?: number
-        expiresIn?: number
-      }
-}
-```
-
-### createAuthClient(options)
-
-Creates a Better Auth client instance.
-
-**Parameters:**
-
-| Parameter | Type                       | Required | Description         |
-| --------- | -------------------------- | -------- | ------------------- |
-| `baseURL` | `string`                   | ❌       | API base URL        |
-| `plugins` | `BetterAuthClientPlugin[]` | ❌       | Client plugin array |
-
-> **Note:** You don't need to pass `enabledPlugins` directly. Instead, dynamically build the `plugins` array based on `enabledPlugins` values (see example above).
-
-### createDrizzleAdapter(db, options?)
-
-Creates a Drizzle ORM adapter.
-
-**Parameters:**
-
-| Parameter          | Type                          | Required | Description                       |
-| ------------------ | ----------------------------- | -------- | --------------------------------- |
-| `db`               | `PgDatabase`                  | ✅       | Drizzle ORM instance              |
-| `options.provider` | `'pg' \| 'mysql' \| 'sqlite'` | ❌       | Database type, defaults to `'pg'` |
-| `options.schema`   | `Partial<AuthSchema>`         | ❌       | Optional schema extension         |
-
-> Usually you don't need to use this function directly — `createAuth` handles adapter creation internally.
-
----
-
-## Schema
-
-`@zntr/auth/schema` exports the following database table definitions:
-
-| Table          | Description               |
-| -------------- | ------------------------- |
-| `user`         | User accounts             |
-| `session`      | Active sessions           |
-| `account`      | OAuth/social accounts     |
-| `verification` | Email verification tokens |
-| `twoFactor`    | Two-factor authentication |
-
-There is also an `authSchema` object containing references to all tables, used by the Drizzle adapter.
-
-### Schema Extension
-
-If you need to add custom fields to the `user` table, extend it on the consumer side:
-
-```ts
-import { user as baseUser } from '@zntr/auth/schema'
-// Note: extending the user table requires modifying Better Auth's additionalFields config
-```
-
-### Database Migrations
-
-`@zntr/auth` provides schema definitions but **does not generate migration files**. Consumers must run:
+All app migrations live in `apps/calendar/drizzle/`. **`drizzle-kit generate`
+does not work in this repository.** When changing a table, hand-write the SQL
+migration in that directory and mirror the change in the Drizzle schema.
 
 ```bash
-# Generate migration
-bun x --no-install drizzle-kit generate
-
-# Apply to database
+# Apply committed migrations from apps/calendar
 bun x --no-install drizzle-kit migrate
 ```
 
-The consumer's `drizzle.config.ts` should point to the schema file containing all tables (auth + app tables):
+For upgrades from Better Auth 1.7.0–1.7.2, apply
+`0022_relax_legacy_account_issuer.sql` before deploying 1.7.3 or later.
 
-```ts
-// drizzle.config.ts
-export default defineConfig({
-  schema: './lib/drizzle/schema.ts',
-  out: './drizzle',
-  dialect: 'postgresql',
-  dbCredentials: {
-    url: process.env.POSTGRES_URL || process.env.DATABASE_URL!,
-  },
-})
-```
+## Environment
 
-The consumer's schema file should re-export auth tables and define app tables:
-
-```ts
-// lib/drizzle/schema.ts
-import { pgTable, text } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
-
-// Re-export auth tables
-import {
-  user,
-  session,
-  account,
-  verification,
-  twoFactor,
-} from '@zntr/auth/schema'
-export { user, session, account, verification, twoFactor }
-
-// Define app tables
-export const calendarEvents = pgTable('calendar_events', {/* ... */})
-
-// Define relations (between auth tables and app tables)
-export const userRelations = relations(user, ({ many }) => ({
-  sessions: many(session),
-  calendarEvents: many(calendarEvents),
-  // ...
-}))
-```
-
----
-
-## Environment Variables
-
-`@zntr/auth` relies on the following environment variables (provided by the consumer):
-
-| Variable                         | Required | Description                             |
-| -------------------------------- | -------- | --------------------------------------- |
-| `BETTER_AUTH_SECRET`             | ✅       | Auth secret for signing session cookies |
-| `BETTER_AUTH_URL`                | ❌       | Better Auth service URL                 |
-| `BETTER_AUTH_API_KEY`            | ❌       | Sentinel security plugin API key        |
-| `POSTGRES_URL` or `DATABASE_URL` | ✅       | PostgreSQL connection string            |
-
----
-
-## FAQ
-
-### Q: How do I customize the password hashing algorithm?
-
-Pass custom hash/verify functions via the `password` parameter:
-
-```ts
-createAuth({
-  password: {
-    hash: async (pw) => myCustomHash(pw),
-    verify: async ({ hash, password }) => myCustomVerify(hash, password),
-  },
-  // ...
-})
-```
-
-### Q: How do I disable a plugin?
-
-Set it to `false` or omit it in the `plugins` object:
-
-```ts
-plugins: {
-  twoFactor: false,        // disabled
-  sentinel: true,          // enabled with defaults
-  // emailOTP not mentioned = disabled
-}
-```
-
-### Q: What happens if the server disables a plugin but the client still loads it?
-
-**They must stay in sync.** The `enabledPlugins` returned by `createAuth` explicitly identifies which plugins the server has enabled. The client should dynamically load based on `enabledPlugins`. If the client loads a plugin that the server didn't enable, calling plugin methods will result in `undefined` errors.
-
-### Q: What happens if I don't set `baseURL`?
-
-Better Auth infers the URL from the current request's `Origin` header. This works in most cases but may produce unexpected URLs in email link generation (password reset, email verification). It's recommended to set `baseURL` explicitly.
-
-### Q: How do I integrate custom email sending?
-
-Pass your email sending logic via `emailCallbacks`. The function receives `{ user, url }` or `{ email, otp, type }` and you implement the sending:
-
-```ts
-emailCallbacks: {
-  sendResetPassword: async ({ user, url }) => {
-    await myEmailService.send({
-      to: user.email,
-      subject: 'Reset your password',
-      body: `Click here: ${url}`,
-    })
-  },
-  // ...
-}
-```
-
-### Q: What's the difference between this package and using `better-auth` directly?
-
-1. **Unified configuration** — all consumers use the same plugin combination and security config
-2. **Type safety** — predefined types ensure correct configuration
-3. **Centralized schema** — auth table definitions live in one place, consumers just re-export
-4. **Version pinning** — prevents multiple consumers from using different better-auth versions
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────┐
-│           Consumer App (e.g. zentra-calendar) │
-│                                         │
-│  lib/auth.ts    ← @zntr/auth/server     │
-│  lib/auth/client.ts ← @zntr/auth/client │
-│  lib/drizzle/schema.ts ← re-export      │
-│  drizzle.config.ts ← consumer's own      │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│              @zntr/auth                 │
-│                                         │
-│  schema.ts    → auth table definitions   │
-│  adapter.ts   → drizzle adapter factory  │
-│  server.ts    → createAuth() factory     │
-│  client.ts    → createAuthClient() + plugins │
-│  types.ts     → all types                │
-│  index.ts     → barrel export            │
-└─────────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│         better-auth@1.6.20              │
-│  + @better-auth/drizzle-adapter         │
-│  + @better-auth/infra (sentinel)        │
-└─────────────────────────────────────────┘
-```
-
----
+| Variable                         | Used for                                                                           |
+| -------------------------------- | ---------------------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET`             | Signing sessions; required in production and identical across apps sharing cookies |
+| `BETTER_AUTH_URL`                | Canonical Better Auth base URL when supplied as `baseURL`                          |
+| `BETTER_AUTH_API_KEY`            | Optional Sentinel integration                                                      |
+| `RESEND_API_KEY`                 | Required by `resendSender()`                                                       |
+| `RESEND_SENDER_ADDRESS`          | Optional default mailbox used by `authEmailBrand`                                  |
+| `NEXT_PUBLIC_BASE_URL`           | Fallback brand base URL and app-owned public URL configuration                     |
+| `AUTH_COOKIE_DOMAIN`             | Optional shared parent domain for cross-app cookies                                |
+| `POSTGRES_URL` or `DATABASE_URL` | Consumer app's Drizzle connection                                                  |
 
 ## Development
 
+Run commands from the repository root:
+
 ```bash
-# Type check
 bun run --filter @zntr/auth type-check
-
-# Lint
-bun run --filter @zntr/auth lint
-
-# Build
-bun run --filter @zntr/auth build
-
-# Test
+bun run --filter @zntr/auth lint:check
 bun run --filter @zntr/auth test
+bun run --filter @zntr/auth test:watch
+bun run --filter @zntr/auth build
 ```
+
+Database-backed tests use `AUTH_TEST_POSTGRES_URL` and skip when it is unset.
+Point it only at a disposable database: the test harness truncates its tables.

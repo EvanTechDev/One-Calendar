@@ -1,56 +1,93 @@
-# Translation
+# @zntr/i18n translation workflow
 
-The **Translate** GitHub Actions workflow accepts a custom OpenAI Chat
-Completions-compatible API. Configure these repository settings under
-**Settings → Secrets and variables → Actions**:
+Translate calendar locale JSON with the pinned Lingo CLI and a custom OpenAI
+Chat Completions-compatible API. The checked-in locale list and translation
+prompt remain in `i18n.json`; endpoint overrides are temporary and credentials
+are passed only through the environment.
 
-| Kind     | Name                   | Value                                                  |
-| -------- | ---------------------- | ------------------------------------------------------ |
-| Variable | `TRANSLATION_BASE_URL` | API base URL, for example `https://api.example.com/v1` |
-| Variable | `TRANSLATION_MODEL`    | A model name supported by that service                 |
-| Secret   | `TRANSLATION_API_KEY`  | The service's API key                                  |
+## Configuration
 
-Base URL and model may also be repository secrets with the same names. If both
-are set, the repository variable takes precedence. The API key must be a secret.
+Set these under **Settings → Secrets and variables → Actions**:
 
-Use the base URL, not the full `/chat/completions` endpoint. The service must
-support JSON translation responses. All three settings are required; missing
-configuration stops the workflow instead of falling back to Mistral.
+| Setting                   | Actions configuration                 | Purpose                                                    |
+| ------------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| `TRANSLATION_BASE_URL`    | Variable or secret; the variable wins | HTTP(S) API base URL, such as `https://api.example.com/v1` |
+| `TRANSLATION_MODEL`       | Variable or secret; the variable wins | Model supported by that service                            |
+| `TRANSLATION_API_KEY`     | Secret only                           | API credential, passed to Lingo through the environment    |
+| `TRANSLATION_CONCURRENCY` | Optional variable                     | Concurrent translation jobs, from 1 to 10; defaults to 3   |
 
-Run **Actions → Translate → Run workflow → Branch: dev** to translate dev
-without merging into main. Automatic runs still follow main's existing English
-locale/config changes. Runs commit generated locale files and `i18n.lock`
-back to the selected branch, including completed work when another locale fails.
-Partial failures still mark the workflow as failed. The output is also uploaded
-as an artifact, so it remains recoverable if the commit or push fails.
-The wrapper restores the previous `i18n.lock` on failure: completed locale files
-are saved, but failed locales are not incorrectly marked current.
+Translation and API diagnostics require the base URL, model, and API key.
+Missing configuration fails instead of falling back to Mistral. Supply the base
+URL, not its `/chat/completions` endpoint, and use a service that returns JSON
+translation responses.
 
-Translations use three concurrent jobs by default. Set the optional repository
-variable `TRANSLATION_CONCURRENCY` (1–10) to match the service's capacity. Runs
-on the same branch are serialized to avoid competing translation commits.
+## GitHub Actions
 
-After completing translations manually, select **lockfile_only** in Run
-workflow. Actions checks all target locales for missing keys, placeholders and
-protected names, then runs `lingo.dev lockfile --force`. Lingo generates its own
-checksums without contacting the translation API or rewriting locale content.
+Pushes to `main` run **Translate** when `i18n.json` or the English calendar
+locale changes. For any branch, use **Actions → Translate → Run workflow** and
+select the target branch; generated locale files and `i18n.lock` are committed
+back to that branch.
 
-For a partial retry, enter comma-separated `locales` (for example
-`bn,el,zh-HK`) and optionally `concurrency: 1` in Run workflow. Only those
-locales are processed. If an older workflow already advanced `i18n.lock` during
-a partial failure, set `checksum_ref` to that run's source commit SHA to include
-changed existing strings as well as missing keys. The current lockfile is
-restored after every targeted retry. The equivalent local environment settings
-are `TRANSLATION_LOCALES` and `TRANSLATION_CHECKSUM_REF`.
+| Dispatch input  | Behavior                                                                     |
+| --------------- | ---------------------------------------------------------------------------- |
+| `locales`       | Comma-separated targets; empty processes every configured target             |
+| `concurrency`   | Per-run override from 1 to 10; takes precedence over the repository variable |
+| `checksum_ref`  | Earlier commit SHA used only with explicit locales for a partial retry       |
+| `lockfile_only` | Validate completed translations and rebuild checksums without API calls      |
+| `diagnose`      | Inspect the API response structure without translating or committing output  |
 
-`bun run --filter @zntr/i18n translate` runs the same wrapper when the three
-environment variables are provided. It preserves the locales and translation
-prompt in `i18n.json`, temporarily substitutes the configured endpoint/model,
-and restores the original configuration after the pinned Lingo CLI finishes.
-The key is passed only through the environment. Lingo's OpenRouter adapter is
-used for its Chat Completions transport and custom `baseUrl` support; an
-OpenRouter account is not required.
+Runs on the same branch are serialized without cancelling the active run, so
+translation commits do not race. Non-diagnostic locale and lockfile output is
+also uploaded as an artifact.
 
-The CLI is installed from the frozen workspace lockfile. Its provider is pinned
-to the AI SDK 6-compatible stable adapter because the upstream alpha adapter
-rejects otherwise valid Chat Completions responses from custom services.
+### Partial retries
+
+Enter only the locales to retry, for example `bn,el,zh-HK`, and optionally set
+`concurrency` to `1`. Unknown targets fail validation.
+
+If an older run advanced `i18n.lock` despite a partial failure, set
+`checksum_ref` to that run's source commit SHA. The wrapper temporarily uses
+that committed lockfile so changed existing strings are eligible alongside
+missing keys. A checksum reference requires explicit locales, and every
+targeted retry restores the current lockfile afterward.
+
+### Lockfile-only refresh
+
+Select `lockfile_only` after completing translations manually. The workflow
+checks every target locale for missing keys, structural mismatches,
+placeholders, and protected names, then runs:
+
+```sh
+bun x --no-install lingo.dev lockfile --force
+```
+
+Lingo generates its own checksums without contacting the translation API or
+rewriting locale content.
+
+## Local translation
+
+Install workspace dependencies first, then run from the repository root:
+
+```sh
+TRANSLATION_BASE_URL=https://api.example.com/v1 \
+TRANSLATION_API_KEY=your-api-key \
+TRANSLATION_MODEL=your-model \
+bun run --filter @zntr/i18n translate
+```
+
+Optional environment variables mirror workflow dispatch:
+`TRANSLATION_CONCURRENCY`, `TRANSLATION_LOCALES`, and
+`TRANSLATION_CHECKSUM_REF`. The local wrapper runs the same pinned CLI through
+`bun x --no-install`. Its OpenRouter adapter supplies Chat Completions
+transport and custom `baseUrl` support; an OpenRouter account is not required.
+
+## Concurrency and failures
+
+- Lingo defaults to three concurrent jobs; values outside 1–10 are rejected.
+- The wrapper always restores the original `i18n.json` after the CLI exits.
+- A failed full run restores the previous `i18n.lock`, while completed locale
+  files remain available. Targeted runs restore the lockfile on success too.
+- After a translation failure, Actions still uploads the output and attempts
+  to commit completed work, but the workflow remains failed. The artifact
+  remains recoverable if the later commit or push fails.
+- Local failures return a non-zero exit status; they do not create commits.

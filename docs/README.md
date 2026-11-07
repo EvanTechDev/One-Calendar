@@ -1,42 +1,42 @@
 # Zentra Docs
 
-English user documentation for Zentra Calendar and Zentra Meet. The 24 pages cover planning and organizing a schedule, coordinating with others, automation, meeting preparation, live collaboration, and follow-up.
+English user documentation for Zentra Calendar and Zentra Meet: 24 pages covering scheduling, coordination, automation, meeting preparation, live collaboration, and follow-up.
+
+**Quick links:** [Commands](#commands) · [Content guide](#content-guide) · [Layout contract](#layout-contract) · [Fumadocs constraints](#fumadocs-constraints) · [Deploy](#deploy)
+
+## Commands
+
+Run from the repository root; all dependencies use the root `bun.lock`.
+
+| Task                                                | Command                                  |
+| --------------------------------------------------- | ---------------------------------------- |
+| Start the docs on port 3002                         | `bun run --filter @zntr/docs dev`        |
+| Generate MDX and route types, then check TypeScript | `bun run --filter @zntr/docs type-check` |
+| Lint without fixing                                 | `bun run --filter @zntr/docs lint:check` |
+| Compile and test the real MDX pipeline              | `bun run --filter @zntr/docs test:mdx`   |
+| Create a production build                           | `bun run --filter @zntr/docs build`      |
+
+`type-check` does not start a server. `lint` applies oxlint fixes, while `lint:check` is read-only; both use `../config/oxlint.json`. From the repository root, use `bun run format` or `bun run format:check` for the shared `bun fmt` configuration in `bunfig.toml`.
 
 ## Maintain content
 
-Pages live in `content/docs/`; each folder's `meta.json` controls navigation. Before changing a page, check its user goal and source files in the [content guide](#content-guide). Frontmatter requires a title, description, and content metadata.
-
-Markdown exports, `/llms.txt`, and `/llms-full.txt` use the same MDX as the website. Search uses Fumadocs' English index.
-
-For inline emphasis, use `<strong>` or `<em>` within a paragraph instead of Markdown emphasis markers. This avoids the current Fumadocs serializer's recursion on bold and italic Markdown when an installation resolves `mdast-util-to-markdown` 2.1.3.
-
-## Layout
-
-Use the layout from commit `1cc1b28` with a compact type scale: a fixed navigation column, a top toolbar, an article column, and a right-hand table of contents. Keep the current neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
-
-The toolbar and sidebar header share a 56px height. Desktop search and theme buttons are 32px with 15px icons. Sidebar groups and document links share a 14px font, with 4px between groups and 4px before their document lists. Article text is 15px; the right-hand table of contents uses 12px text. It appears from 1100px wide, including 1200×720 screens; narrower screens use the top popover. Between 1100px and 1279px, the navigation and TOC columns narrow to leave room for the article. Keep this breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. The article footer reserves 48px above previous/next navigation, reduced to 32px on mobile. Its cards show Previous or Next followed by the article title, using the template's existing footer component.
-
-The TOC reserves its full width in the grid: 292px below 1280px and 334px on larger desktop screens, with 12px of trailing padding. The sidebar is 304px wide, narrows to 272px between 1100px and 1279px, and grows to 324px from 1600px. Adjust grid widths rather than translating the TOC over the article. The article and its body can shrink within their column, keeping text separate from the TOC.
-
-`lib/layout.shared.tsx` configures Zentra's brand, navigation search, and resource links. `components/docs-toolbar.tsx` places breadcrumbs and page controls above the article. `components/ai/page-actions.tsx` retains the template's split copy button and Markdown, GitHub, and AI menus. The home page adds grouped four-column topic cards, which reflow to two or one column on smaller screens. `components/topic-cards.tsx` renders those cards; their scoped styles live in `app/global.css`. The release timeline at `/changelog` shares the Docs layout and toolbar; maintain its entries separately in `content/changelog/`.
-
-The sidebar omits the home page from its document list; the top Docs wordmark links to `/docs`. Its resource links include Docs, Changelog, GitHub, and Report an issue; Open app remains in the toolbar. A soft mask fades scrolling labels over 32px at the top and 48px at the bottom, blending into the fixed header and resource links. Matching vertical padding keeps the first and last rows clear when scrolled to either end.
-
-`components/toc.tsx` and `components/toc-slots.tsx` preserve the straight-line table of contents from the template's Fumadocs UI 16.8.1, including its mobile popover. The current library's default TOC uses a different animated track, so use these local slots rather than switching back to that default. Their upstream MIT notice is in `components/toc.LICENSE`.
-
-Below 768px, toolbar controls, navigation rows, and TOC links have 44px touch targets. Copy page remains in the existing page-actions menu; its separate toolbar button is hidden to leave space for the current title. The navigation drawer opens from the left, with a Zentra logo and “Zentra | Docs” wordmark beside the existing close control. The brand link returns to `/docs` and closes the drawer, including when already on the home page. `components/mobile-sidebar-brand.tsx` uses the sidebar banner slot without replacing its navigation. The drawer uses the dynamic viewport height, a shorter 24px edge fade, and safe-area padding. The mobile TOC row is 44px tall, with its open list constrained to the available screen height. Keep its reserved grid height and trigger height in sync.
-
-At 600px and below, home cards become single-column horizontal links. Mobile articles use tighter heading spacing, locally scrolling tables, and stacked previous/next cards. Keep wide content inside its own scroll container rather than hiding article overflow.
+- Pages live in `content/docs/`; each folder's `meta.json` controls navigation.
+- Frontmatter requires a title, description, and content metadata.
+- Before editing, check the page's reader goal and behavior sources in the [content guide](#content-guide).
+- Markdown exports, `/llms.txt`, and `/llms-full.txt` use the same MDX as the website. Search uses Fumadocs' English index.
 
 ## Content guide
 
-Write for people making scheduling and meeting decisions, not for developers learning our implementation. Start with the task and its effect on data, then explain choices, examples, permissions, lifecycle, and failure recovery where relevant. Avoid padding pages with instructions for obvious clicks.
+Write for people making scheduling and meeting decisions, not developers learning the implementation.
 
-The organizational references are Linear's [Cycles](https://linear.app/docs/use-cycles), [Custom views](https://linear.app/docs/custom-views), and [Notifications](https://linear.app/docs/notifications), consulted through Context7. Their useful pattern is a focused overview followed by concrete behavior, interactions between settings, and exceptions. They are writing references, not evidence of Zentra features.
+- Start with the task and its effect on data. Add choices, examples, permissions, lifecycle, and failure recovery only where relevant; do not document obvious clicks.
+- Give each page one primary purpose. Use tables for real choices, steps for sequences, and links for details owned by another guide.
+- Distinguish searching from acting, hiding from deleting, participant access from ownership, and live delivery from retained history.
+- Every behavior claim must match the sources below. Overview and troubleshooting pages synthesize these guides rather than defining separate behavior.
 
-Keep one primary purpose per page. Use tables to compare real choices, steps for a sequence, and links for details owned by another guide. Distinguish searching from acting, hiding from deleting, participant access from ownership, and live delivery from retained history. Every behavior claim must match the source below; do not fill gaps with assumptions about another calendar or meeting product.
+Linear's [Cycles](https://linear.app/docs/use-cycles), [Custom views](https://linear.app/docs/custom-views), and [Notifications](https://linear.app/docs/notifications), consulted through Context7, are organizational references: a focused overview followed by concrete behavior, interacting settings, and exceptions. They are writing references, **not evidence of Zentra features**.
 
-Paths in this table are relative to the repository root. Overview and troubleshooting pages synthesize these guides rather than defining separate behavior.
+Paths below are relative to the repository root.
 
 | Pages                                                     | Reader's decision                                        | Source of behavior                                                                                                                                                                                                               |
 | --------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -54,26 +54,60 @@ Paths in this table are relative to the repository root. Overview and troublesho
 | `meet/chat`, `meet/history`                               | Distinguish live participation from saved records        | `apps/meet/hooks/use-room-chat.ts`; `apps/meet/app/api/meetings/[id]/chat/route.ts`; `apps/meet/hooks/use-upcoming-meetings.ts`; `packages/shared/meetings/operations.ts`                                                        |
 | `integrations/mcp`                                        | Authorize, inspect, and revoke an external client        | `packages/shared/calendar/lib/mcp/types.ts`; `apps/calendar/lib/mcp/server.ts`; `packages/shared/calendar/components/settings/mcp-settings.tsx`                                                                                  |
 
-When checking content, compile the real MDX, validate internal routes and heading links, and exercise English search using representative terms from new topics. A passing type check alone does not establish that instructions are accurate or pages are discoverable.
+### Validate changes
 
-## Workspace commands
+Compile the real MDX, validate internal routes and heading links, and exercise English search with representative terms from new topics. A passing type check alone does not prove that instructions are accurate or pages are discoverable.
 
-Run these from the repository root. Dependencies use the root `bun.lock`.
+`test:mdx` compiles every page through Fumadocs' production MDX loader and verifies that explicit emphasis elements survive Markdown export, without running a Next.js build.
 
-```sh
-bun run --filter @zntr/docs dev
-bun run --filter @zntr/docs type-check
-bun run --filter @zntr/docs lint:check
-bun run --filter @zntr/docs test:mdx
-bun run --filter @zntr/docs build
-```
+## Layout contract
 
-The development port is 3002. `type-check` generates MDX and Next.js route types, then checks TypeScript without starting a server. `lint` runs oxlint with fixes; `lint:check` checks without fixing. Both use `../config/oxlint.json`. Formatting uses `bun fmt` with the root `bunfig.toml` configuration. Run `bun run format` or `bun run format:check` from the repository root.
+Preserve the layout from commit `1cc1b28`: compact type, a fixed navigation column, top toolbar, article column, and right-hand table of contents. Keep the neutral grey/white palette, Inter and JetBrains Mono, and the supplied template's callouts, code blocks, tabs, and page actions.
 
-`test:mdx` compiles all documentation pages through Fumadocs' production MDX loader and checks that explicit emphasis elements survive Markdown export without running a Next.js build. The workspace also pins `mdast-util-to-markdown` to 2.1.2 as a dependency-level precaution ([upstream issue](https://github.com/fuma-nama/fumadocs/issues/3604)).
+### Desktop geometry
+
+| Element                          | Contract                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Toolbar and sidebar header       | Shared 56px height                                                                                                  |
+| Desktop search and theme buttons | 32px controls with 15px icons                                                                                       |
+| Sidebar                          | 14px group and document links; 4px between groups and 4px before document lists                                     |
+| Article and TOC                  | 15px article text; 12px TOC text                                                                                    |
+| TOC visibility                   | Right-hand TOC from 1100px, including 1200×720; narrower screens use the top popover                                |
+| TOC grid width                   | 292px below 1280px and 334px on larger desktops, plus 12px trailing padding                                         |
+| Sidebar width                    | 304px by default; 272px from 1100–1279px; 324px from 1600px                                                         |
+| Article footer                   | 48px above previous/next navigation, reduced to 32px on mobile; cards show Previous or Next, then the article title |
+
+From 1100–1279px, narrow the navigation and TOC columns to preserve article space. Reserve the TOC's full grid width and adjust grid columns rather than translating it over the article. The article and body may shrink within their column, but text must remain separate from the TOC. Keep the breakpoint aligned in `components/toc-slots.tsx` and `app/global.css`. Use the template's existing footer component.
+
+### Components and navigation
+
+| Location                                       | Responsibility                                                                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `lib/layout.shared.tsx`                        | Zentra brand, navigation search, and resource links                                      |
+| `components/docs-toolbar.tsx`                  | Breadcrumbs and page controls above the article                                          |
+| `components/ai/page-actions.tsx`               | Template split copy button plus Markdown, GitHub, and AI menus                           |
+| `components/topic-cards.tsx`, `app/global.css` | Grouped home cards and their scoped styles; four columns reflow to two or one            |
+| `content/changelog/`                           | Separately maintained entries for `/changelog`, which shares the Docs layout and toolbar |
+
+The sidebar omits the home page; the top Docs wordmark links to `/docs`. Resource links are Docs, Changelog, GitHub, and Report an issue, while Open app stays in the toolbar. A soft mask fades scrolling labels over 32px at the top and 48px at the bottom, blending into the fixed header and resource links. Matching vertical padding keeps the first and last rows clear at either scroll end.
+
+### Mobile and narrow screens
+
+- **Below 768px:** toolbar controls, navigation rows, and TOC links have 44px touch targets. Copy page remains in page actions; hide its separate toolbar button to preserve space for the current title.
+- **Navigation drawer:** opens from the left with the Zentra logo and “Zentra | Docs” beside the existing close control. The brand returns to `/docs` and closes the drawer, even when already home. `components/mobile-sidebar-brand.tsx` uses the sidebar banner slot without replacing navigation.
+- **Mobile viewport:** the drawer uses dynamic viewport height, a 24px edge fade, and safe-area padding. The TOC row is 44px tall; constrain its open list to the available height and keep reserved grid and trigger heights synchronized.
+- **At 600px and below:** home cards become single-column horizontal links. Articles use tighter heading spacing, locally scrolling tables, and stacked previous/next cards. Wide content stays in its own scroll container; do not hide article overflow.
+
+## Fumadocs constraints
+
+- For inline emphasis, use `<strong>` or `<em>` inside a paragraph instead of Markdown emphasis markers. The current Fumadocs serializer can recurse on bold and italic Markdown when an installation resolves `mdast-util-to-markdown` 2.1.3.
+- The workspace pins `mdast-util-to-markdown` to 2.1.2 as a dependency-level precaution; see the [upstream issue](https://github.com/fuma-nama/fumadocs/issues/3604).
+- `components/toc.tsx` and `components/toc-slots.tsx` preserve the straight-line TOC and mobile popover from the template's Fumadocs UI 16.8.1. The current library default uses a different animated track; retain these local slots instead of switching back to that default. The upstream MIT notice is in `components/toc.LICENSE`.
 
 ## Deploy
 
-Set the application root to `docs` and install dependencies from the workspace with `bun install --frozen-lockfile`. Use the Bun version declared in the root `package.json` and root lockfile so deployment applies the same dependency overrides. Set `BASE_URL` to the public documentation origin. Vercel's production and deployment host variables are also supported. This origin is used for canonical links and the Markdown index; it is not Calendar's MCP endpoint.
+Set the application root to `docs` and install workspace dependencies with `bun install --frozen-lockfile`. Use the Bun version declared in the root `package.json` together with the root lockfile so deployment applies the same dependency overrides.
+
+Set `BASE_URL` to the public documentation origin; Vercel's production and deployment host variables are also supported. This origin feeds canonical links and the Markdown index—it is not Calendar's MCP endpoint.
 
 Site metadata and repository links live in `lib/site.ts`. Icons use Zentra's existing brand assets. Next.js generates PNG social cards without remote fonts or image services.

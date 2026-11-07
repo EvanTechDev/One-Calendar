@@ -1,50 +1,67 @@
 # @zntr/agent
 
-The calendar copilot: tool definitions, instructions and parsing helpers
-behind the calendar app's AI features, built directly on the AI SDK.
+AI SDK building blocks for Zentra Calendar's copilot, natural-language
+quick-create, and semantic search. This package owns model-facing schemas,
+instructions, tools, and pure matching/scheduling logic; the calendar app owns
+authentication, provider configuration, and persistence.
 
-## Layout
+## Architecture and layout
 
-```
-src/
-  types.ts         CalendarToolkit port — what the agent can do, as an interface
-  tools.ts         Tool set (AI SDK native) bound to a toolkit at request time
-  parse.ts         NL quick-create: parseEventSchema + sanitize + instructions
-  scheduling.ts    Pure free-slot math (no Date libraries, no timezone deps)
-  instructions.ts  System prompt builder for the chat agent
-```
+| Source                                 | Responsibility                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------------- |
+| `src/types.ts`                         | `CalendarToolkit` port and event, category, bookmark, and countdown contracts |
+| `src/tools.ts`                         | `buildCalendarTools()`: AI SDK tools bound to a toolkit at request time       |
+| `src/instructions.ts`                  | System instructions for the chat agent                                        |
+| `src/parse.ts`                         | Quick-create schema, instructions, and field-level draft sanitization         |
+| `src/search.ts`, `src/search-match.ts` | Search-query compilation, validation, local matching, and ranking             |
+| `src/presets.ts`, `src/scheduling.ts`  | Named time ranges and dependency-light free-slot calculations                 |
+| `src/validation.ts`                    | Tool-input guards and the event-color vocabulary                              |
+| `src/gateway.ts`                       | Compact provider-error summaries without request-body logging                 |
 
-## Runtime
+## Chat vs. quick-create
 
-`apps/calendar/app/api/agent/chat/route.ts` builds the toolkit from the
-app's own database layer (per authenticated user), binds `src/tools.ts`
-and streams the result into the command palette.
+| Path                          | Model flow                                                                     | Result                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `POST /api/agent/chat`        | `streamText` with up to 12 tool-capable steps, followed by a tool-free summary | A streamed command-palette response; tools can read or change the signed-in user's calendar |
+| `POST /api/agent/parse-event` | One `generateObject` call; no tools or event writes                            | A sparse event draft for the create-event popover                                           |
 
-`apps/calendar/app/api/agent/parse-event/route.ts` does NOT use the tool
-loop: a single `generateObject` call parses one line of natural language
-into a sparse event draft for the create-event popover, with field-level
-degradation in `sanitizeParsedEvent` (an invalid field is dropped, the
-popover keeps the user's value).
+Quick-create drops invalid fields individually in `sanitizeParsedEvent`. An
+absent field means “not stated,” so the popover preserves its current value;
+the title falls back to the input text when necessary.
 
-## Why the port (CalendarToolkit)?
+Semantic search is a separate `POST /api/agent/search` flow. It compiles a
+query, scans all candidate pages locally, and may make one additional model
+call to expand expressions after a complete zero-match scan. Pagination reuses
+the sealed result ordering without another model call.
 
-The package must not import the app's database, crypto or cache layers —
-apps and packages only meet at interfaces in this repo (see AGENTS.md).
-The port also makes the agent testable with an in-memory toolkit:
-`tests/agent/`.
+## Toolkit boundary
 
-## Env
+`apps/calendar/lib/agent/toolkit.ts` implements `CalendarToolkit` with the same
+user-scoped functions used by the MCP server. A new toolkit closes over the
+authenticated user ID for each request, so toolkit methods do not accept a
+user ID and this package never imports application database, crypto, or cache
+code.
 
-- `GROQ_API_KEY` — required. Free keys: https://console.groq.com
-  Without it the calendar hides every AI affordance (build-time
-  `NEXT_PUBLIC_AI_ENABLED` flag) and the agent routes answer 503.
-- `GROQ_MODEL` — optional, defaults to `openai/gpt-oss-120b` (the strongest
-  tool-calling model on Groq's free tier; Llama 3.3 70B is Enterprise-only)
+Tool exceptions become `{ error }` results that the model can correct. The
+`delete_event` and `delete_countdown` tools require palette approval before
+execution. Tests in `tests/agent/` use in-memory toolkit implementations.
 
-## Rate limiting
+## Environment
 
-The chat route limits each user to 20 requests / 5 minutes and the
-parse-event route to 15 requests / minute, counted in the calendar's
-`rate_limit_counters` table. The counter is an `INSERT … ON CONFLICT DO
-UPDATE`, so concurrent requests cannot lose an increment, and it does not
-fail open: a budget that cannot be read is an error, not a free pass.
+| Variable                 | Behavior                                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `GROQ_API_KEY`           | Required for chat, quick-create, and new semantic searches; those requests return 503 when it is missing               |
+| `GROQ_MODEL`             | Optional Groq model override; defaults to `openai/gpt-oss-120b`                                                        |
+| `NEXT_PUBLIC_AI_ENABLED` | Derived at build time from the presence of `GROQ_API_KEY`; hides AI affordances when disabled without exposing the key |
+
+## Rate limits
+
+Limits are per authenticated user and use fixed-window counters in
+`rate_limit_counters`. An atomic `INSERT … ON CONFLICT DO UPDATE` prevents lost
+increments; counter failures do not fail open. Exhausted budgets return 429.
+
+| Bucket              | Limit                   |
+| ------------------- | ----------------------- |
+| `agent-chat`        | 20 requests / 5 minutes |
+| `agent-parse-event` | 15 requests / minute    |
+| `agent-search`      | 10 requests / minute    |
