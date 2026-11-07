@@ -1,8 +1,13 @@
 <div align="center">
-  <img width="1200" alt="Zentra" src="https://github.com/user-attachments/assets/44bc5cd4-4776-4db2-9cca-84d2855f6014" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/zentra-banner-dark.png" />
+    <source media="(prefers-color-scheme: light)" srcset="./.github/assets/zentra-banner-light.png" />
+    <img width="1500" height="500" alt="Zentra — The most open way to plan, meet, and get things done." src="./.github/assets/zentra-banner-light.png" />
+  </picture>
 
-[![CI](https://img.shields.io/github/actions/workflow/status/EvanTechDev/One-Calendar/build.yml?branch=dev&color=black)](https://github.com/EvanTechDev/One-Calendar/actions/workflows/build.yml)
+[![Vercel](https://vercelbadge.vercel.app/api/EvanTechDev/One-Calendar?style=flat-square)](https://vercel.com/tech-art/one-calendar)
 [![TypeScript](https://img.shields.io/badge/TypeScript-black?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Bun 1.4.4](https://img.shields.io/badge/Bun-1.4.4-black?logo=bun&logoColor=white)](https://bun.sh/)
 [![License](https://img.shields.io/github/license/EvanTechDev/One-Calendar?color=black)](./LICENSE)
 
   <p>
