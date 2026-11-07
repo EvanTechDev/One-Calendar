@@ -2,10 +2,10 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/zentra-banner-dark.png" />
     <source media="(prefers-color-scheme: light)" srcset="./.github/assets/zentra-banner-light.png" />
-    <img width="1500" height="500" alt="Zentra — The most open way to plan, meet, and get things done." src="./.github/assets/zentra-banner-light.png" />
+    <img alt="Zentra — The most open way to plan, meet, and get things done." src="./.github/assets/zentra-banner-light.png" />
   </picture>
 
-[![Vercel](https://vercelbadge.vercel.app/api/EvanTechDev/One-Calendar?style=flat-square)](https://vercel.com/tech-art/one-calendar)
+![Vercel](https://vercelbadge.vercel.app/api/EvanTechDev/One-Calendar?color=black)
 [![TypeScript](https://img.shields.io/badge/TypeScript-black?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun 1.4.4](https://img.shields.io/badge/Bun-1.4.4-black?logo=bun&logoColor=white)](https://bun.sh/)
 [![License](https://img.shields.io/github/license/EvanTechDev/One-Calendar?color=black)](./LICENSE)
@@ -20,8 +20,6 @@
 </div>
 
 ## Zentra
-
-**The most open way to plan, meet, and get things done.**
 
 Zentra is an open-source, self-hostable productivity suite for people who want to own their time and their data. It brings an AI-powered calendar, live video meetings, and a native desktop experience into one workspace, with scheduling, collaboration, reminders, secure identity, and offline access built in.
 
