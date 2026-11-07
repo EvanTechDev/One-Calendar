@@ -1,13 +1,18 @@
 <div align="center">
   <img width="1200" alt="Zentra" src="https://github.com/user-attachments/assets/44bc5cd4-4776-4db2-9cca-84d2855f6014" />
-</div>
 
-[![GitHub release](https://img.shields.io/github/v/release/EvanTechDev/One-Calendar?color=black)](https://github.com/EvanTechDev/One-Calendar/releases)
-[![GitHub downloads](https://img.shields.io/github/downloads/EvanTechDev/One-Calendar/total?color=black)](https://github.com/EvanTechDev/One-Calendar/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/EvanTechDev/One-Calendar/build.yml?branch=dev&color=black)](https://github.com/EvanTechDev/One-Calendar/actions/workflows/build.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-black?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Documentation](https://img.shields.io/badge/Documentation-black?logo=readme&logoColor=white)](https://docs.xyehr.cn/docs/one-calendar)
 [![License](https://img.shields.io/github/license/EvanTechDev/One-Calendar?color=black)](./LICENSE)
+
+  <p>
+    <a href="https://docs.xyehr.cn/docs/one-calendar">Documentation</a>
+    ·
+    <a href="https://xyehr.cn">Website</a>
+    ·
+    <a href="https://github.com/EvanTechDev/issues">Issues</a>
+  </p>
+</div>
 
 ## Zentra
 
