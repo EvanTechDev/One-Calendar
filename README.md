@@ -5,7 +5,7 @@
     <img width="1500" height="500" alt="Zentra — The most open way to plan, meet, and get things done." src="./.github/assets/zentra-banner-light.png" />
   </picture>
 
-[![Vercel](https://vercelbadge.vercel.app/api/EvanTechDev/One-Calendar?style=flat-square)](https://vercel.com/tech-art/one-calendar)
+[![Vercel Build](https://img.shields.io/badge/Vercel-Build%20Passing-black?logo=vercel&logoColor=white)](https://vercel.com/tech-art/one-calendar)
 [![TypeScript](https://img.shields.io/badge/TypeScript-black?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun 1.4.4](https://img.shields.io/badge/Bun-1.4.4-black?logo=bun&logoColor=white)](https://bun.sh/)
 [![License](https://img.shields.io/github/license/EvanTechDev/One-Calendar?color=black)](./LICENSE)
