@@ -185,6 +185,40 @@ describe('useLiveAnchorRect', () => {
     expect(result.current?.height).toBe(0)
   })
 
+  it('follows the create selection when it re-renders in another cell', async () => {
+    // Changing the draft date moves [data-create-selection] to a different
+    // day without any scroll or resize; the popover must follow at once.
+    const first = document.createElement('div')
+    first.setAttribute('data-create-selection', '')
+    Object.defineProperty(first, 'getBoundingClientRect', {
+      value: () => rect(100, 200, 120, 80),
+    })
+    document.body.appendChild(first)
+
+    const { result } = renderHook(() =>
+      useLiveAnchorRect({
+        open: true,
+        anchorSelector: '[data-create-selection]',
+      }),
+    )
+    expect(result.current?.left).toBe(100)
+
+    const next = document.createElement('div')
+    Object.defineProperty(next, 'getBoundingClientRect', {
+      value: () => rect(500, 400, 120, 80),
+    })
+    document.body.appendChild(next)
+    await act(async () => {
+      first.removeAttribute('data-create-selection')
+      next.setAttribute('data-create-selection', '')
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+    })
+
+    expect(result.current?.left).toBe(500)
+    expect(result.current?.top).toBe(400)
+  })
+
   it('moves the click rect with the element when the page scrolls', () => {
     // Live tracking must survive: on scroll the anchor shifts by the same
     // delta as the element, keeping the popover glued to the block.

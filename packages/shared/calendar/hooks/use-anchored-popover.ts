@@ -148,6 +148,33 @@ export function useLiveAnchorRect({
     }
     update()
 
+    // The anchor can move without any scroll or resize: changing the draft's
+    // date in the editor re-renders the create selection in another cell.
+    // Watch the calendar's DOM and re-measure once per frame.
+    let frame = 0
+    const scheduleUpdate = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        update()
+      })
+    }
+    const observer =
+      typeof MutationObserver === 'undefined'
+        ? null
+        : new MutationObserver(scheduleUpdate)
+    observer?.observe(scrollContainerRef?.current ?? document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: [
+        'data-create-selection',
+        'data-event-id',
+        'style',
+        'class',
+      ],
+    })
+
     const container = scrollContainerRef?.current
     // `passive` so the browser does not have to wait and see whether the
     // handler cancels the scroll: it reads `getBoundingClientRect`, so it runs
@@ -162,6 +189,8 @@ export function useLiveAnchorRect({
     })
 
     return () => {
+      observer?.disconnect()
+      if (frame) window.cancelAnimationFrame(frame)
       window.removeEventListener('scroll', update, true)
       window.removeEventListener('resize', update)
       container?.removeEventListener('scroll', update, true)

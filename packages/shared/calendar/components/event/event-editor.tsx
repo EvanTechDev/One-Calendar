@@ -1582,14 +1582,16 @@ export default function EventEditor({
                       )}
                     />
                     {AI_ENABLED && !event && !isAiParsing && (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         disabled={!title.trim()}
                         title={`${t.aiQuickCreateHint}. ${t.aiQuickCreateEnter}`}
                         aria-label={`${t.aiQuickCreateHint}. ${t.aiQuickCreateEnter}`}
                         onClick={() => void runAiParse()}
                         data-ready={title.trim() ? '' : undefined}
-                        className="event-ai-suggest absolute top-1/2 right-1.5 flex h-7 max-w-[58%] -translate-y-1/2 items-center gap-1.5 rounded-md px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none"
+                        className="event-ai-suggest absolute inset-y-0 right-1.5 my-auto h-7 max-w-[58%] gap-1.5 px-1.5 text-muted-foreground"
                       >
                         <AssistantIcon className="event-ai-suggest__icon size-3.5 shrink-0" />
                         <span className="event-ai-suggest__label truncate text-xs">
@@ -1601,7 +1603,7 @@ export default function EventEditor({
                         >
                           ↵
                         </span>
-                      </button>
+                      </Button>
                     )}
                     {isAiParsing && (
                       <div

@@ -892,13 +892,6 @@ html {
  * beside the placeholder. Once there is text it unfolds into a quiet sentence
  * with a return glyph, so the Enter shortcut reads as an offer, not a control.
  */
-.event-ai-suggest {
-  color: var(--muted-foreground);
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
 .event-ai-suggest__icon {
   opacity: 0.45;
   transition:
@@ -935,11 +928,6 @@ html {
   box-shadow:
     inset 0 0 0 1px var(--border),
     0 1px 0 var(--border);
-}
-
-.event-ai-suggest[data-ready]:hover {
-  color: var(--foreground);
-  background: color-mix(in oklab, #aa6eee 9%, transparent);
 }
 
 @keyframes event-ai-suggest-in {
