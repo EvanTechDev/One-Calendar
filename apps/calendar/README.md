@@ -1,25 +1,18 @@
 <div align="center">
-  <h1>Zentra Calendar</h1>
-  <p><strong>A calendar that works with you.</strong></p>
-  <p>Open-source scheduling with an AI agent, thoughtful collaboration, and no lock-in.</p>
-
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/a076623e-3132-42e4-a947-d3e3e3c0cf53">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1">
-    <img src="https://github.com/user-attachments/assets/1910076a-4db5-411f-8c4c-08a0148629b1" alt="Zentra Calendar week view">
+    <source media="(prefers-color-scheme: dark)" srcset="../../packages/shared/calendar/assets/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="../../packages/shared/calendar/assets/logo-light.svg">
+    <img src="../../packages/shared/calendar/assets/logo-light.svg" alt="Zentra Calendar logo" width="112" height="112">
   </picture>
+
+  <h1>Zentra Calendar</h1>
+  <p>Open-source scheduling with an AI agent, thoughtful collaboration, and no lock-in.</p>
 
   <p>
     <a href="https://calendar.xyehr.cn">Live product</a> ·
     <a href="https://calendarstatus.xyehr.cn">Status</a> ·
     <a href="../../docs">Documentation source</a> ·
     <a href="https://bsky.app/profile/calendar.xyehr.cn">Bluesky</a>
-  </p>
-
-  <p>
-    <a href="https://vercel.com/new/clone?repository-url=https://github.com/EvanTechDev/One-Calendar&env=NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_APP_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,POSTGRES_URL,SALT&project-name=zentra-calendar&repo-name=one-calendar"><img src="https://vercel.com/button" alt="Deploy with Vercel" height="32"></a>
-    &nbsp;
-    <a href="https://producthunt.com/product/one-calendar"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=955482&theme=light&t=1748791250175" alt="Zentra Calendar on Product Hunt" height="32"></a>
   </p>
 </div>
 
