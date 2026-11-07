@@ -292,7 +292,15 @@
   "noEventsFound": "Nie znaleziono wydarzeń",
   "less": "Mniej",
   "more": "Więcej",
-  "weekdays": ["Niedz.", "Pon.", "Wt.", "Śr.", "Czw.", "Pt.", "Sob."],
+  "weekdays": [
+    "Niedz.",
+    "Pon.",
+    "Wt.",
+    "Śr.",
+    "Czw.",
+    "Pt.",
+    "Sob."
+  ],
   "months": [
     "Sty",
     "Lut",
@@ -798,6 +806,5 @@
   "aiParseError": "AI nie mogło tego przetworzyć. Twój tekst został zachowany, wypełnij pola ręcznie",
   "aiParseRateLimited": "Zbyt wiele żądań AI. Spróbuj ponownie za minutę",
   "aiQuickCreateHint": "Opisz wydarzenie własnymi słowami",
-  "aiQuickCreateEnter": "Naciśnij Enter, a AI uzupełni szczegóły",
-  "aiQuickCreateWorking": "Przekształcamy Twój opis w wydarzenie"
+  "aiQuickCreateEnter": "Naciśnij Enter, a AI uzupełni szczegóły"
 }

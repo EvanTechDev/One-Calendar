@@ -292,7 +292,15 @@
   "noEventsFound": "Ni najdenih dogodkov",
   "less": "Manj",
   "more": "Več",
-  "weekdays": ["Ned", "Pon", "Tor", "Sre", "Čet", "Pet", "Sob"],
+  "weekdays": [
+    "Ned",
+    "Pon",
+    "Tor",
+    "Sre",
+    "Čet",
+    "Pet",
+    "Sob"
+  ],
   "months": [
     "Jan",
     "Feb",
@@ -798,6 +806,5 @@
   "aiParseError": "AI tega ni mogel razčleniti — vaše besedilo je bilo ohranjeno, izpolnite polja ročno",
   "aiParseRateLimited": "Preveč AI zahtev — poskusite znova čez minuto",
   "aiQuickCreateHint": "Opišite dogodek s svojimi besedami",
-  "aiQuickCreateEnter": "Pritisnite Enter in AI bo izpolnil podrobnosti",
-  "aiQuickCreateWorking": "Vaš opis spreminjamo v dogodek"
+  "aiQuickCreateEnter": "Pritisnite Enter in AI bo izpolnil podrobnosti"
 }

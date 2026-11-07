@@ -292,7 +292,15 @@
   "noEventsFound": "Nema pronađenih događaja",
   "less": "Manje",
   "more": "Više",
-  "weekdays": ["Ned", "Pon", "Uto", "Sre", "Čet", "Pet", "Sub"],
+  "weekdays": [
+    "Ned",
+    "Pon",
+    "Uto",
+    "Sre",
+    "Čet",
+    "Pet",
+    "Sub"
+  ],
   "months": [
     "Jan",
     "Feb",
@@ -798,6 +806,5 @@
   "aiParseError": "AI nije mogao da obradi to — vaš tekst je sačuvan, popunite polja ručno",
   "aiParseRateLimited": "Previše AI zahteva — pokušajte ponovo za minut",
   "aiQuickCreateHint": "Opišite događaj svojim rečima",
-  "aiQuickCreateEnter": "Pritisnite Enter i AI će popuniti detalje",
-  "aiQuickCreateWorking": "Vaš opis se pretvara u događaj"
+  "aiQuickCreateEnter": "Pritisnite Enter i AI će popuniti detalje"
 }

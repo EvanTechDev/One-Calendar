@@ -292,7 +292,15 @@
   "noEventsFound": "搵唔到事件",
   "less": "收埋",
   "more": "更多",
-  "weekdays": ["日", "一", "二", "三", "四", "五", "六"],
+  "weekdays": [
+    "日",
+    "一",
+    "二",
+    "三",
+    "四",
+    "五",
+    "六"
+  ],
   "months": [
     "1月",
     "2月",
@@ -454,7 +462,15 @@
   "protected": "已保護",
   "colorAmber": "琥珀色",
   "colorTeal": "藍綠色",
-  "sidebarCalendarWeekdaysShort": ["日", "一", "二", "三", "四", "五", "六"],
+  "sidebarCalendarWeekdaysShort": [
+    "日",
+    "一",
+    "二",
+    "三",
+    "四",
+    "五",
+    "六"
+  ],
   "sidebarCalendarMonthsLong": [
     "1月",
     "2月",
@@ -790,6 +806,5 @@
   "aiParseError": "AI 解析唔到,你嘅文字已保留,請手動填寫欄位",
   "aiParseRateLimited": "AI 請求太多,請一分鐘後再試",
   "aiQuickCreateHint": "用自己嘅說話描述日程",
-  "aiQuickCreateEnter": "撳 Enter 等 AI 填好資料",
-  "aiQuickCreateWorking": "正在將你嘅描述整理成日程"
+  "aiQuickCreateEnter": "撳 Enter 等 AI 填好資料"
 }

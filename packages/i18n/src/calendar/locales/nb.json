@@ -292,7 +292,15 @@
   "noEventsFound": "Ingen hendelser funnet",
   "less": "Mindre",
   "more": "Mer",
-  "weekdays": ["Søn", "Man", "Tir", "Ons", "Tor", "Fre", "Lør"],
+  "weekdays": [
+    "Søn",
+    "Man",
+    "Tir",
+    "Ons",
+    "Tor",
+    "Fre",
+    "Lør"
+  ],
   "months": [
     "Jan",
     "Feb",
@@ -798,6 +806,5 @@
   "aiParseError": "AI-en kunne ikke tolke det, teksten din ble beholdt, fyll inn feltene manuelt",
   "aiParseRateLimited": "For mange AI-forespørsler, prøv igjen om et minutt",
   "aiQuickCreateHint": "Beskriv avtalen med egne ord",
-  "aiQuickCreateEnter": "Trykk Enter, så fyller AI inn detaljene",
-  "aiQuickCreateWorking": "Gjør beskrivelsen din om til en avtale"
+  "aiQuickCreateEnter": "Trykk Enter, så fyller AI inn detaljene"
 }

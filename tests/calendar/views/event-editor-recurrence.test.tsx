@@ -130,7 +130,7 @@ describe('editing recurrence from an occurrence', () => {
       }),
     )
   })
-  it('makes AI quick-create discoverable and keeps the title mounted while composing', async () => {
+  it('makes AI quick-create discoverable and keeps the title mounted behind skeletons', async () => {
     let resolveResponse!: (response: {
       ok: boolean
       json: () => Promise<{ event: { title: string } }>
@@ -170,26 +170,16 @@ describe('editing recurrence from an occurrence', () => {
     fireEvent.change(title, { target: { value: 'Lunch with Mia tomorrow' } })
     fireEvent.click(screen.getByRole('button', { name: actionName }))
 
-    expect(
-      await screen.findByRole('status', {
-        name: 'Turning your words into a schedule',
-      }),
-    ).toBeInTheDocument()
+    await waitFor(() => expect(title).toHaveClass('opacity-0'))
     expect(screen.getByDisplayValue('Lunch with Mia tomorrow')).toBe(title)
     expect(title).toHaveAttribute('readonly')
-    // The title and composer remain visible; the rest of the form stays mounted.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 
     resolveResponse({
       ok: true,
       json: async () => ({ event: { title: 'Lunch with Mia' } }),
     })
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('status', {
-          name: 'Turning your words into a schedule',
-        }),
-      ).toBeNull(),
-    )
+    await waitFor(() => expect(title).not.toHaveClass('opacity-0'))
     expect(screen.getByDisplayValue('Lunch with Mia')).toBe(title)
   })
 

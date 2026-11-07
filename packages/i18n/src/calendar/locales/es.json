@@ -292,7 +292,15 @@
   "noEventsFound": "No se han encontrado eventos",
   "less": "Menos",
   "more": "Más",
-  "weekdays": ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+  "weekdays": [
+    "Dom",
+    "Lun",
+    "Mar",
+    "Mié",
+    "Jue",
+    "Vie",
+    "Sáb"
+  ],
   "months": [
     "Ene",
     "Feb",
@@ -798,6 +806,5 @@
   "aiParseError": "La IA no pudo interpretar eso: tu texto se conservó, por favor completa los campos manualmente",
   "aiParseRateLimited": "Demasiadas solicitudes de IA: inténtalo de nuevo en un minuto",
   "aiQuickCreateHint": "Describe el evento con tus palabras",
-  "aiQuickCreateEnter": "Pulsa Intro y la IA completará los detalles",
-  "aiQuickCreateWorking": "Convirtiendo tus palabras en un evento"
+  "aiQuickCreateEnter": "Pulsa Intro y la IA completará los detalles"
 }

@@ -292,7 +292,15 @@
   "noEventsFound": "Etkinlik bulunamadı",
   "less": "Daha az",
   "more": "Daha fazla",
-  "weekdays": ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"],
+  "weekdays": [
+    "Paz",
+    "Pzt",
+    "Sal",
+    "Çar",
+    "Per",
+    "Cum",
+    "Cmt"
+  ],
   "months": [
     "Oca",
     "Şub",
@@ -798,6 +806,5 @@
   "aiParseError": "Yapay zeka bunu işleyemedi; metniniz korundu, lütfen alanları manuel olarak doldurun",
   "aiParseRateLimited": "Çok fazla yapay zeka isteği; bir dakika sonra tekrar deneyin",
   "aiQuickCreateHint": "Etkinliği kendi sözcüklerinizle anlatın",
-  "aiQuickCreateEnter": "Enter tuşuna basın, yapay zeka ayrıntıları doldurur",
-  "aiQuickCreateWorking": "Sözleriniz bir etkinliğe dönüştürülüyor"
+  "aiQuickCreateEnter": "Enter tuşuna basın, yapay zeka ayrıntıları doldurur"
 }

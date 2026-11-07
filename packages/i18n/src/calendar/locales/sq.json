@@ -292,7 +292,15 @@
   "noEventsFound": "Nuk u gjetën ngjarje",
   "less": "Më pak",
   "more": "Më shumë",
-  "weekdays": ["Die", "Hën", "Mar", "Mër", "Enj", "Pre", "Sht"],
+  "weekdays": [
+    "Die",
+    "Hën",
+    "Mar",
+    "Mër",
+    "Enj",
+    "Pre",
+    "Sht"
+  ],
   "months": [
     "Jan",
     "Shk",
@@ -798,6 +806,5 @@
   "aiParseError": "AI nuk mundi ta përpunonte — teksti juaj u ruajt, ju lutemi plotësoni fushat manualisht",
   "aiParseRateLimited": "Shumë kërkesa AI — provoni përsëri pas një minute",
   "aiQuickCreateHint": "Përshkruani ngjarjen me fjalët tuaja",
-  "aiQuickCreateEnter": "Shtypni Enter dhe AI do të plotësojë detajet",
-  "aiQuickCreateWorking": "Përshkrimi juaj po kthehet në një ngjarje"
+  "aiQuickCreateEnter": "Shtypni Enter dhe AI do të plotësojë detajet"
 }

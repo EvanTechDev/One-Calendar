@@ -292,7 +292,15 @@
   "noEventsFound": "Geen afspraken gevonden",
   "less": "Minder",
   "more": "Meer",
-  "weekdays": ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"],
+  "weekdays": [
+    "Zo",
+    "Ma",
+    "Di",
+    "Wo",
+    "Do",
+    "Vr",
+    "Za"
+  ],
   "months": [
     "Jan",
     "Feb",
@@ -454,7 +462,15 @@
   "protected": "Beveiligd",
   "colorAmber": "Amber",
   "colorTeal": "Blauwgroen",
-  "sidebarCalendarWeekdaysShort": ["zo", "ma", "di", "wo", "do", "vr", "za"],
+  "sidebarCalendarWeekdaysShort": [
+    "zo",
+    "ma",
+    "di",
+    "wo",
+    "do",
+    "vr",
+    "za"
+  ],
   "sidebarCalendarMonthsLong": [
     "januari",
     "februari",
@@ -790,6 +806,5 @@
   "aiParseError": "AI kon dat niet verwerken. Je tekst is behouden, vul de velden handmatig in",
   "aiParseRateLimited": "Te veel AI-verzoeken. Probeer het over een minuut opnieuw",
   "aiQuickCreateHint": "Beschrijf de afspraak in je eigen woorden",
-  "aiQuickCreateEnter": "Druk op Enter, dan vult AI de details in",
-  "aiQuickCreateWorking": "Je beschrijving wordt omgezet in een afspraak"
+  "aiQuickCreateEnter": "Druk op Enter, dan vult AI de details in"
 }

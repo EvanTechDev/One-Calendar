@@ -45,7 +45,7 @@ import { Calendar } from '@zntr/ui/date-picker'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { Skeleton } from '@zntr/ui/skeleton'
+import { EventAiSkeleton } from '#calendar/components/event/event-ai-skeleton'
 import { useState, useEffect, useRef } from 'react'
 import { isEmail } from '#calendar/lib/email'
 import { toast } from 'sonner'
@@ -70,7 +70,7 @@ import {
 } from '#calendar/lib/recurrence'
 import type { ViewConfig } from '#calendar/lib/calendar-types'
 import { EventMeetingField } from '#calendar/components/event/event-meeting-field'
-import { EventAiComposer } from '#calendar/components/event/event-ai-composer'
+
 import { AssistantIcon } from '#calendar/components/ai/assistant-icon'
 import { useEventMeetingDraft } from '#calendar/hooks/use-event-meeting-draft'
 import type { ParsedEventDraft } from '@zntr/agent/parse'
@@ -1556,10 +1556,11 @@ export default function EventEditor({
                 so it behaves identically outside a form — the value is read
                 from state at save time, never from FormData.
 
-                It stays mounted and readable for the whole parse because
-                swapping it for a loading panel would unmount the focused
-                element, and moving it inside the disabled fieldset below
-                would blur it — either one hands focus to the next control.
+                It stays mounted for the whole parse (readOnly + transparent,
+                skeleton painted over it) because swapping it for a skeleton
+                would unmount the focused element, and moving it inside the
+                disabled fieldset below would blur it — either one hands
+                focus to the next control.
                 */}
                 <div className="space-y-2">
                   <Label htmlFor="title">{t.title}</Label>
@@ -1571,44 +1572,39 @@ export default function EventEditor({
                       onKeyDown={handleTitleKeyDown}
                       readOnly={isAiParsing}
                       aria-busy={isAiParsing}
-                      aria-describedby={
-                        AI_ENABLED && !event && !isAiParsing
-                          ? 'title-ai-quick-create'
-                          : undefined
+                      placeholder={
+                        AI_ENABLED && !event ? t.aiQuickCreateHint : undefined
                       }
                       className={cn(
-                        isAiParsing &&
-                          'border-primary/35 bg-muted/30 pr-9 shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_7%,transparent)]',
+                        AI_ENABLED && !event && !isAiParsing && 'pr-24',
+                        isAiParsing && 'opacity-0',
                       )}
                     />
+                    {AI_ENABLED && !event && !isAiParsing && (
+                      <button
+                        type="button"
+                        disabled={!title.trim()}
+                        title={`${t.aiQuickCreateHint}. ${t.aiQuickCreateEnter}`}
+                        aria-label={`${t.aiQuickCreateHint}. ${t.aiQuickCreateEnter}`}
+                        onClick={() => void runAiParse()}
+                        className="absolute top-1/2 right-1.5 flex h-7 -translate-y-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-muted/45 pr-1.5 pl-2 text-foreground/65 shadow-xs transition-all outline-none hover:border-border hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-35"
+                      >
+                        <AssistantIcon className="size-3.5" />
+                        <span className="text-[11px] font-medium">AI</span>
+                        <kbd className="rounded border border-border/70 bg-background/80 px-1 py-0.5 font-sans text-[9px] leading-none text-muted-foreground">
+                          Enter
+                        </kbd>
+                      </button>
+                    )}
                     {isAiParsing && (
-                      <AssistantIcon
-                        aria-hidden="true"
-                        className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-                      />
+                      <EventAiSkeleton className="pointer-events-none absolute inset-0 flex h-8 items-center justify-center gap-2 text-muted-foreground">
+                        <AssistantIcon className="size-3.5 text-foreground/60" />
+                        <span className="text-xs font-medium">
+                          {t.aiAssistantThinking}
+                        </span>
+                      </EventAiSkeleton>
                     )}
                   </div>
-                  {AI_ENABLED && !event && !isAiParsing && (
-                    <button
-                      id="title-ai-quick-create"
-                      type="button"
-                      disabled={!title.trim()}
-                      aria-label={`${t.aiQuickCreateHint}. ${t.aiQuickCreateEnter}`}
-                      onClick={() => void runAiParse()}
-                      className="group flex w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1 py-0.5 text-left text-[11px] leading-4 text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-60 disabled:hover:text-muted-foreground"
-                    >
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <AssistantIcon className="size-3.5 shrink-0 text-foreground/60 transition-colors group-hover:text-foreground" />
-                        <span>{t.aiQuickCreateHint}</span>
-                      </span>
-                      <span className="ml-auto flex shrink-0 items-center gap-1.5">
-                        <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border/80 bg-muted/60 px-1 font-sans text-[10px] text-foreground/70 shadow-xs">
-                          ↵
-                        </kbd>
-                        <span>{t.aiQuickCreateEnter}</span>
-                      </span>
-                    </button>
-                  )}
                 </div>
 
                 {/*
@@ -1617,20 +1613,14 @@ export default function EventEditor({
                 half-applied draft can never be saved or edited under the
                 skeletons.
               */}
-                {isAiParsing && (
-                  <EventAiComposer label={t.aiQuickCreateWorking} />
-                )}
-                <form
-                  onSubmit={handleSubmit}
-                  className={cn(isAiParsing && 'hidden')}
-                >
+                <form onSubmit={handleSubmit}>
                   <fieldset
                     disabled={isAiParsing}
                     className="min-w-0 space-y-4"
                   >
                     <div className="flex items-center space-x-2">
                       {isAiParsing ? (
-                        <Skeleton className="h-6 w-full" />
+                        <EventAiSkeleton className="h-6 w-full" delay={120} />
                       ) : (
                         <>
                           <Checkbox
@@ -1664,7 +1654,7 @@ export default function EventEditor({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {isAiParsing ? (
-                        <Skeleton className="h-[88px] w-full" />
+                        <EventAiSkeleton className="h-[88px] w-full" delay={240} />
                       ) : (
                         <div className="space-y-2">
                           <Label>{t.startTime}</Label>
@@ -1713,7 +1703,7 @@ export default function EventEditor({
                       )}
 
                       {isAiParsing ? (
-                        <Skeleton className="h-[88px] w-full" />
+                        <EventAiSkeleton className="h-[88px] w-full" delay={240} />
                       ) : (
                         <div className="space-y-2">
                           <Label>{t.endTime}</Label>
@@ -1804,7 +1794,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="calendar">{t.calendar}</Label>
                       {isAiParsing ? (
-                        <Skeleton className="h-9 w-full" />
+                        <EventAiSkeleton className="h-9 w-full" delay={360} />
                       ) : (
                         <Select
                           value={calendarSelectValue}
@@ -1848,7 +1838,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="color">{t.color}</Label>
                       {isAiParsing ? (
-                        <Skeleton className="h-9 w-full" />
+                        <EventAiSkeleton className="h-9 w-full" delay={360} />
                       ) : (
                         <Select value={color} onValueChange={setColor}>
                           <SelectTrigger>
@@ -1880,7 +1870,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="location">{t.location}</Label>
                       {isAiParsing ? (
-                        <Skeleton className="h-9 w-full" />
+                        <EventAiSkeleton className="h-9 w-full" delay={360} />
                       ) : (
                         <Input
                           id="location"
@@ -1914,7 +1904,7 @@ export default function EventEditor({
                       {(!event || !isRecurringEvent) && (
                         <div className="flex items-center space-x-2">
                           {isAiParsing ? (
-                            <Skeleton className="h-6 w-full" />
+                            <EventAiSkeleton className="h-6 w-full" delay={120} />
                           ) : (
                             <>
                               <Checkbox
@@ -1967,7 +1957,7 @@ export default function EventEditor({
                       {recurrenceEnabled &&
                         (event === null || applyTo !== 'single') &&
                         (isAiParsing ? (
-                          <Skeleton className="h-40 w-full" />
+                          <EventAiSkeleton className="h-40 w-full" delay={480} />
                         ) : (
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
@@ -2380,7 +2370,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="description">{t.description}</Label>
                       {isAiParsing ? (
-                        <Skeleton className="h-20 w-full" />
+                        <EventAiSkeleton className="h-20 w-full" delay={600} />
                       ) : (
                         <Textarea
                           id="description"

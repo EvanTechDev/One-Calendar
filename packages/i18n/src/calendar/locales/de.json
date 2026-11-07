@@ -292,7 +292,15 @@
   "noEventsFound": "Keine Ereignisse gefunden",
   "less": "Weniger",
   "more": "Mehr",
-  "weekdays": ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
+  "weekdays": [
+    "So",
+    "Mo",
+    "Di",
+    "Mi",
+    "Do",
+    "Fr",
+    "Sa"
+  ],
   "months": [
     "Jan",
     "Feb",
@@ -454,7 +462,15 @@
   "protected": "Geschützt",
   "colorAmber": "Bernstein",
   "colorTeal": "Türkis",
-  "sidebarCalendarWeekdaysShort": ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
+  "sidebarCalendarWeekdaysShort": [
+    "So",
+    "Mo",
+    "Di",
+    "Mi",
+    "Do",
+    "Fr",
+    "Sa"
+  ],
   "sidebarCalendarMonthsLong": [
     "Januar",
     "Februar",
@@ -790,6 +806,5 @@
   "aiParseError": "Die KI konnte das nicht verarbeiten – Ihr Text wurde beibehalten, bitte füllen Sie die Felder manuell aus",
   "aiParseRateLimited": "Zu viele KI-Anfragen – versuchen Sie es in einer Minute erneut",
   "aiQuickCreateHint": "Beschreiben Sie den Termin in eigenen Worten",
-  "aiQuickCreateEnter": "Eingabetaste drücken – KI füllt die Details aus",
-  "aiQuickCreateWorking": "Ihre Worte werden in einen Termin umgewandelt"
+  "aiQuickCreateEnter": "Eingabetaste drücken – KI füllt die Details aus"
 }

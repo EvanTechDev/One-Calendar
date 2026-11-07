@@ -292,7 +292,15 @@
   "noEventsFound": "No events found",
   "less": "Less",
   "more": "More",
-  "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  "weekdays": [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat"
+  ],
   "months": [
     "Jan",
     "Feb",
@@ -798,6 +806,5 @@
   "aiParseError": "AI couldn't parse that — your text was kept, please fill in the fields manually",
   "aiParseRateLimited": "Too many AI requests — try again in a minute",
   "aiQuickCreateHint": "Plan in your own words",
-  "aiQuickCreateEnter": "AI fills the details",
-  "aiQuickCreateWorking": "Turning your words into a schedule"
+  "aiQuickCreateEnter": "AI fills the details"
 }

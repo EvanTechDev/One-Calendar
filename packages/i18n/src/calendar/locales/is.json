@@ -235,7 +235,15 @@
   "noEventsFound": "Engir viðburðir fundust",
   "less": "Minna",
   "more": "Meira",
-  "weekdays": ["Sun", "Mán", "Þri", "Mið", "Fim", "Fös", "Lau"],
+  "weekdays": [
+    "Sun",
+    "Mán",
+    "Þri",
+    "Mið",
+    "Fim",
+    "Fös",
+    "Lau"
+  ],
   "months": [
     "Jan",
     "Feb",
@@ -798,6 +806,5 @@
   "aiParseError": "Gervigreindin gat ekki túlkað textann. Hann hefur verið varðveittur; fylltu reitina út handvirkt",
   "aiParseRateLimited": "Of margar gervigreindarbeiðnir. Reyndu aftur eftir mínútu",
   "aiQuickCreateHint": "Lýstu viðburðinum með eigin orðum",
-  "aiQuickCreateEnter": "Ýttu á Enter og gervigreindin fyllir út upplýsingarnar",
-  "aiQuickCreateWorking": "Breyti lýsingunni þinni í viðburð"
+  "aiQuickCreateEnter": "Ýttu á Enter og gervigreindin fyllir út upplýsingarnar"
 }
