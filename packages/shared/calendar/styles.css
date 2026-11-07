@@ -682,229 +682,178 @@ html {
   }
 }
 
-.event-ai-draft {
-  position: relative;
-  display: grid;
-  grid-template-rows: 1fr auto;
-  min-height: 22.5rem;
-  padding: 1.25rem 0.25rem 0.75rem;
-  color: var(--popover-foreground);
+
+/*
+ * AI quick-create: while the title is being parsed the editor itself becomes
+ * the indicator. A slow spectrum ring traces the popover edge and bleeds a
+ * soft glow outward, the form underneath rests behind a frosted veil, and the
+ * title text shimmers in place. Nothing is unmounted or replaced.
+ */
+@property --event-ai-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
 }
 
-.event-ai-draft__scene {
-  position: relative;
-  isolation: isolate;
-  min-height: 17.5rem;
-  margin-top: 0.75rem;
-  padding: 2.5rem 1.25rem 1rem;
-  overflow: hidden;
-}
-
-.event-ai-draft__illumination,
-.event-ai-draft__scanner {
-  position: absolute;
-  inset: 1rem 1.25rem;
-  pointer-events: none;
-  transform: translate3d(-100%, 0, 0);
-  animation: event-ai-draft-scan 4.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
-  will-change: transform;
-}
-
-.event-ai-draft__illumination {
-  z-index: -1;
-  background: radial-gradient(
-    ellipse 7rem 9rem at 100% 38%,
-    color-mix(in srgb, var(--primary) 11%, transparent),
-    transparent 72%
+.event-ai-glow {
+  --event-ai-spectrum: conic-gradient(
+    from var(--event-ai-angle),
+    #bc82f3,
+    #f5b9ea,
+    #8d9fff,
+    #aa6eee,
+    #ff6778,
+    #ffba71,
+    #c686ff,
+    #bc82f3
   );
-  filter: blur(10px);
-}
-
-.event-ai-draft__scanner {
-  z-index: 3;
-  border-right: 1px solid
-    color-mix(in srgb, var(--primary) 42%, transparent);
-}
-
-.event-ai-draft__scanner-cap {
-  position: absolute;
-  top: 2.05rem;
-  right: 0;
-  width: 0.375rem;
-  height: 0.375rem;
-  border: 1px solid color-mix(in srgb, var(--primary) 65%, transparent);
-  background: var(--popover);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 6%, transparent);
-  transform: translate(50%, -50%);
-}
-
-.event-ai-draft__manuscript {
   position: relative;
-  z-index: 2;
-  max-width: 96%;
-  min-height: 5.5rem;
-  padding-left: 1.125rem;
 }
 
-.event-ai-draft__source-mark {
-  position: absolute;
-  top: 0.8rem;
-  left: 0;
-  width: 0.25rem;
-  height: 0.25rem;
-  background: color-mix(in srgb, var(--primary) 62%, transparent);
-}
-
-.event-ai-draft__text {
-  display: -webkit-box;
-  min-height: 2.5em;
-  margin: 0;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  color: color-mix(in srgb, var(--foreground) 84%, var(--muted-foreground));
-  font-family: var(--font-instrument-serif), Georgia, serif;
-  font-size: 1.875rem;
-  font-weight: 400;
-  line-height: 1.25;
-  letter-spacing: -0.018em;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-
-.event-ai-draft__structure {
-  position: relative;
-  z-index: 2;
-  margin-top: 1.75rem;
-  padding-left: 1.125rem;
-}
-
-.event-ai-draft__spine {
-  position: absolute;
-  top: -1.5rem;
-  bottom: 0.75rem;
-  left: 0.125rem;
-  width: 1px;
-  background: repeating-linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--primary) 22%, transparent) 0 2px,
-    transparent 2px 6px
-  );
-}
-
-.event-ai-draft__detail {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  height: 1.875rem;
-  opacity: 0.42;
-  animation: event-ai-draft-resolve 4.8s ease-in-out infinite;
-}
-
-.event-ai-draft__detail--second {
-  animation-delay: 0.4s;
-}
-
-.event-ai-draft__detail--third {
-  animation-delay: 0.8s;
-}
-
-.event-ai-draft__detail-mark {
-  flex: 0 0 auto;
-  width: 0.3125rem;
-  height: 0.3125rem;
-  border: 1px solid color-mix(in srgb, var(--primary) 48%, transparent);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--primary) 12%, var(--popover));
-}
-
-.event-ai-draft__detail-rule {
-  position: relative;
-  width: var(--event-ai-draft-rule-width);
-  height: 1px;
-  background: color-mix(in srgb, var(--foreground) 15%, transparent);
-}
-
-.event-ai-draft__detail-rule::before,
-.event-ai-draft__detail-rule::after {
+.event-ai-glow::before,
+.event-ai-glow::after {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  background: color-mix(in srgb, var(--primary) 42%, transparent);
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--event-ai-spectrum);
+  transition: opacity 0.45s ease;
 }
 
-.event-ai-draft__detail-rule::before {
-  left: 0;
-  width: 28%;
+/* Crisp 1.5px ring that hugs the popover edge. */
+.event-ai-glow::before {
+  z-index: 2;
+  padding: 1.5px;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
 }
 
-.event-ai-draft__detail-rule::after {
-  right: 0;
-  width: 1px;
-  height: 0.3125rem;
-  margin-top: -0.125rem;
+/* The diffuse light the ring casts around the popover. */
+/* Masked to the band outside the popover so the light never tints content. */
+.event-ai-glow::after {
+  z-index: -1;
+  inset: -16px;
+  padding: 16px;
+  border-radius: calc(0.75rem + 16px);
+  filter: blur(14px);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
 }
 
-.event-ai-draft__detail--first {
-  --event-ai-draft-rule-width: 82%;
+.event-ai-glow[data-ai-active]::before,
+.event-ai-glow[data-ai-active]::after {
+  animation: event-ai-spin 3.2s linear infinite;
 }
 
-.event-ai-draft__detail--second {
-  --event-ai-draft-rule-width: 58%;
+.event-ai-glow[data-ai-active]::before {
+  opacity: 1;
 }
 
-.event-ai-draft__detail--third {
-  --event-ai-draft-rule-width: 70%;
+.event-ai-glow[data-ai-active]::after {
+  opacity: 0.55;
+  animation:
+    event-ai-spin 3.2s linear infinite,
+    event-ai-breathe 2.4s ease-in-out infinite;
 }
 
-.event-ai-draft__baseline {
-  height: 1px;
-  margin: 0 1.25rem;
-  background: linear-gradient(
-    to right,
-    color-mix(in srgb, var(--primary) 24%, transparent) 0 2.5rem,
-    color-mix(in srgb, var(--border) 65%, transparent) 2.5rem 100%
+.event-ai-veil {
+  transition:
+    filter 0.4s ease,
+    opacity 0.4s ease;
+}
+
+.event-ai-veil.is-active {
+  filter: blur(3px) saturate(0.85);
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+}
+
+.event-ai-title {
+  color: transparent;
+  caret-color: transparent;
+  background-image: linear-gradient(
+    100deg,
+    var(--foreground) 0%,
+    var(--foreground) 35%,
+    #aa6eee 45%,
+    #ff6778 52%,
+    #ffba71 58%,
+    var(--foreground) 68%,
+    var(--foreground) 100%
   );
+  background-size: 250% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: event-ai-shimmer 2.2s ease-in-out infinite;
 }
 
-@keyframes event-ai-draft-scan {
-  0%,
-  12% {
-    transform: translate3d(-100%, 0, 0);
-  }
+.event-ai-status {
+  background: color-mix(in oklab, var(--popover) 82%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, #aa6eee 35%, transparent),
+    0 0 14px -4px color-mix(in oklab, #aa6eee 60%, transparent);
+  backdrop-filter: blur(6px);
+}
 
-  72%,
-  100% {
-    transform: translate3d(0, 0, 0);
+.event-ai-status__icon {
+  color: #aa6eee;
+  animation: event-ai-breathe 2.4s ease-in-out infinite;
+}
+
+.event-ai-status__label {
+  color: transparent;
+  background: linear-gradient(90deg, #8d9fff, #aa6eee, #ff6778, #8d9fff);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: event-ai-shimmer 2.2s linear infinite;
+}
+
+@keyframes event-ai-spin {
+  to {
+    --event-ai-angle: 360deg;
   }
 }
 
-@keyframes event-ai-draft-resolve {
+@keyframes event-ai-breathe {
   0%,
-  18%,
   100% {
-    opacity: 0.42;
+    opacity: 0.4;
   }
+  50% {
+    opacity: 0.7;
+  }
+}
 
-  48%,
-  76% {
-    opacity: 1;
+@keyframes event-ai-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .event-ai-draft__illumination,
-  .event-ai-draft__scanner,
-  .event-ai-draft__detail {
+  .event-ai-glow[data-ai-active]::before,
+  .event-ai-glow[data-ai-active]::after,
+  .event-ai-title,
+  .event-ai-status__icon,
+  .event-ai-status__label {
     animation: none;
   }
 
-  .event-ai-draft__illumination,
-  .event-ai-draft__scanner {
-    transform: translate3d(-42%, 0, 0);
+  .event-ai-title {
+    color: var(--foreground);
+    background: none;
   }
 
-  .event-ai-draft__detail {
-    opacity: 0.78;
+  .event-ai-veil.is-active {
+    filter: none;
   }
 }

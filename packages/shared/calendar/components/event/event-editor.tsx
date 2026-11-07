@@ -45,8 +45,6 @@ import { Calendar } from '@zntr/ui/date-picker'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { Skeleton } from '@zntr/ui/skeleton'
-import { EventAiDraft } from '#calendar/components/event/event-ai-draft'
 import { useState, useEffect, useRef } from 'react'
 import { isEmail } from '#calendar/lib/email'
 import { toast } from 'sonner'
@@ -1513,7 +1511,9 @@ export default function EventEditor({
               // full-screen surface, so the mobile variant slides up instead.
               'mobile-fullscreen flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0 max-md:data-open:zoom-in-100 max-md:data-open:slide-in-from-bottom-8 max-md:data-closed:zoom-out-100 max-md:data-closed:slide-out-to-bottom-8 max-md:duration-200',
               replacesPreview && 'data-open:animate-none',
+              'event-ai-glow',
             )}
+            data-ai-active={isAiParsing ? '' : undefined}
             onOpenAutoFocus={(e) => e.preventDefault()}
             onInteractOutside={(e) => {
               // Radix popups (selects, date pickers) render in portals outside
@@ -1557,8 +1557,8 @@ export default function EventEditor({
                 so it behaves identically outside a form — the value is read
                 from state at save time, never from FormData.
 
-                It stays mounted for the whole parse (readOnly + transparent,
-                status painted over it) because swapping it for a skeleton
+                It stays mounted for the whole parse (readOnly and still
+                readable, status painted beside it) because swapping it for a skeleton
                 would unmount the focused element, and moving it inside the
                 disabled fieldset below would blur it — either one hands
                 focus to the next control.
@@ -1577,8 +1577,8 @@ export default function EventEditor({
                         AI_ENABLED && !event ? t.aiQuickCreateHint : undefined
                       }
                       className={cn(
-                        AI_ENABLED && !event && !isAiParsing && 'pr-24',
-                        isAiParsing && 'opacity-0',
+                        AI_ENABLED && !event && 'pr-24',
+                        isAiParsing && 'event-ai-title',
                       )}
                     />
                     {AI_ENABLED && !event && !isAiParsing && (
@@ -1598,9 +1598,14 @@ export default function EventEditor({
                       </button>
                     )}
                     {isAiParsing && (
-                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-muted-foreground">
-                        <AssistantIcon className="size-3.5 text-primary/70" />
-                        <span className="text-xs font-medium">
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        aria-label={t.aiAssistantThinking}
+                        className="event-ai-status pointer-events-none absolute top-1/2 right-1.5 flex h-7 -translate-y-1/2 items-center gap-1.5 rounded-full pr-2.5 pl-2"
+                      >
+                        <AssistantIcon className="event-ai-status__icon size-3.5" />
+                        <span className="event-ai-status__label text-[11px] font-medium">
                           {t.aiAssistantThinking}
                         </span>
                       </div>
@@ -1612,23 +1617,18 @@ export default function EventEditor({
                 Native fieldset disabling freezes the REST of the form
                 mid-parse — not just the AI-fillable fields — so a
                 half-applied draft can never be saved or edited under the
-                skeletons.
+                veil.
               */}
-                {isAiParsing && (
-                  <EventAiDraft label={t.aiAssistantThinking} text={title} />
-                )}
                 <form
                   onSubmit={handleSubmit}
-                  className={isAiParsing ? 'hidden' : undefined}
+                  aria-busy={isAiParsing}
+                  className={cn('event-ai-veil', isAiParsing && 'is-active')}
                 >
                   <fieldset
                     disabled={isAiParsing}
                     className="min-w-0 space-y-4"
                   >
                     <div className="flex items-center space-x-2">
-                      {isAiParsing ? (
-                        <Skeleton className="h-6 w-full"/>
-                      ) : (
                         <>
                           <Checkbox
                             id="all-day"
@@ -1656,13 +1656,9 @@ export default function EventEditor({
                           />
                           <Label htmlFor="all-day">{t.allDay}</Label>
                         </>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {isAiParsing ? (
-                        <Skeleton className="h-[88px] w-full"/>
-                      ) : (
                         <div className="space-y-2">
                           <Label>{t.startTime}</Label>
                           <div className="flex flex-col space-y-2">
@@ -1707,11 +1703,7 @@ export default function EventEditor({
                               )}
                           </div>
                         </div>
-                      )}
 
-                      {isAiParsing ? (
-                        <Skeleton className="h-[88px] w-full"/>
-                      ) : (
                         <div className="space-y-2">
                           <Label>{t.endTime}</Label>
                           <div className="flex flex-col space-y-2">
@@ -1795,14 +1787,10 @@ export default function EventEditor({
                             </p>
                           )}
                         </div>
-                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="calendar">{t.calendar}</Label>
-                      {isAiParsing ? (
-                        <Skeleton className="h-9 w-full"/>
-                      ) : (
                         <Select
                           value={calendarSelectValue}
                           onValueChange={(value) => {
@@ -1839,14 +1827,10 @@ export default function EventEditor({
                             ))}
                           </SelectContent>
                         </Select>
-                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="color">{t.color}</Label>
-                      {isAiParsing ? (
-                        <Skeleton className="h-9 w-full"/>
-                      ) : (
                         <Select value={color} onValueChange={setColor}>
                           <SelectTrigger>
                             <SelectValue placeholder={t.selectColor} />
@@ -1871,20 +1855,15 @@ export default function EventEditor({
                             ))}
                           </SelectContent>
                         </Select>
-                      )}
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="location">{t.location}</Label>
-                      {isAiParsing ? (
-                        <Skeleton className="h-9 w-full"/>
-                      ) : (
                         <Input
                           id="location"
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
                         />
-                      )}
                     </div>
 
                     <EventMeetingField draft={meetingDraft} />
@@ -1910,9 +1889,6 @@ export default function EventEditor({
                     <section aria-label={t.repeatRule} className="space-y-4">
                       {(!event || !isRecurringEvent) && (
                         <div className="flex items-center space-x-2">
-                          {isAiParsing ? (
-                            <Skeleton className="h-6 w-full"/>
-                          ) : (
                             <>
                               <Checkbox
                                 id="repeat"
@@ -1927,7 +1903,6 @@ export default function EventEditor({
                               />
                               <Label htmlFor="repeat">{t.repeatLabel}</Label>
                             </>
-                          )}
                         </div>
                       )}
 
@@ -1963,9 +1938,7 @@ export default function EventEditor({
 
                       {recurrenceEnabled &&
                         (event === null || applyTo !== 'single') &&
-                        (isAiParsing ? (
-                          <Skeleton className="h-40 w-full"/>
-                        ) : (
+                        (
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-2">
@@ -2288,7 +2261,7 @@ export default function EventEditor({
                               </p>
                             )}
                           </div>
-                        ))}
+                        )}
 
                       {seriesRule &&
                         isRecurringEvent &&
@@ -2376,15 +2349,11 @@ export default function EventEditor({
 
                     <div className="space-y-2">
                       <Label htmlFor="description">{t.description}</Label>
-                      {isAiParsing ? (
-                        <Skeleton className="h-20 w-full"/>
-                      ) : (
                         <Textarea
                           id="description"
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                         />
-                      )}
                     </div>
 
                     <div className="flex justify-end gap-2">

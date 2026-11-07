@@ -170,22 +170,19 @@ describe('editing recurrence from an occurrence', () => {
     fireEvent.change(title, { target: { value: 'Lunch with Mia tomorrow' } })
     fireEvent.click(screen.getByRole('button', { name: actionName }))
 
-    await waitFor(() => expect(title).toHaveClass('opacity-0'))
+    await waitFor(() => expect(title).toHaveClass('event-ai-title'))
     expect(screen.getByDisplayValue('Lunch with Mia tomorrow')).toBe(title)
     expect(title).toHaveAttribute('readonly')
     expect(
       screen.getByRole('status', { name: 'Thinking…' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Lunch with Mia tomorrow')).toHaveClass(
-      'event-ai-draft__text',
-    )
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 
     resolveResponse({
       ok: true,
       json: async () => ({ event: { title: 'Lunch with Mia' } }),
     })
-    await waitFor(() => expect(title).not.toHaveClass('opacity-0'))
+    await waitFor(() => expect(title).not.toHaveClass('event-ai-title'))
     expect(screen.getByDisplayValue('Lunch with Mia')).toBe(title)
   })
 
