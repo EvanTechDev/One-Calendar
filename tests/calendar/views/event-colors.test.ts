@@ -15,6 +15,7 @@ const {
   paletteColorName,
   getEventAccentColor,
   getEventBackgroundColor,
+  getCategoryAccentColor,
 } = await import('@zntr/shared/calendar/lib/event-colors')
 import type { ColorOption } from '@zntr/shared/calendar/lib/event-colors'
 
@@ -269,6 +270,35 @@ describe('event-colors', () => {
 
     it('returns undefined for unknown colors in dark mode', () => {
       expect(getEventBackgroundColor('bg-unknown', true)).toBeUndefined()
+    })
+  })
+
+  describe('getCategoryAccentColor', () => {
+    it('paints a palette class with the matching event accent', () => {
+      // The sidebar and the event editor's calendar select must show the same
+      // hue as the event colour menu for the same colour.
+      expect(getCategoryAccentColor('bg-green-500')).toBe('#10B981')
+      expect(getCategoryAccentColor('bg-yellow-500')).toBe('#F59E0B')
+      expect(getCategoryAccentColor('bg-purple-500')).toBe('#8B5CF6')
+    })
+
+    it('agrees with the event menu for every palette entry', () => {
+      for (const option of PALETTE_COLOR_OPTIONS) {
+        const eventColor = CALENDAR_COLOR_TO_EVENT_COLOR[option.value]
+        expect(getCategoryAccentColor(option.value), option.value).toBe(
+          EVENT_BG_TO_ACCENT[eventColor],
+        )
+      }
+    })
+
+    it('resolves the amber alias to the amber event accent', () => {
+      expect(getCategoryAccentColor('bg-amber-500')).toBe('#F59E0B')
+    })
+
+    it('falls back to DEFAULT_ACCENT for unknown colors', () => {
+      expect(getCategoryAccentColor('bg-[#E6F6FD]')).toBe('#3B82F6')
+      expect(getCategoryAccentColor('bg-unknown')).toBe(DEFAULT_ACCENT)
+      expect(getCategoryAccentColor(undefined)).toBe(DEFAULT_ACCENT)
     })
   })
 

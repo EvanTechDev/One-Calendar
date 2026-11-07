@@ -56,6 +56,7 @@ import {
   EVENT_COLOR_OPTIONS,
   CALENDAR_COLOR_TO_EVENT_COLOR,
   EVENT_BG_TO_ACCENT,
+  getCategoryAccentColor,
 } from '#calendar/lib/event-colors'
 import {
   describeRecurrence,
@@ -1824,10 +1825,12 @@ export default function EventEditor({
                               <SelectItem key={calendar.id} value={calendar.id}>
                                 <div className="flex items-center">
                                   <div
-                                    className={cn(
-                                      'w-4 h-4 rounded-full mr-2',
-                                      calendar.color,
-                                    )}
+                                    className="w-4 h-4 rounded-full mr-2"
+                                    style={{
+                                      backgroundColor: getCategoryAccentColor(
+                                        calendar.color,
+                                      ),
+                                    }}
                                   />
                                   {calendar.name}
                                 </div>

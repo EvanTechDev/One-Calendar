@@ -336,3 +336,20 @@ export function getEventBackgroundColor(
   if (!isDark || !color) return undefined
   return EVENT_BG_TO_DARK[color]
 }
+
+/**
+ * The dot a category/calendar paints in a menu.
+ *
+ * Categories store a Tailwind palette class, but the menus that show them sit
+ * beside the event colour menu, so their dot uses the matching event colour's
+ * accent instead of the palette class's own hex. The event editor's calendar
+ * select and the sidebar's calendar list therefore show one hue for one
+ * colour. Storage and the chart are unaffected: they keep resolving through
+ * {@link TAILWIND_BG_TO_HEX}.
+ */
+export function getCategoryAccentColor(color?: string): string {
+  if (!color) return DEFAULT_ACCENT
+  const eventColor = CALENDAR_COLOR_TO_EVENT_COLOR[color]
+  if (eventColor) return EVENT_BG_TO_ACCENT[eventColor] ?? DEFAULT_ACCENT
+  return TAILWIND_BG_TO_HEX[color] ?? DEFAULT_ACCENT
+}

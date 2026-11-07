@@ -55,8 +55,7 @@ import {
 
 import type { ViewType } from '#calendar/lib/calendar-types'
 import {
-  CALENDAR_COLOR_TO_EVENT_COLOR,
-  getEventAccentColor,
+  getCategoryAccentColor,
   PALETTE_COLOR_OPTIONS,
 } from '#calendar/lib/event-colors'
 
@@ -85,23 +84,6 @@ export interface CalendarCategory {
  * user picks and the hex its dot is painted with cannot disagree.
  */
 const CALENDAR_COLOR_OPTIONS = PALETTE_COLOR_OPTIONS
-
-/**
- * What a category dot paints.
- *
- * The stored value is still a Tailwind palette class, but the dot sits beside
- * the event editor's colour menu, so it uses the same accent that menu shows
- * for the matching event colour. Resolving through
- * `CALENDAR_COLOR_TO_EVENT_COLOR` + `getEventAccentColor` keeps the two menus
- * on one hue without changing what a category stores or what the chart paints
- * from `TAILWIND_BG_TO_HEX` — this is a display choice, deliberately.
- */
-const CALENDAR_COLOR_MAP = Object.fromEntries(
-  CALENDAR_COLOR_OPTIONS.map((option) => [
-    option.value,
-    getEventAccentColor(CALENDAR_COLOR_TO_EVENT_COLOR[option.value]),
-  ]),
-)
 
 /**
  * The sidebar's contents without the desktop column shell. The desktop
@@ -386,8 +368,7 @@ export function SidebarBody({
                   }
                   className="h-4 w-4 rounded-md border-0 data-checked:text-white"
                   style={{
-                    backgroundColor:
-                      CALENDAR_COLOR_MAP[calendar.color] ?? '#3b82f6',
+                    backgroundColor: getCategoryAccentColor(calendar.color),
                   }}
                 />
                 <span className="text-sm">{calendar.name}</span>
@@ -574,7 +555,9 @@ export function SidebarBody({
                         <div
                           className="w-4 h-4 rounded-full mr-2"
                           style={{
-                            backgroundColor: CALENDAR_COLOR_MAP[option.value],
+                            backgroundColor: getCategoryAccentColor(
+                              option.value,
+                            ),
                           }}
                         />
                         {t[option.labelKey]}
@@ -640,7 +623,9 @@ export function SidebarBody({
                         <div
                           className="w-4 h-4 rounded-full mr-2"
                           style={{
-                            backgroundColor: CALENDAR_COLOR_MAP[option.value],
+                            backgroundColor: getCategoryAccentColor(
+                              option.value,
+                            ),
                           }}
                         />
                         {t[option.labelKey]}
