@@ -685,8 +685,8 @@ html {
 
 /*
  * AI quick-create: while the title is being parsed the editor itself becomes
- * the indicator. A slow spectrum ring traces the popover edge and bleeds a
- * soft glow outward, the form underneath rests behind a frosted veil, and the
+ * the indicator. A slow spectrum ring traces the popover edge and casts a
+ * narrow, uneven glow, the form underneath rests behind a frosted veil, and the
  * title text shimmers in place. Nothing is unmounted or replaced.
  */
 @property --event-ai-angle {
@@ -731,33 +731,46 @@ html {
     linear-gradient(#000 0 0);
 }
 
-/* The diffuse light the ring casts around the popover. */
-/* Masked to the band outside the popover so the light never tints content. */
+/*
+ * The light the ring casts: a narrow band just outside the edge. Its spectrum
+ * has uneven, partly transparent stops so the glow gathers in a few drifting
+ * patches instead of a uniform halo.
+ */
 .event-ai-glow::after {
   z-index: -1;
-  inset: -16px;
-  padding: 16px;
-  border-radius: calc(0.75rem + 16px);
-  filter: blur(14px);
+  inset: -7px;
+  padding: 7px;
+  border-radius: calc(0.75rem + 7px);
+  background: conic-gradient(
+    from var(--event-ai-angle),
+    transparent 0deg,
+    #bc82f3 28deg,
+    transparent 70deg,
+    transparent 105deg,
+    #8d9fff 128deg,
+    #ff6778 150deg,
+    transparent 196deg,
+    #ffba71 238deg,
+    transparent 262deg,
+    transparent 300deg,
+    #c686ff 322deg,
+    transparent 360deg
+  );
+  filter: blur(6px);
   mask:
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
 }
 
-.event-ai-glow[data-ai-active]::before,
-.event-ai-glow[data-ai-active]::after {
-  animation: event-ai-spin 3.2s linear infinite;
-}
-
 .event-ai-glow[data-ai-active]::before {
   opacity: 1;
+  animation: event-ai-spin 4.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
 }
 
 .event-ai-glow[data-ai-active]::after {
-  opacity: 0.55;
   animation:
-    event-ai-spin 3.2s linear infinite,
-    event-ai-breathe 2.4s ease-in-out infinite;
+    event-ai-spin 7.3s cubic-bezier(0.3, 0.1, 0.7, 0.9) infinite,
+    event-ai-flicker 3.7s ease-in-out infinite;
 }
 
 .event-ai-veil {
@@ -817,6 +830,22 @@ html {
 @keyframes event-ai-spin {
   to {
     --event-ai-angle: 360deg;
+  }
+}
+
+@keyframes event-ai-flicker {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  30% {
+    opacity: 0.6;
+  }
+  55% {
+    opacity: 0.3;
+  }
+  80% {
+    opacity: 0.5;
   }
 }
 
