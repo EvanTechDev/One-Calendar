@@ -1,22 +1,23 @@
 <div align="center">
   <img width="1200" alt="Zentra" src="https://github.com/user-attachments/assets/44bc5cd4-4776-4db2-9cca-84d2855f6014" />
-
-  <h1>Zentra</h1>
-  <p><strong>Open-source tools for planning, meeting, and getting work done.</strong></p>
-  <p>A self-hostable productivity suite with an AI-powered calendar, live video meetings, and a native desktop experience.</p>
-
-  <p>
-    <a href="https://calendar.xyehr.cn">Open Calendar</a> ·
-    <a href="https://docs.xyehr.cn/docs/one-calendar">Documentation</a> ·
-    <a href="https://github.com/EvanTechDev/One-Calendar/issues">Report an issue</a>
-  </p>
-
-  <p>
-    <a href="./LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-black?style=flat-square"></a>
-    <img alt="Bun 1.4.4" src="https://img.shields.io/badge/Bun-1.4.4-black?style=flat-square&logo=bun">
-    <a href="https://github.com/EvanTechDev/One-Calendar/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/EvanTechDev/One-Calendar?style=flat-square&logo=github"></a>
-  </p>
 </div>
+
+[![GitHub release](https://img.shields.io/github/v/release/EvanTechDev/One-Calendar?color=black)](https://github.com/EvanTechDev/One-Calendar/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/EvanTechDev/One-Calendar/total?color=black)](https://github.com/EvanTechDev/One-Calendar/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/EvanTechDev/One-Calendar/build.yml?branch=dev&color=black)](https://github.com/EvanTechDev/One-Calendar/actions/workflows/build.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-black?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Documentation](https://img.shields.io/badge/Documentation-black?logo=readme&logoColor=white)](https://docs.xyehr.cn/docs/one-calendar)
+[![License](https://img.shields.io/github/license/EvanTechDev/One-Calendar?color=black)](./LICENSE)
+
+## Zentra
+
+**The most open way to plan, meet, and get things done.**
+
+Zentra is an open-source, self-hostable productivity suite for people who want to own their time and their data. It brings an AI-powered calendar, live video meetings, and a native desktop experience into one workspace, with scheduling, collaboration, reminders, secure identity, and offline access built in.
+
+## Why Zentra
+
+Planning is often split across closed calendars, meeting links, and disconnected productivity tools. Zentra brings those workflows together without asking you to give up portability or control. Whether you need intelligent scheduling, reliable collaboration, or a calendar that remains useful offline, Zentra gives you open source code and a complete product—not another black box around your data.
 
 ## Products
 
@@ -27,48 +28,7 @@
 | **Desktop**    | Cross-platform Tauri client with native reminders, secure sessions, and encrypted read-only offline access | [`apps/calendar-client`](./apps/calendar-client) |
 | **Web & Docs** | Marketing website and task-focused user documentation                                                      | [`apps/web`](./apps/web), [`docs`](./docs)       |
 
-## Quick start
-
-### Prerequisites
-
-- [Bun 1.4.4](https://bun.sh)
-- [Node.js 25](https://nodejs.org) for framework tooling
-- PostgreSQL for Calendar and Meet
-
-### Run the workspace
-
-```bash
-git clone https://github.com/EvanTechDev/One-Calendar.git
-cd One-Calendar
-bun install
-cp apps/calendar/.env.example apps/calendar/.env
-bun run dev
-```
-
-Configure `apps/calendar/.env` before using authenticated or database-backed features. The main development servers are:
-
-| App           | Local URL               |
-| ------------- | ----------------------- |
-| Calendar      | `http://localhost:3000` |
-| Meet          | `http://localhost:3001` |
-| Documentation | `http://localhost:3002` |
-
-See the [Calendar guide](./apps/calendar/README.md) for environment setup, database migrations, and deployment.
-
-## Everyday commands
-
-Run these from the repository root:
-
-| Command              | Purpose                                                   |
-| -------------------- | --------------------------------------------------------- |
-| `bun run dev`        | Start all development servers                             |
-| `bun run build`      | Generate locales and build workspaces in dependency order |
-| `bun run type-check` | Type-check every workspace                                |
-| `bun run lint:check` | Run oxlint without applying fixes                         |
-| `bun run test`       | Run workspace tests in isolation                          |
-| `bun run format`     | Format supported files                                    |
-
-Use `bun run --filter <workspace> <script>` to target one app or package.
+See the [Calendar guide](./apps/calendar/README.md) for local setup and the [Desktop guide](./apps/calendar-client/README.md) for native development and releases.
 
 ## Repository map
 
