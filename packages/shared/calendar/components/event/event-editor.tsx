@@ -1577,7 +1577,7 @@ export default function EventEditor({
                         AI_ENABLED && !event ? t.aiQuickCreateHint : undefined
                       }
                       className={cn(
-                        AI_ENABLED && !event && 'pr-24',
+                        AI_ENABLED && !event && (title.trim() ? 'pr-44' : 'pr-10'),
                         isAiParsing && 'event-ai-title',
                       )}
                     />
@@ -1588,13 +1588,19 @@ export default function EventEditor({
                         title={`${t.aiQuickCreateHint}. ${t.aiQuickCreateEnter}`}
                         aria-label={`${t.aiQuickCreateHint}. ${t.aiQuickCreateEnter}`}
                         onClick={() => void runAiParse()}
-                        className="absolute top-1/2 right-1.5 flex h-7 -translate-y-1/2 items-center gap-1.5 rounded-full border border-border/70 bg-muted/45 pr-1.5 pl-2 text-foreground/65 shadow-xs transition-all outline-none hover:border-border hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-35"
+                        data-ready={title.trim() ? '' : undefined}
+                        className="event-ai-suggest absolute top-1/2 right-1.5 flex h-7 max-w-[58%] -translate-y-1/2 items-center gap-1.5 rounded-md px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none"
                       >
-                        <AssistantIcon className="size-3.5" />
-                        <span className="text-[11px] font-medium">AI</span>
-                        <kbd className="rounded border border-border/70 bg-background/80 px-1 py-0.5 font-sans text-[9px] leading-none text-muted-foreground">
-                          Enter
-                        </kbd>
+                        <AssistantIcon className="event-ai-suggest__icon size-3.5 shrink-0" />
+                        <span className="event-ai-suggest__label truncate text-xs">
+                          {t.aiQuickCreateEnter}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="event-ai-suggest__key shrink-0"
+                        >
+                          ↵
+                        </span>
                       </button>
                     )}
                     {isAiParsing && (
