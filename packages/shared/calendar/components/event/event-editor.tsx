@@ -1610,7 +1610,7 @@ export default function EventEditor({
                         role="status"
                         aria-live="polite"
                         aria-label={t.aiAssistantThinking}
-                        className="event-ai-status pointer-events-none absolute top-1/2 right-1.5 flex h-7 -translate-y-1/2 items-center gap-1.5 rounded-full pr-2.5 pl-2"
+                        className="event-ai-status pointer-events-none absolute top-1/2 right-1.5 flex h-7 -translate-y-1/2 items-center gap-1.5 rounded-lg px-1.5"
                       >
                         <AssistantIcon className="event-ai-status__icon size-3.5" />
                         <span className="event-ai-status__label text-[11px] font-medium">

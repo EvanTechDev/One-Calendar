@@ -805,14 +805,6 @@ html {
   animation: event-ai-shimmer 2.2s ease-in-out infinite;
 }
 
-.event-ai-status {
-  background: color-mix(in oklab, var(--popover) 82%, transparent);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, #aa6eee 35%, transparent),
-    0 0 14px -4px color-mix(in oklab, #aa6eee 60%, transparent);
-  backdrop-filter: blur(6px);
-}
-
 .event-ai-status__icon {
   color: #aa6eee;
   animation: event-ai-breathe 2.4s ease-in-out infinite;
