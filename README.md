@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/zentra-banner-dark.png" />
     <source media="(prefers-color-scheme: light)" srcset="./.github/assets/zentra-banner-light.png" />
-    <img width="1500" height="500" alt="Zentra — The most open way to plan, meet, and get things done." src="./.github/assets/zentra-banner-light.png" />
+    <img alt="Zentra — The most open way to plan, meet, and get things done." src="./.github/assets/zentra-banner-light.png" />
   </picture>
 
 [![Vercel Build](https://img.shields.io/badge/Vercel-Build%20Passing-black?logo=vercel&logoColor=white)](https://vercel.com/tech-art/one-calendar)
@@ -20,8 +20,6 @@
 </div>
 
 ## Zentra
-
-**The most open way to plan, meet, and get things done.**
 
 Zentra is an open-source, self-hostable productivity suite for people who want to own their time and their data. It brings an AI-powered calendar, live video meetings, and a native desktop experience into one workspace, with scheduling, collaboration, reminders, secure identity, and offline access built in.
 
