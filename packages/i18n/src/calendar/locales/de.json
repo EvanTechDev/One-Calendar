@@ -788,5 +788,8 @@
   "aiAssistantDenied": "abgelehnt",
   "aiParseApplied": "Aus Ihrer Beschreibung ausgefüllt",
   "aiParseError": "Die KI konnte das nicht verarbeiten – Ihr Text wurde beibehalten, bitte füllen Sie die Felder manuell aus",
-  "aiParseRateLimited": "Zu viele KI-Anfragen – versuchen Sie es in einer Minute erneut"
+  "aiParseRateLimited": "Zu viele KI-Anfragen – versuchen Sie es in einer Minute erneut",
+  "aiQuickCreateHint": "Beschreiben Sie den Termin in eigenen Worten",
+  "aiQuickCreateEnter": "Eingabetaste drücken – KI füllt die Details aus",
+  "aiQuickCreateWorking": "Ihre Worte werden in einen Termin umgewandelt"
 }

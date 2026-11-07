@@ -796,5 +796,8 @@
   "aiAssistantDenied": "zavrnjeno",
   "aiParseApplied": "Izpolnjeno iz vašega opisa",
   "aiParseError": "AI tega ni mogel razčleniti — vaše besedilo je bilo ohranjeno, izpolnite polja ročno",
-  "aiParseRateLimited": "Preveč AI zahtev — poskusite znova čez minuto"
+  "aiParseRateLimited": "Preveč AI zahtev — poskusite znova čez minuto",
+  "aiQuickCreateHint": "Opišite dogodek s svojimi besedami",
+  "aiQuickCreateEnter": "Pritisnite Enter in AI bo izpolnil podrobnosti",
+  "aiQuickCreateWorking": "Vaš opis spreminjamo v dogodek"
 }

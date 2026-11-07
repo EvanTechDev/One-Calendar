@@ -788,5 +788,8 @@
   "aiAssistantDenied": "已拒絕",
   "aiParseApplied": "已根據你的描述自動填寫",
   "aiParseError": "AI 無法解析這段文字——已保留你的原文，請手動填寫",
-  "aiParseRateLimited": "AI 請求過於頻繁——請一分鐘後再試"
+  "aiParseRateLimited": "AI 請求過於頻繁——請一分鐘後再試",
+  "aiQuickCreateHint": "用自然語言描述行程",
+  "aiQuickCreateEnter": "按 Enter 讓 AI 填寫",
+  "aiQuickCreateWorking": "正在將描述整理成行程"
 }

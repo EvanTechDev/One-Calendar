@@ -796,5 +796,8 @@
   "aiAssistantDenied": "拒否されました",
   "aiParseApplied": "入力内容から自動入力しました",
   "aiParseError": "AI が解析できませんでした。入力テキストは保持されています。手動で入力してください",
-  "aiParseRateLimited": "AI リクエストが多すぎます。1分後に再試行してください"
+  "aiParseRateLimited": "AI リクエストが多すぎます。1分後に再試行してください",
+  "aiQuickCreateHint": "自分の言葉で予定を入力",
+  "aiQuickCreateEnter": "Enter を押すと AI が詳細を入力",
+  "aiQuickCreateWorking": "入力内容を予定に整理しています"
 }

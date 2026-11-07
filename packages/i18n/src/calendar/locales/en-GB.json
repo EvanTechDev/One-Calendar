@@ -796,5 +796,8 @@
   "aiAssistantDenied": "denied",
   "aiParseApplied": "Filled in from your description",
   "aiParseError": "AI couldn't parse that — your text was kept, please fill in the fields manually",
-  "aiParseRateLimited": "Too many AI requests — try again in a minute"
+  "aiParseRateLimited": "Too many AI requests — try again in a minute",
+  "aiQuickCreateHint": "Plan in your own words",
+  "aiQuickCreateEnter": "AI fills the details",
+  "aiQuickCreateWorking": "Turning your words into a schedule"
 }

@@ -788,5 +788,8 @@
   "aiAssistantDenied": "거부됨",
   "aiParseApplied": "설명을 바탕으로 입력되었습니다",
   "aiParseError": "AI가 분석하지 못했습니다. 입력한 텍스트는 유지되었으니 수동으로 필드를 입력해 주세요",
-  "aiParseRateLimited": "AI 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요"
+  "aiParseRateLimited": "AI 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요",
+  "aiQuickCreateHint": "일정을 편하게 설명해 보세요",
+  "aiQuickCreateEnter": "Enter를 누르면 AI가 세부 정보를 입력합니다",
+  "aiQuickCreateWorking": "입력한 내용을 일정으로 정리하고 있습니다"
 }

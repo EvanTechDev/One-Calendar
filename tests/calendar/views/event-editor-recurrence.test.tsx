@@ -130,6 +130,69 @@ describe('editing recurrence from an occurrence', () => {
       }),
     )
   })
+  it('makes AI quick-create discoverable and keeps the title mounted while composing', async () => {
+    let resolveResponse!: (response: {
+      ok: boolean
+      json: () => Promise<{ event: { title: string } }>
+    }) => void
+    stubGlobal(
+      'fetch',
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveResponse = resolve
+        }),
+      ),
+    )
+    const initialDate = new Date('2026-10-06T08:00:00Z')
+    render(
+      <EventEditor
+        open
+        onOpenChange={vi.fn()}
+        onEventAdd={vi.fn()}
+        onEventUpdate={vi.fn()}
+        onEventDelete={vi.fn()}
+        onInvitesAdded={vi.fn()}
+        initialDate={initialDate}
+        initialEndDate={new Date('2026-10-06T09:00:00Z')}
+        config={ViewConfig.create({
+          date: initialDate,
+          timezone: 'UTC',
+          timeFormat: TimeFormat.h24(),
+          firstDayOfWeek: FirstDayOfWeek.sunday(),
+          language: new Language('en'),
+        })}
+      />,
+    )
+
+    const actionName = 'Plan in your own words. AI fills the details'
+    expect(screen.getByRole('button', { name: actionName })).toBeDisabled()
+    const title = screen.getByLabelText('Title')
+    fireEvent.change(title, { target: { value: 'Lunch with Mia tomorrow' } })
+    fireEvent.click(screen.getByRole('button', { name: actionName }))
+
+    expect(
+      await screen.findByRole('status', {
+        name: 'Turning your words into a schedule',
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Lunch with Mia tomorrow')).toBe(title)
+    expect(title).toHaveAttribute('readonly')
+    // The title and composer remain visible; the rest of the form stays mounted.
+
+    resolveResponse({
+      ok: true,
+      json: async () => ({ event: { title: 'Lunch with Mia' } }),
+    })
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('status', {
+          name: 'Turning your words into a schedule',
+        }),
+      ).toBeNull(),
+    )
+    expect(screen.getByDisplayValue('Lunch with Mia')).toBe(title)
+  })
+
   it('updates date and time fields when the calendar timezone changes, without changing the saved instant', () => {
     const onUpdate = vi.fn()
     const event: CalendarEvent = {

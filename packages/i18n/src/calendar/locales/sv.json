@@ -796,5 +796,8 @@
   "aiAssistantDenied": "nekad",
   "aiParseApplied": "Ifyllt utifrån din beskrivning",
   "aiParseError": "AI kunde inte tolka texten. Din text har behållits, fyll i fälten manuellt",
-  "aiParseRateLimited": "För många AI-begäranden. Försök igen om en minut"
+  "aiParseRateLimited": "För många AI-begäranden. Försök igen om en minut",
+  "aiQuickCreateHint": "Beskriv händelsen med egna ord",
+  "aiQuickCreateEnter": "Tryck på Enter så fyller AI i detaljerna",
+  "aiQuickCreateWorking": "Omvandlar din beskrivning till en händelse"
 }

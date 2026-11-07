@@ -804,5 +804,8 @@
   "aiAssistantDenied": "imekataliwa",
   "aiParseApplied": "Imejazwa kutoka kwa maelezo yako",
   "aiParseError": "AI haikuweza kuchambua hilo — maandishi yako yamewekwa, tafadhali jaza sehemu mwenyewe",
-  "aiParseRateLimited": "Maombi mengi mno ya AI — jaribu tena baada ya dakika moja"
+  "aiParseRateLimited": "Maombi mengi mno ya AI — jaribu tena baada ya dakika moja",
+  "aiQuickCreateHint": "Eleza tukio kwa maneno yako mwenyewe",
+  "aiQuickCreateEnter": "Bonyeza Enter kisha AI itajaza maelezo",
+  "aiQuickCreateWorking": "Inabadilisha maelezo yako kuwa tukio"
 }

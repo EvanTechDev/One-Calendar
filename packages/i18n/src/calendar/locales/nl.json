@@ -788,5 +788,8 @@
   "aiAssistantDenied": "geweigerd",
   "aiParseApplied": "Ingevuld op basis van je beschrijving",
   "aiParseError": "AI kon dat niet verwerken. Je tekst is behouden, vul de velden handmatig in",
-  "aiParseRateLimited": "Te veel AI-verzoeken. Probeer het over een minuut opnieuw"
+  "aiParseRateLimited": "Te veel AI-verzoeken. Probeer het over een minuut opnieuw",
+  "aiQuickCreateHint": "Beschrijf de afspraak in je eigen woorden",
+  "aiQuickCreateEnter": "Druk op Enter, dan vult AI de details in",
+  "aiQuickCreateWorking": "Je beschrijving wordt omgezet in een afspraak"
 }

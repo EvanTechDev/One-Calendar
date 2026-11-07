@@ -788,5 +788,8 @@
   "aiAssistantDenied": "atmesta",
   "aiParseApplied": "Užpildyta pagal jūsų aprašymą",
   "aiParseError": "AI nepavyko to apdoroti — jūsų tekstas išsaugotas, užpildykite laukus rankiniu būdu",
-  "aiParseRateLimited": "Per daug AI užklausų — bandykite dar kartą po minutės"
+  "aiParseRateLimited": "Per daug AI užklausų — bandykite dar kartą po minutės",
+  "aiQuickCreateHint": "Aprašykite įvykį savais žodžiais",
+  "aiQuickCreateEnter": "Paspauskite Enter, ir AI užpildys duomenis",
+  "aiQuickCreateWorking": "Jūsų aprašymas paverčiamas įvykiu"
 }

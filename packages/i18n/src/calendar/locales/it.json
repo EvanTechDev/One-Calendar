@@ -796,5 +796,8 @@
   "aiAssistantDenied": "negato",
   "aiParseApplied": "Compilato dalla tua descrizione",
   "aiParseError": "L'AI non è riuscita a interpretare il testo: il tuo testo è stato mantenuto, compila i campi manualmente",
-  "aiParseRateLimited": "Troppe richieste AI: riprova tra un minuto"
+  "aiParseRateLimited": "Troppe richieste AI: riprova tra un minuto",
+  "aiQuickCreateHint": "Descrivi l’evento con parole tue",
+  "aiQuickCreateEnter": "Premi Invio e l’AI completa i dettagli",
+  "aiQuickCreateWorking": "La tua descrizione sta diventando un evento"
 }

@@ -796,5 +796,8 @@
   "aiAssistantDenied": "hafnað",
   "aiParseApplied": "Fyllt út út frá lýsingunni þinni",
   "aiParseError": "Gervigreindin gat ekki túlkað textann. Hann hefur verið varðveittur; fylltu reitina út handvirkt",
-  "aiParseRateLimited": "Of margar gervigreindarbeiðnir. Reyndu aftur eftir mínútu"
+  "aiParseRateLimited": "Of margar gervigreindarbeiðnir. Reyndu aftur eftir mínútu",
+  "aiQuickCreateHint": "Lýstu viðburðinum með eigin orðum",
+  "aiQuickCreateEnter": "Ýttu á Enter og gervigreindin fyllir út upplýsingarnar",
+  "aiQuickCreateWorking": "Breyti lýsingunni þinni í viðburð"
 }

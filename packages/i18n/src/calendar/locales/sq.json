@@ -796,5 +796,8 @@
   "aiAssistantDenied": "u refuzua",
   "aiParseApplied": "U plotësua nga përshkrimi juaj",
   "aiParseError": "AI nuk mundi ta përpunonte — teksti juaj u ruajt, ju lutemi plotësoni fushat manualisht",
-  "aiParseRateLimited": "Shumë kërkesa AI — provoni përsëri pas një minute"
+  "aiParseRateLimited": "Shumë kërkesa AI — provoni përsëri pas një minute",
+  "aiQuickCreateHint": "Përshkruani ngjarjen me fjalët tuaja",
+  "aiQuickCreateEnter": "Shtypni Enter dhe AI do të plotësojë detajet",
+  "aiQuickCreateWorking": "Përshkrimi juaj po kthehet në një ngjarje"
 }

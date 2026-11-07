@@ -796,5 +796,8 @@
   "aiAssistantDenied": "denegado",
   "aiParseApplied": "Completado a partir de tu descripción",
   "aiParseError": "La IA no pudo interpretar eso: tu texto se conservó, por favor completa los campos manualmente",
-  "aiParseRateLimited": "Demasiadas solicitudes de IA: inténtalo de nuevo en un minuto"
+  "aiParseRateLimited": "Demasiadas solicitudes de IA: inténtalo de nuevo en un minuto",
+  "aiQuickCreateHint": "Describe el evento con tus palabras",
+  "aiQuickCreateEnter": "Pulsa Intro y la IA completará los detalles",
+  "aiQuickCreateWorking": "Convirtiendo tus palabras en un evento"
 }

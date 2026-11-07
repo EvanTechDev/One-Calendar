@@ -796,5 +796,8 @@
   "aiAssistantDenied": "avvist",
   "aiParseApplied": "Fylt inn fra beskrivelsen din",
   "aiParseError": "AI-en kunne ikke tolke det, teksten din ble beholdt, fyll inn feltene manuelt",
-  "aiParseRateLimited": "For mange AI-forespørsler, prøv igjen om et minutt"
+  "aiParseRateLimited": "For mange AI-forespørsler, prøv igjen om et minutt",
+  "aiQuickCreateHint": "Beskriv avtalen med egne ord",
+  "aiQuickCreateEnter": "Trykk Enter, så fyller AI inn detaljene",
+  "aiQuickCreateWorking": "Gjør beskrivelsen din om til en avtale"
 }

@@ -804,5 +804,8 @@
   "aiAssistantDenied": "noraidīts",
   "aiParseApplied": "Aizpildīts pēc tava apraksta",
   "aiParseError": "MI nevarēja saprast tekstu. Tas ir saglabāts; aizpildi laukus manuāli",
-  "aiParseRateLimited": "Pārāk daudz MI pieprasījumu. Mēģini vēlreiz pēc minūtes"
+  "aiParseRateLimited": "Pārāk daudz MI pieprasījumu. Mēģini vēlreiz pēc minūtes",
+  "aiQuickCreateHint": "Apraksti notikumu saviem vārdiem",
+  "aiQuickCreateEnter": "Nospied Enter, un MI aizpildīs detaļas",
+  "aiQuickCreateWorking": "Tavs apraksts tiek pārvērsts notikumā"
 }

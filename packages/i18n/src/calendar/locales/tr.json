@@ -796,5 +796,8 @@
   "aiAssistantDenied": "reddedildi",
   "aiParseApplied": "Açıklamanızdan dolduruldu",
   "aiParseError": "Yapay zeka bunu işleyemedi; metniniz korundu, lütfen alanları manuel olarak doldurun",
-  "aiParseRateLimited": "Çok fazla yapay zeka isteği; bir dakika sonra tekrar deneyin"
+  "aiParseRateLimited": "Çok fazla yapay zeka isteği; bir dakika sonra tekrar deneyin",
+  "aiQuickCreateHint": "Etkinliği kendi sözcüklerinizle anlatın",
+  "aiQuickCreateEnter": "Enter tuşuna basın, yapay zeka ayrıntıları doldurur",
+  "aiQuickCreateWorking": "Sözleriniz bir etkinliğe dönüştürülüyor"
 }

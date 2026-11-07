@@ -796,5 +796,8 @@
   "aiAssistantDenied": "अस्वीकृत",
   "aiParseApplied": "आपके विवरण से भरा गया",
   "aiParseError": "AI इसे पार्स नहीं कर सका — आपका टेक्स्ट सहेजा गया है, कृपया फ़ील्ड मैन्युअल रूप से भरें",
-  "aiParseRateLimited": "बहुत अधिक AI अनुरोध — एक मिनट में फिर से प्रयास करें"
+  "aiParseRateLimited": "बहुत अधिक AI अनुरोध — एक मिनट में फिर से प्रयास करें",
+  "aiQuickCreateHint": "अपने शब्दों में कार्यक्रम बताएं",
+  "aiQuickCreateEnter": "Enter दबाएँ, AI विवरण भर देगा",
+  "aiQuickCreateWorking": "आपके विवरण को कार्यक्रम में बदला जा रहा है"
 }

@@ -796,5 +796,8 @@
   "aiAssistantDenied": "đã từ chối",
   "aiParseApplied": "Đã điền từ mô tả của bạn",
   "aiParseError": "AI không thể phân tích nội dung đó, văn bản của bạn đã được giữ lại, vui lòng điền các trường theo cách thủ công",
-  "aiParseRateLimited": "Quá nhiều yêu cầu AI, vui lòng thử lại sau một phút"
+  "aiParseRateLimited": "Quá nhiều yêu cầu AI, vui lòng thử lại sau một phút",
+  "aiQuickCreateHint": "Mô tả sự kiện bằng lời của bạn",
+  "aiQuickCreateEnter": "Nhấn Enter để AI điền chi tiết",
+  "aiQuickCreateWorking": "Đang chuyển mô tả của bạn thành sự kiện"
 }

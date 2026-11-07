@@ -796,5 +796,8 @@
   "aiAssistantDenied": "odrzucono",
   "aiParseApplied": "Wypełniono na podstawie Twojego opisu",
   "aiParseError": "AI nie mogło tego przetworzyć. Twój tekst został zachowany, wypełnij pola ręcznie",
-  "aiParseRateLimited": "Zbyt wiele żądań AI. Spróbuj ponownie za minutę"
+  "aiParseRateLimited": "Zbyt wiele żądań AI. Spróbuj ponownie za minutę",
+  "aiQuickCreateHint": "Opisz wydarzenie własnymi słowami",
+  "aiQuickCreateEnter": "Naciśnij Enter, a AI uzupełni szczegóły",
+  "aiQuickCreateWorking": "Przekształcamy Twój opis w wydarzenie"
 }

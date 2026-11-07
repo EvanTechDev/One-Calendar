@@ -788,5 +788,8 @@
   "aiAssistantDenied": "已拒絕",
   "aiParseApplied": "已根據你嘅描述填好",
   "aiParseError": "AI 解析唔到,你嘅文字已保留,請手動填寫欄位",
-  "aiParseRateLimited": "AI 請求太多,請一分鐘後再試"
+  "aiParseRateLimited": "AI 請求太多,請一分鐘後再試",
+  "aiQuickCreateHint": "用自己嘅說話描述日程",
+  "aiQuickCreateEnter": "撳 Enter 等 AI 填好資料",
+  "aiQuickCreateWorking": "正在將你嘅描述整理成日程"
 }

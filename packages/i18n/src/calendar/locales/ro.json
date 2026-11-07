@@ -796,5 +796,8 @@
   "aiAssistantDenied": "respins",
   "aiParseApplied": "Completat din descrierea ta",
   "aiParseError": "AI nu a putut interpreta asta — textul tău a fost păstrat, te rugăm să completezi câmpurile manual",
-  "aiParseRateLimited": "Prea multe solicitări AI — încearcă din nou într-un minut"
+  "aiParseRateLimited": "Prea multe solicitări AI — încearcă din nou într-un minut",
+  "aiQuickCreateHint": "Descrie evenimentul în cuvintele tale",
+  "aiQuickCreateEnter": "Apasă Enter, iar AI va completa detaliile",
+  "aiQuickCreateWorking": "Descrierea ta se transformă într-un eveniment"
 }

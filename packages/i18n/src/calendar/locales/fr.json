@@ -796,5 +796,8 @@
   "aiAssistantDenied": "refusé",
   "aiParseApplied": "Rempli à partir de votre description",
   "aiParseError": "L'IA n'a pas pu analyser cela ; votre texte a été conservé, veuillez remplir les champs manuellement",
-  "aiParseRateLimited": "Trop de requêtes IA, réessayez dans une minute"
+  "aiParseRateLimited": "Trop de requêtes IA, réessayez dans une minute",
+  "aiQuickCreateHint": "Décrivez l’événement avec vos mots",
+  "aiQuickCreateEnter": "Appuyez sur Entrée pour que l’IA remplisse les détails",
+  "aiQuickCreateWorking": "Votre description devient un événement"
 }

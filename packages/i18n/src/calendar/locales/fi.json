@@ -788,5 +788,8 @@
   "aiAssistantDenied": "hylätty",
   "aiParseApplied": "Täytetty kuvauksesi perusteella",
   "aiParseError": "Tekoäly ei pystynyt tulkitsemaan tekstiä. Tekstisi säilytettiin, täytä kentät käsin",
-  "aiParseRateLimited": "Liian monta tekoälypyyntöä. Yritä uudelleen minuutin kuluttua"
+  "aiParseRateLimited": "Liian monta tekoälypyyntöä. Yritä uudelleen minuutin kuluttua",
+  "aiQuickCreateHint": "Kuvaile tapahtuma omin sanoin",
+  "aiQuickCreateEnter": "Paina Enteriä, niin tekoäly täyttää tiedot",
+  "aiQuickCreateWorking": "Muunnetaan kuvauksesi tapahtumaksi"
 }
