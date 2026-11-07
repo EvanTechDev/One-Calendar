@@ -4,17 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Dev release version (X.Y.Z, greater than the previous dev version)
+        description: Release version (X.Y.Z, greater than the previous channel version)
         required: true
         type: string
-  push:
-    tags: ['desktop-v*']
+      environment:
+        description: Release channel
+        required: true
+        type: choice
+        options:
+          - dev
+          - production
 
 permissions:
   contents: read
 
 concurrency:
-  group: desktop-release-${{ github.event_name == 'workflow_dispatch' && 'dev' || 'production' }}
+  group: desktop-release-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
@@ -27,15 +32,12 @@ jobs:
       - id: release
         env:
           MANUAL_VERSION: ${{ inputs.version }}
+          MANUAL_ENVIRONMENT: ${{ inputs.environment }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            version="$MANUAL_VERSION"
-            environment=dev
-          else
-            version="${GITHUB_REF_NAME#desktop-v}"
-            environment=production
-          fi
+          version="$MANUAL_VERSION"
+          environment="$MANUAL_ENVIRONMENT"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          [[ "$environment" =~ ^(dev|production)$ ]] || exit 1
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "environment=$environment" >> "$GITHUB_OUTPUT"
   build:
@@ -49,13 +51,19 @@ jobs:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bundle: appimage
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            bundle: appimage
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            bundle: nsis
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
             bundle: nsis
           - os: macos-15-intel
             target: x86_64-apple-darwin
             bundle: app,dmg
-          - os: macos-14
+          - os: macos-15
             target: aarch64-apple-darwin
             bundle: app,dmg
     runs-on: ${{ matrix.os }}

@@ -77,9 +77,9 @@ password recovery and account settings are embedded in the client; `/account`
 has been removed. The earlier evidence above describes earlier revisions, not
 acceptance of these changes.
 
-The Build workflow installs with the frozen lockfile, builds every workspace,
-and produces unsigned dev installers for Windows x64, Linux x64 and both macOS
-architectures. It does not run tests, native acceptance or visual captures.
+The Build workflow installs with the frozen lockfile and produces unsigned dev
+installers for Windows x64/ARM64, Linux x64/ARM64 and both macOS architectures.
+It does not run tests, native acceptance or visual captures.
 Run `bun run type-check`, `bun run lint:check`, `bun run test`, native Rust tests
 and the installed-application checks locally or on external desktops. Repeat the
 native matrix for production environment isolation after the dev run passes.
@@ -98,7 +98,7 @@ file import/export, search, AI streaming/cancellation and natural-language creat
 
 ## Installed-app acceptance
 
-For Windows x64, Linux x64 and both macOS architectures:
+For Windows x64/ARM64, Linux x64/ARM64 and both macOS architectures:
 
 1. Install the matching artifact. Sign-in appears inside the existing window.
    Switch to sign-up and password recovery, complete email verification/TOTP as

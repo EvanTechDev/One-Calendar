@@ -116,6 +116,7 @@ impl OfflineStore {
         }))
     }
 
+    #[cfg(test)]
     pub fn write(
         &self,
         user_id: &str,
@@ -154,6 +155,7 @@ impl OfflineStore {
         )
     }
 
+    #[cfg(test)]
     pub fn clear_user(&self, user_id: &str) -> Result<(), String> {
         let _io = self.io_lock.lock().map_err(|_| "Offline storage is unavailable")?;
         remove_directory(&self.origin_dir.join(digest(user_id.as_bytes())))
@@ -176,6 +178,7 @@ impl OfflineStore {
             .map_err(|_| "Offline identity is invalid or corrupted".to_string())
     }
 
+    #[cfg(test)]
     pub fn write_identity(&self, value: &serde_json::Value) -> Result<(), String> {
         self.write_identity_if(value, || true)
     }

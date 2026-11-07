@@ -105,9 +105,9 @@ Bun's native TypeScript checker (`bun check`) follows the root project reference
 Run `bun check` separately. Workspace checks also generate required framework types.
 
 **GitHub Actions builds but does not run checks or tests.** `.github/workflows/build.yml`
-installs with the frozen lockfile and builds the four desktop targets on pushes
-and pull requests to `main`/`dev`, plus manual dispatches. Application project references
-do not cover `tests/**`. Run `bun run type-check`, `bun run lint:check`, and
+installs with the frozen lockfile and builds the six desktop targets when
+manually dispatched. Application project references do not cover `tests/**`.
+Run `bun run type-check`, `bun run lint:check`, and
 `bun run test` locally before committing anything that could reach `main`; a
 focused green run is not the full validation gate.
 The docs website's type-check command generates its MDX collections first.
@@ -352,7 +352,7 @@ Conventional commits enforced by commitlint (commit-msg hook): `feat`, `fix`, `d
 - Component UI library (`@zntr/ui`) uses single-file components at `packages/ui/src/*.tsx` with barrel `index.ts`.
 - `calendar-client` is a Tauri desktop app: `build` checks and bundles its frontend,
   while `build:tauri` runs the native Tauri bundler. Build produces unsigned dev
-  installers for all four desktop targets; Desktop Release builds signed dev or
+  installers for all six desktop targets; Desktop Release builds signed dev or
   production artifacts. The dev configuration has a separate application ID.
 - knip config in root `package.json` tracks known dead-code exceptions.
 - Vercel crons run via `apps/calendar/vercel.json`: `GET /api/blob/check` at midnight UTC (which runs every job in `apps/calendar/lib/maintenance/jobs.ts` — table health, MCP audit retention, expired OAuth state, expired meetings) and `GET /api/reminders/topup` at 2am UTC. `/api/blob/check?jobs=<name>[,<name>]` runs a subset by hand. apps/meet registers no crons: it sweeps expired meetings from the calendar's maintenance run, since the rows are in the same database.

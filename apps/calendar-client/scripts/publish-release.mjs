@@ -17,11 +17,13 @@ const fragments = readdirSync(directory)
 const expected = [
   'darwin-aarch64',
   'darwin-x86_64',
+  'linux-aarch64',
   'linux-x86_64',
+  'windows-aarch64',
   'windows-x86_64',
 ]
 if (
-  fragments.length !== 4 ||
+  fragments.length !== expected.length ||
   expected.some(
     (platform) =>
       fragments.filter((fragment) => fragment.platform === platform).length !==
@@ -29,7 +31,7 @@ if (
   )
 ) {
   throw new Error(
-    'All four signed platform artifacts are required before publishing',
+    'All six signed platform artifacts are required before publishing',
   )
 }
 const manifest = {

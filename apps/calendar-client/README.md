@@ -62,14 +62,14 @@ reported in the client; unlocking it and retrying saves the session.
 
 ## Remote checks and releases
 
-The Build workflow runs on pushes and pull requests to `main`/`dev`, and manually.
-It produces unsigned dev Windows x64 NSIS, Linux x64 AppImage, macOS Intel DMG
-and Apple Silicon DMG artifacts. It does not run tests,
-native smoke checks or visual captures; run those separately when acceptance
-evidence is required.
+The Build workflow runs only when manually dispatched.
+It produces unsigned dev Windows x64/ARM64 NSIS, Linux x64/ARM64 AppImage,
+macOS Intel DMG and Apple Silicon DMG artifacts. Apple Silicon jobs use the
+standard `macos-15` runner. It does not run tests, native smoke checks or visual
+captures; run those separately when acceptance evidence is required.
 
-Desktop Release is manual for dev (`version=X.Y.Z`) and triggered by
-`desktop-vX.Y.Z` tags for production. Configure GitHub environments `desktop-dev`
+Desktop Release is manually dispatched with `version=X.Y.Z` and an `environment`
+of `dev` or `production`. Configure GitHub environments `desktop-dev`
 and `desktop-production`, each with its own:
 
 - variable `ZENTRA_UPDATER_PUBLIC_KEY`;
@@ -77,7 +77,7 @@ and `desktop-production`, each with its own:
   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 
 Public API origins can be overridden by repository variables
-`ZENTRA_DEV_API_ORIGIN` and `ZENTRA_API_ORIGIN`. All four signed installer builds
+`ZENTRA_DEV_API_ORIGIN` and `ZENTRA_API_ORIGIN`. All six signed installer builds
 must succeed before publication; native acceptance remains a separate manual
 gate. Versioned releases are immutable; the `desktop-dev` and `desktop-stable`
 channel releases hold `latest.json` pointing to those signed assets. Versions must increase independently in each channel. If publication

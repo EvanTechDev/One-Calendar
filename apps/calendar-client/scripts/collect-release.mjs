@@ -11,7 +11,9 @@ import { createHash } from 'node:crypto'
 const target = process.env.BUILD_TARGET
 const platforms = {
   'x86_64-unknown-linux-gnu': 'linux-x86_64',
+  'aarch64-unknown-linux-gnu': 'linux-aarch64',
   'x86_64-pc-windows-msvc': 'windows-x86_64',
+  'aarch64-pc-windows-msvc': 'windows-aarch64',
   'x86_64-apple-darwin': 'darwin-x86_64',
   'aarch64-apple-darwin': 'darwin-aarch64',
 }
