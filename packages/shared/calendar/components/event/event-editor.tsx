@@ -45,7 +45,8 @@ import { Calendar } from '@zntr/ui/date-picker'
 import { Button } from '@zntr/ui/button'
 import { Input } from '@zntr/ui/input'
 import { Label } from '@zntr/ui/label'
-import { EventAiSkeleton } from '#calendar/components/event/event-ai-skeleton'
+import { Skeleton } from '@zntr/ui/skeleton'
+import { EventAiDraft } from '#calendar/components/event/event-ai-draft'
 import { useState, useEffect, useRef } from 'react'
 import { isEmail } from '#calendar/lib/email'
 import { toast } from 'sonner'
@@ -1557,7 +1558,7 @@ export default function EventEditor({
                 from state at save time, never from FormData.
 
                 It stays mounted for the whole parse (readOnly + transparent,
-                skeleton painted over it) because swapping it for a skeleton
+                status painted over it) because swapping it for a skeleton
                 would unmount the focused element, and moving it inside the
                 disabled fieldset below would blur it — either one hands
                 focus to the next control.
@@ -1597,12 +1598,12 @@ export default function EventEditor({
                       </button>
                     )}
                     {isAiParsing && (
-                      <EventAiSkeleton className="pointer-events-none absolute inset-0 flex h-8 items-center justify-center gap-2 text-muted-foreground">
-                        <AssistantIcon className="size-3.5 text-foreground/60" />
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-muted-foreground">
+                        <AssistantIcon className="size-3.5 text-primary/70" />
                         <span className="text-xs font-medium">
                           {t.aiAssistantThinking}
                         </span>
-                      </EventAiSkeleton>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1613,14 +1614,20 @@ export default function EventEditor({
                 half-applied draft can never be saved or edited under the
                 skeletons.
               */}
-                <form onSubmit={handleSubmit}>
+                {isAiParsing && (
+                  <EventAiDraft label={t.aiAssistantThinking} text={title} />
+                )}
+                <form
+                  onSubmit={handleSubmit}
+                  className={isAiParsing ? 'hidden' : undefined}
+                >
                   <fieldset
                     disabled={isAiParsing}
                     className="min-w-0 space-y-4"
                   >
                     <div className="flex items-center space-x-2">
                       {isAiParsing ? (
-                        <EventAiSkeleton className="h-6 w-full" delay={120} />
+                        <Skeleton className="h-6 w-full"/>
                       ) : (
                         <>
                           <Checkbox
@@ -1654,7 +1661,7 @@ export default function EventEditor({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {isAiParsing ? (
-                        <EventAiSkeleton className="h-[88px] w-full" delay={240} />
+                        <Skeleton className="h-[88px] w-full"/>
                       ) : (
                         <div className="space-y-2">
                           <Label>{t.startTime}</Label>
@@ -1703,7 +1710,7 @@ export default function EventEditor({
                       )}
 
                       {isAiParsing ? (
-                        <EventAiSkeleton className="h-[88px] w-full" delay={240} />
+                        <Skeleton className="h-[88px] w-full"/>
                       ) : (
                         <div className="space-y-2">
                           <Label>{t.endTime}</Label>
@@ -1794,7 +1801,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="calendar">{t.calendar}</Label>
                       {isAiParsing ? (
-                        <EventAiSkeleton className="h-9 w-full" delay={360} />
+                        <Skeleton className="h-9 w-full"/>
                       ) : (
                         <Select
                           value={calendarSelectValue}
@@ -1838,7 +1845,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="color">{t.color}</Label>
                       {isAiParsing ? (
-                        <EventAiSkeleton className="h-9 w-full" delay={360} />
+                        <Skeleton className="h-9 w-full"/>
                       ) : (
                         <Select value={color} onValueChange={setColor}>
                           <SelectTrigger>
@@ -1870,7 +1877,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="location">{t.location}</Label>
                       {isAiParsing ? (
-                        <EventAiSkeleton className="h-9 w-full" delay={360} />
+                        <Skeleton className="h-9 w-full"/>
                       ) : (
                         <Input
                           id="location"
@@ -1904,7 +1911,7 @@ export default function EventEditor({
                       {(!event || !isRecurringEvent) && (
                         <div className="flex items-center space-x-2">
                           {isAiParsing ? (
-                            <EventAiSkeleton className="h-6 w-full" delay={120} />
+                            <Skeleton className="h-6 w-full"/>
                           ) : (
                             <>
                               <Checkbox
@@ -1957,7 +1964,7 @@ export default function EventEditor({
                       {recurrenceEnabled &&
                         (event === null || applyTo !== 'single') &&
                         (isAiParsing ? (
-                          <EventAiSkeleton className="h-40 w-full" delay={480} />
+                          <Skeleton className="h-40 w-full"/>
                         ) : (
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
@@ -2370,7 +2377,7 @@ export default function EventEditor({
                     <div className="space-y-2">
                       <Label htmlFor="description">{t.description}</Label>
                       {isAiParsing ? (
-                        <EventAiSkeleton className="h-20 w-full" delay={600} />
+                        <Skeleton className="h-20 w-full"/>
                       ) : (
                         <Textarea
                           id="description"

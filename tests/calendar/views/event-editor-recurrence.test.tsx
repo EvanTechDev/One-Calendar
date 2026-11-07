@@ -173,6 +173,12 @@ describe('editing recurrence from an occurrence', () => {
     await waitFor(() => expect(title).toHaveClass('opacity-0'))
     expect(screen.getByDisplayValue('Lunch with Mia tomorrow')).toBe(title)
     expect(title).toHaveAttribute('readonly')
+    expect(
+      screen.getByRole('status', { name: 'Thinking…' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Lunch with Mia tomorrow')).toHaveClass(
+      'event-ai-draft__text',
+    )
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
 
     resolveResponse({
