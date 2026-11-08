@@ -223,14 +223,14 @@
   overflow: hidden;
 }
 .landing-demo-sidebar {
-  width: 196px;
-  flex: 0 0 196px;
+  width: 247px;
+  flex: 0 0 247px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 12px;
   border-right: 1px solid var(--land-line);
-  background: #f5f6f9;
+  background: var(--land-surface, #fff);
   overflow: hidden;
 }
 .landing-demo-identity {
@@ -305,14 +305,47 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  padding-right: 56px;
+  position: relative;
+}
+.landing-demo-rail {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 24px;
+  gap: 24px;
+  border-left: 1px solid var(--land-line);
+  background: var(--land-surface, #fff);
+  z-index: 30;
+}
+.landing-demo-rail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: var(--secondary, #eff0f4);
+  color: var(--land-ink);
+}
+.landing-demo-rail-btn svg {
+  width: 24px;
+  height: 24px;
 }
 .landing-demo-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 0 16px;
+  height: 64px;
   border-bottom: 1px solid var(--land-line);
   flex-wrap: wrap;
+  overflow-x: auto;
 }
 .landing-demo-toolbar h2 {
   font-size: 14px;
