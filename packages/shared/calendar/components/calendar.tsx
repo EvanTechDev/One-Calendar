@@ -194,6 +194,9 @@ function warmEventSurfaceChunks() {
   const warm = () => {
     void EventPreview.preload().catch(() => {})
     void EventEditor.preload().catch(() => {})
+    // The palette carries the chat transport and is heavy; preload it off the
+    // critical path so the first Cmd/Ctrl+K does not pay a chunk download.
+    void AiCommandPalette.preload().catch(() => {})
   }
 
   const idleWindow = window as IdleCapableWindow
@@ -250,6 +253,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     'palette',
   )
   const openSearchPalette = useCallback(() => {
+    void AiCommandPalette.preload().catch(() => {})
     setAiPaletteMode('search')
     setAiPaletteMounted(true)
     setAiPaletteOpen(true)
@@ -693,6 +697,7 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     const handlePaletteKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
+        void AiCommandPalette.preload().catch(() => {})
         setAiPaletteMode('palette')
         setAiPaletteMounted(true)
         setAiPaletteOpen((prev) => !prev)
