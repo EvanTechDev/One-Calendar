@@ -3,6 +3,7 @@ import { translations, type Language } from '@zntr/i18n/calendar'
 import { LegalBadge } from '#calendar/components/brand/legal-badge'
 import { ZentraLogo } from '#calendar/components/brand/zentra-logo'
 import { ZentraWordmark } from '#calendar/components/brand/zentra-wordmark'
+import { ThirdPartyNotices } from '#calendar/components/brand/third-party-notices'
 
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL ?? '')
   .replace(/^https?:\/\//, '')
@@ -24,6 +25,17 @@ export function AboutBrand({ language }: { language: Language }) {
         <p>{t.aboutBrandTypeset}</p>
         <p>{t.aboutBrandThanks}</p>
         <p>{t.aboutBrandLicense}</p>
+        <ThirdPartyNotices
+          language={language}
+          trigger={
+            <button
+              type="button"
+              className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              {t.aboutBrandThirdParty}
+            </button>
+          }
+        />
       </div>
       <div className="mt-4 flex flex-col items-center gap-2">
         <LegalBadge className="h-4 w-auto" />
