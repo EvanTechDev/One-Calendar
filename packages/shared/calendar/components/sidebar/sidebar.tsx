@@ -70,6 +70,7 @@ interface SidebarProps {
   selectedCategoryFilters?: string[]
   onCategoryFilterChange?: (categoryId: string, checked: boolean) => void
   onCollapseTransitionEnd?: () => void
+  embedded?: boolean
 }
 
 export interface CalendarCategory {
@@ -99,6 +100,7 @@ export function SidebarBody({
   selectedDate,
   selectedCategoryFilters = [],
   onCategoryFilterChange,
+  embedded = false,
 }: Omit<
   SidebarProps,
   'isCollapsed' | 'onToggleCollapse' | 'onCollapseTransitionEnd'
@@ -306,12 +308,16 @@ export function SidebarBody({
     <TooltipProvider delayDuration={300}>
       <div className="p-4">
         <div className="mb-3 flex items-center">
-          {/* Decorative: the <h1> beside it already names the brand. */}
+          {/* Decorative: the heading beside it already names the brand. */}
           {/* size-7 (28px), one step over the 24px it replaced: the artwork has
               a gradient plate with padding baked in, so it reads smaller than
               the old bare glyph did at the same box. */}
           <ZentraLogo decorative className="mr-2 size-7 shrink-0" />
-          <h1 className="select-none text-lg font-semibold">Zentra Calendar</h1>
+          {embedded ? (
+            <h2 className="select-none text-lg font-semibold">Zentra Calendar</h2>
+          ) : (
+            <h1 className="select-none text-lg font-semibold">Zentra Calendar</h1>
+          )}
         </div>
 
         {/*

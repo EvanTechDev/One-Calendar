@@ -200,6 +200,21 @@
   object-position: top;
   border-radius: 18px;
 }
+.landing-screenshot-live {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 1919 / 1116;
+  border: 1px solid var(--land-line);
+  border-radius: 18px;
+  background: var(--land-surface, #fff);
+  box-shadow: 0 30px 70px -30px rgb(15 23 42 / 22%);
+  pointer-events: none;
+  user-select: none;
+}
+.landing-screenshot-live > * {
+  height: 100%;
+}
 
 .landing-section {
   margin-top: 112px;
@@ -954,6 +969,9 @@
     font-size: 14px;
   }
   .landing-screenshot {
+    border-radius: 12px;
+  }
+  .landing-screenshot-live {
     border-radius: 12px;
   }
   .landing-section {

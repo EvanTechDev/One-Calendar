@@ -55,6 +55,14 @@ import {
   type SeriesViewInput,
 } from '#calendar/lib/recurrence/engine'
 
+export interface DataProviderDemo {
+  events: EventData[]
+  categories: CategoryData[]
+  settings: SettingsData
+  countdowns?: CountdownData[]
+  bookmarks?: BookmarkData[]
+}
+
 type LoadingState = 'loading' | 'loaded' | 'error'
 
 // Keys are the API URLs — the global SWR cache dedupes across remounts,
@@ -135,7 +143,7 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | null>(null)
 
-export function DataProvider({
+function LiveDataProvider({
   children,
   api = webApi,
   offlineCache = false,
@@ -985,6 +993,80 @@ export function DataProvider({
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
+}
+
+function DemoDataProvider({
+  demo,
+  children,
+}: {
+  demo: DataProviderDemo
+  children: ReactNode
+}) {
+  const value = useMemo<DataContextValue>(() => {
+    const countdowns = demo.countdowns ?? []
+    const bookmarks = demo.bookmarks ?? []
+    const eventsRange: CalendarLoadRange = {
+      startDate: '2000-01-01T00:00:00.000Z',
+      endDate: '2100-01-01T00:00:00.000Z',
+      timezone: demo.settings.timezone ?? 'UTC',
+    }
+    const noop = async () => {}
+
+    return {
+      events: demo.events,
+      categories: demo.categories,
+      countdowns,
+      bookmarks,
+      settings: demo.settings,
+      loading: 'loaded',
+      error: null,
+      eventsLoaded: true,
+      categoriesLoaded: true,
+      setEventsRange: () => {},
+      eventsRange,
+      eventsLoading: false,
+      eventsError: undefined,
+      refresh: noop,
+      refreshEvents: noop,
+      refreshCategories: noop,
+      refreshCountdowns: noop,
+      refreshBookmarks: noop,
+      refreshSettings: noop,
+      upsertEvent: async () => demo.events[0] ?? ({} as EventData),
+      deleteEvent: noop,
+      createCategory: async () => demo.categories[0] ?? ({} as CategoryData),
+      deleteCategory: noop,
+      createCountdown: async () => ({} as CountdownData),
+      deleteCountdown: noop,
+      createBookmark: noop,
+      deleteBookmark: noop,
+      deleteBookmarkByEvent: noop,
+      updateSettings: noop,
+    }
+  }, [demo])
+
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>
+}
+
+export function DataProvider({
+  children,
+  api = webApi,
+  offlineCache = false,
+  demo,
+}: {
+  children: ReactNode
+  api?: typeof webApi
+  offlineCache?: boolean
+  demo?: DataProviderDemo
+}) {
+  if (demo) {
+    return <DemoDataProvider demo={demo}>{children}</DemoDataProvider>
+  }
+  return (
+    <LiveDataProvider api={api} offlineCache={offlineCache}>
+      {children}
+    </LiveDataProvider>
+  )
 }
 
 export function useData(): DataContextValue {

@@ -1,5 +1,5 @@
 await import('../../support/dom')
-const { fireEvent, render, screen, waitFor, within } =
+const { render, screen, waitFor, within } =
   await import('@testing-library/react')
 import { describe, expect, it } from 'bun:test'
 const { LandingCalendarPreview } =
@@ -16,118 +16,57 @@ class ResizeObserverStub {
 globalThis.ResizeObserver ??= ResizeObserverStub as never
 Element.prototype.scrollTo ??= function scrollTo() {}
 Element.prototype.scrollIntoView ??= function scrollIntoView() {}
+// The real shell reads the client language through useSyncExternalStore.
+window.matchMedia ??= ((query: string) => ({
+  matches: query === '(prefers-color-scheme: dark)',
+  media: query,
+  onchange: null,
+  addListener() {},
+  removeListener() {},
+  addEventListener() {},
+  removeEventListener() {},
+  dispatchEvent() {
+    return true
+  },
+})) as typeof window.matchMedia
 
 describe('landing product calendar demo', () => {
-  it('renders the actual week grid with explicitly labeled sample events', () => {
+  it('renders the real signed-in calendar chrome with sample events', async () => {
     const { container } = render(<LandingCalendarPreview />)
 
-    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeTruthy()
+    // Event blocks appear after the lazy WeekView chunk resolves.
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-event-id="landing-focus"]'),
+      ).not.toBeNull(),
+    )
+
+    // Real signed-in shell: brand, sidebar filters, and event count are all
+    // rendered by the same components the app uses.
     expect(
-      screen
-        .getByRole('button', { name: 'Week', exact: true })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-    expect(
-      screen.getByText('Sample schedule · Nov 2–8, 2026 · UTC'),
+      screen.getByRole('heading', { name: 'Zentra Calendar' }),
     ).toBeTruthy()
+    expect(screen.getByText('Create Event')).toBeTruthy()
+    expect(screen.getByText('My Calendars')).toBeTruthy()
+    expect(screen.getByText('Work')).toBeTruthy()
+    expect(screen.getByText('Personal')).toBeTruthy()
+    expect(screen.getByText('Uncategorized')).toBeTruthy()
+
+    const banner = screen.getByRole('banner')
+    expect(within(banner).getByText('Today')).toBeTruthy()
+    expect(within(banner).getByText('November 2026')).toBeTruthy()
+    expect(within(banner).getByRole('combobox').textContent).toContain('Week')
+
+    expect(screen.getByRole('button', { name: 'Bookmarks' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Countdown' })).toBeTruthy()
+
+    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
     expect(
       container.querySelector('[data-event-id="landing-focus"]')?.textContent,
     ).toContain('Focus time')
-    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
     expect(
-      screen.getByRole('region', { name: 'Interactive sample calendar' })
-        .tabIndex,
-    ).toBe(0)
-  })
-
-  it('filters the same sample dataset by category', () => {
-    const { container } = render(<LandingCalendarPreview />)
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Personal', exact: true }),
-    )
-
-    expect(
-      screen
-        .getByRole('button', { name: 'Personal', exact: true })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-    expect(
-      container.querySelector('[data-event-id="landing-focus"]'),
+      container.querySelector('img[src="/landing-calendar.jpg"]'),
     ).toBeNull()
-    expect(
-      container.querySelector('[data-event-id="landing-reading"]'),
-    ).not.toBeNull()
-    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(5)
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'All events', exact: true }),
-    )
-    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
-  })
-
-  it('navigates weeks and resets the date, view, and filters', () => {
-    const { container } = render(<LandingCalendarPreview />)
-    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
-    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(0)
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Personal', exact: true }),
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Reset demo' }))
-    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
-    expect(
-      screen
-        .getByRole('button', { name: 'All events', exact: true })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-  })
-
-  it('loads the actual month view and navigates calendar months', async () => {
-    const { container } = render(<LandingCalendarPreview />)
-    fireEvent.click(screen.getByRole('button', { name: 'Month', exact: true }))
-    await waitFor(() =>
-      expect(container.querySelector('[data-day-cell]')).not.toBeNull(),
-    )
-
-    expect(
-      screen
-        .getByRole('button', { name: 'Month', exact: true })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-    expect(
-      container.querySelector('[data-event-id="landing-focus"]'),
-    ).not.toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Next period' }))
-    expect(screen.getByRole('heading', { name: 'December 2026' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }))
-    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Reset demo' }))
-    expect(
-      screen
-        .getByRole('button', { name: 'Week', exact: true })
-        .getAttribute('aria-pressed'),
-    ).toBe('true')
-  })
-
-  it('offers a keyboard-accessible sample list and event details', () => {
-    render(<LandingCalendarPreview />)
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Browse sample events' }),
-    )
-    const dialog = screen.getByRole('dialog')
-    expect(
-      within(dialog).getByText(
-        'These are fictional example events, not a real person’s calendar.',
-      ),
-    ).toBeTruthy()
-    fireEvent.click(within(dialog).getByRole('button', { name: /Focus time/ }))
-    expect(
-      within(dialog).getByRole('heading', { name: 'Focus time' }),
-    ).toBeTruthy()
-    expect(
-      within(dialog)
-        .getByRole('link', { name: 'Create account' })
-        .getAttribute('href'),
-    ).toBe('/sign-up')
   })
 
   it('keeps the example data isolated, read-only, and UTC-based', () => {

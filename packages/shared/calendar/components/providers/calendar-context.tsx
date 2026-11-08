@@ -2,8 +2,8 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 import type React from 'react'
-import { useEffect, useRef } from 'react'
-import { create } from 'zustand'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { create, useStore, type StoreApi } from 'zustand'
 import { useData } from '#calendar/components/providers/data-provider'
 import type { EventData } from '#calendar/lib/api-client'
 import type { CategoryData } from '#calendar/lib/api-client'
@@ -80,78 +80,108 @@ interface CalendarState {
   addEvent: (newEvent: CalendarEvent) => void
 }
 
-const useCalendarStore = create<CalendarState>()((set) => ({
-  calendars: [],
-  events: [],
-  setCalendars: (value: SetStateAction<CalendarCategory[]>) =>
-    set((state: CalendarState) => ({
-      calendars: typeof value === 'function' ? value(state.calendars) : value,
-    })),
-  setEvents: (value: SetStateAction<CalendarEvent[]>) =>
-    set((state: CalendarState) => ({
-      events: typeof value === 'function' ? value(state.events) : value,
-    })),
-  addCategory: (category: CalendarCategory) =>
-    set((state: CalendarState) => ({
-      calendars: [...state.calendars, category],
-    })),
-  removeCategory: (id: string) =>
-    set((state: CalendarState) => ({
-      calendars: state.calendars.filter((cal) => cal.id !== id),
-    })),
-  updateCategory: (id: string, category: Partial<CalendarCategory>) =>
-    set((state: CalendarState) => ({
-      calendars: state.calendars.map((cal) =>
-        cal.id === id ? { ...cal, ...category } : cal,
-      ),
-    })),
-  moveCategory: (id: string, direction: 'up' | 'down') =>
-    set((state: CalendarState) => {
-      const currentIndex = state.calendars.findIndex((cal) => cal.id === id)
-      if (currentIndex === -1) return { calendars: state.calendars }
+function createCalendarStore(initial?: {
+  events?: CalendarEvent[]
+  calendars?: CalendarCategory[]
+}) {
+  return create<CalendarState>()((set) => ({
+    calendars: initial?.calendars ?? [],
+    events: initial?.events ?? [],
+    setCalendars: (value: SetStateAction<CalendarCategory[]>) =>
+      set((state: CalendarState) => ({
+        calendars: typeof value === 'function' ? value(state.calendars) : value,
+      })),
+    setEvents: (value: SetStateAction<CalendarEvent[]>) =>
+      set((state: CalendarState) => ({
+        events: typeof value === 'function' ? value(state.events) : value,
+      })),
+    addCategory: (category: CalendarCategory) =>
+      set((state: CalendarState) => ({
+        calendars: [...state.calendars, category],
+      })),
+    removeCategory: (id: string) =>
+      set((state: CalendarState) => ({
+        calendars: state.calendars.filter((cal) => cal.id !== id),
+      })),
+    updateCategory: (id: string, category: Partial<CalendarCategory>) =>
+      set((state: CalendarState) => ({
+        calendars: state.calendars.map((cal) =>
+          cal.id === id ? { ...cal, ...category } : cal,
+        ),
+      })),
+    moveCategory: (id: string, direction: 'up' | 'down') =>
+      set((state: CalendarState) => {
+        const currentIndex = state.calendars.findIndex((cal) => cal.id === id)
+        if (currentIndex === -1) return { calendars: state.calendars }
 
-      const targetIndex =
-        direction === 'up' ? currentIndex - 1 : currentIndex + 1
+        const targetIndex =
+          direction === 'up' ? currentIndex - 1 : currentIndex + 1
 
-      if (targetIndex < 0 || targetIndex >= state.calendars.length) {
-        return { calendars: state.calendars }
-      }
-
-      const nextCalendars = [...state.calendars]
-      const [movedCalendar] = nextCalendars.splice(currentIndex, 1)
-      nextCalendars.splice(targetIndex, 0, movedCalendar)
-
-      return { calendars: nextCalendars }
-    }),
-  addEvent: (newEvent: CalendarEvent) =>
-    set((state: CalendarState) => {
-      const eventExists = state.events.some((event) => event.id === newEvent.id)
-
-      if (eventExists) {
-        return {
-          events: state.events.map((event) =>
-            event.id === newEvent.id ? newEvent : event,
-          ),
+        if (targetIndex < 0 || targetIndex >= state.calendars.length) {
+          return { calendars: state.calendars }
         }
-      }
 
-      return { events: [...state.events, newEvent] }
-    }),
-}))
+        const nextCalendars = [...state.calendars]
+        const [movedCalendar] = nextCalendars.splice(currentIndex, 1)
+        nextCalendars.splice(targetIndex, 0, movedCalendar)
 
-export function CalendarProvider({ children }: { children: React.ReactNode }) {
+        return { calendars: nextCalendars }
+      }),
+    addEvent: (newEvent: CalendarEvent) =>
+      set((state: CalendarState) => {
+        const eventExists = state.events.some(
+          (event) => event.id === newEvent.id,
+        )
+
+        if (eventExists) {
+          return {
+            events: state.events.map((event) =>
+              event.id === newEvent.id ? newEvent : event,
+            ),
+          }
+        }
+
+        return { events: [...state.events, newEvent] }
+      }),
+  }))
+}
+
+const globalCalendarStore = createCalendarStore()
+const CalendarStoreContext = createContext<StoreApi<CalendarState>>(
+  globalCalendarStore,
+)
+
+export interface CalendarInitialData {
+  events: CalendarEvent[]
+  calendars: CalendarCategory[]
+}
+
+export function CalendarProvider({
+  children,
+  initialData,
+}: {
+  children: React.ReactNode
+  initialData?: CalendarInitialData
+}) {
   const {
     events: serverEvents,
     categories: serverCategories,
     eventsLoaded,
     categoriesLoaded,
   } = useData()
-  const setCalendars = useCalendarStore((state) => state.setCalendars)
-  const setEvents = useCalendarStore((state) => state.setEvents)
+  // A demo mounts its own store so it can start fully populated on the server
+  // and never shares state with the signed-in calendar in the same tab.
+  const [scopedStore] = useState(() =>
+    initialData ? createCalendarStore(initialData) : null,
+  )
+  const store = scopedStore ?? globalCalendarStore
+  const setCalendars = useStore(store, (state) => state.setCalendars)
+  const setEvents = useStore(store, (state) => state.setEvents)
   const hydratedRef = useRef(false)
   const lastEventsRef = useRef<EventData[] | null>(null)
 
   useEffect(() => {
+    if (scopedStore) return
     if (!eventsLoaded || !categoriesLoaded) return
     if (!hydratedRef.current) {
       hydratedRef.current = true
@@ -165,6 +195,7 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
       setEvents(serverEvents.map(eventDataToCalendarEvent))
     }
   }, [
+    scopedStore,
     serverEvents,
     serverCategories,
     eventsLoaded,
@@ -173,21 +204,26 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     setEvents,
   ])
 
-  return children
+  return (
+    <CalendarStoreContext.Provider value={store}>
+      {children}
+    </CalendarStoreContext.Provider>
+  )
 }
 
 export function useCalendar(): CalendarContextType {
-  const store = useCalendarStore()
+  const store = useContext(CalendarStoreContext)
+  const state = useStore(store)
   return {
-    calendars: store.calendars,
-    setCalendars: store.setCalendars,
-    events: store.events,
-    setEvents: store.setEvents,
-    addCategory: store.addCategory,
-    removeCategory: store.removeCategory,
-    updateCategory: store.updateCategory,
-    moveCategory: store.moveCategory,
-    addEvent: store.addEvent,
+    calendars: state.calendars,
+    setCalendars: state.setCalendars,
+    events: state.events,
+    setEvents: state.setEvents,
+    addCategory: state.addCategory,
+    removeCategory: state.removeCategory,
+    updateCategory: state.updateCategory,
+    moveCategory: state.moveCategory,
+    addEvent: state.addEvent,
   }
 }
 

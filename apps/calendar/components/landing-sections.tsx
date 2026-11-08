@@ -18,6 +18,7 @@ import {
 import { LandingAnchor } from './landing-anchor'
 import { LandingReveal, LandingWords } from './landing-motion'
 import { LandingAssistantPreview } from './landing-assistant-preview'
+import { LandingCalendarPreview } from './landing-calendar-preview'
 
 // Claims follow docs/content/docs/calendar and integrations/mcp.mdx.
 // The original product screenshot and user-confirmed testimonials are retained.
@@ -49,14 +50,13 @@ export function LandingHero() {
       </div>
       <div className="landing-product" id="calendar" tabIndex={-1}>
         <LandingReveal onLoad delay={0.4}>
-          <img
-            className="landing-screenshot"
-            src="/landing-calendar.jpg"
-            width={1919}
-            height={1116}
-            fetchPriority="high"
-            alt="The original Calendar interface showing a weekly schedule"
-          />
+          <div
+            className="landing-screenshot-live"
+            role="img"
+            aria-label="A live preview of the Zentra Calendar week view with example events"
+          >
+            <LandingCalendarPreview />
+          </div>
         </LandingReveal>
       </div>
     </section>

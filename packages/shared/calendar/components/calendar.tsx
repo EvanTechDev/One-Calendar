@@ -41,9 +41,18 @@ import {
   useCallback,
 } from 'react'
 import {
+  CalendarProvider,
   useCalendar,
   eventDataToCalendarEvent,
+  type CalendarCategory,
 } from '#calendar/components/providers/calendar-context'
+import {
+  DataProvider,
+  useSettings,
+  useEvents,
+  useBookmarks,
+  type DataProviderDemo,
+} from '#calendar/components/providers/data-provider'
 import {
   calendarVisibleRange,
   containsCalendarRange,
@@ -56,11 +65,6 @@ import {
 // locally, and this file uses `CalendarEvent` in ~28 signatures.
 import type { CalendarEvent } from '#calendar/lib/calendar-types'
 export type { CalendarEvent }
-import {
-  useSettings,
-  useEvents,
-  useBookmarks,
-} from '#calendar/components/providers/data-provider'
 import { getValidTimezone } from '#calendar/lib/timezone'
 import { toCalendarDate } from '#calendar/lib/zoned-date'
 import { uuid } from '#calendar/lib/uuid'
@@ -121,7 +125,11 @@ import {
   DialogTitle,
 } from '@zntr/ui/dialog'
 
-import { useCalendarHost } from '@zntr/shared/calendar/host'
+import {
+  CalendarHostProvider,
+  useCalendarHost,
+  type CalendarHost,
+} from '@zntr/shared/calendar/host'
 import { useCalendarConnection } from './connection-boundary'
 
 const loadDayView = () => import('#calendar/components/views/day-view')
@@ -232,9 +240,19 @@ export const CALENDAR_VIEW_CHUNKS: Record<
 
 interface CalendarProps {
   className?: string
+  /** Seeds the visible period. Demo hosts need a fixed, server-stable date. */
+  initialDate?: Date
+  initialView?: ViewType
+  /** Fill the parent instead of the viewport (landing-page preview). */
+  embedded?: boolean
 }
 
-export default function Calendar({ className, ..._props }: CalendarProps) {
+export default function Calendar({
+  className,
+  initialDate,
+  initialView,
+  embedded = false,
+}: CalendarProps) {
   const { readOnly } = useCalendarConnection()
   const {
     navigation: router,
@@ -258,8 +276,8 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
     setAiPaletteMounted(true)
     setAiPaletteOpen(true)
   }, [])
-  const [date, setDate] = useState(new Date())
-  const [view, setView] = useState<ViewType>('week')
+  const [date, setDate] = useState(() => initialDate ?? new Date())
+  const [view, setView] = useState<ViewType>(initialView ?? 'week')
   const [eventEditorOpen, setEventEditorOpen] = useState(false)
   const [editorAnchorEl, setEditorAnchorEl] = useState<HTMLElement | null>(null)
   const [editorAnchorRect, setEditorAnchorRect] = useState<DOMRect | null>(null)
@@ -329,7 +347,9 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
   const [focusUserProfileSection, setFocusUserProfileSection] =
     useState<AccountSection | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [sidebarDate, setSidebarDate] = useState<Date>(new Date())
+  const [sidebarDate, setSidebarDate] = useState<Date>(
+    () => initialDate ?? new Date(),
+  )
   const [pendingDeleteEvent, setPendingDeleteEvent] =
     useState<CalendarEvent | null>(null)
   const [pendingDeleteApplyTo, setPendingDeleteApplyTo] = useState<
@@ -1476,9 +1496,14 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
 
   return (
     <div className={className}>
-      <div className="relative flex h-dvh overflow-hidden bg-background">
+      <div
+        className={`relative flex overflow-hidden bg-background ${
+          embedded ? 'h-full' : 'h-dvh'
+        }`}
+      >
         {}
         <Sidebar
+          embedded={embedded}
           onCreateEvent={() => {
             setSelectedEvent(null)
             // Same path as drag-to-create: a synthetic 30-minute range shows
@@ -2205,5 +2230,114 @@ export default function Calendar({ className, ..._props }: CalendarProps) {
         )}
       </div>
     </div>
+  )
+}
+
+export interface LandingDemoProps {
+  events: CalendarEvent[]
+  categories: CalendarCategory[]
+  date: Date
+  view?: ViewType
+  className?: string
+}
+
+/**
+ * Renders the real calendar shell with static sample data for the landing
+ * page's hero. Deliberately isolated from the account: its own zustand store,
+ * data provider, and host, so it never reads or writes live calendar state.
+ */
+export function LandingDemo({
+  events,
+  categories,
+  date,
+  view = 'week',
+  className,
+}: LandingDemoProps) {
+  const initialData = useMemo(
+    () => ({ events, calendars: categories }),
+    [events, categories],
+  )
+  const demoData = useMemo<DataProviderDemo>(
+    () => ({
+      events: events.map((event) => ({
+        id: event.id,
+        userId: 'landing-demo',
+        title: event.title,
+        description: event.description ?? null,
+        location: event.location ?? null,
+        startDate: event.startDate.toISOString(),
+        endDate: event.endDate.toISOString(),
+        isAllDay: event.isAllDay,
+        color: event.color ?? null,
+        categoryId: event.calendarId || null,
+        participants: null,
+        notificationMinutes: event.notification ?? null,
+        emailReminder: event.emailReminder === true,
+        createdAt: '2026-11-01T00:00:00.000Z',
+        updatedAt: '2026-11-01T00:00:00.000Z',
+        viewOnly: true,
+      })),
+      categories: categories.map((category, index) => ({
+        id: category.id,
+        userId: 'landing-demo',
+        name: category.name,
+        color: category.color,
+        sortOrder: index,
+        createdAt: '2026-11-01T00:00:00.000Z',
+      })),
+      settings: {
+        language: 'en',
+        firstDayOfWeek: 1,
+        timezone: 'UTC',
+        defaultView: view === 'month' ? 'month' : 'week',
+        timeFormat: '12h',
+        theme: 'light',
+        enableShortcuts: false,
+        skipLanding: true,
+      },
+    }),
+    [events, categories, view],
+  )
+  const demoHost = useMemo<CalendarHost>(
+    () => ({
+      platform: 'web',
+      request: (async () =>
+        new Response('{}', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })) as unknown as typeof fetch,
+      session: {
+        data: {
+          user: {
+            id: 'landing-demo',
+            name: 'Zentra',
+            email: 'demo@zentra.app',
+            image: '/user.png',
+          },
+        },
+        isPending: false,
+      },
+      navigation: {
+        push: () => {},
+        replace: () => {},
+        openExternal: () => {},
+      },
+    }),
+    [],
+  )
+
+  return (
+    <CalendarHostProvider value={demoHost}>
+      <DataProvider demo={demoData}>
+        <CalendarProvider initialData={initialData}>
+          <Calendar
+            className={className}
+            initialDate={date}
+            initialView={view}
+            embedded
+          />
+        </CalendarProvider>
+      </DataProvider>
+    </CalendarHostProvider>
   )
 }

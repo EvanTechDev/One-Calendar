@@ -1,5 +1,5 @@
 await import('../../support/dom')
-const { fireEvent, render, screen, within } =
+const { fireEvent, render, screen, within, act } =
   await import('@testing-library/react')
 import { describe, expect, it } from 'bun:test'
 
@@ -20,18 +20,40 @@ window.matchMedia ??= ((query: string) => ({
 const { default: LandingPage } =
   await import('../../../apps/calendar/app/(landing)/page')
 
+async function renderLandingPage() {
+  let view!: ReturnType<typeof render>
+  // The real Calendar preview lazy-loads its view chunk; let that settle
+  // inside an async act() or the sync render path rejects with AggregateError.
+  await act(async () => {
+    view = render(<LandingPage />)
+  })
+  return view
+}
+
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
   disconnect() {}
 }
+class IntersectionObserverStub {
+  readonly root = null
+  readonly rootMargin = ''
+  readonly thresholds = [0]
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return []
+  }
+}
 globalThis.ResizeObserver ??= ResizeObserverStub as never
+globalThis.IntersectionObserver ??= IntersectionObserverStub as never
 Element.prototype.scrollTo ??= function scrollTo() {}
 Element.prototype.scrollIntoView ??= function scrollIntoView() {}
 
 describe('signed-out landing page', () => {
-  it('keeps account entry points and all section links usable', () => {
-    const { container } = render(<LandingPage />)
+  it('keeps account entry points and all section links usable', async () => {
+    const { container } = await renderLandingPage()
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByRole('main').id).toBe('main-content')
@@ -60,8 +82,8 @@ describe('signed-out landing page', () => {
     expect(brand.children).toHaveLength(0)
   })
 
-  it('keeps legal navigation without documentation promotion links', () => {
-    const { container } = render(<LandingPage />)
+  it('keeps legal navigation without documentation promotion links', async () => {
+    const { container } = await renderLandingPage()
     expect(
       container.querySelectorAll('a[href^="https://xyehr.cn/docs"]'),
     ).toHaveLength(0)
@@ -75,8 +97,8 @@ describe('signed-out landing page', () => {
     ).toBe('/terms')
   })
 
-  it('keeps the footer columns without a bottom bar or decorative link arrows', () => {
-    const { container } = render(<LandingPage />)
+  it('keeps the footer columns without a bottom bar or decorative link arrows', async () => {
+    const { container } = await renderLandingPage()
     const footer = screen.getByRole('contentinfo')
     const links = within(footer)
     const repository = 'https://github.com/EvanTechDev/One-Calendar'
@@ -112,8 +134,8 @@ describe('signed-out landing page', () => {
     ).toBeNull()
   })
 
-  it('uses English product facts and makes material limitations visible', () => {
-    const { container } = render(<LandingPage />)
+  it('uses English product facts and makes material limitations visible', async () => {
+    const { container } = await renderLandingPage()
     const text = container.textContent ?? ''
 
     expect(text).toContain('AI features require an AI-enabled deployment.')
@@ -127,14 +149,17 @@ describe('signed-out landing page', () => {
     expect(text).toContain('Marcus Oyelaran')
     expect(container.querySelectorAll('blockquote')).toHaveLength(2)
     expect(container.querySelector('.landing-facts')).toBeNull()
-    expect(container.querySelector('#calendar img')?.getAttribute('src')).toBe(
-      '/landing-calendar.jpg',
-    )
+    expect(
+      container.querySelector('#calendar .landing-screenshot-live'),
+    ).not.toBeNull()
+    expect(
+      container.querySelector('#calendar img[src="/landing-calendar.jpg"]'),
+    ).toBeNull()
     expect(container.querySelector('img[src^="http"]')).toBeNull()
   })
 
-  it('provides native expandable answers without a JS accordion', () => {
-    const { container } = render(<LandingPage />)
+  it('provides native expandable answers without a JS accordion', async () => {
+    const { container } = await renderLandingPage()
     const faq = container.querySelector('#questions')!
     const answers = faq.querySelectorAll('details')
 
@@ -145,8 +170,8 @@ describe('signed-out landing page', () => {
     }
   })
 
-  it('closes the mobile menu after navigation and on Escape', () => {
-    const { container } = render(<LandingPage />)
+  it('closes the mobile menu after navigation and on Escape', async () => {
+    const { container } = await renderLandingPage()
     const menu = container.querySelector<HTMLDetailsElement>(
       '.landing-mobile-menu',
     )!
