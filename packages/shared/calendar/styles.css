@@ -739,6 +739,13 @@ html {
   --tw-exit-scale: 1 !important;
 }
 
+.event-ai-cmdk[data-state='open'] {
+  animation: fade-in 0.15s ease both !important;
+}
+.event-ai-cmdk[data-state='closed'] {
+  animation: fade-out 0.1s ease both !important;
+}
+
 .event-ai-glow[data-ai-active] > :not(.event-ai-splash) {
   animation: event-ai-bounce 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both;
 }
@@ -778,7 +785,7 @@ html {
 
 .event-ai-glow[data-ai-active]::before {
   opacity: 1;
-  animation: event-ai-spin 6s linear infinite;
+  animation: event-ai-spin 5.5s linear infinite;
 }
 
 /* The flare hands over to the breathing at the opacity the breathing starts
@@ -787,8 +794,8 @@ html {
   opacity: 0.45;
   animation:
     event-ai-spin 6s linear infinite,
-    event-ai-flare 1.2s ease-out,
-    event-ai-breathe 3.2s ease-in-out 1.2s infinite;
+    event-ai-flare 0.9s ease-out,
+    event-ai-breathe 2.9s ease-in-out 0.9s infinite;
 }
 
 /* The frost arrives as the colour drains, not before it. */
@@ -828,7 +835,7 @@ html {
     transparent var(--event-ai-splash-radius)
   );
   opacity: 0;
-  animation: event-ai-splash 1.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: event-ai-splash 1.1s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
 .event-ai-title {
