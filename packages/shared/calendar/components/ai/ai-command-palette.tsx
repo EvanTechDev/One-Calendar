@@ -473,7 +473,7 @@ export function AiCommandPalette({
       // top-1/3 from the ui component collides with short dynamic
       // viewports (mobile URL bar): pin to a dvh-safe band instead so the
       // dialog never extends past what is actually visible.
-      className={`event-ai-glow top-[max(1rem,min(20dvh,8rem))] overflow-visible! flex max-h-[calc(100dvh-max(1rem,min(20dvh,8rem))-1rem)] flex-col sm:max-w-2xl data-open:zoom-in-100! data-closed:zoom-out-100! ${mode === 'chat' ? 'h-[min(38rem,calc(100dvh-max(1rem,min(20dvh,8rem))-1rem))]' : ''}`}
+      className={`event-ai-glow top-[max(1rem,min(20dvh,8rem))] event-ai-cmdk overflow-visible! flex max-h-[calc(100dvh-max(1rem,min(20dvh,8rem))-1rem)] flex-col sm:max-w-2xl data-open:zoom-in-100! data-closed:zoom-out-100! ${mode === 'chat' ? 'h-[min(38rem,calc(100dvh-max(1rem,min(20dvh,8rem))-1rem))]' : ''}`}
     >
       {/* The new CommandDialog renders children bare (no implicit Command
           root), so cmdk's context is established here explicitly.
