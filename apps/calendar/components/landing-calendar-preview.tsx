@@ -50,7 +50,9 @@ const eventTime = new Intl.DateTimeFormat('en-US', {
 
 // The same views used by the signed-in app, with an isolated sample dataset.
 // No account providers are mounted: this demo cannot fetch or save user data.
-export function LandingCalendarPreview() {
+export function LandingCalendarPreview({
+  interactive = true,
+}: { interactive?: boolean } = {}) {
   const [view, setView] = useState<'week' | 'month'>('week')
   const [date, setDate] = useState(landingDemoDate)
   const [category, setCategory] = useState('all')
@@ -110,7 +112,13 @@ export function LandingCalendarPreview() {
   }
 
   return (
-    <div className="landing-demo">
+    <div
+      className="landing-demo"
+      style={
+        interactive ? undefined : { pointerEvents: 'none', userSelect: 'none' }
+      }
+      aria-hidden={interactive ? undefined : true}
+    >
       <div className="landing-demo-workspace">
         <aside
           className="landing-demo-sidebar"
@@ -142,6 +150,7 @@ export function LandingCalendarPreview() {
               type="button"
               className="landing-demo-category"
               aria-pressed={category === item.id}
+              disabled={!interactive}
               onClick={() => setCategory(item.id)}
             >
               <span
@@ -171,6 +180,7 @@ export function LandingCalendarPreview() {
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Previous period"
+                disabled={!interactive}
                 onClick={() => navigate(-1)}
               >
                 <ChevronLeft aria-hidden="true" />
@@ -179,6 +189,7 @@ export function LandingCalendarPreview() {
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Next period"
+                disabled={!interactive}
                 onClick={() => navigate(1)}
               >
                 <ChevronRight aria-hidden="true" />
@@ -186,6 +197,7 @@ export function LandingCalendarPreview() {
               <Button
                 variant="outline"
                 size="sm"
+                disabled={!interactive}
                 onClick={() => {
                   setDate(landingDemoDate())
                   setCategory('all')
@@ -206,6 +218,7 @@ export function LandingCalendarPreview() {
                   size="sm"
                   variant={view === value ? 'secondary' : 'ghost'}
                   aria-pressed={view === value}
+                  disabled={!interactive}
                   onClick={() => setView(value)}
                 >
                   {value === 'week' ? 'Week' : 'Month'}
@@ -217,7 +230,7 @@ export function LandingCalendarPreview() {
             className="landing-demo-scroll"
             role="region"
             aria-label="Interactive sample calendar"
-            tabIndex={0}
+            tabIndex={interactive ? 0 : -1}
           >
             <div className="landing-demo-view">
               {view === 'month' ? (

@@ -201,6 +201,15 @@
   border-radius: 18px;
 }
 
+.landing-screenshot-live {
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--land-surface, #fff);
+}
+.landing-screenshot-live .landing-demo {
+  pointer-events: none;
+}
+
 .landing-section {
   margin-top: 112px;
   padding-top: 68px;
