@@ -1512,7 +1512,7 @@ export default function EventEditor({
               // full-screen surface, so the mobile variant slides up instead.
               'mobile-fullscreen flex w-[min(96vw,28rem)] max-h-[min(var(--radix-popover-content-available-height),40rem)] flex-col rounded-xl p-0 max-md:data-open:zoom-in-100 max-md:data-open:slide-in-from-bottom-8 max-md:data-closed:zoom-out-100 max-md:data-closed:slide-out-to-bottom-8 max-md:duration-200',
               replacesPreview && 'data-open:animate-none',
-              'event-ai-glow',
+              'event-ai-glow relative',
             )}
             data-ai-active={isAiParsing ? '' : undefined}
             onOpenAutoFocus={(e) => e.preventDefault()}

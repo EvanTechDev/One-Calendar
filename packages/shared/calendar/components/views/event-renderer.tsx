@@ -176,7 +176,7 @@ export function EventRenderer({
         <div
           data-event-id={event.id}
           className={cn(
-            'absolute cursor-pointer overflow-hidden rounded-md ring-1 ring-background',
+            'absolute cursor-pointer overflow-hidden rounded-md',
             isCompact ? 'px-1.5 py-1 text-xs' : 'p-2 text-sm',
             event.color,
             _className,

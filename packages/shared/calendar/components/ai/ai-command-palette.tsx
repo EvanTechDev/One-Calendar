@@ -44,6 +44,7 @@ import {
   DropdownMenuRadioItem,
 } from '@zntr/ui/dropdown-menu'
 import { Textarea } from '@zntr/ui/textarea'
+import { cn } from '@zntr/utils'
 import { useKeywordSearch } from '#calendar/hooks/use-keyword-search'
 import {
   ArrowLeft,
@@ -56,7 +57,6 @@ import {
   CircleStop,
   Columns4,
   Grid3x3,
-  LoaderCircle,
   LocateFixed,
   RotateCcw,
   Rows3,
@@ -446,6 +446,8 @@ export function AiCommandPalette({
   )
 
   const searching = search.status === 'loading' || loadingMore
+  const aiSearching = search.status === 'loading'
+  const semanticReady = mode === 'search' && AI_ENABLED
   const switchMode = (next: Mode) => {
     if (next === mode) return
     resetSearch()
@@ -467,21 +469,26 @@ export function AiCommandPalette({
       onOpenChange={reset}
       title={t.commandPaletteTitle}
       description={t.commandPaletteDescription}
+      contentProps={{ 'data-ai-active': aiSearching ? '' : undefined }}
       // top-1/3 from the ui component collides with short dynamic
       // viewports (mobile URL bar): pin to a dvh-safe band instead so the
       // dialog never extends past what is actually visible.
-      className={`top-[max(1rem,min(20dvh,8rem))] flex max-h-[calc(100dvh-max(1rem,min(20dvh,8rem))-1rem)] flex-col sm:max-w-2xl ${mode === 'chat' ? 'h-[min(38rem,calc(100dvh-max(1rem,min(20dvh,8rem))-1rem))]' : ''}`}
+      className={`event-ai-glow top-[max(1rem,min(20dvh,8rem))] overflow-visible! flex max-h-[calc(100dvh-max(1rem,min(20dvh,8rem))-1rem)] flex-col sm:max-w-2xl ${mode === 'chat' ? 'h-[min(38rem,calc(100dvh-max(1rem,min(20dvh,8rem))-1rem))]' : ''}`}
     >
       {/* The new CommandDialog renders children bare (no implicit Command
           root), so cmdk's context is established here explicitly.
           `shouldFilter` is off in the result view: the input holds the question
           and the follow-up, not a filter, and cmdk's own matching would hide
           every row the moment the question text stopped matching a title. */}
+      {aiSearching && (
+        <div aria-hidden="true" className="event-ai-splash" />
+      )}
       <Command
         label={t.commandPaletteTitle}
         className="calendar-ui-text min-h-0 flex-1 rounded-xl! p-2"
         shouldFilter={mode === 'palette'}
         filter={filterCommand}
+        style={{ '--event-ai-origin': '50% 1.75rem' } as React.CSSProperties}
         onKeyDownCapture={(e) => {
           if (
             e.altKey &&
@@ -559,7 +566,12 @@ export function AiCommandPalette({
                   setInput(value)
                   resetSearch()
                 }}
-                className={mode === 'search' && AI_ENABLED ? 'pr-9' : undefined}
+                readOnly={aiSearching}
+                aria-busy={aiSearching}
+                className={cn(
+                  semanticReady && (input.trim() ? 'pr-44' : 'pr-10'),
+                  aiSearching && 'event-ai-title',
+                )}
                 onFocus={() => setNavigatingResults(false)}
                 onPointerDown={() => setNavigatingResults(false)}
                 onKeyDown={(e) => {
@@ -589,21 +601,42 @@ export function AiCommandPalette({
                   }
                 }}
               />
-              {mode === 'search' && AI_ENABLED && (
+              {semanticReady && !aiSearching && (
                 <Button
+                  type="button"
                   variant="ghost"
-                  size="icon-sm"
-                  className="absolute right-0 top-1/2 -translate-y-1/2"
-                  aria-label={t.aiSemanticSearch}
+                  size="sm"
                   disabled={searching || !input.trim()}
+                  title={t.aiSemanticSearch}
+                  aria-label={t.aiSemanticSearch}
                   onClick={() => void runSearch(1)}
+                  data-ready={input.trim() ? '' : undefined}
+                  className="event-ai-suggest absolute inset-y-0 right-1 my-auto h-6 max-w-[58%] gap-1.5 px-1.5 text-muted-foreground"
                 >
-                  {searching ? (
-                    <LoaderCircle className="animate-spin" />
-                  ) : (
-                    <ArrowRight />
-                  )}
+                  <AssistantIcon className="event-ai-suggest__icon size-3.5 shrink-0" />
+                  <span className="event-ai-suggest__label truncate text-xs">
+                    {t.aiSemanticSearch}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="event-ai-suggest__key shrink-0"
+                  >
+                    ↵
+                  </span>
                 </Button>
+              )}
+              {aiSearching && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  aria-label={t.aiAssistantThinking}
+                  className="event-ai-status pointer-events-none absolute top-1/2 right-1.5 flex h-6 -translate-y-1/2 items-center gap-1.5 rounded-lg px-1.5"
+                >
+                  <AssistantIcon className="event-ai-status__icon size-3.5" />
+                  <span className="event-ai-status__label text-[11px] font-medium">
+                    {t.aiAssistantThinking}
+                  </span>
+                </div>
               )}
             </div>
           ) : (
@@ -642,11 +675,13 @@ export function AiCommandPalette({
               setNavigatingResults(true)
             }
           }}
-          className={
+          className={cn(
             mode === 'chat'
               ? 'flex min-h-0 flex-1 flex-col overflow-hidden'
-              : 'min-h-0 overflow-y-auto overscroll-contain'
-          }
+              : 'min-h-0 overflow-y-auto overscroll-contain',
+            'event-ai-veil',
+            aiSearching && 'is-active',
+          )}
         >
           {mode === 'search' && search.status === 'idle' ? (
             <PaletteSearchResults

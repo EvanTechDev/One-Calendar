@@ -807,7 +807,10 @@
   "aiParseRateLimited": "AI 請求過於頻繁——請一分鐘後再試",
   "aiQuickCreateHint": "用自然語言描述日程",
   "aiQuickCreateEnter": "按 Enter 讓 AI 填寫",
-  "aboutBrandTagline": "以最開放的方式規劃日程、開會、把事情做完。",
-  "aboutBrandLicense": "基於 MIT 授權條款開源",
-  "aboutBrandCopyright": "© 2026 Zentra。保留所有權利。"
+  "aboutBrandLicense": "根據 MIT License 發佈",
+  "aboutBrandTagline": "Zentra Calendar，開源日曆 App",
+  "aboutBrandLabs": "Zentra Calendar 是 Zentra Labs 的產品之一",
+  "aboutBrandTypeset": "使用 Geist Sans 排版",
+  "aboutBrandThanks": "沒有您，就沒有 Zentra Calendar",
+  "aboutBrandCopyright": "© Zentra Labs"
 }

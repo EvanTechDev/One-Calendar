@@ -37,12 +37,15 @@ function CommandDialog({
   children,
   className,
   showCloseButton = false,
+  contentProps,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   title?: string
   description?: string
   className?: string
   showCloseButton?: boolean
+  /** Extra attributes for the dialog surface, e.g. `data-*` state hooks. */
+  contentProps?: Record<`data-${string}`, string | undefined>
 }) {
   return (
     <Dialog {...props}>
@@ -56,6 +59,7 @@ function CommandDialog({
           className,
         )}
         showCloseButton={showCloseButton}
+        {...contentProps}
       >
         {children}
       </DialogContent>

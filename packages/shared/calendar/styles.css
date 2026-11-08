@@ -729,7 +729,6 @@ html {
   );
   /* Where the drop of colour lands: the title field. */
   --event-ai-origin: 50% 5rem;
-  position: relative;
 }
 
 /* The content, not the popover: the popover's own `animation` is its

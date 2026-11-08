@@ -807,7 +807,10 @@
   "aiParseRateLimited": "Too many AI requests — try again in a minute",
   "aiQuickCreateHint": "Plan in your own words",
   "aiQuickCreateEnter": "AI fills the details",
-  "aboutBrandTagline": "The most open way to plan, meet, and get things done.",
-  "aboutBrandLicense": "Open source under the MIT License",
-  "aboutBrandCopyright": "© 2026 Zentra. All rights reserved."
+  "aboutBrandLicense": "Released under the MIT License",
+  "aboutBrandTagline": "Zentra Calendar, an open-source calendar app",
+  "aboutBrandLabs": "Zentra Calendar is one of the Zentra Labs products",
+  "aboutBrandTypeset": "Typeset in Geist Sans",
+  "aboutBrandThanks": "Without you, there would be no Zentra",
+  "aboutBrandCopyright": "© Zentra Labs"
 }
