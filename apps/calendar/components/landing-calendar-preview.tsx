@@ -8,7 +8,10 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  CircleHelp,
+  PanelLeft,
   Plus,
+  Search,
 } from 'lucide-react'
 import { addDays, addMonths, format } from 'date-fns'
 import { Button } from '@zntr/ui/button'
@@ -124,9 +127,30 @@ export function LandingCalendarPreview({
           className="landing-demo-sidebar"
           aria-label="Sample calendar filters"
         >
-          <div className="landing-demo-identity">
-            <img src="/logo-light.svg" alt="" width={24} height={24} />
-            <span>My calendar</span>
+          <div className="p-4">
+            <div className="mb-3 flex items-center">
+              <img
+                src="/logo-light.svg"
+                alt=""
+                width={28}
+                height={28}
+                className="mr-2 size-7 shrink-0"
+              />
+              <h2 className="select-none text-lg font-semibold">
+                Zentra Calendar
+              </h2>
+            </div>
+            <Button
+              asChild
+              size="sm"
+              variant="secondary"
+              className="mb-4 h-10 w-full justify-center"
+            >
+              <Link href="/sign-up">
+                <Plus aria-hidden="true" />
+                New event
+              </Link>
+            </Button>
           </div>
           <span className="landing-demo-sidebar-label">Workspace preview</span>
           <Button
@@ -171,28 +195,90 @@ export function LandingCalendarPreview({
           </div>
         </aside>
         <div className="landing-demo-main">
-          <div className="landing-demo-toolbar">
-            <h2 aria-live="polite" aria-atomic="true">
-              {format(date, 'MMMM yyyy')}
-            </h2>
-            <div className="landing-demo-period">
+          <header className="landing-demo-toolbar">
+            <div className="flex min-w-0 items-center space-x-4 max-md:space-x-2">
               <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Previous period"
-                disabled={!interactive}
-                onClick={() => navigate(-1)}
+                variant="outline"
+                size="sm"
+                className="shrink-0 max-md:hidden"
+                aria-label="Toggle sidebar"
               >
-                <ChevronLeft aria-hidden="true" />
+                <PanelLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Next period"
-                disabled={!interactive}
-                onClick={() => navigate(1)}
+                variant="outline"
+                size="sm"
+                className="shrink-0 max-md:hidden"
+                onClick={() => {
+                  setDate(landingDemoDate())
+                  setCategory('all')
+                  setView('week')
+                }}
               >
-                <ChevronRight aria-hidden="true" />
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 md:hidden"
+                aria-label="Today"
+              >
+                <CalendarDays className="h-4 w-4" />
+              </Button>
+              <div className="flex shrink-0 items-center space-x-1 max-md:hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Previous period"
+                  disabled={!interactive}
+                  onClick={() => navigate(-1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Next period"
+                  disabled={!interactive}
+                  onClick={() => navigate(1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <h2
+                aria-live="polite"
+                aria-atomic="true"
+                className="min-w-0 truncate text-lg max-md:text-base"
+              >
+                {format(date, 'MMMM yyyy')}
+              </h2>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center space-x-2">
+              <div
+                className="landing-demo-views"
+                role="group"
+                aria-label="Sample calendar view"
+              >
+                {(['week', 'month'] as const).map((value) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    variant={view === value ? 'secondary' : 'ghost'}
+                    aria-pressed={view === value}
+                    disabled={!interactive}
+                    onClick={() => setView(value)}
+                  >
+                    {value === 'week' ? 'Week' : 'Month'}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                aria-label="Search"
+              >
+                <Search className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
@@ -206,26 +292,16 @@ export function LandingCalendarPreview({
               >
                 Reset demo
               </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-8 w-8 max-md:hidden"
+                aria-label="Help"
+              >
+                <CircleHelp className="h-4 w-4" />
+              </Button>
             </div>
-            <div
-              className="landing-demo-views"
-              role="group"
-              aria-label="Sample calendar view"
-            >
-              {(['week', 'month'] as const).map((value) => (
-                <Button
-                  key={value}
-                  size="sm"
-                  variant={view === value ? 'secondary' : 'ghost'}
-                  aria-pressed={view === value}
-                  disabled={!interactive}
-                  onClick={() => setView(value)}
-                >
-                  {value === 'week' ? 'Week' : 'Month'}
-                </Button>
-              ))}
-            </div>
-          </div>
+          </header>
           <div
             className="landing-demo-scroll"
             role="region"
