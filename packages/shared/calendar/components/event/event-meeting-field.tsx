@@ -81,7 +81,9 @@ export function EventMeetingField({ draft }: EventMeetingFieldProps) {
         the invitation.
       */}
       {!meeting ? (
-        <p className="text-xs text-muted-foreground">{t.addZentraMeetHelp}</p>
+        <p className="select-none text-xs text-muted-foreground">
+          {t.addZentraMeetHelp}
+        </p>
       ) : null}
     </div>
   )

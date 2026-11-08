@@ -162,14 +162,14 @@ export function AnalyticsInsightsPanel({
 
   if (insights.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="select-text text-sm text-muted-foreground">
         {t.analyticsInsightsEmpty}
       </p>
     )
   }
 
   return (
-    <div className="grid gap-x-6 gap-y-2 lg:grid-cols-2">
+    <div className="grid select-text gap-x-6 gap-y-2 lg:grid-cols-2">
       {insights.map((insight, index) => {
         const { icon: Icon, text } = render(insight)
         return (

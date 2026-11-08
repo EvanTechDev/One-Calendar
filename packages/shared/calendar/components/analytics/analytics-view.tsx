@@ -48,7 +48,7 @@ export default function AnalyticsView({
   )
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 p-4 md:p-8">
+    <div className="mx-auto max-w-5xl select-none space-y-8 p-4 md:p-8">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           {t.analytics}

@@ -519,7 +519,9 @@ export function CountdownBody() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <SheetTitle>{t.countdownDetails}</SheetTitle>
+            <SheetTitle className="select-none">
+              {t.countdownDetails}
+            </SheetTitle>
           </div>
         </SheetHeader>
         <div className="space-y-4 p-4">
@@ -561,7 +563,7 @@ export function CountdownBody() {
               <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                 <CalendarIcon className="h-4 w-4" />
               </span>
-              <span className="min-w-0 flex-1 text-sm text-muted-foreground">
+              <span className="min-w-0 flex-1 select-none text-sm text-muted-foreground">
                 {t.countdownDate}
               </span>
               <span className="text-sm font-medium">{formattedDate}</span>
@@ -570,7 +572,7 @@ export function CountdownBody() {
               <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                 <Clock className="h-4 w-4" />
               </span>
-              <span className="min-w-0 flex-1 text-sm text-muted-foreground">
+              <span className="min-w-0 flex-1 select-none text-sm text-muted-foreground">
                 {t.countdownRepeat}
               </span>
               <span className="text-sm font-medium">
@@ -583,7 +585,7 @@ export function CountdownBody() {
                   <FileText className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm text-muted-foreground">
+                  <div className="select-none text-sm text-muted-foreground">
                     {t.countdownDescription}
                   </div>
                   <p className="mt-1 whitespace-pre-wrap text-sm">
@@ -635,7 +637,7 @@ export function CountdownBody() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <SheetTitle>
+          <SheetTitle className="select-none">
             {selectedCountdown ? t.countdownEditTitle : t.countdownAddTitle}
           </SheetTitle>
         </div>
