@@ -1526,8 +1526,11 @@ export default function EventEditor({
               }
             }}
           >
+            {isAiParsing && (
+              <div aria-hidden="true" className="event-ai-splash" />
+            )}
             <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
-              <h2 className="text-lg font-semibold">
+              <h2 className="select-none text-lg font-semibold">
                 {event ? t.update : t.createEvent}
               </h2>
               <Button

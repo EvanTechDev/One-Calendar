@@ -685,9 +685,11 @@ html {
 
 /*
  * AI quick-create: while the title is being parsed the editor itself becomes
- * the indicator. A slow spectrum ring traces the popover edge and casts a
- * narrow, uneven glow, the form underneath rests behind a frosted veil, and the
- * title text shimmers in place. Nothing is unmounted or replaced.
+ * the indicator. A smooth spectrum ring traces the popover edge and the same
+ * gradient, blurred, sits just outside it as a tight halo, so the glow always
+ * wears whatever colour the ring is passing through. On entry a splash of
+ * colour jolts the popover like water and settles into the frosted veil.
+ * Nothing is unmounted or replaced.
  */
 @property --event-ai-angle {
   syntax: '<angle>';
@@ -696,15 +698,21 @@ html {
 }
 
 .event-ai-glow {
+  /* First and last stops match so the seam of the conic gradient is invisible;
+     the stops are close in hue so there is no hard band between them. */
   --event-ai-spectrum: conic-gradient(
     from var(--event-ai-angle),
     #bc82f3,
     #f5b9ea,
+    #ff8fb1,
+    #ff6778,
+    #ff9a62,
+    #ffd36e,
+    #9be8a6,
+    #5fe0d0,
+    #62b8ff,
     #8d9fff,
     #aa6eee,
-    #ff6778,
-    #ffba71,
-    #c686ff,
     #bc82f3
   );
   position: relative;
@@ -731,32 +739,13 @@ html {
     linear-gradient(#000 0 0);
 }
 
-/*
- * The light the ring casts: a narrow band just outside the edge. Its spectrum
- * has uneven, partly transparent stops so the glow gathers in a few drifting
- * patches instead of a uniform halo.
- */
+/* The light the ring casts: the same spectrum, blurred, a few pixels wide. */
 .event-ai-glow::after {
   z-index: -1;
-  inset: -7px;
-  padding: 7px;
-  border-radius: calc(0.75rem + 7px);
-  background: conic-gradient(
-    from var(--event-ai-angle),
-    transparent 0deg,
-    #bc82f3 28deg,
-    transparent 70deg,
-    transparent 105deg,
-    #8d9fff 128deg,
-    #ff6778 150deg,
-    transparent 196deg,
-    #ffba71 238deg,
-    transparent 262deg,
-    transparent 300deg,
-    #c686ff 322deg,
-    transparent 360deg
-  );
-  filter: blur(6px);
+  inset: -4px;
+  padding: 5px;
+  border-radius: calc(0.75rem + 4px);
+  filter: blur(7px);
   mask:
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
@@ -764,13 +753,14 @@ html {
 
 .event-ai-glow[data-ai-active]::before {
   opacity: 1;
-  animation: event-ai-spin 4.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  animation: event-ai-spin 6s linear infinite;
 }
 
 .event-ai-glow[data-ai-active]::after {
+  opacity: 0.75;
   animation:
-    event-ai-spin 7.3s cubic-bezier(0.3, 0.1, 0.7, 0.9) infinite,
-    event-ai-flicker 3.7s ease-in-out infinite;
+    event-ai-spin 6s linear infinite,
+    event-ai-breathe 3.2s ease-in-out infinite;
 }
 
 .event-ai-veil {
@@ -784,6 +774,44 @@ html {
   opacity: 0.45;
   pointer-events: none;
   user-select: none;
+  animation: event-ai-jelly 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/*
+ * One-shot splash, mounted when parsing starts. A tinted wash and two
+ * expanding ripples from the title field fade out over the veil, like
+ * coloured water dropped into the popover and then going clear.
+ */
+.event-ai-splash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--event-ai-spectrum);
+  opacity: 0;
+  animation: event-ai-wash 1.6s ease-out both;
+}
+
+.event-ai-splash::before,
+.event-ai-splash::after {
+  content: '';
+  position: absolute;
+  top: 5.5rem;
+  left: 50%;
+  width: 4rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.65);
+  translate: -50% -50%;
+  scale: 0.2;
+  opacity: 0;
+  animation: event-ai-ripple 1.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.event-ai-splash::after {
+  animation-delay: 0.18s;
 }
 
 .event-ai-title {
@@ -825,19 +853,46 @@ html {
   }
 }
 
-@keyframes event-ai-flicker {
-  0%,
-  100% {
-    opacity: 0.35;
+@keyframes event-ai-wash {
+  0% {
+    opacity: 0;
+    filter: blur(0);
   }
-  30% {
-    opacity: 0.6;
-  }
-  55% {
-    opacity: 0.3;
-  }
-  80% {
+  14% {
     opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    filter: blur(14px);
+  }
+}
+
+@keyframes event-ai-ripple {
+  0% {
+    opacity: 0.9;
+    scale: 0.2;
+  }
+  100% {
+    opacity: 0;
+    scale: 11;
+  }
+}
+
+@keyframes event-ai-jelly {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.018, 0.985);
+  }
+  38% {
+    transform: scale(0.992, 1.008);
+  }
+  58% {
+    transform: scale(1.006, 0.997);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
@@ -865,8 +920,13 @@ html {
   .event-ai-glow[data-ai-active]::after,
   .event-ai-title,
   .event-ai-status__icon,
-  .event-ai-status__label {
+  .event-ai-status__label,
+  .event-ai-veil.is-active {
     animation: none;
+  }
+
+  .event-ai-splash {
+    display: none;
   }
 
   .event-ai-title {
