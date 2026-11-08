@@ -19,13 +19,17 @@ export function AboutBrand({ language }: { language: Language }) {
       </p>
       {BASE_URL && <p>{BASE_URL}</p>}
       <p className="text-sm text-foreground/80">{t.aboutBrandTagline}</p>
-      <p>{t.aboutBrandLabs}</p>
-      <p>{t.aboutBrandTypeset}</p>
-      <p>{t.aboutBrandThanks}</p>
-      <p>{t.aboutBrandLicense}</p>
-      <LegalBadge className="h-4 w-auto" />
-      <p className="text-muted-foreground/70">{t.aboutBrandCopyright}</p>
-      <ZentraWordmark className="h-4 w-auto" />
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <p>{t.aboutBrandLabs}</p>
+        <p>{t.aboutBrandTypeset}</p>
+        <p>{t.aboutBrandThanks}</p>
+        <p>{t.aboutBrandLicense}</p>
+      </div>
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <LegalBadge className="h-4 w-auto" />
+        <p className="text-sm text-muted-foreground/70">{t.aboutBrandCopyright}</p>
+        <ZentraWordmark className="h-4 w-auto" />
+      </div>
     </div>
   )
 }
