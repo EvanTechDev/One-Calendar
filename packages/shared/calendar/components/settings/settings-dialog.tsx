@@ -56,6 +56,7 @@ import {
 import type { AccountSection } from '#calendar/lib/account-section'
 import { useCalendarHost } from '@zntr/shared/calendar/host'
 import BuildInfoCard from '#calendar/components/analytics/build-info-card'
+import { AboutBrand } from '#calendar/components/brand/about-brand'
 import ImportExport from '#calendar/components/analytics/import-export'
 import MCPSettings from '#calendar/components/settings/mcp-settings'
 import { McpIcon } from '#calendar/components/icons/mcp'
@@ -654,6 +655,7 @@ export default function SettingsDialog({
                   {host.renderUpdate?.() ?? (
                     <BuildInfoCard language={langCode} />
                   )}
+                  <AboutBrand language={langCode} />
                 </div>
               </div>
             </ScrollArea>

@@ -806,5 +806,8 @@
   "aiParseError": "AI 無法解析這段文字——已保留你的原文，請手動填寫",
   "aiParseRateLimited": "AI 請求過於頻繁——請一分鐘後再試",
   "aiQuickCreateHint": "用自然語言描述日程",
-  "aiQuickCreateEnter": "按 Enter 讓 AI 填寫"
+  "aiQuickCreateEnter": "按 Enter 讓 AI 填寫",
+  "aboutBrandTagline": "以最開放的方式規劃日程、開會、把事情做完。",
+  "aboutBrandLicense": "基於 MIT 授權條款開源",
+  "aboutBrandCopyright": "© 2026 Zentra。保留所有權利。"
 }
