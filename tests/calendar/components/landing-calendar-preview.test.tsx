@@ -37,7 +37,7 @@ describe('landing product calendar demo', () => {
     // Event blocks appear after the lazy WeekView chunk resolves.
     await waitFor(() =>
       expect(
-        container.querySelector('[data-event-id="landing-focus"]'),
+        container.querySelector('[data-event-id="landing-design-critique"]'),
       ).not.toBeNull(),
     )
 
@@ -48,8 +48,9 @@ describe('landing product calendar demo', () => {
     ).toBeTruthy()
     expect(screen.getByText('Create Event')).toBeTruthy()
     expect(screen.getByText('My Calendars')).toBeTruthy()
-    expect(screen.getByText('Work')).toBeTruthy()
-    expect(screen.getByText('Personal')).toBeTruthy()
+    expect(screen.getByText('Health')).toBeTruthy()
+    expect(screen.getByText('Business')).toBeTruthy()
+    expect(screen.getByText('People')).toBeTruthy()
     expect(screen.getByText('Uncategorized')).toBeTruthy()
 
     const banner = screen.getByRole('banner')
@@ -60,10 +61,11 @@ describe('landing product calendar demo', () => {
     expect(screen.getByRole('button', { name: 'Bookmarks' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Countdown' })).toBeTruthy()
 
-    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(11)
+    expect(container.querySelectorAll('[data-event-id]')).toHaveLength(22)
     expect(
-      container.querySelector('[data-event-id="landing-focus"]')?.textContent,
-    ).toContain('Focus time')
+      container.querySelector('[data-event-id="landing-design-critique"]')
+        ?.textContent,
+    ).toContain('Design sprint critique')
     expect(
       container.querySelector('img[src="/landing-calendar.jpg"]'),
     ).toBeNull()
@@ -72,7 +74,7 @@ describe('landing product calendar demo', () => {
   it('keeps the example data isolated, read-only, and UTC-based', () => {
     const first = landingDemoEvents()
     const second = landingDemoEvents()
-    expect(first).toHaveLength(11)
+    expect(first).toHaveLength(22)
     expect(first).not.toBe(second)
     for (const event of first) {
       expect(event.viewOnly).toBe(true)
@@ -83,6 +85,6 @@ describe('landing product calendar demo', () => {
       expect(event.endDate.getTime()).toBeGreaterThan(event.startDate.getTime())
     }
     first[0]!.title = 'Changed only in this instance'
-    expect(second[0]!.title).toBe('Plan the week')
+    expect(second[0]!.title).toBe('Design sprint critique')
   })
 })

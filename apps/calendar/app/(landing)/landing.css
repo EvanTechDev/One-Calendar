@@ -46,7 +46,7 @@
 .landing :is(button, summary) {
   cursor: pointer;
 }
-.landing svg {
+.landing svg:not(.landing-screenshot-live svg) {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
@@ -214,6 +214,13 @@
 }
 .landing-screenshot-live > * {
   height: 100%;
+}
+.landing-demo-orange {
+  --cal-accent: #f97316;
+  --cal-accent-ink: #c2410c;
+  --cal-now: #f97316;
+  --cal-today: #fdba74;
+  --cal-today-foreground: #7c2d12;
 }
 
 .landing-section {

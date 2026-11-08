@@ -27,7 +27,7 @@ export function LandingCalendarPreview() {
       categories={categories}
       date={date}
       view="week"
-      className="h-full"
+      className="h-full landing-demo-orange"
     />
   )
 }

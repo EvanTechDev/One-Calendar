@@ -245,6 +245,8 @@ interface CalendarProps {
   initialView?: ViewType
   /** Fill the parent instead of the viewport (landing-page preview). */
   embedded?: boolean
+  /** Embeds can pin the time grid to a dense hour instead of the current time. */
+  initialScrollHour?: number
 }
 
 export default function Calendar({
@@ -252,6 +254,7 @@ export default function Calendar({
   initialDate,
   initialView,
   embedded = false,
+  initialScrollHour,
 }: CalendarProps) {
   const { readOnly } = useCalendarConnection()
   const {
@@ -1814,6 +1817,7 @@ export default function Calendar({
                 onTimeSlotClick={handleTimeRangeSelect}
                 onDayHeaderClick={handleDayLabelClick}
                 config={viewConfig}
+                initialScrollHour={initialScrollHour}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onBookmarkEvent={toggleBookmark}
@@ -1831,6 +1835,7 @@ export default function Calendar({
                 config={viewConfig}
                 daysToShow={4}
                 fixedStartDate={date}
+                initialScrollHour={initialScrollHour}
                 onEditEvent={handleEventEdit}
                 onDeleteEvent={(event) => handleEventDelete(event.id)}
                 onBookmarkEvent={toggleBookmark}
@@ -2290,7 +2295,7 @@ export function LandingDemo({
         firstDayOfWeek: 1,
         timezone: 'UTC',
         defaultView: view === 'month' ? 'month' : 'week',
-        timeFormat: '12h',
+        timeFormat: '24h',
         theme: 'light',
         enableShortcuts: false,
         skipLanding: true,
@@ -2334,6 +2339,7 @@ export function LandingDemo({
             className={className}
             initialDate={date}
             initialView={view}
+            initialScrollHour={8}
             embedded
           />
         </CalendarProvider>
