@@ -528,11 +528,26 @@ export default function DayView({
           ))}
 
           {eventLayouts.map(
-            ({ event, start, end, column, totalColumns, isMultiDay }) => (
+            ({
+              event,
+              start,
+              end,
+              column,
+              totalColumns,
+              columnSpan,
+              isMultiDay,
+            }) => (
               <EventRenderer
                 key={event.id}
                 event={event}
-                layout={{ start, end, column, totalColumns, isMultiDay }}
+                layout={{
+                  start,
+                  end,
+                  column,
+                  totalColumns,
+                  columnSpan,
+                  isMultiDay,
+                }}
                 config={config}
                 isDark={isDark}
                 onEventClick={onEventClick}

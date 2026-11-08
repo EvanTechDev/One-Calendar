@@ -42,6 +42,7 @@ interface EventRendererProps {
     end: Date
     column: number
     totalColumns: number
+    columnSpan: number
     isMultiDay: boolean
   }
   config: ViewConfig
@@ -125,8 +126,9 @@ export function EventRenderer({
   const minHeight = 20
   const height = Math.max(duration, minHeight)
 
-  const width = `calc((100% - 8px) / ${layout.totalColumns})`
-  const left = `calc(${layout.column} * ${width})`
+  const track = `(100% - 8px) / ${layout.totalColumns}`
+  const width = `calc(${track} * ${layout.columnSpan} - 2px)`
+  const left = `calc(${track} * ${layout.column})`
 
   const canResize =
     !event.viewOnly &&

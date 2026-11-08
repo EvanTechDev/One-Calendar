@@ -11,7 +11,102 @@ export interface LayoutEvent {
   end: Date
   column: number
   totalColumns: number
+  /** Columns the block covers; >1 when the columns to its right are free. */
+  columnSpan: number
   isMultiDay: boolean
+}
+
+/**
+ * The renderer draws a block at least this many minutes tall (1px per minute),
+ * so a shorter event still covers that much of the column. Layout has to treat
+ * it as that long, or a 5-minute event and the one after it overlap on screen
+ * while being assigned the same column.
+ */
+export const MIN_VISUAL_MINUTES = 20
+
+interface TimedItem {
+  event: CalendarEvent
+  start: Date
+  end: Date
+  isMultiDay: boolean
+}
+
+/**
+ * Packs timed events into side-by-side columns, the way Google Calendar does.
+ *
+ * Events are grouped into clusters of transitively overlapping events. Every
+ * event in a cluster shares the cluster's column count, so widths agree no
+ * matter which event of the cluster is looked at, and a cluster never affects
+ * its neighbours. Within a cluster each event takes the first column that is
+ * free at its start; longer events go first, so they hold the leftmost column.
+ * Finally an event grows rightwards across any columns that stay empty for its
+ * whole duration rather than leaving a gap.
+ */
+export function packTimedEvents(items: TimedItem[]): LayoutEvent[] {
+  const minMs = MIN_VISUAL_MINUTES * 60 * 1000
+  const entries = items.map((item) => {
+    const start = item.start.getTime()
+    const end = Math.max(item.end.getTime(), start + minMs)
+    return { item, start, end }
+  })
+
+  entries.sort(
+    (a, b) =>
+      a.start - b.start ||
+      b.end - a.end ||
+      a.item.event.id.localeCompare(b.item.event.id),
+  )
+
+  const layouts: LayoutEvent[] = []
+  let cluster: typeof entries = []
+  let clusterEnd = -Infinity
+
+  const flush = () => {
+    if (cluster.length === 0) return
+
+    const columnEnds: number[] = []
+    const placed = cluster.map((entry) => {
+      let column = columnEnds.findIndex((end) => end <= entry.start)
+      if (column === -1) column = columnEnds.length
+      columnEnds[column] = entry.end
+      return { entry, column }
+    })
+
+    const totalColumns = columnEnds.length
+    for (const { entry, column } of placed) {
+      let columnSpan = 1
+      while (column + columnSpan < totalColumns) {
+        const next = column + columnSpan
+        const blocked = placed.some(
+          (other) =>
+            other.column === next &&
+            other.entry.start < entry.end &&
+            entry.start < other.entry.end,
+        )
+        if (blocked) break
+        columnSpan++
+      }
+      layouts.push({
+        event: entry.item.event,
+        start: entry.item.start,
+        end: entry.item.end,
+        column,
+        totalColumns,
+        columnSpan,
+        isMultiDay: entry.item.isMultiDay,
+      })
+    }
+    cluster = []
+  }
+
+  for (const entry of entries) {
+    if (entry.start >= clusterEnd) flush()
+    cluster.push(entry)
+    clusterEnd = cluster.length === 1 ? entry.end : Math.max(clusterEnd, entry.end)
+  }
+  flush()
+
+  return layouts
 }
 
 // These are grid coordinates, not an elapsed-time interval. In a DST fold
@@ -127,103 +222,14 @@ export class EventLayoutEngine {
 
     const { regularEvents } = this.separateEvents(dayEvents, day)
 
-    const eventsWithTimes = regularEvents
+    const items = regularEvents
       .map((event) => {
         const times = this.getEventTimesForDay(event, day)
-        if (!times) return null
-        return { event, ...times }
+        return times ? { event, ...times } : null
       })
-      .filter(Boolean) as Array<{
-      event: CalendarEvent
-      start: Date
-      end: Date
-      isMultiDay: boolean
-    }>
+      .filter((item): item is TimedItem => item !== null)
 
-    eventsWithTimes.sort((a, b) => a.start.getTime() - b.start.getTime())
-
-    type TimePoint = { time: number; isStart: boolean; eventIndex: number }
-    const timePoints: TimePoint[] = []
-
-    eventsWithTimes.forEach((eventWithTime, index) => {
-      const startTime = eventWithTime.start.getTime()
-      const endTime = Math.max(startTime + 1, eventWithTime.end.getTime())
-
-      timePoints.push({ time: startTime, isStart: true, eventIndex: index })
-      timePoints.push({ time: endTime, isStart: false, eventIndex: index })
-    })
-
-    timePoints.sort((a, b) => {
-      if (a.time === b.time) {
-        return a.isStart ? 1 : -1
-      }
-      return a.time - b.time
-    })
-
-    const eventLayouts: LayoutEvent[] = []
-    const activeEvents = new Set<number>()
-    const eventToColumn = new Map<number, number>()
-
-    for (let i = 0; i < timePoints.length; i++) {
-      const point = timePoints[i]
-
-      if (point.isStart) {
-        activeEvents.add(point.eventIndex)
-
-        let column = 0
-        const usedColumns = new Set<number>()
-
-        activeEvents.forEach((eventIndex) => {
-          if (eventToColumn.has(eventIndex)) {
-            usedColumns.add(eventToColumn.get(eventIndex)!)
-          }
-        })
-
-        while (usedColumns.has(column)) {
-          column++
-        }
-
-        eventToColumn.set(point.eventIndex, column)
-      } else {
-        activeEvents.delete(point.eventIndex)
-      }
-
-      if (
-        i === timePoints.length - 1 ||
-        timePoints[i + 1].time !== point.time
-      ) {
-        const totalColumns =
-          activeEvents.size > 0
-            ? Math.max(
-                ...Array.from(activeEvents).map((idx) =>
-                  eventToColumn.get(idx)!,
-                ),
-              ) + 1
-            : 0
-
-        activeEvents.forEach((eventIndex) => {
-          const column = eventToColumn.get(eventIndex)!
-          const { event, start, end, isMultiDay } = eventsWithTimes[eventIndex]
-
-          const existingLayout = eventLayouts.find(
-            (layout) => layout.event.id === event.id,
-          )
-
-          if (!existingLayout) {
-            eventLayouts.push({
-              event,
-              start,
-              end,
-              column,
-              totalColumns: Math.max(totalColumns, 1),
-              isMultiDay,
-            })
-          }
-        })
-      }
-    }
-
-    return eventLayouts
+    return packTimedEvents(items)
   }
 
   snapToQuarterHour(minutes: number): number {
@@ -545,98 +551,14 @@ export function layoutEventsForDay(
 
   const { regularEvents } = separateEvents(dayEvents, day)
 
-  const eventsWithTimes = regularEvents
+  const items = regularEvents
     .map((event) => {
       const times = getEventTimesForDay(event, day)
-      if (!times) return null
-      return { event, ...times }
+      return times ? { event, ...times } : null
     })
-    .filter(Boolean) as Array<{
-    event: CalendarEvent
-    start: Date
-    end: Date
-    isMultiDay: boolean
-  }>
+    .filter((item): item is TimedItem => item !== null)
 
-  eventsWithTimes.sort((a, b) => a.start.getTime() - b.start.getTime())
-
-  type TimePoint = { time: number; isStart: boolean; eventIndex: number }
-  const timePoints: TimePoint[] = []
-
-  eventsWithTimes.forEach((eventWithTime, index) => {
-    const startTime = eventWithTime.start.getTime()
-    const endTime = Math.max(startTime + 1, eventWithTime.end.getTime())
-
-    timePoints.push({ time: startTime, isStart: true, eventIndex: index })
-    timePoints.push({ time: endTime, isStart: false, eventIndex: index })
-  })
-
-  timePoints.sort((a, b) => {
-    if (a.time === b.time) {
-      return a.isStart ? 1 : -1
-    }
-    return a.time - b.time
-  })
-
-  const eventLayouts: LayoutEvent[] = []
-  const activeEvents = new Set<number>()
-  const eventToColumn = new Map<number, number>()
-
-  for (let i = 0; i < timePoints.length; i++) {
-    const point = timePoints[i]
-
-    if (point.isStart) {
-      activeEvents.add(point.eventIndex)
-
-      let column = 0
-      const usedColumns = new Set<number>()
-
-      activeEvents.forEach((eventIndex) => {
-        if (eventToColumn.has(eventIndex)) {
-          usedColumns.add(eventToColumn.get(eventIndex)!)
-        }
-      })
-
-      while (usedColumns.has(column)) {
-        column++
-      }
-
-      eventToColumn.set(point.eventIndex, column)
-    } else {
-      activeEvents.delete(point.eventIndex)
-    }
-
-    if (i === timePoints.length - 1 || timePoints[i + 1].time !== point.time) {
-      const totalColumns =
-        activeEvents.size > 0
-          ? Math.max(
-              ...Array.from(activeEvents).map((idx) => eventToColumn.get(idx)!),
-            ) + 1
-          : 0
-
-      activeEvents.forEach((eventIndex) => {
-        const column = eventToColumn.get(eventIndex)!
-        const { event, start, end, isMultiDay } = eventsWithTimes[eventIndex]
-
-        const existingLayout = eventLayouts.find(
-          (layout) => layout.event.id === event.id,
-        )
-
-        if (!existingLayout) {
-          eventLayouts.push({
-            event,
-            start,
-            end,
-            column,
-            totalColumns: Math.max(totalColumns, 1),
-            isMultiDay,
-          })
-        }
-      })
-    }
-  }
-
-  return eventLayouts
+  return packTimedEvents(items)
 }
 
 export function snapToQuarterHour(minutes: number): number {

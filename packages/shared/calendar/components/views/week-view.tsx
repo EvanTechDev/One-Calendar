@@ -805,7 +805,15 @@ export default function WeekView({
               ))}
 
               {eventLayouts.map(
-                ({ event, start, end, column, totalColumns, isMultiDay }) => {
+                ({
+                  event,
+                  start,
+                  end,
+                  column,
+                  totalColumns,
+                  columnSpan,
+                  isMultiDay,
+                }) => {
                   const startMinutes =
                     start.getHours() * 60 + start.getMinutes()
                   const endMinutes = end.getHours() * 60 + end.getMinutes()
@@ -825,8 +833,9 @@ export default function WeekView({
                   const minHeight = 20
                   const height = Math.max(duration, minHeight)
 
-                  const width = `calc((100% - 4px) / ${totalColumns})`
-                  const left = `calc(${column} * ${width})`
+                  const track = `(100% - 4px) / ${totalColumns}`
+                  const width = `calc(${track} * ${columnSpan} - 2px)`
+                  const left = `calc(${track} * ${column})`
 
                   const canResize =
                     !event.viewOnly &&

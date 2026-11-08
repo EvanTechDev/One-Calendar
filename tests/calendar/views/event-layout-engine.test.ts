@@ -449,6 +449,86 @@ describe('EventLayoutEngine', () => {
       expect(layouts[1].event.id).toBe('1')
     })
 
+    it('gives every event in an overlap cluster the same column count', () => {
+      const at = (id: string, sh: number, eh: number) =>
+        createEvent({
+          id,
+          startDate: new Date(2025, 0, 15, sh, 0),
+          endDate: new Date(2025, 0, 15, eh, 0),
+        })
+      // a overlaps b and c; b and c do not overlap each other.
+      const layouts = layoutEventsForDay(
+        [at('a', 9, 13), at('b', 9, 10), at('c', 11, 12)],
+        day,
+      )
+      expect(layouts.map((l) => l.totalColumns)).toEqual([2, 2, 2])
+      const byId = Object.fromEntries(layouts.map((l) => [l.event.id, l]))
+      expect(byId.a.column).toBe(0)
+      expect(byId.b.column).toBe(1)
+      expect(byId.c.column).toBe(1)
+    })
+
+    it('does not let a finished cluster narrow later events', () => {
+      const at = (id: string, sh: number, eh: number) =>
+        createEvent({
+          id,
+          startDate: new Date(2025, 0, 15, sh, 0),
+          endDate: new Date(2025, 0, 15, eh, 0),
+        })
+      const layouts = layoutEventsForDay(
+        [at('a', 9, 10), at('b', 9, 10), at('c', 12, 13)],
+        day,
+      )
+      const c = layouts.find((l) => l.event.id === 'c')!
+      expect(c.totalColumns).toBe(1)
+      expect(c.columnSpan).toBe(1)
+    })
+
+    it('expands an event across columns that stay free', () => {
+      const at = (id: string, sh: number, eh: number) =>
+        createEvent({
+          id,
+          startDate: new Date(2025, 0, 15, sh, 0),
+          endDate: new Date(2025, 0, 15, eh, 0),
+        })
+      const layouts = layoutEventsForDay(
+        [at('long', 9, 13), at('x', 9, 10), at('y', 9, 10)],
+        day,
+      )
+      expect(layouts.every((l) => l.totalColumns === 3)).toBe(true)
+      const byId = Object.fromEntries(layouts.map((l) => [l.event.id, l]))
+      expect(byId.long.columnSpan).toBe(1)
+
+      const wide = layoutEventsForDay(
+        [at('p', 9, 10), at('q', 9, 12), at('r', 10, 12)],
+        day,
+      )
+      const p = wide.find((l) => l.event.id === 'p')!
+      expect(p.totalColumns).toBe(2)
+      expect(p.columnSpan).toBe(1)
+      const r = wide.find((l) => l.event.id === 'r')!
+      expect(r.columnSpan).toBe(1)
+    })
+
+    it('treats very short events as occupying their minimum height', () => {
+      const layouts = layoutEventsForDay(
+        [
+          createEvent({
+            id: 'a',
+            startDate: new Date(2025, 0, 15, 10, 0),
+            endDate: new Date(2025, 0, 15, 10, 5),
+          }),
+          createEvent({
+            id: 'b',
+            startDate: new Date(2025, 0, 15, 10, 10),
+            endDate: new Date(2025, 0, 15, 10, 30),
+          }),
+        ],
+        day,
+      )
+      expect(layouts.map((l) => l.column).sort()).toEqual([0, 1])
+    })
+
     it('handles events starting at same time', () => {
       const events = [
         createEvent({
