@@ -151,6 +151,30 @@ export function LandingCalendarPreview({
                 New event
               </Link>
             </Button>
+            <div className="mb-4 rounded-lg border p-1">
+              <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                  <span key={i}>{d}</span>
+                ))}
+              </div>
+              <div className="mt-1 grid grid-cols-7 gap-1 text-center text-xs">
+                {Array.from({ length: 35 }, (_, i) => {
+                  const day = i - 2
+                  return (
+                    <span
+                      key={i}
+                      className={
+                        day > 0 && day <= 30
+                          ? 'rounded py-0.5 hover:bg-muted'
+                          : 'text-muted-foreground/40'
+                      }
+                    >
+                      {day > 0 && day <= 30 ? day : ''}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
           </div>
           <span className="landing-demo-sidebar-label">Workspace preview</span>
           <Button
