@@ -127,9 +127,12 @@ describe('signed-out landing page', () => {
     expect(text).toContain('Marcus Oyelaran')
     expect(container.querySelectorAll('blockquote')).toHaveLength(2)
     expect(container.querySelector('.landing-facts')).toBeNull()
-    expect(container.querySelector('#calendar img')?.getAttribute('src')).toBe(
-      '/landing-calendar.jpg',
-    )
+    expect(
+      container.querySelector('#calendar .landing-screenshot-live'),
+    ).not.toBeNull()
+    expect(
+      container.querySelector('#calendar img[src="/landing-calendar.jpg"]'),
+    ).toBeNull()
     expect(container.querySelector('img[src^="http"]')).toBeNull()
   })
 
