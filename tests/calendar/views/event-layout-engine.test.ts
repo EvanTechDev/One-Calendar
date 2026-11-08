@@ -2,6 +2,8 @@ await import('./../../support/dom')
 import { describe, it, expect } from 'bun:test'
 const {
   layoutEventsForDay,
+  layoutBoxStyle,
+  NEST_INDENT_PX,
   separateEvents,
   getEventTimesForDay,
   shouldShowEventOnDay,
@@ -333,86 +335,83 @@ describe('EventLayoutEngine', () => {
       expect(layoutEventsForDay(undefined as any, day)).toHaveLength(0)
     })
 
-    it('layouts single event in column 0', () => {
-      const events = [
-        createEvent({
-          id: '1',
-          startDate: new Date(2025, 0, 15, 10, 0),
-          endDate: new Date(2025, 0, 15, 11, 0),
-        }),
-      ]
-      const layouts = layoutEventsForDay(events, day)
-      expect(layouts).toHaveLength(1)
-      expect(layouts[0].column).toBe(0)
-      expect(layouts[0].totalColumns).toBe(1)
+    const at = (id: string, sh: number, sm: number, eh: number, em: number) =>
+      createEvent({
+        id,
+        startDate: new Date(2025, 0, 15, sh, sm),
+        endDate: new Date(2025, 0, 15, eh, em),
+      })
+    const byId = (layouts: ReturnType<typeof layoutEventsForDay>) =>
+      Object.fromEntries(layouts.map((l) => [l.event.id, l]))
+
+    it('gives a lone event the full column', () => {
+      const [layout] = layoutEventsForDay([at('1', 10, 0, 11, 0)], day)
+      expect(layout).toMatchObject({
+        left: 0,
+        leftOffset: 0,
+        width: 1,
+        widthOffset: 0,
+        depth: 0,
+      })
     })
 
-    it('layouts overlapping events in separate columns', () => {
-      const events = [
-        createEvent({
-          id: '1',
-          startDate: new Date(2025, 0, 15, 10, 0),
-          endDate: new Date(2025, 0, 15, 11, 0),
-        }),
-        createEvent({
-          id: '2',
-          startDate: new Date(2025, 0, 15, 10, 30),
-          endDate: new Date(2025, 0, 15, 12, 0),
-        }),
-      ]
-      const layouts = layoutEventsForDay(events, day)
-      expect(layouts).toHaveLength(2)
-      const columns = layouts.map((l) => l.column).sort()
-      expect(columns).toEqual([0, 1])
-      // totalColumns may vary depending on when overlap is calculated
-      // Just verify they're in different columns
-      expect(layouts[0].column).not.toBe(layouts[1].column)
+    it('puts events starting together side by side', () => {
+      const l = byId(
+        layoutEventsForDay([at('1', 10, 0, 11, 0), at('2', 10, 0, 12, 0)], day),
+      )
+      expect(l['2'].left).toBe(0)
+      expect(l['1'].left).toBe(0.5)
+      expect(l['1'].width).toBe(0.5)
+      expect(l['2'].width).toBe(0.5)
     })
 
-    it('layouts non-overlapping events in same column', () => {
-      const events = [
-        createEvent({
-          id: '1',
-          startDate: new Date(2025, 0, 15, 10, 0),
-          endDate: new Date(2025, 0, 15, 11, 0),
-        }),
-        createEvent({
-          id: '2',
-          startDate: new Date(2025, 0, 15, 11, 0),
-          endDate: new Date(2025, 0, 15, 12, 0),
-        }),
-      ]
-      const layouts = layoutEventsForDay(events, day)
-      expect(layouts).toHaveLength(2)
-      expect(layouts.every((l) => l.column === 0)).toBe(true)
-      expect(layouts.every((l) => l.totalColumns === 1)).toBe(true)
+    it('treats starts within 30 minutes as side by side', () => {
+      const l = byId(
+        layoutEventsForDay(
+          [at('a', 10, 0, 11, 0), at('b', 10, 15, 11, 0)],
+          day,
+        ),
+      )
+      expect(l.a.width).toBe(0.5)
+      expect(l.b.left).toBe(0.5)
+      expect(l.b.depth).toBe(0)
     })
 
-    it('handles three-way overlap', () => {
-      const events = [
-        createEvent({
-          id: '1',
-          startDate: new Date(2025, 0, 15, 10, 0),
-          endDate: new Date(2025, 0, 15, 13, 0),
-        }),
-        createEvent({
-          id: '2',
-          startDate: new Date(2025, 0, 15, 11, 0),
-          endDate: new Date(2025, 0, 15, 14, 0),
-        }),
-        createEvent({
-          id: '3',
-          startDate: new Date(2025, 0, 15, 12, 0),
-          endDate: new Date(2025, 0, 15, 15, 0),
-        }),
-      ]
-      const layouts = layoutEventsForDay(events, day)
-      expect(layouts).toHaveLength(3)
-      const columns = layouts.map((l) => l.column).sort()
-      expect(columns).toEqual([0, 1, 2])
-      // Only the last event gets totalColumns=3 at its start time
-      // The max totalColumns among all layouts should be 3
-      expect(Math.max(...layouts.map((l) => l.totalColumns))).toBe(3)
+    it('nests a later overlapping event over the running one', () => {
+      const l = byId(
+        layoutEventsForDay(
+          [at('a', 10, 0, 11, 0), at('b', 10, 30, 12, 0)],
+          day,
+        ),
+      )
+      expect(l.a).toMatchObject({ left: 0, width: 1, depth: 0 })
+      expect(l.b).toMatchObject({
+        left: 0,
+        width: 1,
+        depth: 1,
+        leftOffset: NEST_INDENT_PX,
+        widthOffset: -NEST_INDENT_PX,
+      })
+    })
+
+    it('keeps back-to-back events at full width', () => {
+      const layouts = layoutEventsForDay(
+        [at('1', 10, 0, 11, 0), at('2', 11, 0, 12, 0)],
+        day,
+      )
+      expect(layouts.every((l) => l.width === 1 && l.depth === 0)).toBe(true)
+    })
+
+    it('stacks a staggered chain as successive indents', () => {
+      const l = byId(
+        layoutEventsForDay(
+          [at('1', 10, 0, 13, 0), at('2', 11, 0, 14, 0), at('3', 12, 0, 15, 0)],
+          day,
+        ),
+      )
+      expect([l['1'].depth, l['2'].depth, l['3'].depth]).toEqual([0, 1, 2])
+      expect(l['3'].leftOffset).toBe(2 * NEST_INDENT_PX)
+      expect(l['3'].width).toBe(1)
     })
 
     it('filters out events with invalid dates', () => {
@@ -449,102 +448,78 @@ describe('EventLayoutEngine', () => {
       expect(layouts[1].event.id).toBe('1')
     })
 
-    it('gives every event in an overlap cluster the same column count', () => {
-      const at = (id: string, sh: number, eh: number) =>
-        createEvent({
-          id,
-          startDate: new Date(2025, 0, 15, sh, 0),
-          endDate: new Date(2025, 0, 15, eh, 0),
-        })
-      // a overlaps b and c; b and c do not overlap each other.
-      const layouts = layoutEventsForDay(
-        [at('a', 9, 13), at('b', 9, 10), at('c', 11, 12)],
-        day,
-      )
-      expect(layouts.map((l) => l.totalColumns)).toEqual([2, 2, 2])
-      const byId = Object.fromEntries(layouts.map((l) => [l.event.id, l]))
-      expect(byId.a.column).toBe(0)
-      expect(byId.b.column).toBe(1)
-      expect(byId.c.column).toBe(1)
-    })
-
-    it('does not let a finished cluster narrow later events', () => {
-      const at = (id: string, sh: number, eh: number) =>
-        createEvent({
-          id,
-          startDate: new Date(2025, 0, 15, sh, 0),
-          endDate: new Date(2025, 0, 15, eh, 0),
-        })
-      const layouts = layoutEventsForDay(
-        [at('a', 9, 10), at('b', 9, 10), at('c', 12, 13)],
-        day,
-      )
-      const c = layouts.find((l) => l.event.id === 'c')!
-      expect(c.totalColumns).toBe(1)
-      expect(c.columnSpan).toBe(1)
-    })
-
-    it('expands an event across columns that stay free', () => {
-      const at = (id: string, sh: number, eh: number) =>
-        createEvent({
-          id,
-          startDate: new Date(2025, 0, 15, sh, 0),
-          endDate: new Date(2025, 0, 15, eh, 0),
-        })
-      const layouts = layoutEventsForDay(
-        [at('long', 9, 13), at('x', 9, 10), at('y', 9, 10)],
-        day,
-      )
-      expect(layouts.every((l) => l.totalColumns === 3)).toBe(true)
-      const byId = Object.fromEntries(layouts.map((l) => [l.event.id, l]))
-      expect(byId.long.columnSpan).toBe(1)
-
-      const wide = layoutEventsForDay(
-        [at('p', 9, 10), at('q', 9, 12), at('r', 10, 12)],
-        day,
-      )
-      const p = wide.find((l) => l.event.id === 'p')!
-      expect(p.totalColumns).toBe(2)
-      expect(p.columnSpan).toBe(1)
-      const r = wide.find((l) => l.event.id === 'r')!
-      expect(r.columnSpan).toBe(1)
-    })
-
-    it('treats very short events as occupying their minimum height', () => {
+    it('does not narrow a long event for everything that overlaps it', () => {
+      // A 9-17 workshop with a meeting every hour: the workshop stays full
+      // width, and each meeting nests over it at the same indent.
       const layouts = layoutEventsForDay(
         [
-          createEvent({
-            id: 'a',
-            startDate: new Date(2025, 0, 15, 10, 0),
-            endDate: new Date(2025, 0, 15, 10, 5),
-          }),
-          createEvent({
-            id: 'b',
-            startDate: new Date(2025, 0, 15, 10, 10),
-            endDate: new Date(2025, 0, 15, 10, 30),
-          }),
+          at('long', 9, 0, 17, 0),
+          at('m1', 10, 0, 10, 30),
+          at('m2', 12, 0, 12, 30),
+          at('m3', 15, 0, 15, 30),
         ],
         day,
       )
-      expect(layouts.map((l) => l.column).sort()).toEqual([0, 1])
+      const l = byId(layouts)
+      expect(l.long).toMatchObject({ width: 1, depth: 0 })
+      for (const id of ['m1', 'm2', 'm3']) {
+        expect(l[id]).toMatchObject({ width: 1, depth: 1 })
+      }
     })
 
-    it('handles events starting at same time', () => {
-      const events = [
-        createEvent({
-          id: '1',
-          startDate: new Date(2025, 0, 15, 10, 0),
-          endDate: new Date(2025, 0, 15, 11, 0),
-        }),
-        createEvent({
-          id: '2',
-          startDate: new Date(2025, 0, 15, 10, 0),
-          endDate: new Date(2025, 0, 15, 12, 0),
-        }),
-      ]
-      const layouts = layoutEventsForDay(events, day)
-      expect(layouts).toHaveLength(2)
-      expect(layouts.every((l) => l.totalColumns === 2)).toBe(true)
+    it('nests a later group inside the column of the event it overlaps', () => {
+      const l = byId(
+        layoutEventsForDay(
+          [
+            at('a', 9, 0, 12, 0),
+            at('b', 9, 0, 10, 0),
+            at('c', 10, 0, 11, 0),
+            at('d', 10, 0, 11, 0),
+          ],
+          day,
+        ),
+      )
+      // a and b share 9:00; b has ended at 10:00, so c and d split a's half.
+      expect(l.a).toMatchObject({ left: 0, width: 0.5 })
+      expect(l.b).toMatchObject({ left: 0.5, width: 0.5 })
+      expect(l.c).toMatchObject({ left: 0, width: 0.25, depth: 1 })
+      expect(l.d).toMatchObject({ left: 0.25, width: 0.25, depth: 1 })
+      expect(l.c.leftOffset).toBe(NEST_INDENT_PX)
+      expect(l.d.leftOffset).toBe(NEST_INDENT_PX / 2)
+    })
+
+    it('expands a group event across columns that stay free', () => {
+      const l = byId(
+        layoutEventsForDay(
+          [at('p', 9, 0, 9, 30), at('q', 9, 0, 12, 0), at('r', 9, 0, 9, 30)],
+          day,
+        ),
+      )
+      expect(l.q.width).toBeCloseTo(1 / 3)
+      expect(l.p.width).toBeCloseTo(1 / 3)
+    })
+
+    it('treats very short events as occupying their minimum height', () => {
+      const l = byId(
+        layoutEventsForDay(
+          [at('a', 10, 0, 10, 5), at('b', 10, 10, 10, 30)],
+          day,
+        ),
+      )
+      expect(l.a.width).toBe(0.5)
+      expect(l.b.left).toBe(0.5)
+    })
+
+    it('converts a box to CSS with a right gutter and a gap', () => {
+      expect(
+        layoutBoxStyle(
+          { left: 0.5, leftOffset: 6, width: 0.5, widthOffset: -6 },
+          8,
+        ),
+      ).toEqual({
+        left: 'calc((100% - 8px) * 0.5 + 6px)',
+        width: 'calc((100% - 8px) * 0.5 - 8px)',
+      })
     })
   })
 

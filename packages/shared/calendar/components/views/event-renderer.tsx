@@ -5,7 +5,10 @@ import { Edit3, Bookmark, Trash2 } from 'lucide-react'
 import { cn } from '@zntr/utils'
 import type { CalendarEvent } from '#calendar/lib/calendar-types'
 import type { ViewConfig } from '#calendar/lib/calendar-types'
-import { EventLayoutEngine as EventLayoutEngineClass } from '#calendar/components/views/event-layout-engine'
+import {
+  EventLayoutEngine as EventLayoutEngineClass,
+  layoutBoxStyle,
+} from '#calendar/components/views/event-layout-engine'
 import { translations } from '@zntr/i18n/calendar'
 import {
   getEventAccentColor,
@@ -40,11 +43,15 @@ interface EventRendererProps {
   layout: {
     start: Date
     end: Date
-    column: number
-    totalColumns: number
-    columnSpan: number
+    left: number
+    leftOffset: number
+    width: number
+    widthOffset: number
+    depth: number
     isMultiDay: boolean
   }
+  /** Paint order; later-starting blocks are drawn over earlier ones. */
+  stackIndex?: number
   config: ViewConfig
   isDark: boolean
   onEventClick: (
@@ -96,6 +103,7 @@ export function EventRenderer({
   queueIgnoreEventClick,
   showTime = true,
   className: _className,
+  stackIndex = 0,
 }: EventRendererProps) {
   if (!config) return null
   const layoutEngine = EventLayoutEngineClass.create(config)
@@ -126,9 +134,8 @@ export function EventRenderer({
   const minHeight = 20
   const height = Math.max(duration, minHeight)
 
-  const track = `(100% - 8px) / ${layout.totalColumns}`
-  const width = `calc(${track} * ${layout.columnSpan} - 2px)`
-  const left = `calc(${track} * ${layout.column})`
+  const { left, width } = layoutBoxStyle(layout, 8)
+  const isCompact = layout.width < 0.5 || height < 40
 
   const canResize =
     !event.viewOnly &&
@@ -169,18 +176,19 @@ export function EventRenderer({
         <div
           data-event-id={event.id}
           className={cn(
-            'relative absolute rounded-md p-2 text-sm cursor-pointer overflow-hidden',
+            'absolute cursor-pointer overflow-hidden rounded-md ring-1 ring-background',
+            isCompact ? 'px-1.5 py-1 text-xs' : 'p-2 text-sm',
             event.color,
             _className,
           )}
           style={{
             top: `${displayStart}px`,
             height: `${height}px`,
-            opacity: isDark ? 1 : 0.9,
             backgroundColor: getEventBackgroundColor(event.color, isDark),
             width,
             left,
-            zIndex: layout.column + 1,
+            // Stay under the current-time line (z-30).
+            zIndex: Math.min(stackIndex + 1, 29),
           }}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}

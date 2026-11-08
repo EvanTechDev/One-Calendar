@@ -34,6 +34,7 @@ import {
   EventLayoutEngine as EventLayoutEngineClass,
   isBannerEvent,
   layoutAllDaySegments,
+  layoutBoxStyle,
 } from '#calendar/components/views/event-layout-engine'
 import { useEventResize } from '#calendar/hooks/use-event-resize'
 import { eventsOnDay, useEventsByDay } from '#calendar/hooks/use-events-by-day'
@@ -805,15 +806,8 @@ export default function WeekView({
               ))}
 
               {eventLayouts.map(
-                ({
-                  event,
-                  start,
-                  end,
-                  column,
-                  totalColumns,
-                  columnSpan,
-                  isMultiDay,
-                }) => {
+                (layout, stackIndex) => {
+                  const { event, start, end, isMultiDay } = layout
                   const startMinutes =
                     start.getHours() * 60 + start.getMinutes()
                   const endMinutes = end.getHours() * 60 + end.getMinutes()
@@ -833,9 +827,8 @@ export default function WeekView({
                   const minHeight = 20
                   const height = Math.max(duration, minHeight)
 
-                  const track = `(100% - 4px) / ${totalColumns}`
-                  const width = `calc(${track} * ${columnSpan} - 2px)`
-                  const left = `calc(${track} * ${column})`
+                  const { left, width } = layoutBoxStyle(layout, 4)
+                  const isCompact = layout.width < 0.5 || height < 40
 
                   const canResize =
                     !event.viewOnly &&
@@ -848,20 +841,21 @@ export default function WeekView({
                       key={`${event.id}-${day.toISOString().split('T')[0]}`}
                       data-event-id={event.id}
                       className={cn(
-                        'relative absolute rounded-md p-2 text-sm cursor-pointer overflow-hidden',
+                        'absolute cursor-pointer overflow-hidden rounded-md ring-1 ring-background',
+                        isCompact ? 'px-1.5 py-1 text-xs' : 'p-2 text-sm',
                         event.color,
                       )}
                       style={{
                         top: `${renderStart}px`,
                         height: `${height}px`,
-                        opacity: isDark ? 1 : 0.92,
                         backgroundColor: getEventBackgroundColor(
                           event.color,
                           isDark,
                         ),
                         width,
                         left,
-                        zIndex: column + 1,
+                        // Stay under the current-time line (z-30).
+            zIndex: Math.min(stackIndex + 1, 29),
                       }}
                       onMouseDown={(e) => handleEventDragStart(event, e)}
                       onMouseUp={handleEventDragEnd}

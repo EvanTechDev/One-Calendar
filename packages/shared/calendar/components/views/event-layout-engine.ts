@@ -5,14 +5,25 @@ import type { CalendarEvent } from '#calendar/lib/calendar-types'
 import { toCalendarDate } from '#calendar/lib/zoned-date'
 import { Language, TimeFormat, ViewConfig } from '#calendar/lib/calendar-types'
 
+/**
+ * A timed event placed in a day column.
+ *
+ * The horizontal box is a linear form of the column width: the block's left
+ * edge is `left * W + leftOffset` px and its width `width * W + widthOffset`
+ * px, where `W` is the usable column width. Fractions come from side-by-side
+ * placement, the pixel offsets from nesting indents, which must stay a fixed
+ * size however wide the column is.
+ */
 export interface LayoutEvent {
   event: CalendarEvent
   start: Date
   end: Date
-  column: number
-  totalColumns: number
-  /** Columns the block covers; >1 when the columns to its right are free. */
-  columnSpan: number
+  left: number
+  leftOffset: number
+  width: number
+  widthOffset: number
+  /** Nesting level; 0 is a block that sits directly on the column. */
+  depth: number
   isMultiDay: boolean
 }
 
@@ -24,6 +35,19 @@ export interface LayoutEvent {
  */
 export const MIN_VISUAL_MINUTES = 20
 
+/**
+ * Events that start less than this far apart are shown side by side. One that
+ * starts later is laid over the event already running, indented, so the top
+ * of the earlier block — its title and time — stays readable.
+ */
+export const SIDE_BY_SIDE_MINUTES = 30
+
+/** Horizontal indent of each nesting level, in px. */
+export const NEST_INDENT_PX = 12
+
+/** Nesting deeper than this stops indenting further. */
+const MAX_INDENT_DEPTH = 4
+
 interface TimedItem {
   event: CalendarEvent
   start: Date
@@ -31,19 +55,29 @@ interface TimedItem {
   isMultiDay: boolean
 }
 
+interface Box {
+  left: number
+  leftOffset: number
+  width: number
+  widthOffset: number
+}
+
 /**
- * Packs timed events into side-by-side columns, the way Google Calendar does.
+ * Lays timed events out the way Google Calendar does.
  *
- * Events are grouped into clusters of transitively overlapping events. Every
- * event in a cluster shares the cluster's column count, so widths agree no
- * matter which event of the cluster is looked at, and a cluster never affects
- * its neighbours. Within a cluster each event takes the first column that is
- * free at its start; longer events go first, so they hold the leftmost column.
- * Finally an event grows rightwards across any columns that stay empty for its
- * whole duration rather than leaving a gap.
+ * Splitting every overlap into equal columns turns a busy afternoon into a
+ * row of slivers, because one long event keeps the whole cluster divided for
+ * hours. Instead, events whose starts fall within {@link SIDE_BY_SIDE_MINUTES}
+ * of each other form a group and share its area in columns. A group that
+ * starts while another event is still running is nested over that event:
+ * indented from its left edge, sharing its right edge, and drawn on top. The
+ * running event keeps its full width, so only the events that really compete
+ * for the same moment get narrower.
  */
 export function packTimedEvents(items: TimedItem[]): LayoutEvent[] {
   const minMs = MIN_VISUAL_MINUTES * 60 * 1000
+  const groupMs = SIDE_BY_SIDE_MINUTES * 60 * 1000
+
   const entries = items.map((item) => {
     const start = item.start.getTime()
     const end = Math.max(item.end.getTime(), start + minMs)
@@ -57,56 +91,102 @@ export function packTimedEvents(items: TimedItem[]): LayoutEvent[] {
       a.item.event.id.localeCompare(b.item.event.id),
   )
 
-  const layouts: LayoutEvent[] = []
-  let cluster: typeof entries = []
-  let clusterEnd = -Infinity
+  type Entry = (typeof entries)[number]
+  type Placed = { entry: Entry; box: Box; depth: number }
 
-  const flush = () => {
-    if (cluster.length === 0) return
+  const placed: Placed[] = []
+
+  for (let i = 0; i < entries.length; ) {
+    const groupStart = entries[i].start
+    let j = i
+    while (j < entries.length && entries[j].start - groupStart < groupMs) j++
+    const group = entries.slice(i, j)
+    i = j
+
+    // The group nests over the topmost block still running when it starts:
+    // the deepest one, and the latest drawn among equals.
+    let parent: Placed | undefined
+    for (const candidate of placed) {
+      if (candidate.entry.end <= groupStart) continue
+      if (!parent || candidate.depth >= parent.depth) parent = candidate
+    }
+
+    const indent =
+      parent && parent.depth < MAX_INDENT_DEPTH ? NEST_INDENT_PX : 0
+    const region: Box = parent
+      ? {
+          left: parent.box.left,
+          leftOffset: parent.box.leftOffset + indent,
+          width: parent.box.width,
+          widthOffset: parent.box.widthOffset - indent,
+        }
+      : { left: 0, leftOffset: 0, width: 1, widthOffset: 0 }
+    const depth = parent ? parent.depth + 1 : 0
 
     const columnEnds: number[] = []
-    const placed = cluster.map((entry) => {
+    const columns = group.map((entry) => {
       let column = columnEnds.findIndex((end) => end <= entry.start)
       if (column === -1) column = columnEnds.length
       columnEnds[column] = entry.end
-      return { entry, column }
+      return column
     })
+    const total = columnEnds.length
 
-    const totalColumns = columnEnds.length
-    for (const { entry, column } of placed) {
-      let columnSpan = 1
-      while (column + columnSpan < totalColumns) {
-        const next = column + columnSpan
-        const blocked = placed.some(
-          (other) =>
-            other.column === next &&
-            other.entry.start < entry.end &&
-            entry.start < other.entry.end,
+    group.forEach((entry, index) => {
+      const column = columns[index]
+      let span = 1
+      while (column + span < total) {
+        const next = column + span
+        const blocked = group.some(
+          (other, otherIndex) =>
+            columns[otherIndex] === next &&
+            other.start < entry.end &&
+            entry.start < other.end,
         )
         if (blocked) break
-        columnSpan++
+        span++
       }
-      layouts.push({
-        event: entry.item.event,
-        start: entry.item.start,
-        end: entry.item.end,
-        column,
-        totalColumns,
-        columnSpan,
-        isMultiDay: entry.item.isMultiDay,
+      placed.push({
+        entry,
+        depth,
+        box: {
+          left: region.left + (region.width * column) / total,
+          leftOffset: region.leftOffset + (region.widthOffset * column) / total,
+          width: (region.width * span) / total,
+          widthOffset: (region.widthOffset * span) / total,
+        },
       })
-    }
-    cluster = []
+    })
   }
 
-  for (const entry of entries) {
-    if (entry.start >= clusterEnd) flush()
-    cluster.push(entry)
-    clusterEnd = cluster.length === 1 ? entry.end : Math.max(clusterEnd, entry.end)
-  }
-  flush()
+  return placed.map(({ entry, box, depth }) => ({
+    event: entry.item.event,
+    start: entry.item.start,
+    end: entry.item.end,
+    ...box,
+    depth,
+    isMultiDay: entry.item.isMultiDay,
+  }))
+}
 
-  return layouts
+/**
+ * CSS position of a laid-out block inside a day column. `gutterPx` stays
+ * free at the column's right edge so empty time can still be clicked, and
+ * `gapPx` separates neighbouring blocks.
+ */
+export function layoutBoxStyle(
+  layout: Pick<LayoutEvent, keyof Box>,
+  gutterPx: number,
+  gapPx = 2,
+): { left: string; width: string } {
+  const base = `(100% - ${gutterPx}px)`
+  const round = (value: number) => Number(value.toFixed(4))
+  const offset = (px: number) =>
+    px < 0 ? ` - ${round(-px)}px` : ` + ${round(px)}px`
+  return {
+    left: `calc(${base} * ${round(layout.left)}${offset(layout.leftOffset)})`,
+    width: `calc(${base} * ${round(layout.width)}${offset(layout.widthOffset - gapPx)})`,
+  }
 }
 
 // These are grid coordinates, not an elapsed-time interval. In a DST fold
